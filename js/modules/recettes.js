@@ -99,18 +99,17 @@ function _renderListe() {
     tbl.innerHTML = `<thead><tr>
       <th>Réf</th><th>Désignation</th><th>Catégorie</th>
       <th>Qté / u.</th><th>Unité</th><th>Prix achat HT</th>
-      <th>Coût / produit</th><th>Stock dispo</th><th>Fabricable</th>
+      <th>Coût / produit</th><th>Stock dispo</th>
     </tr></thead>`;
 
     const tbody = document.createElement('tbody');
     if (!lignes.length) {
-      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:12px;color:var(--ink-muted)">Aucun article dans la recette.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:12px;color:var(--ink-muted)">Aucun article dans la recette.</td></tr>';
     } else {
       lignes.forEach(l => {
         const a      = l.articles || _articles.find(x => x.id === l.article_id) || {};
         const coutL  = (a.prix || 0) * l.quantite;
         const sd     = a.stock || 0;
-        const fd     = l.quantite > 0 ? Math.floor(sd / l.quantite) : 0;
         const tr     = document.createElement('tr');
         tr.innerHTML = `
           <td class="td-ref">${esc(a.ref || l.article_id)}</td>
@@ -121,10 +120,7 @@ function _renderListe() {
           <td>${fmt(a.prix || 0)} €</td>
           <td style="font-weight:600;">${fmt(coutL)} €</td>
           <td>${fmtQ(sd)} ${esc(a.unite || '')}</td>
-          <td>${fd > 0
-            ? `<span class="badge badge-ok">${fd} u.</span>`
-            : '<span class="badge badge-alert">0</span>'}
-          </td>`;
+          `;  /* Fabricable supprimé */
         tbody.appendChild(tr);
       });
     }
@@ -135,7 +131,7 @@ function _renderListe() {
     tfoot.innerHTML = `<tr style="background:var(--ui-bg2);">
       <td colspan="6" style="text-align:right;font-weight:600;padding:8px 12px;">Coût de revient par unité :</td>
       <td style="font-weight:700;color:var(--accent);padding:8px 12px;">${fmt(cout)} €</td>
-      <td colspan="2"></td>
+      <td></td>
     </tr>`;
     tbl.appendChild(tfoot);
     body.appendChild(tbl);
