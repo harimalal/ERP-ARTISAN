@@ -814,34 +814,23 @@
   document.getElementById('btnExportCSV')?.addEventListener('click', () => admin.exporterTout());
 
   /* Rechargement global après import masse
-     Quand admin.js dispatch appmee:datachanged avec entity='import_masse',
-     on recharge tous les modules concernés par les données importées */
+     Recharge TOUS les modules pour garantir la cohérence des données.
+     Promise.allSettled évite qu'une erreur d'un module bloque les autres. */
   document.addEventListener('appmee:datachanged', async (e) => {
-    const { entity, entities = [] } = e.detail || {};
+    const { entity } = e.detail || {};
     if (entity !== 'import_masse') return;
 
-    const reloads = [];
-    if (entities.includes('articles') || entities.includes('recettes')) {
-      reloads.push(stock.render());
-      reloads.push(produits.render());
-      reloads.push(recettes.render());
-    }
-    if (entities.includes('produits') || entities.includes('recettes')) {
-      reloads.push(produits.render());
-      reloads.push(recettes.render());
-      reloads.push(production.render());
-    }
-    if (entities.includes('commandes')) {
-      reloads.push(commandes.render());
-      reloads.push(dashboard.render());
-    }
-    if (entities.includes('clients') || entities.includes('fournisseurs')) {
-      reloads.push(achats.render());
-    }
-    /* Toujours recharger le dashboard */
-    reloads.push(dashboard.render());
-
-    await Promise.allSettled(reloads);
+    await Promise.allSettled([
+      dashboard.render(),
+      stock.render(),
+      produits.render(),
+      commandes.render(),
+      production.render(),
+      achats.render(),
+      livraisons.render(),
+      recettes.render(),
+      admin.render(),
+    ]);
   });
 
   /* Init des modules */
