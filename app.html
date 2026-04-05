@@ -98,7 +98,6 @@
     <div><div class="sec-title">Stock Articles</div><div class="sec-sub">Matières premières, emballages, consommables</div></div>
     <div class="btn-row">
       <input type="text" class="search-input" placeholder="Rechercher..." id="stockSearchInput">
-      <button class="btn btn-ghost" data-modal="modalInventaire">📦 Inventaire</button>
       <button class="btn btn-outline" data-modal="modalAchat">+ Bon de commande</button>
       <button class="btn btn-primary" data-modal="modalNewArticle">+ Nouvel article</button>
     </div>
@@ -144,7 +143,6 @@
     <div><div class="sec-title">Commandes clients</div><div class="sec-sub">Cycle complet commande → livraison</div></div>
     <div class="btn-row">
       <button class="btn btn-ghost" data-modal="modalImportIA">🤖 Import IA</button>
-      <button class="btn btn-ghost" data-modal="modalImportMasse">📥 Import masse</button>
       <button class="btn btn-primary" data-modal="modalCommande">+ Nouvelle commande</button>
     </div>
   </div>
@@ -831,6 +829,138 @@
       recettes.render(),
       admin.render(),
     ]);
+  });
+
+  /* ── LISTENERS GLOBAUX ──────────────────────────────────── */
+
+  /* Aperçu PDF — dispatché par achats.js, commandes.js, livraisons.js */
+  document.addEventListener('appmee:showPdf', (e) => {
+    const { title, type, data, commande } = e.detail || {};
+    if (!data) return;
+
+    const me = {}; /* les infos entreprise sont dans le tenant — on laisse vide pour l'aperçu */
+
+    let html = '';
+
+    if (type === 'bc') {
+      /* BC fournisseur — regroupé par fournisseur si multi-articles */
+      const tva     = (data.montant_ht || 0) * 0.20;
+      const ttc     = (data.montant_ht || 0) + tva;
+      html = `<div class="pdf-hdr">
+        <div><h2>Bon de commande fournisseur</h2>
+          <div style="font-size:12px;color:#888;margin-top:3px;">${data.ref || 'Brouillon'}</div></div>
+        <div style="text-align:right;font-size:11px;color:#555;">
+          <div>Date : ${data.date_cmd || data.date || ''}</div>
+          ${data.ref_commande ? '<div>Réf commande : ' + data.ref_commande + '</div>' : ''}
+          <div style="margin-top:6px;padding:4px 8px;background:#fff3e0;border-radius:4px;">
+            Statut : <strong>${data.statut || 'brouillon'}</strong></div>
+        </div></div>
+        <div style="margin-bottom:16px;padding:10px 14px;background:#f9f9f9;border-radius:7px;font-size:11px;">
+          <strong>Fournisseur :</strong> ${data.fournisseur || '—'}
+        </div>
+        <table><thead><tr>
+          <th>Article</th><th>Référence</th><th>Quantité</th><th>Unité</th>
+          <th>Prix unit. HT</th><th>Total HT</th>
+        </tr></thead><tbody>
+        <tr>
+          <td>${data.article_nom || data.nom || '—'}</td>
+          <td>${data.ref_article || data.ref || '—'}</td>
+          <td>${data.quantite || 0}</td>
+          <td>${data.unite || ''}</td>
+          <td>${(data.prix_unitaire || data.prix || 0).toFixed(2)} €</td>
+          <td style="font-weight:600">${(data.montant_ht || 0).toFixed(2)} €</td>
+        </tr>
+        </tbody>
+        <tr style="background:#f0f0f0;"><td colspan="5" style="text-align:right;font-weight:700;padding:6px 8px;">Total HT</td>
+          <td style="font-weight:700;padding:6px 8px;">${(data.montant_ht || 0).toFixed(2)} €</td></tr>
+        <tr><td colspan="5" style="text-align:right;padding:4px 8px;font-size:10px;color:#888;">TVA 20%</td>
+          <td style="padding:4px 8px;font-size:10px;color:#888;">${tva.toFixed(2)} €</td></tr>
+        <tr style="background:#f0f0f0;"><td colspan="5" style="text-align:right;font-weight:700;padding:6px 8px;">Total TTC</td>
+          <td style="font-weight:700;padding:6px 8px;">${ttc.toFixed(2)} €</td></tr>
+        </table>
+        ${data.notes ? '<div style="margin-top:12px;font-size:11px;color:#555;padding:8px;background:#f9f9f9;border-radius:4px;">Note : ' + data.notes + '</div>' : ''}`;
+
+    } else if (type === 'commande') {
+      const lignes = data.commande_lignes || [];
+      const tot    = lignes.reduce((s, l) => s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
+      const tva    = tot * 0.20;
+      const ttc    = tot + tva;
+      html = `<div class="pdf-hdr">
+        <div><h2>Bon de commande client</h2>
+          <div style="font-size:12px;color:#888;margin-top:3px;">${data.ref}</div></div>
+        <div style="text-align:right;font-size:11px;color:#555;">
+          <div>Date : ${data.date_cmd || ''}</div>
+          ${data.date_livraison ? '<div>Livraison prévue : <strong>' + data.date_livraison + '</strong></div>' : ''}
+        </div></div>
+        <div style="margin-bottom:16px;padding:10px 14px;background:#f9f9f9;border-radius:7px;font-size:11px;">
+          <strong>Client :</strong> ${data.client_nom || '—'}
+        </div>
+        <table><thead><tr>
+          <th>Produit</th><th>Quantité</th><th>Prix unit. HT</th><th>Total HT</th>
+        </tr></thead><tbody>
+        ${lignes.map(l => '<tr><td>' + (l.produit_nom || '—') + '</td><td>' + l.quantite + '</td><td>' + (l.prix_unitaire || 0).toFixed(2) + ' €</td><td style="font-weight:600">' + (l.total_ht || l.quantite * l.prix_unitaire || 0).toFixed(2) + ' €</td></tr>').join('')}
+        </tbody>
+        <tr style="background:#f0f0f0;"><td colspan="3" style="text-align:right;font-weight:700;padding:6px 8px;">Total HT</td>
+          <td style="font-weight:700;padding:6px 8px;">${tot.toFixed(2)} €</td></tr>
+        <tr><td colspan="3" style="text-align:right;padding:4px 8px;font-size:10px;color:#888;">TVA 20%</td>
+          <td style="padding:4px 8px;font-size:10px;color:#888;">${tva.toFixed(2)} €</td></tr>
+        <tr style="background:#f0f0f0;"><td colspan="3" style="text-align:right;font-weight:700;padding:6px 8px;">Total TTC</td>
+          <td style="font-weight:700;padding:6px 8px;">${ttc.toFixed(2)} €</td></tr>
+        </table>
+        ${data.notes ? '<div style="margin-top:12px;font-size:11px;color:#555;padding:8px;background:#f9f9f9;">Notes : ' + data.notes + '</div>' : ''}`;
+
+    } else if (type === 'facture') {
+      const tva = (data.montant_ht || 0) * ((data.taux_tva || 20) / 100);
+      const ttc = data.montant_ttc || (data.montant_ht || 0) + tva;
+      const lignes = commande ? (commande.commande_lignes || []) : [];
+      html = `<div class="pdf-hdr">
+        <div><h2>Facture</h2>
+          <div style="font-size:12px;color:#888;margin-top:3px;">${data.ref}</div></div>
+        <div style="text-align:right;font-size:11px;color:#555;">
+          <div>Date : <strong>${data.date_facture || ''}</strong></div>
+          ${data.ref_commande ? '<div>Commande : ' + data.ref_commande + '</div>' : ''}
+        </div></div>
+        <div style="margin-bottom:16px;padding:10px 14px;background:#f9f9f9;border-radius:7px;font-size:11px;">
+          <strong>Client :</strong> ${data.client_nom || '—'}
+        </div>
+        <table><thead><tr>
+          <th>Désignation</th><th>Quantité</th><th>Prix unit. HT</th><th>Total HT</th>
+        </tr></thead><tbody>
+        ${lignes.length
+          ? lignes.map(l => '<tr><td>' + (l.produit_nom || '—') + '</td><td>' + l.quantite + '</td><td>' + (l.prix_unitaire || 0).toFixed(2) + ' €</td><td style="font-weight:600">' + (l.total_ht || l.quantite * l.prix_unitaire || 0).toFixed(2) + ' €</td></tr>').join('')
+          : '<tr><td colspan="3">' + (data.notes || 'Voir commande') + '</td><td style="font-weight:600">' + (data.montant_ht || 0).toFixed(2) + ' €</td></tr>'
+        }
+        </tbody>
+        <tr style="background:#f0f0f0;"><td colspan="3" style="text-align:right;font-weight:700;padding:6px 8px;">Total HT</td>
+          <td style="font-weight:700;padding:6px 8px;">${(data.montant_ht || 0).toFixed(2)} €</td></tr>
+        <tr><td colspan="3" style="text-align:right;padding:4px 8px;font-size:10px;color:#888;">TVA ${data.taux_tva || 20}%</td>
+          <td style="padding:4px 8px;font-size:10px;color:#888;">${tva.toFixed(2)} €</td></tr>
+        <tr style="background:#f0f0f0;"><td colspan="3" style="text-align:right;font-weight:700;padding:6px 8px;font-size:13px;">Total TTC</td>
+          <td style="font-weight:700;padding:6px 8px;font-size:13px;color:#2d6a4f;">${ttc.toFixed(2)} €</td></tr>
+        </table>
+        ${data.notes ? '<div style="margin-top:14px;font-size:11px;padding:10px;background:#f9f9f9;border-radius:4px;border-left:3px solid #c8432b;">' + data.notes + '</div>' : ''}`;
+    }
+
+    document.getElementById('pdfPreviewTitle').textContent = title || 'Aperçu';
+    document.getElementById('pdfPreviewContent').innerHTML = html;
+    openModal('modalPdfPreview');
+  });
+
+  /* Modifier recette — ouvre modal produit avec la nomenclature pré-remplie */
+  document.addEventListener('appmee:editProduit', async (e) => {
+    const { produitId } = e.detail || {};
+    if (!produitId) return;
+    produits.initNewProduitModal
+      ? produits.initNewProduitModal(null, produitId)
+      : null;
+    /* Le modal est ouvert par recettes.js directement */
+  });
+
+  /* Planifier OF depuis recettes — pré-sélectionne le produit */
+  document.addEventListener('appmee:planifierOF', (e) => {
+    const { ref } = e.detail || {};
+    if (!ref) return;
+    production.initPlanifierModal ? production.initPlanifierModal(ref) : null;
   });
 
   /* Init des modules */
