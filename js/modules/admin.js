@@ -637,6 +637,20 @@ export async function exporterTout() {
         colonnes: ['ref', 'client_nom', 'date_cmd', 'date_livraison', 'statut', 'notes'],
       },
       {
+        nom: 'commandes_lignes',
+        /* Aplatir les lignes de commandes pour l'export */
+        data: commandes.flatMap(c => (c.commande_lignes || []).map(l => ({
+          commande_ref:  c.ref,
+          client_nom:    c.client_nom,
+          date_cmd:      c.date_cmd,
+          produit_nom:   l.produit_nom,
+          quantite:      l.quantite,
+          prix_unitaire: l.prix_unitaire,
+          total_ht:      l.total_ht || (l.quantite * l.prix_unitaire),
+        }))),
+        colonnes: ['commande_ref', 'client_nom', 'date_cmd', 'produit_nom', 'quantite', 'prix_unitaire', 'total_ht'],
+      },
+      {
         nom: 'achats',
         data: achats,
         colonnes: ['ref', 'article_nom', 'quantite', 'prix_unitaire', 'montant_ht', 'fournisseur', 'date_cmd', 'date_livraison', 'statut', 'ref_commande'],
