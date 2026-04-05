@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AppMee — Connexion</title>
+<meta name="supa-url" content="https://rynfsrsevgqyiycdscov.supabase.co">
+<meta name="supa-key" content="sb_publishable_g_gefc-Mrw1wgSC_F8nZlw_BAMix93k">
 <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -821,15 +823,29 @@ async function handleLogin(btn) {
   btn.dataset.orig = btn.textContent;
   btn.textContent = 'Connexion en cours';
 
-  // Simulation appel Supabase Auth (à remplacer par vrai appel)
-  await new Promise(r => setTimeout(r, 1400));
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    const supabase = createClient(
+      document.querySelector('meta[name="supa-url"]').content,
+      document.querySelector('meta[name="supa-key"]').content
+    );
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  btn.classList.remove('loading');
-  btn.textContent = btn.dataset.orig;
+    btn.classList.remove('loading');
+    btn.textContent = btn.dataset.orig;
 
-  // Succès simulé → redirection
-  showMsg('Connexion réussie ! Redirection…', 'success');
-  setTimeout(() => { window.location.href = '/app'; }, 1200);
+    if (error) {
+      showMsg('Email ou mot de passe incorrect.');
+      return;
+    }
+
+    showMsg('Connexion réussie ! Redirection…', 'success');
+    setTimeout(() => { window.location.href = '/app'; }, 800);
+  } catch (err) {
+    btn.classList.remove('loading');
+    btn.textContent = btn.dataset.orig;
+    showMsg('Erreur de connexion. Réessayez.');
+  }
 }
 
 // ── INSCRIPTION ───────────────────────────────
@@ -850,12 +866,35 @@ async function handleSignup(btn) {
   btn.dataset.orig = btn.textContent;
   btn.textContent = 'Création en cours';
 
-  // Simulation appel Supabase Auth (à remplacer par vrai appel)
-  await new Promise(r => setTimeout(r, 1600));
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    const supabase = createClient(
+      document.querySelector('meta[name="supa-url"]').content,
+      document.querySelector('meta[name="supa-key"]').content
+    );
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { prenom, nom, entreprise }
+      }
+    });
 
-  btn.classList.remove('loading');
-  btn.textContent = btn.dataset.orig;
-  showMsg('Compte créé ! Vérifiez votre e-mail pour confirmer votre inscription.', 'success');
+    btn.classList.remove('loading');
+    btn.textContent = btn.dataset.orig;
+
+    if (error) {
+      showMsg(error.message || 'Erreur lors de la création du compte.');
+      return;
+    }
+
+    showMsg('Compte créé avec succès ! Vous pouvez maintenant vous connecter.', 'success');
+    setTimeout(() => { switchTab('login'); }, 2000);
+  } catch (err) {
+    btn.classList.remove('loading');
+    btn.textContent = btn.dataset.orig;
+    showMsg('Erreur de création de compte. Réessayez.');
+  }
 }
 
 // ── CYCLE MOTS HOOK ──────────────────────────
