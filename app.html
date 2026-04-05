@@ -742,6 +742,7 @@
   import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
 
   /* Chargement de tous les modules métier */
+  async function demarrerApp() {
   const modules = await Promise.all([
     import('/js/modules/dashboard.js'),
     import('/js/modules/stock.js'),
@@ -818,6 +819,8 @@
 
   /* Masquer l'écran de chargement */
   document.getElementById('app-loading').style.display = 'none';
+    }
+  demarrerApp().catch(err => console.error('[AppMee] Erreur :', err));
 </script>
 </body>
 </html>
