@@ -1073,6 +1073,23 @@ async function _massImport() {
       `${counts.fournisseurs} fournisseurs, ${counts.commandes} commandes.`
     );
   }
+
+  /* Notifier tous les modules qu'un import a eu lieu
+     → chaque module écoute appmee:datachanged et recharge ses données */
+  const entities = [];
+  if (counts.articles  > 0) entities.push('articles');
+  if (counts.produits  > 0) entities.push('produits');
+  if (counts.recettes  > 0) entities.push('recettes');
+  if (counts.clients   > 0) entities.push('clients');
+  if (counts.fournisseurs > 0) entities.push('fournisseurs');
+  if (counts.commandes > 0) entities.push('commandes');
+
+  if (entities.length > 0) {
+    /* Un seul événement global couvre tous les modules impactés */
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', {
+      detail: { entity: 'import_masse', entities }
+    }));
+  }
 }
 
 function _dlTemplate(type) {
