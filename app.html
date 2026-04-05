@@ -235,7 +235,10 @@
 <div id="page-admin" class="page">
   <div class="sec-hdr">
     <div><div class="sec-title">Administration</div><div class="sec-sub">Référentiels complets — cliquer sur une ligne pour modifier</div></div>
-    <div class="btn-row"><button class="btn btn-ghost" data-modal="modalImportMasse">📥 Import Excel/CSV</button></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="btnExportCSV">📤 Exporter tout en CSV</button>
+      <button class="btn btn-ghost" data-modal="modalImportMasse">📥 Import Excel/CSV</button>
+    </div>
   </div>
   <div class="card" style="margin-bottom:14px;">
     <div class="card-hdr">
@@ -806,6 +809,40 @@
   document.getElementById('btnNewCommande').addEventListener('click', () => openModal('modalCommande'));
   document.getElementById('btnSignOut').addEventListener('click', () => signOut());
   document.getElementById('btnPrintPdf').addEventListener('click', () => window.print());
+
+  /* Export CSV — branché sur le bouton Admin */
+  document.getElementById('btnExportCSV')?.addEventListener('click', () => admin.exporterTout());
+
+  /* Rechargement global après import masse
+     Quand admin.js dispatch appmee:datachanged avec entity='import_masse',
+     on recharge tous les modules concernés par les données importées */
+  document.addEventListener('appmee:datachanged', async (e) => {
+    const { entity, entities = [] } = e.detail || {};
+    if (entity !== 'import_masse') return;
+
+    const reloads = [];
+    if (entities.includes('articles') || entities.includes('recettes')) {
+      reloads.push(stock.render());
+      reloads.push(produits.render());
+      reloads.push(recettes.render());
+    }
+    if (entities.includes('produits') || entities.includes('recettes')) {
+      reloads.push(produits.render());
+      reloads.push(recettes.render());
+      reloads.push(production.render());
+    }
+    if (entities.includes('commandes')) {
+      reloads.push(commandes.render());
+      reloads.push(dashboard.render());
+    }
+    if (entities.includes('clients') || entities.includes('fournisseurs')) {
+      reloads.push(achats.render());
+    }
+    /* Toujours recharger le dashboard */
+    reloads.push(dashboard.render());
+
+    await Promise.allSettled(reloads);
+  });
 
   /* Init des modules */
   await commandes.init();
