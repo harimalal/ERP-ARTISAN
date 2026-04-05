@@ -7,9 +7,9 @@
 
 import {
   getTenant, updateTenant,
-  getArticles, updateArticle, deleteArticle,
-  getProduits, updateProduit, deleteProduit,
-  getClients, createClient, updateClient, deleteClient,
+  getArticles, createArticle, updateArticle, deleteArticle,
+  getProduits, createProduit, updateProduit, deleteProduit,
+  getClients, createClient, upsertClient, updateClient, deleteClient,
   getFournisseurs, createFournisseur, updateFournisseur, deleteFournisseur,
   getMouvements, addMouvement,
 } from '../db.js';
@@ -600,8 +600,8 @@ function _bindImportMasse() {
   const zones = [
     { key: 'articles',     label: '📦 Articles',     fields: 'ref, nom, categorie, unite, prix, fournisseur, seuil, stock' },
     { key: 'produits',     label: '🏷 Produits',      fields: 'ref, nom, prix, seuil, stock' },
-    { key: 'clients',      label: '👤 Clients',       fields: 'nom' },
-    { key: 'fournisseurs', label: '🏪 Fournisseurs',  fields: 'nom' },
+    { key: 'clients',      label: '👤 Clients',       fields: 'nom, email, tel, adresse, notes' },
+    { key: 'fournisseurs', label: '🏪 Fournisseurs',  fields: 'nom, contact, email, tel, adresse, delai, categorie' },
   ];
 
   const container = document.getElementById('massImportZones');
@@ -691,25 +691,126 @@ function _massUpdateTotal() {
 }
 
 async function _massImport() {
-  let counts = { articles: 0, produits: 0, clients: 0, fournisseurs: 0 };
+  const counts  = { articles: 0, produits: 0, clients: 0, fournisseurs: 0 };
+  const errors  = [];
+  const btn     = document.getElementById('massBtnImport');
+  if (btn) { btn.disabled = true; btn.textContent = 'Import en cours…'; }
 
+  /* ── ARTICLES ── */
   if (_massLoaded.articles) {
     for (const r of _massLoaded.articles.rows) {
       const ref = String(r.ref || '').trim();
-      const nom = String(r.nom || '').trim();
-      if (!ref || !nom || _articles.find(a => a.ref === ref)) continue;
-      /* Import via Supabase */
-      counts.articles++;
+      const nom = String(r.nom || r.Nom || '').trim();
+      if (!ref || !nom) continue;
+      if (_articles.find(a => a.ref === ref)) continue; /* doublon ignoré */
+      try {
+        const created = await createArticle({
+          ref,
+          nom,
+          categorie:   String(r.categorie || r.Catégorie || 'autre').trim().toLowerCase(),
+          unite:       String(r.unite || r.Unité || 'unité').trim(),
+          prix:        parseFloat(String(r.prix || r.Prix || '0').replace(',', '.')) || 0,
+          fournisseur: String(r.fournisseur || r.Fournisseur || '').trim(),
+          seuil:       parseInt(r.seuil || r.Seuil || '0') || 0,
+          stock:       parseFloat(String(r.stock || r.Stock || '0').replace(',', '.')) || 0,
+        });
+        _articles.push(created);
+        counts.articles++;
+      } catch (err) {
+        errors.push('Article ' + ref + ' : ' + err.message);
+      }
     }
   }
 
-  /* Note : l'import masse complet via Supabase est fonctionnel
-     mais nécessite une boucle d'insert avec gestion des doublons.
-     La structure est en place — à compléter avec createArticle() etc. */
+  /* ── PRODUITS ── */
+  if (_massLoaded.produits) {
+    for (const r of _massLoaded.produits.rows) {
+      const ref = String(r.ref || '').trim();
+      const nom = String(r.nom || r.Nom || '').trim();
+      if (!ref || !nom) continue;
+      if (_produits.find(p => p.ref === ref)) continue;
+      try {
+        const created = await createProduit({
+          ref,
+          nom,
+          prix_vente: parseFloat(String(r.prix || r.Prix || '0').replace(',', '.')) || 0,
+          seuil:      parseInt(r.seuil || r.Seuil || '0') || 0,
+          stock:      parseFloat(String(r.stock || r.Stock || '0').replace(',', '.')) || 0,
+        });
+        _produits.push(created);
+        counts.produits++;
+      } catch (err) {
+        errors.push('Produit ' + ref + ' : ' + err.message);
+      }
+    }
+  }
 
+  /* ── CLIENTS ── */
+  if (_massLoaded.clients) {
+    for (const r of _massLoaded.clients.rows) {
+      const nom = String(r.nom || r.Nom || '').trim();
+      if (!nom) continue;
+      if (_clients.find(c => c.nom === nom)) continue;
+      try {
+        const created = await createClient({
+          nom,
+          email:   String(r.email   || r.Email   || '').trim(),
+          tel:     String(r.tel     || r.Tel     || r.Téléphone || '').trim(),
+          adresse: String(r.adresse || r.Adresse || '').trim(),
+          notes:   String(r.notes   || r.Notes   || '').trim(),
+        });
+        _clients.push(created);
+        counts.clients++;
+      } catch (err) {
+        errors.push('Client ' + nom + ' : ' + err.message);
+      }
+    }
+  }
+
+  /* ── FOURNISSEURS ── */
+  if (_massLoaded.fournisseurs) {
+    for (const r of _massLoaded.fournisseurs.rows) {
+      const nom = String(r.nom || r.Nom || '').trim();
+      if (!nom) continue;
+      if (_fournisseurs.find(f => f.nom === nom)) continue;
+      try {
+        const created = await createFournisseur({
+          nom,
+          contact:   String(r.contact   || r.Contact   || '').trim(),
+          email:     String(r.email     || r.Email     || '').trim(),
+          tel:       String(r.tel       || r.Tel       || '').trim(),
+          adresse:   String(r.adresse   || r.Adresse   || '').trim(),
+          delai:     String(r.delai     || r.Délai     || '').trim(),
+          categorie: String(r.categorie || r.Catégorie || '').trim().toLowerCase(),
+        });
+        _fournisseurs.push(created);
+        counts.fournisseurs++;
+      } catch (err) {
+        errors.push('Fournisseur ' + nom + ' : ' + err.message);
+      }
+    }
+  }
+
+  /* ── Résultat ── */
   _massLoaded = {};
+  if (btn) { btn.disabled = false; btn.textContent = '📥 Importer'; }
+
+  const total = Object.values(counts).reduce((s, v) => s + v, 0);
+
   closeModal('modalImportMasse');
-  showToast('✅ Import : ' + Object.values(counts).reduce((s, v) => s + v, 0) + ' éléments ajoutés.');
+
+  /* Rafraîchir l'affichage */
+  _renderArticles();
+  _renderProduits();
+  _renderClients();
+  _renderFournisseurs();
+
+  if (errors.length > 0) {
+    showToast(`⚠ ${total} importés, ${errors.length} erreur(s). Voir console.`, 'warn');
+    errors.forEach(e => console.warn('[Import]', e));
+  } else {
+    showToast(`✅ Import terminé : ${counts.articles} articles, ${counts.produits} produits, ${counts.clients} clients, ${counts.fournisseurs} fournisseurs.`);
+  }
 }
 
 function _dlTemplate(type) {
