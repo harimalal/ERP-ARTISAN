@@ -7,10 +7,12 @@
 
 import {
   getTenant, updateTenant,
-  getArticles, createArticle, updateArticle, deleteArticle,
-  getProduits, createProduit, updateProduit, deleteProduit,
-  getClients, createClient, upsertClient, updateClient, deleteClient,
+  getArticles, createArticle, updateArticle, deleteArticle, getArticleByRef,
+  getProduits, createProduit, updateProduit, deleteProduit, getProduitByRef,
+  getRecettesByProduit, saveRecette,
+  getClients, createClient, upsertClient, updateClient, deleteClient, getClientByNom,
   getFournisseurs, createFournisseur, updateFournisseur, deleteFournisseur,
+  getCommandes, createCommande, getAchats, getFactures, getAllOFs,
   getMouvements, addMouvement,
 } from '../db.js';
 import {
@@ -591,6 +593,123 @@ function _bindSearchInputs() {
 }
 
 /* -------------------------------------------------------
+   EXPORT CSV
+   Télécharge toutes les données en fichiers CSV séparés.
+   Un fichier ZIP avec tout est créé via l'API native.
+------------------------------------------------------- */
+export async function exporterTout() {
+  showToast('⏳ Préparation de l\'export…');
+
+  try {
+    /* Charger toutes les données en parallèle */
+    const [articles, produits, clients, fournisseurs,
+           commandes, achats, factures, ofs, mouvements] = await Promise.all([
+      getArticles(), getProduits(), getClients(), getFournisseurs(),
+      getCommandes(), getAchats(), getFactures(), getAllOFs(),
+      getMouvements(),
+    ]);
+
+    /* Définition des exports */
+    const exports = [
+      {
+        nom: 'articles',
+        data: articles,
+        colonnes: ['ref', 'nom', 'categorie', 'unite', 'prix', 'fournisseur', 'seuil', 'stock'],
+      },
+      {
+        nom: 'produits',
+        data: produits,
+        colonnes: ['ref', 'nom', 'prix_vente', 'seuil', 'stock'],
+      },
+      {
+        nom: 'clients',
+        data: clients,
+        colonnes: ['nom', 'email', 'tel', 'adresse', 'notes'],
+      },
+      {
+        nom: 'fournisseurs',
+        data: fournisseurs,
+        colonnes: ['nom', 'contact', 'email', 'tel', 'adresse', 'delai', 'categorie', 'iban'],
+      },
+      {
+        nom: 'commandes',
+        data: commandes,
+        colonnes: ['ref', 'client_nom', 'date_cmd', 'date_livraison', 'statut', 'notes'],
+      },
+      {
+        nom: 'achats',
+        data: achats,
+        colonnes: ['ref', 'article_nom', 'quantite', 'prix_unitaire', 'montant_ht', 'fournisseur', 'date_cmd', 'date_livraison', 'statut', 'ref_commande'],
+      },
+      {
+        nom: 'factures',
+        data: factures,
+        colonnes: ['ref', 'client_nom', 'date_facture', 'montant_ht', 'taux_tva', 'montant_ttc', 'statut', 'date_echeance'],
+      },
+      {
+        nom: 'production_of',
+        data: ofs,
+        colonnes: ['ref', 'produit_nom', 'quantite', 'date_prevue', 'statut', 'notes'],
+      },
+      {
+        nom: 'mouvements',
+        data: mouvements,
+        colonnes: ['created_at', 'type', 'ref', 'nom', 'qte', 'motif', 'ref_doc'],
+      },
+    ];
+
+    /* Générer et télécharger chaque CSV */
+    let nbFichiers = 0;
+    for (const exp of exports) {
+      if (!exp.data || !exp.data.length) continue;
+      const csv = _genererCSV(exp.data, exp.colonnes);
+      _telechargerCSV(csv, `appmee_${exp.nom}_${today()}.csv`);
+      nbFichiers++;
+      /* Petit délai entre les téléchargements pour éviter les blocages navigateur */
+      await new Promise(r => setTimeout(r, 300));
+    }
+
+    showToast(`✅ ${nbFichiers} fichiers CSV exportés.`);
+  } catch (err) {
+    console.error('[Export]', err);
+    showToast('❌ Erreur lors de l\'export.', 'error');
+  }
+}
+
+/* Génère le contenu CSV depuis un tableau d'objets */
+function _genererCSV(data, colonnes) {
+  /* Échappement CSV : entoure de guillemets si virgule, guillemet ou saut de ligne */
+  const escape = (val) => {
+    const s = String(val === null || val === undefined ? '' : val);
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  };
+
+  const header = colonnes.join(',');
+  const rows   = data.map(row =>
+    colonnes.map(col => escape(row[col] ?? '')).join(',')
+  );
+
+  /* BOM UTF-8 pour que Excel ouvre correctement les accents */
+  return '\uFEFF' + [header, ...rows].join('\r\n');
+}
+
+/* Déclenche le téléchargement d'un fichier CSV dans le navigateur */
+function _telechargerCSV(contenu, nomFichier) {
+  const blob = new Blob([contenu], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = nomFichier;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* -------------------------------------------------------
    IMPORT EN MASSE (XLSX/CSV)
 ------------------------------------------------------- */
 let _massLoaded = {};
@@ -600,8 +719,10 @@ function _bindImportMasse() {
   const zones = [
     { key: 'articles',     label: '📦 Articles',     fields: 'ref, nom, categorie, unite, prix, fournisseur, seuil, stock' },
     { key: 'produits',     label: '🏷 Produits',      fields: 'ref, nom, prix, seuil, stock' },
+    { key: 'recettes',     label: '📖 Recettes',      fields: 'produit_ref, produit_nom, produit_prix, article_ref, quantite' },
     { key: 'clients',      label: '👤 Clients',       fields: 'nom, email, tel, adresse, notes' },
     { key: 'fournisseurs', label: '🏪 Fournisseurs',  fields: 'nom, contact, email, tel, adresse, delai, categorie' },
+    { key: 'commandes',    label: '📋 Commandes',     fields: 'commande_ref, client_nom, date_cmd, date_livraison, produit_ref, quantite, prix_unitaire' },
   ];
 
   const container = document.getElementById('massImportZones');
@@ -629,7 +750,7 @@ function _bindImportMasse() {
   }
 
   /* Boutons templates */
-  ['articles', 'produits', 'clients', 'fournisseurs', 'commandes'].forEach(type => {
+  ['articles', 'produits', 'recettes', 'clients', 'fournisseurs', 'commandes'].forEach(type => {
     document.getElementById('dl' + _cap(type))?.addEventListener('click', () => _dlTemplate(type));
   });
 
@@ -691,7 +812,7 @@ function _massUpdateTotal() {
 }
 
 async function _massImport() {
-  const counts  = { articles: 0, produits: 0, clients: 0, fournisseurs: 0 };
+  const counts  = { articles: 0, produits: 0, recettes: 0, clients: 0, fournisseurs: 0, commandes: 0 };
   const errors  = [];
   const btn     = document.getElementById('massBtnImport');
   if (btn) { btn.disabled = true; btn.textContent = 'Import en cours…'; }
@@ -702,7 +823,7 @@ async function _massImport() {
       const ref = String(r.ref || '').trim();
       const nom = String(r.nom || r.Nom || '').trim();
       if (!ref || !nom) continue;
-      if (_articles.find(a => a.ref === ref)) continue; /* doublon ignoré */
+      if (_articles.find(a => a.ref === ref)) continue;
       try {
         const created = await createArticle({
           ref,
@@ -741,6 +862,63 @@ async function _massImport() {
         counts.produits++;
       } catch (err) {
         errors.push('Produit ' + ref + ' : ' + err.message);
+      }
+    }
+  }
+
+  /* ── RECETTES ──
+     Format CSV : produit_ref, produit_nom, produit_prix, article_ref, quantite
+     Regroupement par produit_ref — 1 produit créé, N lignes recette insérées.
+     Si le produit existe déjà (même ref), on met à jour sa recette uniquement.
+  ── */
+  if (_massLoaded.recettes) {
+    /* Recharger les articles et produits pour avoir les UUIDs à jour */
+    const articlesDB = _articles.length ? _articles : await getArticles();
+    const produitsDB = _produits.length ? _produits : await getProduits();
+
+    /* Regrouper les lignes par produit_ref */
+    const parProduit = {};
+    for (const r of _massLoaded.recettes.rows) {
+      const prodRef = String(r.produit_ref || '').trim();
+      const artRef  = String(r.article_ref || '').trim();
+      if (!prodRef || !artRef) continue;
+      if (!parProduit[prodRef]) {
+        parProduit[prodRef] = {
+          nom:   String(r.produit_nom  || r.produit_ref || '').trim(),
+          prix:  parseFloat(String(r.produit_prix || '0').replace(',', '.')) || 0,
+          lignes: [],
+        };
+      }
+      const art = articlesDB.find(a => a.ref === artRef);
+      if (!art) {
+        errors.push(`Recette ${prodRef} : article "${artRef}" introuvable — vérifiez la ref`);
+        continue;
+      }
+      const qte = parseFloat(String(r.quantite || r.qte || '0').replace(',', '.')) || 0;
+      if (qte <= 0) continue;
+      parProduit[prodRef].lignes.push({ article_id: art.id, quantite: qte, unite: art.unite });
+    }
+
+    /* Pour chaque produit : créer si absent, puis sauvegarder la recette */
+    for (const [prodRef, infos] of Object.entries(parProduit)) {
+      if (!infos.lignes.length) continue;
+      try {
+        let produit = produitsDB.find(p => p.ref === prodRef);
+        if (!produit) {
+          produit = await createProduit({
+            ref:       prodRef,
+            nom:       infos.nom,
+            prix_vente: infos.prix,
+            seuil:     0,
+            stock:     0,
+          });
+          _produits.push(produit);
+          counts.produits++;
+        }
+        await saveRecette(produit.id, infos.lignes);
+        counts.recettes++;
+      } catch (err) {
+        errors.push(`Recette ${prodRef} : ${err.message}`);
       }
     }
   }
@@ -791,11 +969,89 @@ async function _massImport() {
     }
   }
 
+  /* ── COMMANDES ──
+     Format CSV : commande_ref, client_nom, date_cmd, date_livraison, produit_ref, quantite, prix_unitaire
+     Regroupement par commande_ref — 1 commande créée, N lignes insérées.
+     Le client est créé automatiquement s'il n'existe pas.
+  ── */
+  if (_massLoaded.commandes) {
+    const produitsDB = _produits.length ? _produits : await getProduits();
+    const clientsDB  = _clients.length  ? _clients  : await getClients();
+    const commandesDB = await getCommandes();
+
+    /* Regrouper par commande_ref */
+    const parCommande = {};
+    for (const r of _massLoaded.commandes.rows) {
+      const cmdRef    = String(r.commande_ref || r.ref || '').trim();
+      const prodRef   = String(r.produit_ref  || '').trim();
+      const clientNom = String(r.client_nom   || r.client || '').trim();
+      if (!cmdRef || !prodRef || !clientNom) continue;
+
+      if (!parCommande[cmdRef]) {
+        parCommande[cmdRef] = {
+          client_nom:     clientNom,
+          date_cmd:       String(r.date_cmd  || r.date || today()).trim(),
+          date_livraison: String(r.date_livraison || '').trim() || null,
+          statut:         'a_produire',
+          notes:          String(r.notes || '').trim(),
+          lignes: [],
+        };
+      }
+
+      const produit = produitsDB.find(p => p.ref === prodRef);
+      if (!produit) {
+        errors.push(`Commande ${cmdRef} : produit "${prodRef}" introuvable — vérifiez la ref`);
+        continue;
+      }
+
+      const qte  = parseFloat(String(r.quantite || r.qte || '1').replace(',', '.')) || 1;
+      const prix = parseFloat(String(r.prix_unitaire || r.prix || '0').replace(',', '.'))
+                   || produit.prix_vente || produit.prix || 0;
+
+      parCommande[cmdRef].lignes.push({
+        produit_id:    produit.id,
+        produit_nom:   produit.nom,
+        quantite:      qte,
+        prix_unitaire: prix,
+      });
+    }
+
+    /* Créer chaque commande */
+    for (const [cmdRef, infos] of Object.entries(parCommande)) {
+      if (!infos.lignes.length) continue;
+      /* Ignorer si la commande existe déjà */
+      if (commandesDB.find(c => c.ref === cmdRef)) {
+        errors.push(`Commande ${cmdRef} : déjà existante, ignorée`);
+        continue;
+      }
+      try {
+        /* Créer le client s'il n'existe pas */
+        let client = clientsDB.find(c => c.nom === infos.client_nom);
+        if (!client) {
+          client = await createClient({ nom: infos.client_nom });
+          _clients.push(client);
+        }
+
+        await createCommande({
+          ref:            cmdRef,
+          client_id:      client.id,
+          client_nom:     infos.client_nom,
+          date_cmd:       infos.date_cmd,
+          date_livraison: infos.date_livraison,
+          statut:         infos.statut,
+          notes:          infos.notes,
+        }, infos.lignes);
+
+        counts.commandes++;
+      } catch (err) {
+        errors.push(`Commande ${cmdRef} : ${err.message}`);
+      }
+    }
+  }
+
   /* ── Résultat ── */
   _massLoaded = {};
   if (btn) { btn.disabled = false; btn.textContent = '📥 Importer'; }
-
-  const total = Object.values(counts).reduce((s, v) => s + v, 0);
 
   closeModal('modalImportMasse');
 
@@ -805,23 +1061,54 @@ async function _massImport() {
   _renderClients();
   _renderFournisseurs();
 
+  const total = Object.values(counts).reduce((s, v) => s + v, 0);
+
   if (errors.length > 0) {
     showToast(`⚠ ${total} importés, ${errors.length} erreur(s). Voir console.`, 'warn');
     errors.forEach(e => console.warn('[Import]', e));
   } else {
-    showToast(`✅ Import terminé : ${counts.articles} articles, ${counts.produits} produits, ${counts.clients} clients, ${counts.fournisseurs} fournisseurs.`);
+    showToast(
+      `✅ Import terminé : ${counts.articles} articles, ${counts.produits} produits, ` +
+      `${counts.recettes} recettes, ${counts.clients} clients, ` +
+      `${counts.fournisseurs} fournisseurs, ${counts.commandes} commandes.`
+    );
   }
 }
 
 function _dlTemplate(type) {
   const tpl = {
-    articles:     [['ref', 'nom', 'categorie', 'unite', 'prix', 'fournisseur', 'seuil', 'stock'], ['A0100', 'Pot test', 'emballage', 'unité', '0.45', 'Mon Fournisseur', '500', '1000']],
-    produits:     [['ref', 'nom', 'prix', 'seuil', 'stock'], ['P0100', 'Confiture test', '5.20', '200', '0']],
-    clients:      [['nom'], ['Épicerie Test']],
-    fournisseurs: [['nom'], ['Fournisseur Test']],
-    commandes:    [['ref', 'date', 'client', 'produit_ref', 'qte'], ['CMD9001', '2026-04-01', 'Épicerie Test', 'P0001', '50']],
+    articles:     [
+      ['ref', 'nom', 'categorie', 'unite', 'prix', 'fournisseur', 'seuil', 'stock'],
+      ['A0001', 'Pot verre 50ml', 'emballage', 'unité', '0.45', 'Fournisseur A', '500', '1000'],
+      ['A0002', 'Fraises kg', 'matiere', 'kg', '3.50', 'Fournisseur B', '10', '50'],
+    ],
+    produits:     [
+      ['ref', 'nom', 'prix', 'seuil', 'stock'],
+      ['P0001', 'Confiture fraise 250g', '5.20', '200', '0'],
+      ['P0002', 'Confiture abricot 250g', '4.80', '100', '0'],
+    ],
+    recettes:     [
+      ['produit_ref', 'produit_nom', 'produit_prix', 'article_ref', 'quantite'],
+      ['P0001', 'Confiture fraise 250g', '5.20', 'A0001', '1'],
+      ['P0001', 'Confiture fraise 250g', '5.20', 'A0002', '0.200'],
+      ['P0002', 'Confiture abricot 250g', '4.80', 'A0001', '1'],
+    ],
+    clients:      [
+      ['nom', 'email', 'tel', 'adresse', 'notes'],
+      ['Épicerie Martin', 'contact@epicerie.fr', '0556001234', '1 rue du Marché, 47000 Agen', ''],
+    ],
+    fournisseurs: [
+      ['nom', 'contact', 'email', 'tel', 'adresse', 'delai', 'categorie'],
+      ['Fournisseur A', 'Jean Dupont', 'jean@fournisseur.fr', '0556005678', '10 route de Paris', '5 jours ouvrés', 'emballage'],
+    ],
+    commandes:    [
+      ['commande_ref', 'client_nom', 'date_cmd', 'date_livraison', 'produit_ref', 'quantite', 'prix_unitaire'],
+      ['CMD0001', 'Épicerie Martin', '2026-04-01', '2026-04-15', 'P0001', '50', '5.20'],
+      ['CMD0001', 'Épicerie Martin', '2026-04-01', '2026-04-15', 'P0002', '30', '4.80'],
+      ['CMD0002', 'Bio Marché', '2026-04-02', '2026-04-20', 'P0001', '100', '5.20'],
+    ],
   };
-  const ws = XLSX.utils.aoa_to_sheet(tpl[type]);
+  const ws = XLSX.utils.aoa_to_sheet(tpl[type] || []);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, type);
   XLSX.writeFile(wb, 'appmee_modele_' + type + '.xlsx');
