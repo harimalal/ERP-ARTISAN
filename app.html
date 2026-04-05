@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AppMee — Espace de travail</title>
+
+<!-- Supabase — valeurs injectées par Netlify au déploiement -->
+<meta name="supa-url" content="VOTRE_SUPABASE_URL">
+<meta name="supa-key" content="VOTRE_SUPABASE_ANON_KEY">
+
+<!-- CSS -->
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/layout.css">
+
+<!-- XLSX pour import/export Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- ÉCRAN DE CHARGEMENT -->
+<div id="app-loading">
+  <div class="logo-ico">
+    <svg viewBox="0 0 24 24" fill="#fff" width="26" height="26">
+      <path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zM10 5h4v2h-4V5zm9 14H5V9h14v10z"/>
+    </svg>
+  </div>
+  <p>Chargement de votre espace…</p>
+</div>
+
+<!-- ═══ HEADER ═══════════════════════════════════════════ -->
+<header>
+  <div class="hdr">
+    <div class="logo">
+      <div class="logo-ico">
+        <svg viewBox="0 0 24 24">
+          <path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zM10 5h4v2h-4V5zm9 14H5V9h14v10z"/>
+          <rect x="9" y="12" width="6" height="1.5" rx=".75"/>
+          <rect x="9" y="15" width="4" height="1.5" rx=".75"/>
+        </svg>
+      </div>
+      <span class="logo-name">AppMee</span>
+      <span class="logo-tag">PRO</span>
+    </div>
+    <div class="hdr-date" id="headerDate"></div>
+    <div class="hdr-right">
+      <span class="hdr-user" id="hdrUserName"></span>
+      <button class="hdr-btn" id="btnNewCommande">+ Commande</button>
+      <button class="hdr-btn-ghost" id="btnSignOut">Déconnexion</button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ NAVIGATION ═══════════════════════════════════════ -->
+<nav id="mainNav">
+  <button class="tab active" data-page="dashboard">📊 Dashboard</button>
+  <button class="tab" data-page="stock">📦 Stock Articles <span class="tab-badge warn" id="badgeStockAlert" style="display:none">0</span></button>
+  <button class="tab" data-page="produits">🏷 Produits Finis</button>
+  <button class="tab" data-page="commandes">📋 Commandes <span class="tab-badge" id="badgeCmd" style="display:none">0</span></button>
+  <button class="tab" data-page="production">🏭 Production</button>
+  <button class="tab" data-page="achats">🛒 Achats</button>
+  <button class="tab" data-page="livraisons">🚚 Livraisons & Factures</button>
+  <button class="tab" data-page="recettes">📖 Recettes</button>
+  <button class="tab" data-page="admin">⚙️ Admin</button>
+</nav>
+
+<!-- ═══ MAIN ══════════════════════════════════════════════ -->
+<main>
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page active">
+  <div class="sec-hdr">
+    <div><div class="sec-title">Tableau de bord</div><div class="sec-sub">Vue d'ensemble de votre activité</div></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" data-modal="modalHistorique">📜 Historique</button>
+      <button class="btn btn-outline" data-modal="modalAchat">🛒 Bon de commande</button>
+      <button class="btn btn-primary" data-modal="modalCommande">+ Nouvelle commande</button>
+    </div>
+  </div>
+  <div class="kpi-grid" id="kpiGrid"></div>
+  <div class="dash-grid-2">
+    <div class="card"><div class="card-hdr"><span class="card-hdr-title">⚠ Alertes stock articles</span></div><div id="dashAlerts"></div></div>
+    <div class="card"><div class="card-hdr"><span class="card-hdr-title">🏷 Stock produits finis</span></div><div id="dashProduits"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-hdr-title">📋 Dernières commandes</span>
+      <button class="btn btn-ghost btn-sm" data-page-nav="commandes">Voir tout</button>
+    </div>
+    <div id="dashCommandes"></div>
+  </div>
+</div>
+
+<!-- STOCK ARTICLES -->
+<div id="page-stock" class="page">
+  <div class="sec-hdr">
+    <div><div class="sec-title">Stock Articles</div><div class="sec-sub">Matières premières, emballages, consommables</div></div>
+    <div class="btn-row">
+      <input type="text" class="search-input" placeholder="Rechercher..." id="stockSearchInput">
+      <button class="btn btn-ghost" data-modal="modalInventaire">📦 Inventaire</button>
+      <button class="btn btn-outline" data-modal="modalAchat">+ Bon de commande</button>
+      <button class="btn btn-primary" data-modal="modalNewArticle">+ Nouvel article</button>
+    </div>
+  </div>
+  <div class="card">
+    <table id="stockTable">
+      <thead><tr>
+        <th class="sortable" data-sort-col="0">Réf <span class="sort-ico"></span></th>
+        <th class="sortable" data-sort-col="1">Article <span class="sort-ico"></span></th>
+        <th class="sortable" data-sort-col="2">Catégorie <span class="sort-ico"></span></th>
+        <th>Unité</th>
+        <th class="sortable" data-sort-col="4">Stock <span class="sort-ico"></span></th>
+        <th class="sortable" data-sort-col="5">Seuil <span class="sort-ico"></span></th>
+        <th>Statut</th>
+        <th class="sortable" data-sort-col="7">Prix achat <span class="sort-ico"></span></th>
+        <th class="sortable" data-sort-col="8">Fournisseur <span class="sort-ico"></span></th>
+        <th>Actions</th>
+      </tr></thead>
+      <tbody id="stockTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PRODUITS FINIS -->
+<div id="page-produits" class="page">
+  <div class="sec-hdr">
+    <div><div class="sec-title">Stock Produits Finis</div><div class="sec-sub">Produits assemblés, prêts à la vente</div></div>
+  </div>
+  <div class="card">
+    <table>
+      <thead><tr>
+        <th>Référence</th><th>Produit</th><th>Stock</th><th>Seuil</th>
+        <th>Statut</th><th>Prix vente HT</th><th>Coût revient</th><th>Marge</th><th>Action</th>
+      </tr></thead>
+      <tbody id="produitsTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- COMMANDES -->
+<div id="page-commandes" class="page">
+  <div class="sec-hdr">
+    <div><div class="sec-title">Commandes clients</div><div class="sec-sub">Cycle complet commande → livraison</div></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" data-modal="modalImportIA">🤖 Import IA</button>
+      <button class="btn btn-ghost" data-modal="modalImportMasse">📥 Import masse</button>
+      <button class="btn btn-primary" data-modal="modalCommande">+ Nouvelle commande</button>
+    </div>
+  </div>
+  <div class="pipeline">
+    <div class="pipe-step"><div class="pipe-dot"></div> À produire</div><div class="pipe-arrow">→</div>
+    <div class="pipe-step"><div class="pipe-dot"></div> Planifié</div><div class="pipe-arrow">→</div>
+    <div class="pipe-step"><div class="pipe-dot"></div> En production</div><div class="pipe-arrow">→</div>
+    <div class="pipe-step"><div class="pipe-dot"></div> Prêt</div><div class="pipe-arrow">→</div>
+    <div class="pipe-step"><div class="pipe-dot"></div> Clôturée</div>
+  </div>
+  <div id="commandesList"></div>
+</div>
+
+<!-- PRODUCTION -->
+<div id="page-production" class="page">
+  <div class="sec-hdr">
+    <div><div class="sec-title">Plan de production</div><div class="sec-sub">Ordres de fabrication et calendrier hebdomadaire</div></div>
+    <div class="btn-row">
+      <button class="btn btn-outline" data-modal="modalPlanifier">+ Planifier un OF</button>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-hdr">
+      <span class="card-hdr-title">📅 Calendrier de production — semaine en cours</span>
+      <div style="display:flex;gap:6px;">
+        <button class="btn-icon" id="calPrev">◀</button>
+        <button class="btn-icon" id="calNext">▶</button>
+      </div>
+    </div>
+    <div style="padding:12px;"><div class="cal-week" id="calWeek"></div></div>
+  </div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-hdr"><span class="card-hdr-title">📋 Ordres de fabrication (OF)</span></div>
+    <table><thead><tr><th>Référence</th><th>Produit</th><th>Qté</th><th>Clients</th><th>Date planifiée</th><th>Statut</th><th>Actions</th></tr></thead>
+    <tbody id="planningTbody"></tbody></table>
+  </div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-hdr"><span class="card-hdr-title">🍳 Plan de fabrication</span></div>
+    <table><thead><tr><th>Produit à fabriquer</th><th>Qté à fabriquer</th><th>OF liés</th><th>Faisabilité stock</th><th>Articles manquants</th></tr></thead>
+    <tbody id="fabPlanTbody"></tbody></table>
+  </div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-hdr"><span class="card-hdr-title">🔍 Besoins calculés depuis les commandes</span></div>
+    <table><thead><tr><th>Produit</th><th>Qté à produire</th><th>Faisabilité</th><th>Articles manquants</th><th>Action</th></tr></thead>
+    <tbody id="besoinsTbody"></tbody></table>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><span class="card-hdr-title">🛒 Articles à commander</span></div>
+    <table><thead><tr><th>Réf</th><th>Article</th><th>Stock</th><th>Besoin</th><th>Manque</th><th>Montant</th><th>Fournisseur</th><th>Action</th></tr></thead>
+    <tbody id="manquesTbody"></tbody></table>
+  </div>
+</div>
+
+<!-- ACHATS -->
+<div id="page-achats" class="page">
+  <div class="sec-hdr">
+    <div><div class="sec-title">Bons de commande fournisseurs</div><div class="sec-sub">Cliquez sur une ligne pour voir / modifier le détail</div></div>
+    <div class="btn-row"><button class="btn btn-primary" data-modal="modalAchat">+ Nouveau BC</button></div>
+  </div>
+  <div class="card">
+    <table><thead><tr><th>N° BC</th><th>Date</th><th>Article</th><th>Qté</th><th>Montant HT</th><th>Fournisseur</th><th>Réf commande</th><th>Statut</th><th>Aperçu</th></tr></thead>
+    <tbody id="achatsTbody"></tbody></table>
+  </div>
+</div>
+
+<!-- LIVRAISONS & FACTURES -->
+<div id="page-livraisons" class="page">
+  <div class="sec-hdr">
+    <div><div class="sec-title">Livraisons & Factures</div><div class="sec-sub">Facturation et suivi des paiements</div></div>
+    <div class="btn-row"><button class="btn btn-primary" data-modal="modalNewFacture">+ Nouvelle facture</button></div>
+  </div>
+  <div class="card">
+    <table><thead><tr><th>N° Facture</th><th>Date</th><th>Réf commande</th><th>Client</th><th>Montant HT</th><th>Statut</th><th>Aperçu</th></tr></thead>
+    <tbody id="facturesTbody"></tbody></table>
+  </div>
+</div>
+
+<!-- RECETTES -->
+<div id="page-recettes" class="page">
+  <div class="sec-hdr">
+    <div><div class="sec-title">Recettes &amp; Nomenclatures</div><div class="sec-sub">Composition de chaque produit fini — base de calcul des OF, stocks et coûts de revient</div></div>
+    <div class="btn-row"><button class="btn btn-outline" data-modal="modalNewProduit">+ Nouveau produit</button></div>
+  </div>
+  <div id="recettesList"></div>
+</div>
+
+<!-- ADMIN -->
+<div id="page-admin" class="page">
+  <div class="sec-hdr">
+    <div><div class="sec-title">Administration</div><div class="sec-sub">Référentiels complets — cliquer sur une ligne pour modifier</div></div>
+    <div class="btn-row"><button class="btn btn-ghost" data-modal="modalImportMasse">📥 Import Excel/CSV</button></div>
+  </div>
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-hdr">
+      <span class="card-hdr-title">🏢 Mon entreprise</span>
+      <div style="display:flex;gap:7px;">
+        <button class="btn btn-ghost btn-sm" id="btnIAEntreprise">🤖 Mise à jour IA</button>
+        <button class="btn btn-primary btn-sm" id="btnSaveEntreprise">💾 Enregistrer</button>
+      </div>
+    </div>
+    <div class="form-grid" style="padding:16px;">
+      <div class="form-group"><label>Raison sociale</label><input id="me_raison" placeholder="Les Confitures du Sud"></div>
+      <div class="form-group"><label>SIRET</label><input id="me_siret" placeholder="000 000 000 00000"></div>
+      <div class="form-group"><label>N° TVA</label><input id="me_tva" placeholder="FR00 000000000"></div>
+      <div class="form-group"><label>Forme juridique</label>
+        <select id="me_forme">
+          <option value="EI">Entreprise Individuelle</option>
+          <option value="EIRL">EIRL</option>
+          <option value="SASU">SASU</option>
+          <option value="SARL">SARL</option>
+          <option value="SAS">SAS</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+      <div class="form-group full"><label>Adresse</label><input id="me_adresse" placeholder="1 chemin des Vergers, 47000 Agen"></div>
+      <div class="form-group"><label>Téléphone</label><input id="me_tel"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="me_email"></div>
+      <div class="form-group"><label>Site web</label><input id="me_web"></div>
+      <div class="form-group full"><label>IBAN (factures)</label><input id="me_iban"></div>
+      <div class="form-group"><label>Conditions paiement</label><input id="me_cpt" placeholder="30 jours fin de mois"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-hdr">
+      <span class="card-hdr-title">📦 Articles</span>
+      <div style="display:flex;gap:7px;align-items:center;">
+        <input type="text" class="search-input" placeholder="Rechercher…" id="adminArticlesSearch" style="width:160px;">
+        <button class="btn btn-primary btn-sm" data-modal="modalNewArticle">+ Nouvel article</button>
+      </div>
+    </div>
+    <table id="adminArticlesTable"><thead><tr><th>Réf</th><th>Nom</th><th>Catégorie</th><th>Unité</th><th>Prix achat HT</th><th>Seuil</th><th>Stock</th><th>Fournisseur</th><th></th></tr></thead>
+    <tbody id="adminArticlesTbody"></tbody></table>
+  </div>
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-hdr">
+      <span class="card-hdr-title">🏷 Produits finis</span>
+      <button class="btn btn-primary btn-sm" data-modal="modalNewProduit">+ Nouveau produit</button>
+    </div>
+    <table><thead><tr><th>Réf</th><th>Nom</th><th>Prix vente HT</th><th>Coût revient</th><th>Marge</th><th>Seuil</th><th>Stock</th><th>Statut</th><th></th></tr></thead>
+    <tbody id="adminProduitsTbody"></tbody></table>
+  </div>
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-hdr">
+      <span class="card-hdr-title">👤 Clients</span>
+      <button class="btn btn-primary btn-sm" data-modal="modalNewClient">+ Nouveau client</button>
+    </div>
+    <table><thead><tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Adresse</th><th>Notes</th><th></th></tr></thead>
+    <tbody id="adminClientsTbody"></tbody></table>
+  </div>
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-hdr">
+      <span class="card-hdr-title">🏪 Fournisseurs</span>
+      <div style="display:flex;gap:7px;">
+        <button class="btn btn-ghost btn-sm" id="btnIAFournisseur">🤖 Import IA</button>
+        <button class="btn btn-primary btn-sm" data-modal="modalNewFournisseur">+ Nouveau fournisseur</button>
+      </div>
+    </div>
+    <table><thead><tr><th>Nom</th><th>Contact</th><th>Email</th><th>Téléphone</th><th>Délai</th><th>Catégorie</th><th></th></tr></thead>
+    <tbody id="adminFournisseursTbody"></tbody></table>
+  </div>
+</div>
+
+</main>
+
+<!-- ═══ MODALS ════════════════════════════════════════════ -->
+
+<!-- Commande -->
+<div class="modal-overlay" id="modalCommande"><div class="modal modal-lg">
+  <div class="modal-hdr"><span class="modal-hdr-title">📋 Nouvelle commande client</span><button class="modal-close" data-close="modalCommande">×</button></div>
+  <div class="form-grid">
+    <div class="form-group"><label>Date</label><input type="date" id="cmdDate"></div>
+    <div class="form-group"><label>Date livraison <span class="opt">(opt.)</span></label><input type="date" id="cmdDateLiv"></div>
+    <div class="form-group full"><label>Client</label>
+      <div style="display:flex;gap:7px;">
+        <select id="cmdClientSel" style="flex:1;"></select>
+        <input type="text" id="cmdClient" placeholder="Ou nouveau client…" style="flex:1.5;">
+      </div>
+    </div>
+  </div>
+  <div style="padding:0 16px 10px;">
+    <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Lignes</div>
+    <div id="cmdLignes"></div>
+    <button class="btn btn-ghost btn-sm" id="btnAddCmdLigne" style="margin-top:5px;">+ Ligne</button>
+  </div>
+  <div class="form-grid" style="padding-top:0;">
+    <div class="form-group full"><label>Remarques</label><textarea id="cmdRemarques" rows="2" placeholder="Notes…"></textarea></div>
+  </div>
+  <div class="alert-box alert-info" style="margin:0 16px 12px;"><span>ℹ</span><span>AppMee analyse le stock et génère les bons de commande fournisseur automatiquement si des articles manquent.</span></div>
+  <div class="form-actions">
+    <button class="btn btn-primary" id="btnSaveCommande">💾 Enregistrer</button>
+    <button class="btn btn-ghost" data-close="modalCommande">Annuler</button>
+  </div>
+</div></div>
+
+<!-- Achat / BC -->
+<div class="modal-overlay" id="modalAchat"><div class="modal modal-lg">
+  <div class="modal-hdr"><span class="modal-hdr-title">🛒 Bon de commande fournisseur</span><button class="modal-close" data-close="modalAchat">×</button></div>
+  <div class="form-grid">
+    <div class="form-group"><label>Date</label><input type="date" id="achatDate"></div>
+    <div class="form-group"><label>Fournisseur</label><select id="achatFournisseur"></select></div>
+    <div class="form-group"><label>Référence article</label><select id="achatRef"></select></div>
+    <div class="form-group"><label>Nom article</label><select id="achatNom"></select></div>
+    <div class="form-group"><label>Unité</label><div style="padding:7px 10px;background:var(--ui-bg2);border:1.5px solid var(--ui-brd);border-radius:6px;font-size:12.5px;color:var(--ink-muted);" id="achatUnite">—</div></div>
+    <div class="form-group"><label>Quantité</label><input type="number" id="achatQte" min="0" step="0.01"></div>
+    <div class="form-group"><label>Prix unitaire HT <span class="opt">(opt.)</span></label><input type="number" id="achatPrix" step="0.01"></div>
+    <div class="form-group"><label>Réf commande liée <span class="opt">(opt.)</span></label><input type="text" id="achatRefCmd" placeholder="CMD0001"></div>
+    <div class="form-group full"><label>Remarque</label><input type="text" id="achatRemarque" placeholder="N° BL, lot…"></div>
+  </div>
+  <div id="achatMontant" style="display:none;margin:0 16px 10px;padding:9px 12px;background:var(--ui-bg2);border-radius:7px;font-size:12.5px;">💰 Montant estimé : <strong id="achatMontantVal">—</strong></div>
+  <div class="form-actions between">
+    <button class="btn btn-ghost" id="btnAperçuBC">👁 Aperçu PDF</button>
+    <div style="display:flex;gap:7px;">
+      <button class="btn btn-primary" id="btnSaveAchat">💾 Créer le BC</button>
+      <button class="btn btn-ghost" data-close="modalAchat">Annuler</button>
+    </div>
+  </div>
+</div></div>
+
+<!-- Détail / édition BC -->
+<div class="modal-overlay" id="modalDetailBC"><div class="modal modal-lg">
+  <div class="modal-hdr"><span class="modal-hdr-title" id="detailBCTitle">Détail BC</span><button class="modal-close" data-close="modalDetailBC">×</button></div>
+  <div style="padding:16px;" id="detailBCContent"></div>
+  <div class="form-actions between">
+    <button class="btn btn-ghost" id="btnAperçuBCDetail">👁 Aperçu PDF</button>
+    <div style="display:flex;gap:7px;">
+      <button class="btn btn-primary" id="btnSaveDetailBC">💾 Enregistrer</button>
+      <button class="btn btn-ghost" data-close="modalDetailBC">Fermer</button>
+    </div>
+  </div>
+</div></div>
+
+<!-- Inventaire -->
+<div class="modal-overlay" id="modalInventaire"><div class="modal">
+  <div class="modal-hdr"><span class="modal-hdr-title">📦 Inventaire manuel</span><button class="modal-close" data-close="modalInventaire">×</button></div>
+  <div class="form-grid">
+    <div class="form-group full"><label>Article</label><select id="invRef"></select></div>
+    <div class="form-group"><label>Stock système</label><div style="padding:7px 10px;background:var(--ui-bg2);border:1.5px solid var(--ui-brd);border-radius:6px;font-size:12.5px;font-weight:600;" id="invStockActuel">—</div></div>
+    <div class="form-group"><label>Quantité réelle <span id="invUnite" style="font-weight:400;text-transform:none;font-size:10px;color:var(--ink-muted);"></span></label><input type="number" id="invQteReel" min="0" step="0.01"></div>
+    <div class="form-group full"><label>Motif</label><input type="text" id="invMotif" placeholder="Inventaire mensuel, casse…"></div>
+  </div>
+  <div class="alert-box alert-warn" style="margin:0 16px 12px;"><span>⚠</span><span>La quantité saisie remplacera le stock actuel. L'écart est enregistré dans l'historique.</span></div>
+  <div class="form-actions">
+    <button class="btn btn-primary" id="btnSaveInventaire">💾 Valider</button>
+    <button class="btn btn-ghost" data-close="modalInventaire">Annuler</button>
+  </div>
+</div></div>
+
+<!-- Livraison -->
+<div class="modal-overlay" id="modalLivraison"><div class="modal">
+  <div class="modal-hdr"><span class="modal-hdr-title">🚚 Livraison + Facture</span><button class="modal-close" data-close="modalLivraison">×</button></div>
+  <div style="padding:16px;">
+    <div class="alert-box alert-success" style="margin-bottom:14px;"><span>✅</span><div><strong id="livCmd">—</strong><br><span>Montant : <strong id="livMontant">—</strong></span></div></div>
+    <div class="form-group"><label>Date de livraison</label><input type="date" id="livDate"></div>
+    <input type="hidden" id="livCmdId">
+  </div>
+  <div class="alert-box alert-info" style="margin:0 16px 12px;"><span>ℹ</span><span>Une facture est générée automatiquement. Le stock produits finis est décrémenté.</span></div>
+  <div class="form-actions">
+    <button class="btn btn-primary" id="btnSaveLivraison">✅ Confirmer livraison</button>
+    <button class="btn btn-ghost" data-close="modalLivraison">Annuler</button>
+  </div>
+</div></div>
+
+<!-- Nouvelle facture manuelle -->
+<div class="modal-overlay" id="modalNewFacture"><div class="modal modal-lg">
+  <div class="modal-hdr"><span class="modal-hdr-title">🧾 Nouvelle facture</span><button class="modal-close" data-close="modalNewFacture">×</button></div>
+  <div class="form-grid">
+    <div class="form-group"><label>Date facture</label><input type="date" id="nfDate"></div>
+    <div class="form-group"><label>Client</label><select id="nfClient"></select></div>
+    <div class="form-group"><label>Réf commande liée <span class="opt">(opt.)</span></label><select id="nfRefCmd"><option value="">— Aucune —</option></select></div>
+    <div class="form-group"><label>Statut</label>
+      <select id="nfStatut">
+        <option value="a_lancer">À lancer</option>
+        <option value="facture" selected>Facturée</option>
+        <option value="a_relancer">À relancer</option>
+        <option value="paye">Payée</option>
+      </select>
+    </div>
+    <div class="form-group full"><label>Description / objet</label><input type="text" id="nfDescription" placeholder="Vente confitures — Lot printemps…"></div>
+    <div class="form-group"><label>Montant HT (€)</label><input type="number" id="nfMontant" step="0.01" placeholder="0,00"></div>
+    <div class="form-group"><label>TVA (%)</label>
+      <select id="nfTva">
+        <option value="0">0% (exonéré)</option>
+        <option value="5.5">5,5%</option>
+        <option value="10">10%</option>
+        <option value="20" selected>20%</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Montant TTC</label><div id="nfTtcPreview" style="padding:7px 10px;background:var(--ui-bg2);border:1.5px solid var(--ui-brd);border-radius:6px;font-size:12.5px;font-weight:600;">—</div></div>
+    <div class="form-group full"><label>Notes</label><textarea id="nfNotes" rows="2" placeholder="Conditions de paiement, délai…"></textarea></div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-primary" id="btnSaveNewFacture">💾 Créer la facture</button>
+    <button class="btn btn-ghost" data-close="modalNewFacture">Annuler</button>
+  </div>
+</div></div>
+
+<!-- Aperçu PDF -->
+<div class="modal-overlay" id="modalPdfPreview"><div class="modal modal-xl">
+  <div class="modal-hdr"><span class="modal-hdr-title" id="pdfPreviewTitle">Aperçu PDF</span><button class="modal-close" data-close="modalPdfPreview">×</button></div>
+  <div style="padding:16px;"><div class="pdf-preview" id="pdfPreviewContent"></div></div>
+  <div class="form-actions">
+    <button class="btn btn-primary" id="btnPrintPdf">🖨 Imprimer / Télécharger PDF</button>
+    <button class="btn btn-ghost" data-close="modalPdfPreview">Fermer</button>
+  </div>
+</div></div>
+
+<!-- Planifier OF -->
+<div class="modal-overlay" id="modalPlanifier"><div class="modal modal-lg">
+  <div class="modal-hdr"><span class="modal-hdr-title">🏭 Planifier un ordre de fabrication</span><button class="modal-close" data-close="modalPlanifier">×</button></div>
+  <div class="form-grid">
+    <div class="form-group"><label>Référence produit</label><select id="ofRef"></select></div>
+    <div class="form-group"><label>Nom produit</label><select id="ofNom"></select></div>
+    <div class="form-group"><label>Quantité à produire</label><input type="number" id="ofQte" min="1" step="1" placeholder="ex : 200"></div>
+    <div class="form-group"><label>Date planifiée</label><input type="date" id="ofDate"></div>
+    <div class="form-group full"><label>Clients concernés <span class="opt">(opt.)</span></label><input type="text" id="ofClients" placeholder="CMD0001, CMD0002…"></div>
+  </div>
+  <div id="ofFaisabilite" style="display:none;padding:0 16px 10px;"><div id="ofFaisabiliteContent"></div></div>
+  <div class="form-actions between">
+    <button class="btn btn-ghost" id="btnCheckOFFaisabilite">🔍 Vérifier faisabilité</button>
+    <div style="display:flex;gap:7px;">
+      <button class="btn btn-primary" id="btnSavePlanifier">✅ Planifier</button>
+      <button class="btn btn-ghost" data-close="modalPlanifier">Annuler</button>
+    </div>
+  </div>
+</div></div>
+
+<!-- Historique mouvements -->
+<div class="modal-overlay" id="modalHistorique"><div class="modal modal-xl">
+  <div class="modal-hdr"><span class="modal-hdr-title">📜 Historique des mouvements</span><button class="modal-close" data-close="modalHistorique">×</button></div>
+  <div style="padding:10px 16px 0;display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
+    <select id="histoType" style="font-size:12px;padding:5px 9px;border:1.5px solid var(--ui-brd);border-radius:6px;">
+      <option value="">Tous les types</option>
+      <option value="entree">Entrées articles</option>
+      <option value="sortie">Sorties articles</option>
+      <option value="entree_pf">Entrées prod. finis</option>
+      <option value="sortie_pf">Livraisons</option>
+      <option value="inventaire">Inventaires</option>
+    </select>
+    <input type="text" class="search-input" id="histoSearch" placeholder="Rechercher…" style="width:180px;">
+  </div>
+  <div style="padding:10px 16px;max-height:65vh;overflow-y:auto;">
+    <table><thead><tr><th>Date</th><th>Type</th><th>Réf</th><th>Désignation</th><th>Qté</th><th>Motif</th><th>Réf doc.</th></tr></thead>
+    <tbody id="histoTbody"></tbody></table>
+  </div>
+  <div class="form-actions"><button class="btn btn-ghost" data-close="modalHistorique">Fermer</button></div>
+</div></div>
+
+<!-- Nouveau article -->
+<div class="modal-overlay" id="modalNewArticle"><div class="modal modal-lg">
+  <div class="modal-hdr"><span class="modal-hdr-title">📦 Nouvel article</span><button class="modal-close" data-close="modalNewArticle">×</button></div>
+  <div class="form-grid">
+    <div class="form-group"><label>Référence</label><input type="text" id="naRef" placeholder="A0028"></div>
+    <div class="form-group"><label>Catégorie</label>
+      <select id="naCategorie">
+        <option value="emballage">Emballage</option>
+        <option value="matiere">Matière première</option>
+        <option value="ingredient">Ingrédient</option>
+        <option value="fourniture">Fourniture</option>
+        <option value="autre">Autre</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Nom (suggestion)</label><select id="naNomSel"></select></div>
+    <div class="form-group"><label>Nom libre</label><input type="text" id="naNom" placeholder="Nom de l'article"></div>
+    <div class="form-group"><label>Unité</label>
+      <select id="naUnite">
+        <option value="unité">unité</option><option value="kg">kg</option>
+        <option value="g">g</option><option value="litre">litre</option>
+        <option value="ml">ml</option><option value="bouteille">bouteille</option>
+        <option value="boite">boîte</option><option value="rouleau">rouleau</option>
+        <option value="sac">sac</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Prix achat HT (€)</label><input type="number" id="naPrix" step="0.001" placeholder="0,000"></div>
+    <div class="form-group"><label>Fournisseur (liste)</label><select id="naFournisseurSel"></select></div>
+    <div class="form-group"><label>Fournisseur (libre)</label><input type="text" id="naFournisseur" placeholder="Ou saisir directement"></div>
+    <div class="form-group"><label>Seuil alerte</label><input type="number" id="naSeuil" placeholder="50" step="1"></div>
+    <div class="form-group"><label>Stock initial</label><input type="number" id="naStock" value="0" step="0.01"></div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-primary" id="btnSaveNewArticle">💾 Créer l'article</button>
+    <button class="btn btn-ghost" data-close="modalNewArticle">Annuler</button>
+  </div>
+</div></div>
+
+<!-- Nouveau produit + recette -->
+<div class="modal-overlay" id="modalNewProduit"><div class="modal modal-lg">
+  <div class="modal-hdr"><span class="modal-hdr-title" id="modalNewProduitTitle">🏷 Nouveau produit fini &amp; recette</span><button class="modal-close" data-close="modalNewProduit">×</button></div>
+  <div class="form-grid">
+    <div class="form-group"><label>Référence</label><input type="text" id="npRef" placeholder="P0009"></div>
+    <div class="form-group"><label>Nom du produit</label><input type="text" id="npNom" placeholder="Confiture…"></div>
+    <div class="form-group"><label>Prix vente HT (€)</label><input type="number" id="npPrix" step="0.01" placeholder="0,00"></div>
+    <div class="form-group"><label>Seuil alerte stock</label><input type="number" id="npSeuil" placeholder="100" step="1"></div>
+  </div>
+  <div style="padding:0 16px 12px;">
+    <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Recette (articles nécessaires par unité produite)</div>
+    <div id="recetteLignes"></div>
+    <button class="btn btn-ghost btn-sm" id="btnAddRecetteLigne" style="margin-top:5px;">+ Ajouter un article</button>
+    <div id="npCoutPreview" style="display:none;margin-top:10px;padding:8px 12px;background:var(--ui-bg2);border-radius:6px;font-size:12px;">Coût de revient estimé : <strong id="npCoutVal">—</strong></div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-primary" id="btnSaveNewProduit">💾 Enregistrer</button>
+    <button class="btn btn-ghost" data-close="modalNewProduit">Annuler</button>
+  </div>
+</div></div>
+
+<!-- Edit row générique (Admin) -->
+<div class="modal-overlay" id="modalEditRow"><div class="modal">
+  <div class="modal-hdr"><span class="modal-hdr-title" id="editRowTitle">Modifier</span><button class="modal-close" data-close="modalEditRow">×</button></div>
+  <div style="padding:16px;" id="editRowContent"></div>
+  <div class="form-actions between">
+    <button class="btn btn-danger" id="editRowDeleteBtn">Supprimer</button>
+    <div style="display:flex;gap:7px;">
+      <button class="btn btn-primary" id="btnSaveEditRow">💾 Enregistrer</button>
+      <button class="btn btn-ghost" data-close="modalEditRow">Annuler</button>
+    </div>
+  </div>
+</div></div>
+
+<!-- Nouveau client -->
+<div class="modal-overlay" id="modalNewClient"><div class="modal">
+  <div class="modal-hdr"><span class="modal-hdr-title">👤 Nouveau client</span><button class="modal-close" data-close="modalNewClient">×</button></div>
+  <div class="form-grid">
+    <div class="form-group full"><label>Nom du client</label><input type="text" id="ncNom" placeholder="Épicerie Fine…"></div>
+    <div class="form-group full"><label>Email <span class="opt">(opt.)</span></label><input type="email" id="ncEmail"></div>
+    <div class="form-group full"><label>Téléphone <span class="opt">(opt.)</span></label><input type="text" id="ncTel"></div>
+    <div class="form-group full"><label>Adresse <span class="opt">(opt.)</span></label><input type="text" id="ncAdresse"></div>
+    <div class="form-group full"><label>Notes <span class="opt">(opt.)</span></label><input type="text" id="ncNotes"></div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-primary" id="btnSaveNewClient">💾 Enregistrer</button>
+    <button class="btn btn-ghost" data-close="modalNewClient">Annuler</button>
+  </div>
+</div></div>
+
+<!-- Nouveau fournisseur -->
+<div class="modal-overlay" id="modalNewFournisseur"><div class="modal">
+  <div class="modal-hdr"><span class="modal-hdr-title">🏪 Nouveau fournisseur</span><button class="modal-close" data-close="modalNewFournisseur">×</button></div>
+  <div class="form-grid">
+    <div class="form-group full"><label>Nom</label><input type="text" id="nfNom2" placeholder="Nom du fournisseur…"></div>
+    <div class="form-group full"><label>Contact <span class="opt">(opt.)</span></label><input type="text" id="nfContact"></div>
+    <div class="form-group full"><label>Email <span class="opt">(opt.)</span></label><input type="email" id="nfEmail2"></div>
+    <div class="form-group full"><label>Téléphone <span class="opt">(opt.)</span></label><input type="text" id="nfTel2"></div>
+    <div class="form-group"><label>Délai livraison <span class="opt">(opt.)</span></label><input type="text" id="nfDelai" placeholder="5 jours ouvrés"></div>
+    <div class="form-group"><label>Catégorie <span class="opt">(opt.)</span></label>
+      <select id="nfCategorie2">
+        <option value="">—</option>
+        <option value="emballage">Emballage</option>
+        <option value="matiere">Matière première</option>
+        <option value="ingredient">Ingrédient</option>
+        <option value="fourniture">Fourniture</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-primary" id="btnSaveNewFournisseur">💾 Enregistrer</button>
+    <button class="btn btn-ghost" data-close="modalNewFournisseur">Annuler</button>
+  </div>
+</div></div>
+
+<!-- Fiche client -->
+<div class="modal-overlay" id="modalFicheClient"><div class="modal modal-lg">
+  <div class="modal-hdr"><span class="modal-hdr-title">👤 Fiche client</span><button class="modal-close" data-close="modalFicheClient">×</button></div>
+  <div class="form-grid" id="ficheClientForm" style="padding:16px;"></div>
+  <div class="form-actions between">
+    <button class="btn btn-ghost btn-sm" id="btnIAFicheClient">🤖 Mise à jour IA</button>
+    <div style="display:flex;gap:7px;">
+      <button class="btn btn-primary" id="btnSaveFicheClient">💾 Enregistrer</button>
+      <button class="btn btn-danger" id="btnSuppFicheClient">Supprimer</button>
+      <button class="btn btn-ghost" data-close="modalFicheClient">Fermer</button>
+    </div>
+  </div>
+</div></div>
+
+<!-- Fiche fournisseur -->
+<div class="modal-overlay" id="modalFicheFournisseur"><div class="modal modal-lg">
+  <div class="modal-hdr"><span class="modal-hdr-title">🏪 Fiche fournisseur</span><button class="modal-close" data-close="modalFicheFournisseur">×</button></div>
+  <div class="form-grid" id="ficheFournisseurForm" style="padding:16px;"></div>
+  <div class="form-actions between">
+    <button class="btn btn-ghost btn-sm" id="btnIAFicheFournisseur">🤖 Mise à jour IA</button>
+    <div style="display:flex;gap:7px;">
+      <button class="btn btn-primary" id="btnSaveFicheFournisseur">💾 Enregistrer</button>
+      <button class="btn btn-danger" id="btnSuppFicheFournisseur">Supprimer</button>
+      <button class="btn btn-ghost" data-close="modalFicheFournisseur">Fermer</button>
+    </div>
+  </div>
+</div></div>
+
+<!-- Modal IA extraction entreprise/fiche -->
+<div class="modal-overlay" id="modalIAEntreprise"><div class="modal modal-lg">
+  <div class="modal-hdr"><span class="modal-hdr-title" id="iaEntrepriseTitle">🤖 Mise à jour par IA</span><button class="modal-close" data-close="modalIAEntreprise">×</button></div>
+  <div style="padding:14px 16px 0;">
+    <div class="alert-box alert-info"><span>ℹ</span><span>Déposez un document (BC, facture, bon de livraison…). Claude extrait les informations automatiquement.</span></div>
+    <div id="iaEntDrop" style="border:2px dashed var(--ui-brd2);border-radius:9px;padding:26px 20px;text-align:center;cursor:pointer;background:var(--ui-bg2);">
+      <div style="font-size:34px;margin-bottom:7px;">🤖</div>
+      <div style="font-weight:600;font-size:13px;color:var(--ink);margin-bottom:3px;">Déposez un document</div>
+      <div style="font-size:11px;color:var(--ink-muted);">Facture · BC · Bon livraison · PDF · Image</div>
+    </div>
+    <input type="file" id="iaEntFile" accept=".pdf,.png,.jpg,.jpeg,.xlsx,.docx,.csv" style="display:none">
+    <div id="iaEntFileInfo" style="display:none;margin-top:10px;background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:8px 12px;align-items:center;gap:9px;">
+      <span id="iaEntFileIcon" style="font-size:20px;"></span>
+      <div id="iaEntFileName" style="flex:1;font-weight:600;font-size:12px;"></div>
+    </div>
+    <div id="iaEntError" style="display:none;margin-top:8px;" class="alert-box alert-danger"></div>
+    <div id="iaEntLoading" style="display:none;text-align:center;padding:20px;">
+      <div style="font-size:32px;animation:pulse 1.4s infinite;margin-bottom:8px;">🤖</div>
+      <div id="iaEntStatus" style="font-size:12px;color:var(--ink-muted);">Analyse…</div>
+    </div>
+    <div id="iaEntPreview" style="display:none;margin-top:12px;"></div>
+  </div>
+  <div class="form-actions between">
+    <div style="font-size:11px;color:var(--ink-muted);">Powered by Claude AI via Netlify</div>
+    <div style="display:flex;gap:7px;">
+      <button class="btn btn-ghost" id="iaEntBtnAnalyse" disabled style="opacity:.5;">🤖 Analyser</button>
+      <button class="btn btn-primary" id="iaEntBtnApply" disabled style="opacity:.5;">✅ Appliquer</button>
+      <button class="btn btn-ghost" data-close="modalIAEntreprise">Fermer</button>
+    </div>
+  </div>
+</div></div>
+
+<!-- Import IA commande -->
+<div class="modal-overlay" id="modalImportIA"><div class="modal modal-lg">
+  <div class="modal-hdr"><span class="modal-hdr-title">🤖 Import IA — Bon de commande</span><button class="modal-close" data-close="modalImportIA">×</button></div>
+  <div id="iaStep1">
+    <div style="padding:16px 16px 10px;">
+      <div id="iaDropZone" style="border:2px dashed var(--ui-brd2);border-radius:9px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--ui-bg2);">
+        <div style="font-size:38px;margin-bottom:8px;">🤖</div>
+        <div style="font-weight:600;font-size:13px;color:var(--ink);margin-bottom:4px;">Déposez votre bon de commande</div>
+        <div style="font-size:11.5px;color:var(--ink-muted);">PDF · Excel · Word · Image</div>
+      </div>
+      <input type="file" id="iaFileInput" accept=".pdf,.xlsx,.xls,.docx,.doc,.csv,.txt,.png,.jpg,.jpeg" style="display:none">
+      <div id="iaFileInfo" style="display:none;margin-top:10px;background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;align-items:center;gap:9px;">
+        <span id="iaFileIcon" style="font-size:22px;"></span>
+        <div style="flex:1;"><div id="iaFileName" style="font-weight:600;font-size:12.5px;"></div><div id="iaFileSize" style="font-size:11px;color:var(--ink-muted);"></div></div>
+        <button id="iaFileClear" style="background:none;border:none;color:var(--ui-red);font-size:17px;cursor:pointer;">×</button>
+      </div>
+      <div id="iaError" style="display:none;margin-top:8px;" class="alert-box alert-danger"></div>
+    </div>
+    <div style="padding:0 16px 12px;">
+      <div class="form-group"><label>Contexte <span class="opt">(opt.)</span></label><input type="text" id="iaContext" placeholder="Ex : commande urgente, livraison avant le 20 mars…"></div>
+    </div>
+    <div class="form-actions between">
+      <div style="font-size:11px;color:var(--ink-muted);">Powered by Claude AI via Netlify</div>
+      <button class="btn btn-primary" id="iaBtnAnalyse" disabled style="opacity:.5;">🤖 Analyser</button>
+    </div>
+  </div>
+  <div id="iaStep2" style="display:none;padding:40px 20px;text-align:center;">
+    <div style="font-size:40px;margin-bottom:12px;animation:pulse 1.4s infinite;">🤖</div>
+    <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:6px;">Analyse en cours…</div>
+    <div id="iaStatusMsg" style="font-size:11.5px;color:var(--ink-muted);margin-bottom:16px;">Lecture du document</div>
+    <div style="background:var(--ui-bg3);border-radius:5px;height:5px;width:220px;margin:0 auto;overflow:hidden;"><div id="iaProgBar" style="height:5px;background:var(--accent);border-radius:5px;width:0%;transition:width .4s;"></div></div>
+  </div>
+  <div id="iaStep3" style="display:none;">
+    <div style="padding:14px 16px 6px;"><div id="iaSummary"></div></div>
+    <div style="padding:0 16px;max-height:380px;overflow-y:auto;"><div id="iaPreview"></div></div>
+    <div class="form-actions between">
+      <button class="btn btn-ghost" id="iaResetBtn">← Autre fichier</button>
+      <div style="display:flex;gap:7px;">
+        <button class="btn btn-ghost" data-close="modalImportIA">Annuler</button>
+        <button class="btn btn-primary" id="iaConfirmBtn">✅ Importer</button>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<!-- Import en masse -->
+<div class="modal-overlay" id="modalImportMasse"><div class="modal modal-lg">
+  <div class="modal-hdr"><span class="modal-hdr-title">📥 Import masse — Migration données</span><button class="modal-close" data-close="modalImportMasse">×</button></div>
+  <div style="padding:14px 16px 0;">
+    <div class="alert-box alert-info"><span>ℹ</span><span>Importez vos données existantes. Les données existantes sont conservées — l'import ajoute sans écraser.</span></div>
+    <div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:12px 14px;margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Télécharger les modèles</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" id="dlArticles">📥 Articles</button>
+        <button class="btn btn-outline btn-sm" id="dlProduits">📥 Produits</button>
+        <button class="btn btn-outline btn-sm" id="dlClients">📥 Clients</button>
+        <button class="btn btn-outline btn-sm" id="dlFournisseurs">📥 Fournisseurs</button>
+        <button class="btn btn-outline btn-sm" id="dlCommandes">📥 Commandes</button>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;" id="massImportZones"></div>
+    <div id="massError" style="display:none;margin-bottom:10px;" class="alert-box alert-danger"></div>
+  </div>
+  <div class="form-actions between">
+    <div id="massTotalCount" style="font-size:11.5px;color:var(--ink-muted);">Aucune donnée</div>
+    <div style="display:flex;gap:7px;">
+      <button class="btn btn-ghost" data-close="modalImportMasse">Annuler</button>
+      <button class="btn btn-primary" id="massBtnImport" disabled style="opacity:.5;">📥 Importer</button>
+    </div>
+  </div>
+</div></div>
+
+<!-- ═══ SCRIPTS ═══════════════════════════════════════════ -->
+<script type="module">
+  import { initAuth, signOut } from '/js/auth.js';
+  import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
+
+  /* Chargement de tous les modules métier */
+  const modules = await Promise.all([
+    import('/js/modules/dashboard.js'),
+    import('/js/modules/stock.js'),
+    import('/js/modules/produits.js'),
+    import('/js/modules/commandes.js'),
+    import('/js/modules/production.js'),
+    import('/js/modules/achats.js'),
+    import('/js/modules/livraisons.js'),
+    import('/js/modules/recettes.js'),
+    import('/js/modules/admin.js'),
+  ]);
+
+  const [dashboard, stock, produits, commandes, production, achats, livraisons, recettes, admin] = modules;
+
+  /* Auth — redirige vers /login si non connecté */
+  const session = await initAuth();
+  if (!session) return;
+
+  /* Header */
+  renderHeaderDate();
+
+  /* Navigation par data-page */
+  const pageMap = {
+    dashboard: dashboard.render,
+    stock:     stock.render,
+    produits:  produits.render,
+    commandes: commandes.render,
+    production: production.render,
+    achats:    achats.render,
+    livraisons: livraisons.render,
+    recettes:  recettes.render,
+    admin:     admin.render,
+  };
+
+  document.getElementById('mainNav').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-page]');
+    if (!btn) return;
+    const page = btn.dataset.page;
+    showPage(page, btn);
+    if (pageMap[page]) pageMap[page]();
+  });
+
+  /* Boutons data-modal → openModal */
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-modal]');
+    if (btn) openModal(btn.dataset.modal);
+
+    const closeBtn = e.target.closest('[data-close]');
+    if (closeBtn) closeModal(closeBtn.dataset.close);
+
+    const navBtn = e.target.closest('[data-page-nav]');
+    if (navBtn) {
+      const page = navBtn.dataset.pageNav;
+      const tab = document.querySelector(`[data-page="${page}"]`);
+      showPage(page, tab);
+      if (pageMap[page]) pageMap[page]();
+    }
+  });
+
+  /* Boutons header */
+  document.getElementById('btnNewCommande').addEventListener('click', () => openModal('modalCommande'));
+  document.getElementById('btnSignOut').addEventListener('click', () => signOut());
+  document.getElementById('btnPrintPdf').addEventListener('click', () => window.print());
+
+  /* Init des modules */
+  await commandes.init();
+  await stock.init();
+  await produits.init();
+  await achats.init();
+  await admin.init();
+
+  /* Rendu initial dashboard */
+  await dashboard.render();
+
+  /* Masquer l'écran de chargement */
+  document.getElementById('app-loading').style.display = 'none';
+</script>
+</body>
+</html>

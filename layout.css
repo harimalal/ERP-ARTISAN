@@ -1,0 +1,255 @@
+/* -------------------------------------------------------
+   AppMee — layout.css
+   Header, navigation, main, grilles de mise en page,
+   responsive. Dépend de : base.css (variables)
+------------------------------------------------------- */
+
+/* HEADER */
+header {
+  background: var(--ink);
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+
+.hdr {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* LOGO */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.logo-ico {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-ico svg {
+  width: 17px;
+  height: 17px;
+  fill: #fff;
+}
+
+.logo-name {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cream);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.logo-tag {
+  font-size: 9px;
+  color: var(--accent-warm);
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 3px;
+  padding: 1px 6px;
+}
+
+.hdr-date {
+  font-size: 11px;
+  color: rgba(255,255,255,.35);
+}
+
+.hdr-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hdr-user {
+  font-size: 11px;
+  color: rgba(255,255,255,.5);
+}
+
+.hdr-btn {
+  background: var(--accent);
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 18px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: background .15s;
+}
+
+.hdr-btn:hover { background: #a83521; }
+
+.hdr-btn-ghost {
+  background: transparent;
+  color: rgba(255,255,255,.55);
+  padding: 6px 12px;
+  border-radius: 18px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid rgba(255,255,255,.15);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all .15s;
+}
+
+.hdr-btn-ghost:hover {
+  background: rgba(255,255,255,.08);
+  color: #fff;
+}
+
+/* NAVIGATION */
+nav {
+  background: var(--ui-bg);
+  border-bottom: 1.5px solid var(--rule);
+  padding: 0 24px;
+  display: flex;
+  overflow-x: auto;
+  position: sticky;
+  top: 52px;
+  z-index: 150;
+}
+
+nav::-webkit-scrollbar { height: 2px; }
+nav::-webkit-scrollbar-thumb { background: var(--rule); }
+
+.tab {
+  padding: 12px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2.5px solid transparent;
+  margin-bottom: -1.5px;
+  white-space: nowrap;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.tab:hover { color: var(--ink); }
+
+.tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+.tab-badge {
+  background: var(--accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 9px;
+  min-width: 16px;
+  text-align: center;
+}
+
+.tab-badge.warn { background: var(--ui-orange); }
+
+/* MAIN */
+main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px 24px;
+}
+
+.page         { display: none; }
+.page.active  { display: block; }
+
+/* GRILLES */
+.dash-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+/* ECRAN DE CHARGEMENT */
+#app-loading {
+  position: fixed;
+  inset: 0;
+  background: var(--cream);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9000;
+  gap: 16px;
+}
+
+#app-loading .logo-ico {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+}
+
+#app-loading .logo-ico svg {
+  width: 26px;
+  height: 26px;
+}
+
+#app-loading p {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+/* RESPONSIVE */
+@media (max-width: 760px) {
+  .dash-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .cal-week {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  main {
+    padding: 14px;
+  }
+
+  nav {
+    padding: 0 12px;
+  }
+
+  .hdr {
+    padding: 0 14px;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .hdr-date {
+    display: none;
+  }
+}

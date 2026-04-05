@@ -1,0 +1,21 @@
+# Dépendances
+node_modules/
+.npm/
+
+# Netlify
+.netlify/
+
+# Variables d'environnement — JAMAIS dans Git
+.env
+.env.local
+.env.production
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editeurs
+.vscode/
+.idea/
+*.swp
+*.swo
