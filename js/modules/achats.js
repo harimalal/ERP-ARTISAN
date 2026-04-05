@@ -148,9 +148,26 @@ function _syncAchatNom() {
   const articleId = document.getElementById('achatRef').value;
   const a = _articles.find(x => x.id === articleId);
   if (!a) return;
-  document.getElementById('achatNom').value  = articleId;
-  document.getElementById('achatUnite').textContent = a.unite;
-  document.getElementById('achatPrix').placeholder  = fmt(a.prix) + ' € (catalogue)';
+  document.getElementById('achatNom').value             = articleId;
+  document.getElementById('achatUnite').textContent     = a.unite;
+  document.getElementById('achatPrix').placeholder      = fmt(a.prix) + ' € (catalogue)';
+
+  /* Auto-sélectionner le fournisseur lié à l'article */
+  if (a.fournisseur) {
+    const fSel = document.getElementById('achatFournisseur');
+    const opt  = Array.from(fSel.options).find(o => o.value === a.fournisseur);
+    if (opt) {
+      fSel.value = a.fournisseur;
+    } else {
+      /* Fournisseur non dans la liste — ajouter temporairement */
+      const tmp = document.createElement('option');
+      tmp.value = a.fournisseur;
+      tmp.textContent = a.fournisseur;
+      fSel.appendChild(tmp);
+      fSel.value = a.fournisseur;
+    }
+  }
+
   _updateAchatMontant();
 }
 
