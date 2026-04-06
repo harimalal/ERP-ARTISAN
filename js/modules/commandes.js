@@ -47,7 +47,6 @@ function _renderListe() {
     el.innerHTML = `<div class="empty-state">
       <div class="empty-icon">📋</div>
       <p>Aucune commande.</p>
-      <button class="btn btn-primary" data-modal="modalCommande">+ Nouvelle commande</button>
     </div>`;
     return;
   }
