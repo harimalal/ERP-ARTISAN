@@ -7,6 +7,7 @@
 import {
   getArticles, createArticle, updateArticle,
   deleteArticle, updateArticleStock, addMouvement,
+  getFournisseurs,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, stockStatus, showToast,
@@ -44,7 +45,7 @@ function _renderTable() {
       : a.stock <= a.seuil ? 'var(--ui-orange)'
       : a.stock <= a.seuil * 1.5 ? '#c8830a'
       : 'var(--ui-green)';
-    return `<tr>
+    return `<tr class="clickable" data-id="${esc(a.id)}" data-action="edit-article">
       <td class="td-ref">${esc(a.ref)}</td>
       <td class="td-bold">${esc(a.nom)}</td>
       <td><span class="tag">${esc(a.categorie || '—')}</span></td>
@@ -59,7 +60,7 @@ function _renderTable() {
       <td>${stockStatus(a.stock, a.seuil)}</td>
       <td>${fmt(a.prix)} €</td>
       <td style="font-size:11px;color:var(--ink-muted)">${esc(a.fournisseur || '—')}</td>
-      <td>
+      <td onclick="event.stopPropagation()">
         <button class="btn btn-outline btn-sm" data-ref="${esc(a.ref)}" data-action="commander">Commander</button>
       </td>
     </tr>`;
@@ -74,8 +75,9 @@ function _renderTable() {
       document.dispatchEvent(new CustomEvent('appmee:openAchatFor', { detail: { ref: btn.dataset.ref } }));
       openModal('modalAchat');
     }
-    if (btn.dataset.action === 'inventaire') {
-      _openInventaire(btn.dataset.id);
+    /* Clic sur la ligne → édition article */
+    if (btn.dataset.action === 'edit-article') {
+      _openEditArticle(btn.dataset.id);
     }
   };
 }
@@ -235,6 +237,232 @@ async function _saveInventaire() {
   } catch (err) {
     showToast('❌ Erreur inventaire.', 'error');
   }
+}
+
+/* -------------------------------------------------------
+   ÉDITION ARTICLE — pop-up (MOD 4)
+------------------------------------------------------- */
+function _openEditArticle(articleId) {
+  const a = _articles.find(x => x.id === articleId);
+  if (!a) return;
+
+  let modal = document.getElementById('modalEditArticle');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modalEditArticle';
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:520px;">
+        <div class="modal-hdr">
+          <h3>✏ Modifier l'article</h3>
+          <button class="btn-close" data-close="modalEditArticle">✕</button>
+        </div>
+        <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <label style="grid-column:1/2">Référence<input id="eaRef" class="inp" readonly style="opacity:.6;"></label>
+          <label style="grid-column:2/3">Unité
+            <select id="eaUnite" class="inp">
+              <option value="kg">kg</option><option value="g">g</option>
+              <option value="L">L</option><option value="ml">ml</option>
+              <option value="pièce">pièce</option><option value="boîte">boîte</option>
+              <option value="rouleau">rouleau</option><option value="m">m</option>
+            </select>
+          </label>
+          <label style="grid-column:1/-1">Nom<input id="eaNom" class="inp"></label>
+          <label>Catégorie
+            <select id="eaCategorie" class="inp">
+              <option value="matiere">Matière première</option>
+              <option value="emballage">Emballage</option>
+              <option value="ingredient">Ingrédient</option>
+              <option value="fourniture">Fourniture</option>
+              <option value="autre">Autre</option>
+            </select>
+          </label>
+          <label>Fournisseur<input id="eaFournisseur" class="inp"></label>
+          <label>Prix unitaire (€)<input id="eaPrix" type="number" step="0.001" class="inp"></label>
+          <label>Seuil alerte<input id="eaSeuil" type="number" class="inp"></label>
+          <label>Stock actuel<input id="eaStock" type="number" step="0.001" class="inp"></label>
+        </div>
+        <div class="modal-ftr">
+          <button class="btn btn-ghost" data-close="modalEditArticle">Annuler</button>
+          <button class="btn btn-primary" id="btnSaveEditArticle">Enregistrer</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.querySelectorAll('[data-close]').forEach(btn =>
+      btn.addEventListener('click', () => closeModal('modalEditArticle')));
+  }
+
+  /* Remplir */
+  document.getElementById('eaRef').value        = a.ref;
+  document.getElementById('eaNom').value        = a.nom;
+  document.getElementById('eaCategorie').value  = a.categorie || 'autre';
+  document.getElementById('eaUnite').value      = a.unite || 'kg';
+  document.getElementById('eaPrix').value       = a.prix || '';
+  document.getElementById('eaSeuil').value      = a.seuil || '';
+  document.getElementById('eaStock').value      = a.stock || 0;
+  document.getElementById('eaFournisseur').value= a.fournisseur || '';
+
+  /* Remplacer le listener save */
+  const btnSave = document.getElementById('btnSaveEditArticle');
+  const newBtn  = btnSave.cloneNode(true);
+  btnSave.parentNode.replaceChild(newBtn, btnSave);
+  newBtn.addEventListener('click', () => _saveEditArticle(articleId));
+
+  openModal('modalEditArticle');
+}
+
+async function _saveEditArticle(articleId) {
+  const a = _articles.find(x => x.id === articleId);
+  if (!a) return;
+  const changes = {
+    nom:        document.getElementById('eaNom').value.trim(),
+    categorie:  document.getElementById('eaCategorie').value,
+    unite:      document.getElementById('eaUnite').value,
+    prix:       parseFloat(document.getElementById('eaPrix').value) || 0,
+    seuil:      parseFloat(document.getElementById('eaSeuil').value) || 0,
+    stock:      parseFloat(document.getElementById('eaStock').value) || 0,
+    fournisseur:document.getElementById('eaFournisseur').value.trim(),
+  };
+  if (!changes.nom) { showToast('⚠ Le nom est requis.', 'error'); return; }
+  try {
+    await updateArticle(articleId, changes);
+    Object.assign(a, changes);
+    closeModal('modalEditArticle');
+    _renderTable();
+    showToast('✅ Article ' + a.ref + ' mis à jour.');
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'articles' } }));
+  } catch (err) {
+    showToast('❌ Erreur mise à jour article.', 'error');
+  }
+}
+
+/* -------------------------------------------------------
+   INVENTAIRE GLOBAL MULTI-LIGNES (MOD 6)
+   Ouvre une fenêtre avec tous les articles, possibilité
+   d'ajuster n'importe lequel et d'ajouter des lignes.
+------------------------------------------------------- */
+export function openInventaireGlobal() {
+  let modal = document.getElementById('modalInventaireGlobal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modalInventaireGlobal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:680px;max-height:85vh;display:flex;flex-direction:column;">
+        <div class="modal-hdr">
+          <h3>📦 Inventaire global</h3>
+          <button class="btn-close" data-close="modalInventaireGlobal">✕</button>
+        </div>
+        <div class="modal-body" style="flex:1;overflow-y:auto;">
+          <p style="font-size:11.5px;color:var(--ink-muted);margin-bottom:10px;">
+            Saisissez les quantités réelles pour chaque article à ajuster. Les autres lignes seront ignorées.
+          </p>
+          <div id="invGlobalLignes" style="display:grid;gap:6px;"></div>
+          <button class="btn btn-ghost btn-sm" id="btnAddInvLigne" style="margin-top:8px;">+ Ajouter une ligne</button>
+        </div>
+        <div class="modal-ftr">
+          <button class="btn btn-ghost" data-close="modalInventaireGlobal">Annuler</button>
+          <button class="btn btn-primary" id="btnSaveInvGlobal">Enregistrer tout</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.querySelectorAll('[data-close]').forEach(btn =>
+      btn.addEventListener('click', () => closeModal('modalInventaireGlobal')));
+  }
+
+  _renderInvGlobalLignes();
+
+  document.getElementById('btnAddInvLigne').onclick = _addInvGlobalLigne;
+  /* Remplacer le listener save */
+  const btnSave = document.getElementById('btnSaveInvGlobal');
+  const newBtn  = btnSave.cloneNode(true);
+  btnSave.parentNode.replaceChild(newBtn, btnSave);
+  newBtn.addEventListener('click', _saveInvGlobal);
+
+  openModal('modalInventaireGlobal');
+}
+
+function _renderInvGlobalLignes() {
+  const container = document.getElementById('invGlobalLignes');
+  container.innerHTML = '';
+  /* Afficher d'emblée tous les articles en alerte + une ligne vide pour commencer */
+  const alertes = _articles.filter(a => a.stock <= a.seuil);
+  if (alertes.length) {
+    alertes.forEach(a => _addInvGlobalLigne(a));
+  } else {
+    _addInvGlobalLigne();
+  }
+}
+
+function _addInvGlobalLigne(preselectArticle = null) {
+  const container = document.getElementById('invGlobalLignes');
+  const row = document.createElement('div');
+  row.style.cssText = 'display:grid;grid-template-columns:2fr 80px 80px auto;gap:7px;align-items:center;';
+
+  const opts = _articles.map(a =>
+    `<option value="${esc(a.id)}" ${preselectArticle && a.id === preselectArticle.id ? 'selected' : ''}>${esc(a.ref)} — ${esc(a.nom)} (stock: ${fmtQ(a.stock)} ${esc(a.unite)})</option>`
+  ).join('');
+
+  row.innerHTML = `
+    <select class="ig-art inp" style="font-size:11px;">${opts}</select>
+    <input type="number" step="0.001" placeholder="Qté réelle" class="ig-qte inp" value="${preselectArticle ? '' : ''}">
+    <span class="ig-unite" style="font-size:11px;color:var(--ink-muted);padding-left:4px;"></span>
+    <button style="background:none;border:none;color:var(--ui-red);font-size:18px;cursor:pointer;" type="button">×</button>`;
+
+  const artSel = row.querySelector('.ig-art');
+  const uniteEl= row.querySelector('.ig-unite');
+
+  const syncUnite = () => {
+    const a = _articles.find(x => x.id === artSel.value);
+    uniteEl.textContent = a ? a.unite : '';
+  };
+  artSel.addEventListener('change', syncUnite);
+  syncUnite();
+
+  row.querySelector('button').addEventListener('click', () => row.remove());
+  container.appendChild(row);
+}
+
+async function _saveInvGlobal() {
+  const rows = document.querySelectorAll('#invGlobalLignes > div');
+  const toUpdate = [];
+
+  rows.forEach(row => {
+    const artId = row.querySelector('.ig-art')?.value;
+    const qte   = parseFloat(row.querySelector('.ig-qte')?.value);
+    if (artId && !isNaN(qte) && qte >= 0) toUpdate.push({ artId, qte });
+  });
+
+  if (!toUpdate.length) {
+    showToast('⚠ Aucune ligne à enregistrer.', 'error');
+    return;
+  }
+
+  let ok = 0;
+  for (const { artId, qte } of toUpdate) {
+    const a = _articles.find(x => x.id === artId);
+    if (!a) continue;
+    const ecart = qte - a.stock;
+    try {
+      await updateArticleStock(artId, qte);
+      await addMouvement({
+        type: 'inventaire',
+        ref: a.ref, nom: a.nom,
+        qte: Math.abs(ecart),
+        motif: 'Inventaire global',
+        ref_doc: 'INV-' + Date.now(),
+      });
+      a.stock = qte;
+      ok++;
+    } catch (err) {
+      showToast(`❌ Erreur sur ${a.ref}.`, 'error');
+    }
+  }
+
+  closeModal('modalInventaireGlobal');
+  _renderTable();
+  showToast(`✅ ${ok} article(s) mis à jour.`);
+  document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'articles' } }));
 }
 
 /* -------------------------------------------------------
