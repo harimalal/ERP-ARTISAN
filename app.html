@@ -1109,8 +1109,9 @@
 
         /* Appel à la Netlify Function */
         const { data: { session } } = await (await import('/js/config.js')).supabase.auth.getSession();
+        const { getTenantId } = await import('/js/auth.js');
         const token    = session?.access_token || '';
-        const tenantId = session?.user?.id || '';
+        const tenantId = getTenantId() || '';
 
         const resp = await fetch('/api/ai-analyse-bc', {
           method: 'POST',
