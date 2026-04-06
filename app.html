@@ -180,7 +180,7 @@
   </div>
   <div class="card" style="margin-bottom:16px;">
     <div class="card-hdr"><span class="card-hdr-title">📋 Ordres de fabrication (OF)</span></div>
-    <table><thead><tr><th>Référence</th><th>Produit</th><th>Qté</th><th>Clients</th><th>Date planifiée</th><th>Statut</th></tr></thead>
+    <table><thead><tr><th>Référence</th><th>Produit</th><th>Qté</th><th>Clients</th><th>Date planifiée</th><th>Statut</th><th>Actions</th></tr></thead>
     <tbody id="planningTbody"></tbody></table>
   </div>
   <div class="card" style="margin-bottom:16px;">
@@ -323,20 +323,19 @@
     <div class="form-group"><label>Date</label><input type="date" id="cmdDate"></div>
     <div class="form-group"><label>Date livraison <span class="opt">(opt.)</span></label><input type="date" id="cmdDateLiv"></div>
     <div class="form-group full"><label>Client</label>
-      <select id="cmdClientSel" style="width:100%;"></select>
-      <input type="text" id="cmdClient" placeholder="Nom du nouveau client…"
-        style="display:none;width:100%;margin-top:6px;">
+      <div style="display:flex;gap:7px;">
+        <select id="cmdClientSel" style="flex:1;"></select>
+        <input type="text" id="cmdClient" placeholder="Ou nouveau client…" style="flex:1.5;">
+      </div>
     </div>
   </div>
   <div style="padding:0 16px 10px;">
-    <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">
-      Produits commandés
-    </div>
+    <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Lignes</div>
     <div id="cmdLignes"></div>
-    <button class="btn btn-primary btn-sm" id="btnAddCmdLigne" style="margin-top:8px;">+ Ajouter un produit</button>
+    <button class="btn btn-ghost btn-sm" id="btnAddCmdLigne" style="margin-top:5px;">+ Ligne</button>
   </div>
   <div class="form-grid" style="padding-top:0;">
-    <div class="form-group full"><label>Remarques <span class="opt">(opt.)</span></label><textarea id="cmdRemarques" rows="2" placeholder="Notes…"></textarea></div>
+    <div class="form-group full"><label>Remarques</label><textarea id="cmdRemarques" rows="2" placeholder="Notes…"></textarea></div>
   </div>
   <div class="alert-box alert-info" style="margin:0 16px 12px;"><span>ℹ</span><span>AppMee analyse le stock et génère les bons de commande fournisseur automatiquement si des articles manquent.</span></div>
   <div class="form-actions">
@@ -840,6 +839,13 @@
     if (btn && livraisons.initNewFactureModal) livraisons.initNewFactureModal();
   }, true);
 
+  /* BUG 1 — initAchatModal sans ref sur les boutons génériques modalAchat
+     (les boutons Commander passent par appmee:openAchatFor avec la ref) */
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-modal="modalAchat"]');
+    if (btn && achats.initAchatModal) achats.initAchatModal(null);
+  }, true);
+
   /* FIX 4 — Bouton Inventaire global */
   document.getElementById('btnInventaireGlobal')?.addEventListener('click', () => {
     if (stock.openInventaireGlobal) stock.openInventaireGlobal();
@@ -1026,6 +1032,17 @@
     if (production.initPlanifierModal) {
       production.initPlanifierModal(ref || null);
     }
+    openModal('modalPlanifier');
+  });
+
+  /* Ouvrir BC fournisseur avec l'article pré-sélectionné
+     Dispatché par dashboard.js et stock.js via le bouton Commander */
+  document.addEventListener('appmee:openAchatFor', (e) => {
+    const { ref } = e.detail || {};
+    if (achats.initAchatModal) {
+      achats.initAchatModal(ref || null);
+    }
+    openModal('modalAchat');
   });
 
   /* ── Import IA — Branchement zone dépôt + analyse ──────── */
@@ -1199,41 +1216,6 @@
         const p = produits.find(x => x.ref === l.refDetectee);
         return s + (p ? (p.prix_vente || p.prix || 0) * l.qte : 0);
       }, 0);
-
-      /* ── MOD 1 : Alerte si aucune ligne reconnue ── */
-      if (matchees.length === 0) {
-        document.getElementById('iaSummary').innerHTML = `
-          <div style="background:#fdecea;border:2px solid #f5c2c2;border-radius:9px;padding:16px 18px;margin-bottom:10px;">
-            <div style="font-weight:700;font-size:13px;color:#c0392b;margin-bottom:8px;">
-              ⚠ Aucun produit reconnu dans ce bon de commande
-            </div>
-            <div style="font-size:12px;color:#555;line-height:1.6;">
-              L'IA a analysé le document mais <strong>aucune des ${lignes.length} ligne(s) détectée(s)</strong>
-              ne correspond à un produit existant dans votre catalogue.<br><br>
-              Pour traiter ce bon de commande, commencez par :
-              <ol style="margin:8px 0 0 18px;padding:0;font-size:11.5px;">
-                <li>Créer les <strong>produits finis</strong> correspondants dans <em>Admin → Produits finis</em></li>
-                <li>Définir leur <strong>recette (nomenclature)</strong> dans l'onglet <em>Recettes</em></li>
-                <li>Revenir ensuite importer ce bon de commande</li>
-              </ol>
-            </div>
-            <div style="margin-top:12px;padding:8px 12px;background:#fff0ef;border-radius:6px;font-size:11px;color:#888;">
-              Produits détectés dans le document :
-              <strong>${lignes.map(l => '"' + l.nomOriginal + '"').join(', ') || '—'}</strong>
-            </div>
-          </div>`;
-        document.getElementById('iaPreview').innerHTML = '';
-        /* Désactiver le bouton Importer */
-        const btnConfirm = document.getElementById('iaConfirmBtn');
-        if (btnConfirm) { btnConfirm.disabled = true; btnConfirm.style.opacity = '.4'; }
-        window._iaData = data;
-        window._iaProduits = produits;
-        return;
-      }
-
-      /* Réactiver le bouton Importer si on revient sur un doc avec matchs */
-      const btnConfirm = document.getElementById('iaConfirmBtn');
-      if (btnConfirm) { btnConfirm.disabled = false; btnConfirm.style.opacity = '1'; }
 
       document.getElementById('iaSummary').innerHTML = `
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
