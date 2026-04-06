@@ -68,15 +68,14 @@ function _renderTable() {
       <td style="font-size:11px;color:var(--ink-muted)">${esc(a.ref_commande || '—')}</td>
       <td onclick="event.stopPropagation()">
         ${badgeAchat(a.statut || 'brouillon')}
-        ${a.statut !== 'recu'
-          ? `<select style="font-size:10.5px;padding:2px 6px;border:1px solid var(--ui-brd);border-radius:5px;margin-left:5px;"
-               data-id="${a.id}" data-action="changer-statut">
-               <option value="">Changer…</option>
-               <option value="brouillon">Brouillon</option>
-               <option value="envoye">Envoyé</option>
-               <option value="en_cours">En cours</option>
-               <option value="recu">Reçu ✓</option>
-             </select>` : ''}
+        <select style="font-size:10.5px;padding:2px 6px;border:1px solid var(--ui-brd);border-radius:5px;margin-left:5px;"
+             data-id="${a.id}" data-action="changer-statut">
+           <option value="">Changer…</option>
+           <option value="brouillon">Brouillon</option>
+           <option value="envoye">Envoyé</option>
+           <option value="en_cours">En cours</option>
+           <option value="recu">Reçu ✓</option>
+         </select>
       </td>
       <td onclick="event.stopPropagation()">
         <button class="btn-icon" data-id="${a.id}" data-action="pdf" title="Aperçu PDF">👁</button>
