@@ -98,6 +98,7 @@
     <div><div class="sec-title">Stock Articles</div><div class="sec-sub">Matières premières, emballages, consommables</div></div>
     <div class="btn-row">
       <input type="text" class="search-input" placeholder="Rechercher..." id="stockSearchInput">
+      <button class="btn btn-ghost" id="btnInventaireGlobal">📦 Inventaire</button>
       <button class="btn btn-outline" data-modal="modalAchat">+ Bon de commande</button>
       <button class="btn btn-primary" data-modal="modalNewArticle">+ Nouvel article</button>
     </div>
@@ -125,6 +126,9 @@
 <div id="page-produits" class="page">
   <div class="sec-hdr">
     <div><div class="sec-title">Stock Produits Finis</div><div class="sec-sub">Produits assemblés, prêts à la vente</div></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" data-modal="modalNewProduit">+ Nouveau produit</button>
+    </div>
   </div>
   <div class="card">
     <table>
@@ -457,17 +461,20 @@
 
 <!-- Planifier OF -->
 <div class="modal-overlay" id="modalPlanifier"><div class="modal modal-lg">
-  <div class="modal-hdr"><span class="modal-hdr-title">🏭 Planifier un ordre de fabrication</span><button class="modal-close" data-close="modalPlanifier">×</button></div>
-  <div class="form-grid">
-    <div class="form-group"><label>Référence produit</label><select id="ofRef"></select></div>
-    <div class="form-group"><label>Nom produit</label><select id="ofNom"></select></div>
-    <div class="form-group"><label>Quantité à produire</label><input type="number" id="ofQte" min="1" step="1" placeholder="ex : 200"></div>
-    <div class="form-group"><label>Date planifiée</label><input type="date" id="ofDate"></div>
+  <div class="modal-hdr"><span class="modal-hdr-title">🏭 Planifier des ordres de fabrication</span><button class="modal-close" data-close="modalPlanifier">×</button></div>
+  <div style="padding:0 16px 6px;">
+    <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">
+      Ordres à créer — Produit | Nom | Qté | Date
+    </div>
+    <div id="ofLignes"></div>
+    <button class="btn btn-ghost btn-sm" id="btnAddOFLigne" style="margin-top:5px;">+ Ajouter un OF</button>
+  </div>
+  <div class="form-grid" style="padding-top:0;">
     <div class="form-group full"><label>Clients concernés <span class="opt">(opt.)</span></label><input type="text" id="ofClients" placeholder="CMD0001, CMD0002…"></div>
   </div>
   <div id="ofFaisabilite" style="display:none;padding:0 16px 10px;"><div id="ofFaisabiliteContent"></div></div>
   <div class="form-actions between">
-    <button class="btn btn-ghost" id="btnCheckOFFaisabilite">🔍 Vérifier faisabilité</button>
+    <div></div>
     <div style="display:flex;gap:7px;">
       <button class="btn btn-primary" id="btnSavePlanifier">✅ Planifier</button>
       <button class="btn btn-ghost" data-close="modalPlanifier">Annuler</button>
@@ -807,9 +814,40 @@
   });
 
   /* Boutons header */
-  document.getElementById('btnNewCommande').addEventListener('click', () => openModal('modalCommande'));
+  document.getElementById('btnNewCommande').addEventListener('click', () => {
+    commandes.initCommandeModal();
+    openModal('modalCommande');
+  });
   document.getElementById('btnSignOut').addEventListener('click', () => signOut());
   document.getElementById('btnPrintPdf').addEventListener('click', () => window.print());
+
+  /* FIX 2 — initCommandeModal sur tous les boutons data-modal="modalCommande" */
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-modal="modalCommande"]');
+    if (btn && commandes.initCommandeModal) commandes.initCommandeModal();
+  }, true); /* capture = true pour s'exécuter avant le openModal générique */
+
+  /* FIX 3 — initPlanifierModal sur le bouton "+ Planifier un OF" du header production */
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-modal="modalPlanifier"]');
+    if (btn && production.initPlanifierModal) production.initPlanifierModal(null);
+  }, true);
+
+  /* FIX 7 — initNewFactureModal sur l'ouverture du modal Nouvelle Facture */
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-modal="modalNewFacture"]');
+    if (btn && livraisons.initNewFactureModal) livraisons.initNewFactureModal();
+  }, true);
+
+  /* FIX 4 — Bouton Inventaire global */
+  document.getElementById('btnInventaireGlobal')?.addEventListener('click', () => {
+    if (stock.openInventaireGlobal) stock.openInventaireGlobal();
+  });
+
+  /* FIX 1 — Bouton "+ Ajouter un OF" dans le modal Planifier */
+  document.getElementById('btnAddOFLigne')?.addEventListener('click', () => {
+    if (production.addOFLigne) production.addOFLigne();
+  });
 
   /* Export CSV — branché sur le bouton Admin */
   document.getElementById('btnExportCSV')?.addEventListener('click', () => admin.exporterTout());
