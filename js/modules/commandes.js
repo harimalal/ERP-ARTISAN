@@ -171,7 +171,14 @@ function _ouvrirLivraison(commandeId) {
 ------------------------------------------------------- */
 function _bindCommande() {
   document.getElementById('cmdClientSel')?.addEventListener('change', (e) => {
-    if (e.target.value) document.getElementById('cmdClient').value = e.target.value;
+    const clientInput = document.getElementById('cmdClient');
+    if (e.target.value === '__nouveau__') {
+      /* Afficher le champ texte libre pour saisir un nouveau client */
+      if (clientInput) { clientInput.style.display = ''; clientInput.value = ''; clientInput.focus(); }
+    } else {
+      /* Masquer le champ texte, la valeur vient du select */
+      if (clientInput) { clientInput.style.display = 'none'; clientInput.value = ''; }
+    }
   });
 
   document.getElementById('btnAddCmdLigne')?.addEventListener('click', _addCmdLigne);
@@ -183,12 +190,20 @@ export function initCommandeModal() {
   document.getElementById('cmdDateLiv').value   = '';
   document.getElementById('cmdRemarques').value = '';
   document.getElementById('cmdLignes').innerHTML = '';
-  document.getElementById('cmdClient').value    = '';
   _cmdLineN = 0;
 
+  /* Client : select uniquement — champ libre masqué */
   const sel = document.getElementById('cmdClientSel');
-  sel.innerHTML = '<option value="">— Nouveau client —</option>' +
-    _clients.map(c => `<option value="${esc(c.nom)}">${esc(c.nom)}</option>`).join('');
+  sel.innerHTML = '<option value="">— Sélectionner un client —</option>' +
+    _clients.map(c => `<option value="${esc(c.nom)}">${esc(c.nom)}</option>`).join('') +
+    '<option value="__nouveau__">+ Nouveau client (saisir ci-dessous)</option>';
+
+  /* Champ texte libre : caché par défaut, visible si "Nouveau client" */
+  const clientInput = document.getElementById('cmdClient');
+  if (clientInput) {
+    clientInput.style.display = 'none';
+    clientInput.value = '';
+  }
 
   _addCmdLigne();
 }
@@ -247,8 +262,10 @@ function _updateCmdHint(produitId, el, qte) {
 async function _saveCommande() {
   const date      = document.getElementById('cmdDate').value || today();
   const dateLiv   = document.getElementById('cmdDateLiv').value || null;
-  const clientNom = document.getElementById('cmdClient').value ||
-                    document.getElementById('cmdClientSel').value || 'Client inconnu';
+  const selVal    = document.getElementById('cmdClientSel').value;
+  const clientNom = selVal === '__nouveau__'
+    ? (document.getElementById('cmdClient')?.value || 'Client inconnu')
+    : (selVal || 'Client inconnu');
   const notes     = document.getElementById('cmdRemarques').value;
 
   const lignes = [];
