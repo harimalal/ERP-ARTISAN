@@ -39,8 +39,8 @@ export const PLANS_QUOTA_IA = {
 
 /* ENDPOINTS NETLIFY FUNCTIONS — underscores obligatoires */
 export const API = {
-  aiAnalyseBC:  '/.netlify/functions/ai_analyse_bc',
-  aiExtractDoc: '/.netlify/functions/ai_extract_doc',
+  aiAnalyseBC:  '/api/ai-analyse-bc',
+  aiExtractDoc: '/api/ai-extract-doc',
 };
 
 export const CAT_ARTICLES = ['emballage', 'matiere', 'ingredient', 'fourniture', 'autre'];
