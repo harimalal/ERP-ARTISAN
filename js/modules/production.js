@@ -91,16 +91,35 @@ function _renderOFs() {
   const tbody = document.getElementById('planningTbody');
 
   if (!_ofs.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun ordre de fabrication.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun ordre de fabrication.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = _ofs.map(of => {
-    const rowClass = of.statut === 'en_cours' ? 'prod-warn'
-      : ['en_stock', 'clos'].includes(of.statut) ? 'prod-ok'
-      : of.statut === 'annule' ? 'prod-fail' : '';
+  /* Code couleur par statut */
+  const STATUT_COLOR = {
+    'a_planifier':     '#6c757d',
+    'planifie':        '#0d6efd',
+    'en_cours':        '#fd7e14',
+    'fabrique':        '#198754',
+    'clos':            '#20c997',
+    'annule':          '#dc3545',
+  };
 
-    return `<tr class="${rowClass}">
+  const STATUT_LABELS = {
+    'a_planifier':  'À planifier',
+    'planifie':     'Planifié',
+    'en_cours':     'En cours de fabrication',
+    'fabrique':     'Fabriqué',
+    'clos':         'Clos',
+    'annule':       'Annulé',
+  };
+
+  const statutOpts = Object.entries(STATUT_LABELS).map(([val, label]) =>
+    `<option value="${val}">${label}</option>`).join('');
+
+  tbody.innerHTML = _ofs.map(of => {
+    const color = STATUT_COLOR[of.statut] || '#6c757d';
+    return `<tr style="border-left:3px solid ${color};">
       <td class="td-ref">${esc(of.ref)}</td>
       <td class="td-bold">${esc(of.produit_nom)}</td>
       <td><strong>${of.quantite}</strong></td>
@@ -110,38 +129,45 @@ function _renderOFs() {
           style="font-size:11px;padding:3px 6px;border:1px solid var(--ui-brd);border-radius:5px;"
           data-id="${of.id}" data-action="update-date">
       </td>
-      <td>${badgePlan(of.statut)}</td>
-      <td style="display:flex;gap:5px;flex-wrap:wrap;padding:6px 0;">
-        ${['planifie', 'a_venir', 'a_produire'].includes(of.statut)
-          ? `<button class="btn btn-warn btn-xs" data-id="${of.id}" data-action="en_cours">En cours</button>` : ''}
-        ${of.statut === 'en_cours'
-          ? `<button class="btn btn-success btn-xs" data-id="${of.id}" data-action="terminer">✓ Clos</button>` : ''}
-        ${!['clos', 'annule'].includes(of.statut)
-          ? `<button class="btn btn-danger btn-xs" data-id="${of.id}" data-action="annuler">Annuler</button>` : ''}
+      <td>
+        <select data-id="${of.id}" data-action="changer-statut"
+          style="font-size:11px;padding:4px 7px;border:2px solid ${color};border-radius:5px;
+                 background:#fff;color:${color};font-weight:600;cursor:pointer;">
+          ${Object.entries(STATUT_LABELS).map(([val, label]) =>
+            `<option value="${val}" ${of.statut === val ? 'selected' : ''}>${label}</option>`
+          ).join('')}
+        </select>
       </td>
     </tr>`;
   }).join('');
 
-  /* Délégation d'événements — UUID */
-  tbody.onclick = async (e) => {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    const id     = btn.dataset.id;
-    const action = btn.dataset.action;
-    if (action === 'en_cours') await _setOFStatut(id, 'en_cours');
-    if (action === 'terminer') await _terminerFab(id);
-    if (action === 'annuler')  await _annulerOF(id);
-  };
+  /* Délégation d'événements */
+  tbody.onchange = async (e) => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const id = el.dataset.id;
 
-  tbody.addEventListener('change', async (e) => {
-    const input = e.target.closest('[data-action="update-date"]');
-    if (input) {
-      await updateOFDate(input.dataset.id, input.value);
-      const of = _ofs.find(o => o.id === input.dataset.id);
-      if (of) of.date_prevue = input.value;
+    if (el.dataset.action === 'update-date') {
+      await updateOFDate(id, el.value);
+      const of = _ofs.find(o => o.id === id);
+      if (of) of.date_prevue = el.value;
       _renderCalendrier();
     }
-  });
+
+    if (el.dataset.action === 'changer-statut') {
+      const newStatut = el.value;
+      /* Si passage à "clos" → déclencher la logique de fin de fab */
+      if (newStatut === 'clos') {
+        await _terminerFab(id);
+      } else if (newStatut === 'annule') {
+        await _annulerOF(id);
+      } else {
+        await _setOFStatut(id, newStatut);
+      }
+      _renderOFs();
+      _renderCalendrier();
+    }
+  };
 }
 
 /* -------------------------------------------------------
@@ -384,29 +410,59 @@ async function _creerOF(produitId, qte) {
    FORMULAIRE PLANIFIER OF
 ------------------------------------------------------- */
 function _bindPlanifierForm() {
-  document.getElementById('ofRef')?.addEventListener('change', (e) => {
-    document.getElementById('ofNom').value = e.target.value;
-    _checkOFFaisabilite();
-  });
-  document.getElementById('ofNom')?.addEventListener('change', (e) => {
-    document.getElementById('ofRef').value = e.target.value;
-    _checkOFFaisabilite();
-  });
-  document.getElementById('ofQte')?.addEventListener('input', _checkOFFaisabilite);
-  document.getElementById('btnCheckOFFaisabilite')?.addEventListener('click', _checkOFFaisabilite);
   document.getElementById('btnSavePlanifier')?.addEventListener('click', _savePlanifier);
 }
 
 export function initPlanifierModal(preselectProduitRef = null) {
-  const byId   = _produits.map(p => `<option value="${esc(p.id)}" ${p.ref === preselectProduitRef ? 'selected' : ''}>${esc(p.ref)}</option>`).join('');
-  const byName = _produits.map(p => `<option value="${esc(p.id)}" ${p.ref === preselectProduitRef ? 'selected' : ''}>${esc(p.nom)}</option>`).join('');
-  document.getElementById('ofRef').innerHTML = byId;
-  document.getElementById('ofNom').innerHTML = byName;
-  document.getElementById('ofQte').value     = '';
-  document.getElementById('ofDate').value    = today();
-  document.getElementById('ofClients').value = '';
-  document.getElementById('ofFaisabilite').style.display = 'none';
+  /* Vider le conteneur multi-lignes */
+  const container = document.getElementById('ofLignes');
+  if (container) {
+    container.innerHTML = '';
+    _ofLigneN = 0;
+    _addOFLigne(preselectProduitRef);
+  }
+  const ofClients = document.getElementById('ofClients');
+  if (ofClients) ofClients.value = '';
+  const ofFaisabilite = document.getElementById('ofFaisabilite');
+  if (ofFaisabilite) ofFaisabilite.style.display = 'none';
 }
+
+/* Compteur lignes OF */
+let _ofLigneN = 0;
+
+function _addOFLigne(preselectProduitRef = null) {
+  const container = document.getElementById('ofLignes');
+  if (!container) return;
+  _ofLigneN++;
+
+  const div = document.createElement('div');
+  div.className = 'of-ligne';
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 80px 130px auto;gap:7px;margin-bottom:7px;align-items:center;';
+
+  const byRef  = _produits.map(p =>
+    `<option value="${esc(p.id)}" ${p.ref === preselectProduitRef ? 'selected' : ''}>${esc(p.ref)}</option>`).join('');
+  const byName = _produits.map(p =>
+    `<option value="${esc(p.id)}" ${p.ref === preselectProduitRef ? 'selected' : ''}>${esc(p.nom)}</option>`).join('');
+
+  div.innerHTML = `
+    <select class="of-ref inp" style="font-size:11.5px;font-weight:600;color:var(--accent);">${byRef}</select>
+    <select class="of-nom inp">${byName}</select>
+    <input type="number" placeholder="Qté" min="1" class="of-qte inp">
+    <input type="date" class="of-date inp" value="${today()}">
+    <button style="background:none;border:none;color:var(--ui-red);font-size:18px;cursor:pointer;line-height:1;" type="button">×</button>`;
+
+  div.querySelector('.of-ref').addEventListener('change', (e) => {
+    div.querySelector('.of-nom').value = e.target.value;
+  });
+  div.querySelector('.of-nom').addEventListener('change', (e) => {
+    div.querySelector('.of-ref').value = e.target.value;
+  });
+  div.querySelector('button').addEventListener('click', () => div.remove());
+
+  container.appendChild(div);
+}
+
+export function addOFLigne() { _addOFLigne(); }
 
 function _checkOFFaisabilite() {
   const produitId = document.getElementById('ofRef').value;
@@ -423,44 +479,64 @@ function _checkOFFaisabilite() {
 }
 
 async function _savePlanifier() {
-  const produitId = document.getElementById('ofRef').value;
-  const qte       = parseInt(document.getElementById('ofQte').value) || 0;
-  const p         = _produits.find(x => x.id === produitId);
+  /* Collecter toutes les lignes OF du formulaire multi-lignes */
+  const container = document.getElementById('ofLignes');
+  const lignes = [];
 
-  if (!p || !qte) { showToast('⚠ Choisissez un produit et une quantité.', 'error'); return; }
+  if (container) {
+    container.querySelectorAll('.of-ligne').forEach(div => {
+      const produitId = div.querySelector('.of-ref')?.value;
+      const qte       = parseInt(div.querySelector('.of-qte')?.value) || 0;
+      const date      = div.querySelector('.of-date')?.value || today();
+      if (produitId && qte > 0) lignes.push({ produitId, qte, date });
+    });
+  }
 
-  const ref = nextRef('OF', _ofs);
+  if (!lignes.length) {
+    showToast('⚠ Ajoutez au moins un OF avec produit et quantité.', 'error');
+    return;
+  }
+
+  const notesClients = document.getElementById('ofClients')?.value || '';
+  let createdCount = 0;
 
   try {
-    const of = await createOF({
-      ref,
-      produit_id:  p.id,
-      produit_nom: p.nom,
-      quantite:    qte,
-      notes:       document.getElementById('ofClients').value,
-      date_prevue: document.getElementById('ofDate').value || today(),
-      statut:      'planifie',
-    });
-    _ofs.push(of);
+    for (const { produitId, qte, date } of lignes) {
+      const p = _produits.find(x => x.id === produitId);
+      if (!p) continue;
 
-    /* Créer BCs automatiques si articles insuffisants */
-    if (p.recette) {
-      for (const [aref, qp] of Object.entries(p.recette)) {
-        const a = _articles.find(x => x.ref === aref);
-        if (!a) continue;
-        const manque = qp * qte - a.stock;
-        if (manque <= 0) continue;
-        const doublon = await achatDoublonExiste(aref, ref);
-        if (doublon) continue;
-        const bcRef = nextRef('BC', await getAchats());
-        await createAchat({ ref: bcRef, article_id: a.id, article_nom: a.nom, quantite: Math.ceil(manque), prix_unitaire: a.prix, fournisseur: a.fournisseur || '', statut: 'brouillon', ref_commande: ref, notes: 'Auto OF ' + ref });
+      const ref = nextRef('OF', _ofs);
+      const of  = await createOF({
+        ref,
+        produit_id:  p.id,
+        produit_nom: p.nom,
+        quantite:    qte,
+        notes:       notesClients,
+        date_prevue: date,
+        statut:      'planifie',
+      });
+      _ofs.push(of);
+      createdCount++;
+
+      /* Créer BCs automatiques si articles insuffisants */
+      if (p.recette) {
+        for (const [aref, qp] of Object.entries(p.recette)) {
+          const a = _articles.find(x => x.ref === aref);
+          if (!a) continue;
+          const manque = qp * qte - a.stock;
+          if (manque <= 0) continue;
+          const doublon = await achatDoublonExiste(aref, ref);
+          if (doublon) continue;
+          const bcRef = nextRef('BC', await getAchats());
+          await createAchat({ ref: bcRef, article_id: a.id, article_nom: a.nom, quantite: Math.ceil(manque), prix_unitaire: a.prix, fournisseur: a.fournisseur || '', statut: 'brouillon', ref_commande: ref, notes: 'Auto OF ' + ref });
+        }
       }
     }
 
     closeModal('modalPlanifier');
     _renderOFs();
     _renderCalendrier();
-    showToast('✅ OF ' + ref + ' planifié.');
+    showToast(`✅ ${createdCount} OF planifié(s).`);
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'production' } }));
   } catch (err) {
     showToast('❌ Erreur planification OF.', 'error');
