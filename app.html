@@ -839,13 +839,6 @@
     if (btn && livraisons.initNewFactureModal) livraisons.initNewFactureModal();
   }, true);
 
-  /* BUG 1 — initAchatModal sans ref sur les boutons génériques modalAchat
-     (les boutons Commander passent par appmee:openAchatFor avec la ref) */
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-modal="modalAchat"]');
-    if (btn && achats.initAchatModal) achats.initAchatModal(null);
-  }, true);
-
   /* FIX 4 — Bouton Inventaire global */
   document.getElementById('btnInventaireGlobal')?.addEventListener('click', () => {
     if (stock.openInventaireGlobal) stock.openInventaireGlobal();
@@ -1035,8 +1028,8 @@
     openModal('modalPlanifier');
   });
 
-  /* Ouvrir BC fournisseur avec l'article pré-sélectionné
-     Dispatché par dashboard.js et stock.js via le bouton Commander */
+  /* Bon de commande fournisseur avec article pré-sélectionné
+     Dispatché par dashboard.js et stock.js via bouton Commander */
   document.addEventListener('appmee:openAchatFor', (e) => {
     const { ref } = e.detail || {};
     if (achats.initAchatModal) {
