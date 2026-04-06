@@ -27,51 +27,42 @@ export async function render() {
   }
 }
 
-/* NOTE : getDashboardData() doit retourner { articles, produits, commandes, achats, ofs, factures }
-   Si factures n'est pas encore dans getDashboardData, ajouter : factures: await getFactures()
-   dans db.js → getDashboardData(). Le calcul "Factures à relancer" en dépend. */
-
 /* -------------------------------------------------------
    KPIs
 ------------------------------------------------------- */
-function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
-  const alertsA    = articles.filter(a => a.stock <= a.seuil).length;
-  const bcPending  = achats.filter(a => ['envoye', 'en_cours'].includes(a.statut)).length;
-  const ofCours    = ofs.filter(o => o.statut === 'en_cours').length;
-
-  /* Factures à relancer : statut 'a_relancer' ou facturée depuis > 30j */
-  const factures_  = factures || [];
-  const today30    = new Date(); today30.setDate(today30.getDate() - 30);
-  const aRelancer  = factures_.filter(f =>
-    f.statut === 'a_relancer' ||
-    (f.statut === 'facture' && new Date(f.date_facture) < today30)
-  ).length;
-
-  /* Valeur BdC en cours : achats statut envoyé ou en_cours */
-  const valBdc = achats
-    .filter(a => ['envoye', 'en_cours'].includes(a.statut))
-    .reduce((s, a) => s + (a.quantite || 0) * (a.prix_unitaire || 0), 0);
+function renderKPIs({ articles, produits, commandes, achats, ofs }) {
+  const alertsA   = articles.filter(a => a.stock <= a.seuil).length;
+  const totalPF   = produits.reduce((s, p) => s + (p.stock || 0), 0);
+  const cmdOpen   = commandes.filter(c => c.statut !== 'cloture').length;
+  const valA      = articles.reduce((s, a) => s + (a.stock || 0) * (a.prix || 0), 0);
+  const bcPending = achats.filter(a => ['envoye', 'en_cours'].includes(a.statut)).length;
+  const ofCours   = ofs.filter(o => o.statut === 'en_cours').length;
 
   document.getElementById('kpiGrid').innerHTML = `
     <div class="kpi ${alertsA > 0 ? 'alert' : 'good'}">
-      <div class="kpi-label">Alertes stock</div>
+      <div class="kpi-label">Alertes articles</div>
       <div class="kpi-value">${alertsA}</div>
-      <div class="kpi-sub">${alertsA > 0 ? 'articles sous le seuil' : 'Tout OK'}</div>
+      <div class="kpi-sub">${alertsA > 0 ? 'sous le seuil' : 'Tout OK'}</div>
+    </div>
+    <div class="kpi good">
+      <div class="kpi-label">Stock produits finis</div>
+      <div class="kpi-value">${totalPF.toLocaleString('fr')}</div>
+      <div class="kpi-sub">unités dispo</div>
+    </div>
+    <div class="kpi blue">
+      <div class="kpi-label">Commandes en cours</div>
+      <div class="kpi-value">${cmdOpen}</div>
+      <div class="kpi-sub">non clôturées</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Valeur stock articles</div>
+      <div class="kpi-value">${fmt(valA)} €</div>
+      <div class="kpi-sub">au prix d'achat</div>
     </div>
     <div class="kpi ${bcPending > 0 ? 'warn' : ''}">
       <div class="kpi-label">BC en attente</div>
       <div class="kpi-value">${bcPending}</div>
-      <div class="kpi-sub">bons envoyés / en cours</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Valeur BdC en cours</div>
-      <div class="kpi-value">${fmt(valBdc)} €</div>
-      <div class="kpi-sub">achats engagés</div>
-    </div>
-    <div class="kpi ${aRelancer > 0 ? 'alert' : ''}">
-      <div class="kpi-label">Factures à relancer</div>
-      <div class="kpi-value">${aRelancer}</div>
-      <div class="kpi-sub">${aRelancer > 0 ? 'en attente de paiement' : 'Tout à jour'}</div>
+      <div class="kpi-sub">bons envoyés / cours</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">OF en cours</div>
@@ -80,6 +71,9 @@ function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
     </div>`;
 }
 
+/* -------------------------------------------------------
+   ALERTES STOCK ARTICLES
+------------------------------------------------------- */
 function renderAlertes(articles) {
   const al = articles.filter(a => a.stock <= a.seuil);
   const el = document.getElementById('dashAlerts');
@@ -92,7 +86,7 @@ function renderAlertes(articles) {
   el.innerHTML = `
     <table>
       <thead><tr><th>Réf</th><th>Article</th><th>Stock</th><th>Seuil</th><th></th></tr></thead>
-      <tbody>${al.map(a => `
+      <tbody id="dashAlertsTbody">${al.map(a => `
         <tr>
           <td class="td-ref">${esc(a.ref)}</td>
           <td class="td-bold">${esc(a.nom)}</td>
@@ -103,44 +97,31 @@ function renderAlertes(articles) {
       </tbody>
     </table>`;
 
-  /* Délégation d'événement pour les boutons Commander */
-  el.addEventListener('click', (e) => {
+  /* Délégation via onclick — remplacé à chaque render, jamais cumulé */
+  document.getElementById('dashAlertsTbody').onclick = (e) => {
     const btn = e.target.closest('[data-action="commander"]');
-    if (btn) {
-      const ref = btn.dataset.ref;
-      openModal('modalAchat');
-      document.dispatchEvent(new CustomEvent('appmee:openAchatFor', { detail: { ref } }));
-    }
-  });
+    if (!btn) return;
+    const ref = btn.dataset.ref;
+    document.dispatchEvent(new CustomEvent('appmee:openAchatFor', { detail: { ref } }));
+  };
 }
 
 /* -------------------------------------------------------
    STOCK PRODUITS FINIS
 ------------------------------------------------------- */
 function renderStockProduits(produits) {
-  const el = document.getElementById('dashProduits');
-  el.innerHTML = `
+  document.getElementById('dashProduits').innerHTML = `
     <table>
-      <thead><tr><th>Produit</th><th>Stock</th><th>Statut</th><th></th></tr></thead>
+      <thead><tr><th>Produit</th><th>Stock</th><th>Statut</th><th>Prix</th></tr></thead>
       <tbody>${produits.map(p => `
         <tr>
           <td>${esc(p.nom)}</td>
           <td><strong>${p.stock}</strong></td>
           <td>${stockStatus(p.stock, p.seuil)}</td>
-          <td>
-            <button class="btn btn-outline btn-sm" data-ref="${esc(p.ref)}" data-action="produire">▶ Produire</button>
-          </td>
+          <td>${fmt(p.prix_vente || p.prix)} €</td>
         </tr>`).join('')}
       </tbody>
     </table>`;
-
-  el.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-action="produire"]');
-    if (btn) {
-      document.dispatchEvent(new CustomEvent('appmee:planifierOF', { detail: { ref: btn.dataset.ref } }));
-      openModal('modalPlanifier');
-    }
-  });
 }
 
 /* -------------------------------------------------------
