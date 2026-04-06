@@ -343,18 +343,21 @@
 <!-- Achat / BC -->
 <div class="modal-overlay" id="modalAchat"><div class="modal modal-lg">
   <div class="modal-hdr"><span class="modal-hdr-title">🛒 Bon de commande fournisseur</span><button class="modal-close" data-close="modalAchat">×</button></div>
-  <div class="form-grid">
+  <div class="form-grid" style="padding-bottom:0;">
     <div class="form-group"><label>Date</label><input type="date" id="achatDate"></div>
-    <div class="form-group"><label>Fournisseur</label><select id="achatFournisseur"></select></div>
-    <div class="form-group"><label>Référence article</label><select id="achatRef"></select></div>
-    <div class="form-group"><label>Nom article</label><select id="achatNom"></select></div>
-    <div class="form-group"><label>Unité</label><div style="padding:7px 10px;background:var(--ui-bg2);border:1.5px solid var(--ui-brd);border-radius:6px;font-size:12.5px;color:var(--ink-muted);" id="achatUnite">—</div></div>
-    <div class="form-group"><label>Quantité</label><input type="number" id="achatQte" min="0" step="0.01"></div>
-    <div class="form-group"><label>Prix unitaire HT <span class="opt">(opt.)</span></label><input type="number" id="achatPrix" step="0.01"></div>
+    <div class="form-group"><label>Fournisseur <span class="opt">(filtre articles)</span></label><select id="achatFournisseur"></select></div>
     <div class="form-group"><label>Réf commande liée <span class="opt">(opt.)</span></label><input type="text" id="achatRefCmd" placeholder="CMD0001"></div>
     <div class="form-group full"><label>Remarque</label><input type="text" id="achatRemarque" placeholder="N° BL, lot…"></div>
   </div>
-  <div id="achatMontant" style="display:none;margin:0 16px 10px;padding:9px 12px;background:var(--ui-bg2);border-radius:7px;font-size:12.5px;">💰 Montant estimé : <strong id="achatMontantVal">—</strong></div>
+  <div style="padding:0 16px 10px;">
+    <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">
+      Articles à commander
+      <span style="font-size:9px;color:var(--ink-muted);font-weight:400;"> — Article | Quantité | Prix HT</span>
+    </div>
+    <div id="bcLignesContainer"></div>
+    <button class="btn btn-ghost btn-sm" id="btnAddBCLigne" style="margin-top:5px;">+ Ajouter un article</button>
+  </div>
+  <div id="achatMontant" style="display:none;margin:0 16px 10px;padding:9px 12px;background:var(--ui-bg2);border-radius:7px;font-size:12.5px;">💰 Total HT estimé : <strong id="achatMontantVal">—</strong></div>
   <div class="form-actions between">
     <button class="btn btn-ghost" id="btnAperçuBC">👁 Aperçu PDF</button>
     <div style="display:flex;gap:7px;">
@@ -842,10 +845,32 @@
 
     let html = '';
 
-    if (type === 'bc') {
-      /* BC fournisseur — regroupé par fournisseur si multi-articles */
-      const tva     = (data.montant_ht || 0) * 0.20;
-      const ttc     = (data.montant_ht || 0) + tva;
+    if (type === 'bc' || type === 'bc_multi') {
+      /* BC fournisseur — mono ou multi-articles */
+      const lignesBc = data.lignes || [{
+        article_nom:  data.article_nom || data.nom || '—',
+        ref_article:  data.ref_article || '—',
+        unite:        data.unite || '',
+        quantite:     data.quantite || 0,
+        prix_unitaire: data.prix_unitaire || data.prix || 0,
+        montant_ht:   data.montant_ht || 0,
+      }];
+      const totalHT = lignesBc.reduce((s, l) => s + (l.montant_ht || l.quantite * l.prix_unitaire || 0), 0);
+      const tva = totalHT * 0.20;
+      const ttc = totalHT + tva;
+      const tenant = data.tenant || {};
+
+      const blocEntreprise = tenant.nom ? `
+        <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:6px;">Émis par</div>
+        <div style="font-size:10px;line-height:1.6;color:#333;">
+          <div style="font-weight:700;font-size:12px;">${tenant.nom || ''}</div>
+          ${tenant.forme ? '<div>' + tenant.forme + '</div>' : ''}
+          ${tenant.adresse ? '<div>' + tenant.adresse + '</div>' : ''}
+          ${tenant.tel ? '<div>Tél : ' + tenant.tel + '</div>' : ''}
+          ${tenant.email ? '<div>' + tenant.email + '</div>' : ''}
+          ${tenant.siret ? '<div>SIRET : ' + tenant.siret + '</div>' : ''}
+        </div></div>` : '<div></div>';
+
       html = `<div class="pdf-hdr">
         <div><h2>Bon de commande fournisseur</h2>
           <div style="font-size:12px;color:#888;margin-top:3px;">${data.ref || 'Brouillon'}</div></div>
@@ -855,30 +880,26 @@
           <div style="margin-top:6px;padding:4px 8px;background:#fff3e0;border-radius:4px;">
             Statut : <strong>${data.statut || 'brouillon'}</strong></div>
         </div></div>
-        <div style="margin-bottom:16px;padding:10px 14px;background:#f9f9f9;border-radius:7px;font-size:11px;">
-          <strong>Fournisseur :</strong> ${data.fournisseur || '—'}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:16px;">
+          ${blocEntreprise}
+          <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:6px;">Fournisseur</div>
+          <div style="font-size:12px;font-weight:700;">${data.fournisseur || '—'}</div></div>
         </div>
         <table><thead><tr>
           <th>Article</th><th>Référence</th><th>Quantité</th><th>Unité</th>
           <th>Prix unit. HT</th><th>Total HT</th>
         </tr></thead><tbody>
-        <tr>
-          <td>${data.article_nom || data.nom || '—'}</td>
-          <td>${data.ref_article || data.ref || '—'}</td>
-          <td>${data.quantite || 0}</td>
-          <td>${data.unite || ''}</td>
-          <td>${(data.prix_unitaire || data.prix || 0).toFixed(2)} €</td>
-          <td style="font-weight:600">${(data.montant_ht || 0).toFixed(2)} €</td>
-        </tr>
+        ${lignesBc.map(l => '<tr><td>' + (l.article_nom || '—') + '</td><td>' + (l.ref_article || '—') + '</td><td>' + (l.quantite || 0) + '</td><td>' + (l.unite || '') + '</td><td>' + (l.prix_unitaire || 0).toFixed(2) + ' €</td><td style="font-weight:600">' + (l.montant_ht || (l.quantite * l.prix_unitaire) || 0).toFixed(2) + ' €</td></tr>').join('')}
         </tbody>
         <tr style="background:#f0f0f0;"><td colspan="5" style="text-align:right;font-weight:700;padding:6px 8px;">Total HT</td>
-          <td style="font-weight:700;padding:6px 8px;">${(data.montant_ht || 0).toFixed(2)} €</td></tr>
+          <td style="font-weight:700;padding:6px 8px;">${totalHT.toFixed(2)} €</td></tr>
         <tr><td colspan="5" style="text-align:right;padding:4px 8px;font-size:10px;color:#888;">TVA 20%</td>
           <td style="padding:4px 8px;font-size:10px;color:#888;">${tva.toFixed(2)} €</td></tr>
         <tr style="background:#f0f0f0;"><td colspan="5" style="text-align:right;font-weight:700;padding:6px 8px;">Total TTC</td>
           <td style="font-weight:700;padding:6px 8px;">${ttc.toFixed(2)} €</td></tr>
         </table>
-        ${data.notes ? '<div style="margin-top:12px;font-size:11px;color:#555;padding:8px;background:#f9f9f9;border-radius:4px;">Note : ' + data.notes + '</div>' : ''}`;
+        ${data.notes ? '<div style="margin-top:12px;font-size:11px;color:#555;padding:8px;background:#f9f9f9;border-radius:4px;">Note : ' + data.notes + '</div>' : ''}
+        ${tenant.iban ? '<div style="margin-top:12px;font-size:10px;color:#888;border-top:1px solid #eee;padding-top:8px;">Règlement : IBAN <strong>' + tenant.iban + '</strong>' + (tenant.cpt_paiement ? ' — ' + tenant.cpt_paiement : '') + '</div>' : ''}`;
 
     } else if (type === 'commande') {
       const lignes = data.commande_lignes || [];
@@ -950,17 +971,22 @@
   document.addEventListener('appmee:editProduit', async (e) => {
     const { produitId } = e.detail || {};
     if (!produitId) return;
-    produits.initNewProduitModal
-      ? produits.initNewProduitModal(null, produitId)
+    /* Récupérer le produit complet depuis le cache produits */
+    const editProduit = produits.getProduitsCache
+      ? produits.getProduitsCache().find(p => p.id === produitId)
       : null;
+    if (editProduit && produits.initNewProduitModal) {
+      produits.initNewProduitModal(editProduit);
+    }
     /* Le modal est ouvert par recettes.js directement */
   });
 
   /* Planifier OF depuis recettes — pré-sélectionne le produit */
   document.addEventListener('appmee:planifierOF', (e) => {
     const { ref } = e.detail || {};
-    if (!ref) return;
-    production.initPlanifierModal ? production.initPlanifierModal(ref) : null;
+    if (production.initPlanifierModal) {
+      production.initPlanifierModal(ref || null);
+    }
   });
 
   /* Init des modules */
@@ -968,6 +994,7 @@
   await stock.init();
   await produits.init();
   await achats.init();
+  await production.init();
   await admin.init();
 
   /* Rendu initial dashboard */
