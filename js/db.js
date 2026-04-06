@@ -698,13 +698,14 @@ export async function addMouvement({ type, ref, nom, qte, motif, ref_doc }) {
 
 export async function getDashboardData() {
   /* Toutes les requêtes en parallèle via Promise.all */
-  const [articles, produits, commandes, achats, ofs] = await Promise.all([
+  const [articles, produits, commandes, achats, ofs, factures] = await Promise.all([
     getArticles(),
     getProduits(),
     getCommandes(),
     getAchats(),
     getAllOFs(),
+    getFactures(),
   ]);
 
-  return { articles, produits, commandes, achats, ofs };
+  return { articles, produits, commandes, achats, ofs, factures };
 }
