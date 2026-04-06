@@ -1029,14 +1029,19 @@
   });
 
   /* Bon de commande fournisseur avec article pré-sélectionné
-     Dispatché par dashboard.js et stock.js via bouton Commander */
+     Stock.js dispatche l'event AVANT openModal — ce listener initialise le modal,
+     puis stock.js ouvre le modal. Pour les boutons génériques, la capture ci-dessous
+     initialise avec null (BC vide). */
   document.addEventListener('appmee:openAchatFor', (e) => {
     const { ref } = e.detail || {};
-    if (achats.initAchatModal) {
-      achats.initAchatModal(ref || null);
-    }
-    openModal('modalAchat');
+    if (achats.initAchatModal) achats.initAchatModal(ref || null);
   });
+
+  /* Initialisation vide pour les boutons génériques "+ Bon de commande" / "+ Nouveau BC" */
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-modal="modalAchat"]');
+    if (btn && achats.initAchatModal) achats.initAchatModal(null);
+  }, true);
 
   /* ── Import IA — Branchement zone dépôt + analyse ──────── */
   (function() {
