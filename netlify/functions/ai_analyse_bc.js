@@ -244,6 +244,13 @@ export default async function handler(req) {
     });
 
   } catch (err) {
+    /* Logger l'erreur complète pour diagnostic */
+    console.error('[ai_analyse_bc] ERREUR:', err.message);
+    console.error('[ai_analyse_bc] STACK:', err.stack);
+    console.error('[ai_analyse_bc] ENV SUPABASE_URL:', process.env.SUPABASE_URL ? 'OK' : 'MANQUANT');
+    console.error('[ai_analyse_bc] ENV SUPABASE_SERVICE_KEY:', process.env.SUPABASE_SERVICE_KEY ? 'OK' : 'MANQUANT');
+    console.error('[ai_analyse_bc] ENV ANTHROPIC_API_KEY:', process.env.ANTHROPIC_API_KEY ? 'OK' : 'MANQUANT');
+
     const isQuota = err.message?.includes('Quota IA');
     return new Response(JSON.stringify({
       ok:    false,
