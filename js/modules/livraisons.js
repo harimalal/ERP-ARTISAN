@@ -253,6 +253,26 @@ function _bindNewFactureForm() {
 
   document.getElementById('nfMontant')?.addEventListener('input', _calcNFTtc);
   document.getElementById('nfTva')?.addEventListener('input', _calcNFTtc);
+
+  /* MOD 15 — Auto-remplissage montant + client depuis la commande sélectionnée */
+  document.getElementById('nfRefCmd')?.addEventListener('change', (e) => {
+    const ref = e.target.value;
+    if (!ref) return;
+    const cmd = _commandes.find(c => c.ref === ref);
+    if (!cmd) return;
+
+    /* Remplir le client */
+    const clientSel = document.getElementById('nfClient');
+    const opt = Array.from(clientSel.options).find(o => o.value === cmd.client_nom);
+    if (opt) clientSel.value = cmd.client_nom;
+
+    /* Calculer et remplir le montant HT */
+    const tot = (cmd.commande_lignes || []).reduce((s, l) =>
+      s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
+    document.getElementById('nfMontant').value = tot.toFixed(2);
+    _calcNFTtc();
+  });
+
   document.getElementById('btnSaveNewFacture')?.addEventListener('click', _saveNewFacture);
 }
 
