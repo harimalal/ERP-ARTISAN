@@ -333,7 +333,7 @@
       Produits commandés
     </div>
     <div id="cmdLignes"></div>
-    <button class="btn btn-ghost btn-sm" id="btnAddCmdLigne" style="margin-top:8px;">+ Ajouter un produit</button>
+    <button class="btn btn-primary btn-sm" id="btnAddCmdLigne" style="margin-top:8px;">+ Ajouter un produit</button>
   </div>
   <div class="form-grid" style="padding-top:0;">
     <div class="form-group full"><label>Remarques <span class="opt">(opt.)</span></label><textarea id="cmdRemarques" rows="2" placeholder="Notes…"></textarea></div>
@@ -1199,6 +1199,41 @@
         const p = produits.find(x => x.ref === l.refDetectee);
         return s + (p ? (p.prix_vente || p.prix || 0) * l.qte : 0);
       }, 0);
+
+      /* ── MOD 1 : Alerte si aucune ligne reconnue ── */
+      if (matchees.length === 0) {
+        document.getElementById('iaSummary').innerHTML = `
+          <div style="background:#fdecea;border:2px solid #f5c2c2;border-radius:9px;padding:16px 18px;margin-bottom:10px;">
+            <div style="font-weight:700;font-size:13px;color:#c0392b;margin-bottom:8px;">
+              ⚠ Aucun produit reconnu dans ce bon de commande
+            </div>
+            <div style="font-size:12px;color:#555;line-height:1.6;">
+              L'IA a analysé le document mais <strong>aucune des ${lignes.length} ligne(s) détectée(s)</strong>
+              ne correspond à un produit existant dans votre catalogue.<br><br>
+              Pour traiter ce bon de commande, commencez par :
+              <ol style="margin:8px 0 0 18px;padding:0;font-size:11.5px;">
+                <li>Créer les <strong>produits finis</strong> correspondants dans <em>Admin → Produits finis</em></li>
+                <li>Définir leur <strong>recette (nomenclature)</strong> dans l'onglet <em>Recettes</em></li>
+                <li>Revenir ensuite importer ce bon de commande</li>
+              </ol>
+            </div>
+            <div style="margin-top:12px;padding:8px 12px;background:#fff0ef;border-radius:6px;font-size:11px;color:#888;">
+              Produits détectés dans le document :
+              <strong>${lignes.map(l => '"' + l.nomOriginal + '"').join(', ') || '—'}</strong>
+            </div>
+          </div>`;
+        document.getElementById('iaPreview').innerHTML = '';
+        /* Désactiver le bouton Importer */
+        const btnConfirm = document.getElementById('iaConfirmBtn');
+        if (btnConfirm) { btnConfirm.disabled = true; btnConfirm.style.opacity = '.4'; }
+        window._iaData = data;
+        window._iaProduits = produits;
+        return;
+      }
+
+      /* Réactiver le bouton Importer si on revient sur un doc avec matchs */
+      const btnConfirm = document.getElementById('iaConfirmBtn');
+      if (btnConfirm) { btnConfirm.disabled = false; btnConfirm.style.opacity = '1'; }
 
       document.getElementById('iaSummary').innerHTML = `
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
