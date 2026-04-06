@@ -95,14 +95,18 @@ function _renderOFs() {
     return;
   }
 
-  /* Couleurs pastels lisibles — fond clair + texte foncé */
+  /* Style inspiré du Plan de fabrication — très transparent, élégant
+     bg  : fond de ligne (quasi invisible)
+     acc : couleur d'accent pour le badge statut et la bordure gauche
+     txt : couleur du texte du badge
+     sel : fond du select statut                                        */
   const STATUT_STYLE = {
-    'a_planifier': { bg: '#f1f3f5', txt: '#495057', brd: '#ced4da' },
-    'planifie':    { bg: '#dbe4ff', txt: '#1c3a8a', brd: '#91a7ff' },
-    'en_cours':    { bg: '#fff3bf', txt: '#5c4000', brd: '#ffd43b' },
-    'fabrique':    { bg: '#d3f9d8', txt: '#1a4d2e', brd: '#69db7c' },
-    'clos':        { bg: '#c5f6fa', txt: '#0b4e5c', brd: '#66d9e8' },
-    'annule':      { bg: '#ffe3e3', txt: '#7d1d1d', brd: '#ff8787' },
+    'a_planifier': { bg: 'rgba(108,117,125,0.06)', acc: '#868e96', txt: '#495057', sel: 'rgba(108,117,125,0.10)' },
+    'planifie':    { bg: 'rgba(76,110,245,0.06)',  acc: '#4c6ef5', txt: '#364fc7', sel: 'rgba(76,110,245,0.10)'  },
+    'en_cours':    { bg: 'rgba(255,146,43,0.07)',  acc: '#f59f00', txt: '#7c5200', sel: 'rgba(255,146,43,0.12)'  },
+    'fabrique':    { bg: 'rgba(32,201,151,0.07)',  acc: '#20c997', txt: '#087f5b', sel: 'rgba(32,201,151,0.12)'  },
+    'clos':        { bg: 'rgba(32,201,151,0.05)',  acc: '#20c997', txt: '#0b7a5a', sel: 'rgba(32,201,151,0.08)'  },
+    'annule':      { bg: 'rgba(250,82,82,0.06)',   acc: '#fa5252', txt: '#c92a2a', sel: 'rgba(250,82,82,0.10)'   },
   };
 
   const STATUT_LABELS = {
@@ -114,32 +118,32 @@ function _renderOFs() {
     'annule':       'Annulé',
   };
 
-  /* Format date ISO → JJ/MM/AAAA */
+  /* Date ISO → JJ/MM/AAAA */
   const fmtDateFR = (d) => {
     if (!d) return '—';
-    const parts = d.split('-');
-    return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+    const p = d.split('-');
+    return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d;
   };
 
   tbody.innerHTML = _ofs.map(of => {
     const st = STATUT_STYLE[of.statut] || STATUT_STYLE['a_planifier'];
-    return `<tr style="background:${st.bg};">
-      <td class="td-ref" style="color:${st.txt};">${esc(of.ref)}</td>
-      <td class="td-bold" style="color:${st.txt};">${esc(of.produit_nom)}</td>
-      <td style="color:${st.txt};"><strong>${of.quantite}</strong></td>
-      <td style="font-size:10.5px;color:${st.txt};opacity:.75;">${esc(of.notes || '')}</td>
-      <td style="color:${st.txt};font-size:11.5px;">
+    return `<tr style="background:${st.bg};border-left:3px solid ${st.acc};">
+      <td class="td-ref">${esc(of.ref)}</td>
+      <td class="td-bold">${esc(of.produit_nom)}</td>
+      <td><strong>${of.quantite}</strong></td>
+      <td style="font-size:10.5px;color:var(--ink-muted)">${esc(of.notes || '')}</td>
+      <td style="font-size:11.5px;color:var(--ink);">
         ${fmtDateFR(of.date_prevue)}
         <input type="date" value="${esc(of.date_prevue || '')}"
           style="width:0;height:0;opacity:0;position:absolute;"
           data-id="${of.id}" data-action="update-date" id="dp-${of.id}">
         <button onclick="document.getElementById('dp-${of.id}').showPicker?.()"
-          style="background:none;border:none;cursor:pointer;font-size:10px;padding:2px 4px;color:${st.txt};opacity:.5;" title="Modifier la date">✏</button>
+          style="background:none;border:none;cursor:pointer;font-size:10px;padding:2px 4px;color:var(--ink-muted);" title="Modifier la date">✏</button>
       </td>
       <td>
         <select data-id="${of.id}" data-action="changer-statut"
-          style="font-size:11px;padding:5px 8px;border:1.5px solid ${st.brd};border-radius:6px;
-                 background:${st.bg};color:${st.txt};font-weight:700;cursor:pointer;width:100%;min-width:160px;">
+          style="font-size:11px;padding:4px 9px;border:1.5px solid ${st.acc};border-radius:20px;
+                 background:${st.sel};color:${st.txt};font-weight:600;cursor:pointer;">
           ${Object.entries(STATUT_LABELS).map(([val, label]) =>
             `<option value="${val}" ${of.statut === val ? 'selected' : ''}>${label}</option>`
           ).join('')}
