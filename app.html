@@ -1112,7 +1112,7 @@
         const token    = session?.access_token || '';
         const tenantId = session?.user?.id || '';
 
-        const resp = await fetch('/.netlify/functions/ai_analyse_bc', {
+        const resp = await fetch('/api/ai-analyse-bc', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
