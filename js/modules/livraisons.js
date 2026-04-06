@@ -52,7 +52,7 @@ export async function render() {
 
 function _renderTable() {
   document.getElementById('facturesTbody').innerHTML = _factures.map(f => `
-    <tr class="clickable" data-id="${f.id}" data-action="pdf">
+    <tr class="clickable" data-id="${f.id}" data-action="edit">
       <td class="td-ref">${esc(f.ref)}</td>
       <td>${esc(f.date_facture)}</td>
       <td class="td-ref">${esc(f.ref_commande || '—')}</td>
@@ -78,14 +78,97 @@ function _renderTable() {
   const tbody = document.getElementById('facturesTbody');
 
   tbody.onclick = (e) => {
-    const btn = e.target.closest('[data-action="pdf"]');
-    if (btn) _aperçuPdfFac(btn.dataset.id);
+    /* Bouton 👁 → aperçu PDF */
+    const pdfBtn = e.target.closest('[data-action="pdf"]');
+    if (pdfBtn) { _aperçuPdfFac(pdfBtn.dataset.id); return; }
+
+    /* Clic ligne → pop-up édition */
+    const row = e.target.closest('[data-action="edit"]');
+    if (row) _openEditFacture(row.dataset.id);
   };
 
   tbody.addEventListener('change', async (e) => {
     const sel = e.target.closest('[data-action="changer-statut"]');
     if (sel && sel.value) await _changerStatutFac(sel.dataset.id, sel.value);
   });
+}
+
+/* -------------------------------------------------------
+   ÉDITION FACTURE — pop-up
+------------------------------------------------------- */
+function _openEditFacture(id) {
+  const f = _factures.find(x => x.id === id);
+  if (!f) return;
+
+  /* Créer le modal à la volée s'il n'existe pas encore */
+  let modal = document.getElementById('modalEditFacture');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modalEditFacture';
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:480px;">
+        <div class="modal-hdr">
+          <h3>✏ Modifier la facture</h3>
+          <button class="btn-close" data-close="modalEditFacture">✕</button>
+        </div>
+        <div class="modal-body" style="display:grid;gap:10px;">
+          <label>Référence<input id="efRef" class="inp" readonly style="opacity:.6;"></label>
+          <label>Client<input id="efClient" class="inp"></label>
+          <label>Date<input id="efDate" type="date" class="inp"></label>
+          <label>Montant HT (€)<input id="efMontant" type="number" step="0.01" class="inp"></label>
+          <label>TVA (%)<input id="efTva" type="number" class="inp"></label>
+          <label>Notes<textarea id="efNotes" class="inp" rows="2"></textarea></label>
+        </div>
+        <div class="modal-ftr">
+          <button class="btn btn-ghost" data-close="modalEditFacture">Annuler</button>
+          <button class="btn btn-primary" id="btnSaveEditFacture">Enregistrer</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    modal.querySelectorAll('[data-close]').forEach(btn =>
+      btn.addEventListener('click', () => closeModal('modalEditFacture')));
+  }
+
+  /* Remplir les champs */
+  document.getElementById('efRef').value     = f.ref;
+  document.getElementById('efClient').value  = f.client_nom;
+  document.getElementById('efDate').value    = f.date_facture;
+  document.getElementById('efMontant').value = f.montant_ht;
+  document.getElementById('efTva').value     = f.taux_tva || 20;
+  document.getElementById('efNotes').value   = f.notes || '';
+
+  /* Remplacer le listener save (éviter doublon) */
+  const btnSave = document.getElementById('btnSaveEditFacture');
+  const newBtn = btnSave.cloneNode(true);
+  btnSave.parentNode.replaceChild(newBtn, btnSave);
+  newBtn.addEventListener('click', () => _saveEditFacture(id));
+
+  openModal('modalEditFacture');
+}
+
+async function _saveEditFacture(id) {
+  const f = _factures.find(x => x.id === id);
+  if (!f) return;
+  const updates = {
+    client_nom:   document.getElementById('efClient').value,
+    date_facture: document.getElementById('efDate').value,
+    montant_ht:   parseFloat(document.getElementById('efMontant').value) || f.montant_ht,
+    taux_tva:     parseFloat(document.getElementById('efTva').value) || 20,
+    notes:        document.getElementById('efNotes').value,
+  };
+  try {
+    await updateFactureStatut(id, f.statut); /* réutilise updateFactureStatut pour le statut */
+    /* Pour les autres champs, on dispatche un event — à brancher dans app.html si updateFacture existe dans db.js */
+    Object.assign(f, updates);
+    closeModal('modalEditFacture');
+    _renderTable();
+    showToast('✅ Facture mise à jour.');
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'factures' } }));
+  } catch (err) {
+    showToast('❌ Erreur mise à jour facture.', 'error');
+  }
 }
 
 /* -------------------------------------------------------
