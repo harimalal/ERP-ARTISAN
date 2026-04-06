@@ -989,6 +989,269 @@
     }
   });
 
+  /* ── Import IA — Branchement zone dépôt + analyse ──────── */
+  (function() {
+    let _iaFile = null;
+
+    const dropZone  = document.getElementById('iaDropZone');
+    const fileInput = document.getElementById('iaFileInput');
+    const fileInfo  = document.getElementById('iaFileInfo');
+    const fileName  = document.getElementById('iaFileName');
+    const fileSize  = document.getElementById('iaFileSize');
+    const fileIcon  = document.getElementById('iaFileIcon');
+    const fileClear = document.getElementById('iaFileClear');
+    const btnAnalyse= document.getElementById('iaBtnAnalyse');
+    const btnReset  = document.getElementById('iaResetBtn');
+    const btnConfirm= document.getElementById('iaConfirmBtn');
+    const iaError   = document.getElementById('iaError');
+
+    const ICONS = { pdf:'📄', xlsx:'📊', xls:'📊', docx:'📝', doc:'📝',
+                    csv:'📊', png:'🖼', jpg:'🖼', jpeg:'🖼', txt:'📄' };
+
+    function setFile(f) {
+      _iaFile = f;
+      const ext = f.name.split('.').pop().toLowerCase();
+      fileIcon.textContent = ICONS[ext] || '📄';
+      fileName.textContent = f.name;
+      fileSize.textContent = (f.size / 1024).toFixed(1) + ' Ko';
+      fileInfo.style.display = 'flex';
+      btnAnalyse.disabled = false;
+      btnAnalyse.style.opacity = '1';
+      if (iaError) iaError.style.display = 'none';
+    }
+
+    function clearFile() {
+      _iaFile = null;
+      fileInfo.style.display = 'none';
+      btnAnalyse.disabled = true;
+      btnAnalyse.style.opacity = '.5';
+      fileInput.value = '';
+    }
+
+    /* Clic sur la zone → ouvre le sélecteur de fichier */
+    dropZone?.addEventListener('click', () => fileInput?.click());
+
+    /* Sélection via l'input file */
+    fileInput?.addEventListener('change', (e) => {
+      if (e.target.files[0]) setFile(e.target.files[0]);
+    });
+
+    /* Glisser-déposer */
+    dropZone?.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = 'var(--accent)';
+      dropZone.style.background  = 'rgba(200,67,43,0.05)';
+    });
+    dropZone?.addEventListener('dragleave', () => {
+      dropZone.style.borderColor = '';
+      dropZone.style.background  = '';
+    });
+    dropZone?.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '';
+      dropZone.style.background  = '';
+      const f = e.dataTransfer.files[0];
+      if (f) setFile(f);
+    });
+
+    /* Supprimer le fichier */
+    fileClear?.addEventListener('click', clearFile);
+
+    /* Reset depuis l'étape 3 */
+    btnReset?.addEventListener('click', () => {
+      clearFile();
+      document.getElementById('iaStep1').style.display = 'block';
+      document.getElementById('iaStep2').style.display = 'none';
+      document.getElementById('iaStep3').style.display = 'none';
+    });
+
+    /* ── Analyse IA ── */
+    btnAnalyse?.addEventListener('click', async () => {
+      if (!_iaFile) return;
+
+      document.getElementById('iaStep1').style.display = 'none';
+      document.getElementById('iaStep2').style.display = 'block';
+      document.getElementById('iaStep3').style.display = 'none';
+
+      const statusEl = document.getElementById('iaStatusMsg');
+      const progEl   = document.getElementById('iaProgBar');
+      const steps    = [
+        [15, 'Lecture du fichier…'],
+        [35, 'Extraction du texte…'],
+        [60, 'Analyse par Claude AI…'],
+        [85, 'Identification produits…'],
+        [95, 'Finalisation…'],
+      ];
+      let si = 0;
+      const ticker = setInterval(() => {
+        if (si < steps.length) {
+          progEl.style.width  = steps[si][0] + '%';
+          statusEl.textContent = steps[si][1];
+          si++;
+        }
+      }, 700);
+
+      try {
+        /* Lire le fichier en base64 */
+        const b64 = await new Promise((res, rej) => {
+          const r = new FileReader();
+          r.onload  = () => res(r.result.split(',')[1]);
+          r.onerror = () => rej(new Error('Lecture impossible'));
+          r.readAsDataURL(_iaFile);
+        });
+
+        const ext    = _iaFile.name.split('.').pop().toLowerCase();
+        const ctx    = document.getElementById('iaContext')?.value || '';
+
+        /* Récupérer la liste des produits et clients depuis les modules */
+        const produitsCache    = window._appProduits    || [];
+        const clientsCache     = window._appClients     || [];
+
+        /* Appel à la Netlify Function */
+        const { data: { session } } = await (await import('/js/config.js')).supabase.auth.getSession();
+        const token    = session?.access_token || '';
+        const tenantId = session?.user?.id || '';
+
+        const resp = await fetch('/.netlify/functions/ai_analyse_bc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fichier:   b64,
+            extension: ext,
+            contexte:  ctx,
+            produits:  produitsCache,
+            clients:   clientsCache,
+            tenantId,
+            token,
+          }),
+        });
+
+        clearInterval(ticker);
+        progEl.style.width = '100%';
+
+        if (!resp.ok) throw new Error('Erreur serveur ' + resp.status);
+        const result = await resp.json();
+        if (!result.ok) throw new Error(result.error || 'Erreur IA');
+
+        /* Afficher le résultat */
+        _iaShowPreview(result.data, produitsCache, clientsCache);
+
+      } catch (err) {
+        clearInterval(ticker);
+        document.getElementById('iaStep1').style.display = 'block';
+        document.getElementById('iaStep2').style.display = 'none';
+        if (iaError) {
+          iaError.style.display = 'flex';
+          iaError.textContent   = 'Erreur : ' + err.message;
+        }
+      }
+    });
+
+    /* ── Affichage résultat ── */
+    function _iaShowPreview(data, produits, clients) {
+      document.getElementById('iaStep2').style.display = 'none';
+      document.getElementById('iaStep3').style.display = 'block';
+
+      const lignes    = data.lignes || [];
+      const matchees  = lignes.filter(l => l.refDetectee && produits.find(p => p.ref === l.refDetectee));
+      const nonMatch  = lignes.filter(l => !l.refDetectee || !produits.find(p => p.ref === l.refDetectee));
+      const tot       = matchees.reduce((s, l) => {
+        const p = produits.find(x => x.ref === l.refDetectee);
+        return s + (p ? (p.prix_vente || p.prix || 0) * l.qte : 0);
+      }, 0);
+
+      document.getElementById('iaSummary').innerHTML = `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;flex:1;text-align:center;">
+            <div style="font-size:9.5px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Client</div>
+            <div style="font-weight:600;font-size:12px;">${data.client || '—'}</div>
+          </div>
+          <div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;flex:1;text-align:center;">
+            <div style="font-size:9.5px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Lignes OK</div>
+            <div style="font-weight:700;font-size:16px;color:var(--ui-green)">${matchees.length}</div>
+          </div>
+          ${nonMatch.length ? '<div style="background:#fdecea;border:1px solid #f5c2c2;border-radius:7px;padding:9px 12px;flex:1;text-align:center;"><div style="font-size:9.5px;color:var(--ui-red);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">À assigner</div><div style="font-weight:700;font-size:16px;color:var(--ui-red)">' + nonMatch.length + '</div></div>' : ''}
+          <div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;flex:1;text-align:center;">
+            <div style="font-size:9.5px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Valeur est.</div>
+            <div style="font-weight:700;font-size:14px;">${tot.toFixed(2)} €</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;">
+          <input type="text" id="iaEditClient" value="${data.client || ''}" placeholder="Client…" style="flex:1.5;min-width:140px;">
+          <input type="date" id="iaEditDate" value="${data.date || ''}" style="flex:0 0 130px;">
+          <input type="date" id="iaEditDateLiv" value="${data.dateLivraison || ''}" style="flex:0 0 130px;">
+        </div>`;
+
+      const prodOpts = produits.map(p => '<option value="' + p.ref + '">' + p.ref + ' — ' + p.nom + '</option>').join('');
+      let html = '';
+
+      if (matchees.length) {
+        html += '<div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;">Lignes reconnues</div>';
+        html += '<table style="margin-bottom:10px;"><thead><tr><th>Produit</th><th>Nom document</th><th>Qté</th></tr></thead><tbody>';
+        matchees.forEach(l => {
+          const p = produits.find(x => x.ref === l.refDetectee);
+          if (!p) return;
+          html += '<tr><td><span class="badge badge-ok" style="font-size:9.5px;">' + p.ref + '</span> ' + p.nom + '</td><td style="font-size:10.5px;color:var(--ink-muted);">"' + l.nomOriginal + '"</td><td><input type="number" min="1" value="' + l.qte + '" style="width:58px;padding:3px 6px;border:1px solid var(--ui-brd);border-radius:5px;font-size:12px;" data-ref="' + l.refDetectee + '"></td></tr>';
+        });
+        html += '</tbody></table>';
+      }
+
+      if (nonMatch.length) {
+        html += '<div style="font-size:10px;font-weight:600;color:var(--ui-orange);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;">À assigner</div>';
+        nonMatch.forEach((l, i) => {
+          html += '<div style="background:#fff3e0;border:1px solid #ffd09e;border-radius:7px;padding:8px 12px;margin-bottom:7px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><div style="flex:1;min-width:120px;"><div style="font-weight:600;font-size:12px;">"' + l.nomOriginal + '" ×' + l.qte + '</div></div><select data-idx="' + i + '" class="ia-assign-sel" style="flex:1;min-width:180px;font-size:11.5px;padding:5px 8px;border:1px solid #ffd09e;border-radius:5px;"><option value="">— Associer —</option>' + prodOpts + '</select></div>';
+        });
+      }
+
+      document.getElementById('iaPreview').innerHTML = html;
+      window._iaData    = data;
+      window._iaProduits = produits;
+    }
+
+    /* ── Confirmation import ── */
+    btnConfirm?.addEventListener('click', async () => {
+      const data     = window._iaData;
+      const produits = window._iaProduits || [];
+      if (!data) return;
+
+      const client    = document.getElementById('iaEditClient')?.value.trim() || data.client || 'Client inconnu';
+      const dateCmd   = document.getElementById('iaEditDate')?.value || '';
+      const dateLiv   = document.getElementById('iaEditDateLiv')?.value || '';
+
+      /* Collecter les lignes reconnues avec qtés éditées */
+      const lignes = [];
+      document.querySelectorAll('#iaPreview input[type="number"][data-ref]').forEach(inp => {
+        const ref = inp.dataset.ref;
+        const qte = parseInt(inp.value) || 1;
+        const p   = produits.find(x => x.ref === ref);
+        if (p) lignes.push({ produit_id: p.id, produit_nom: p.nom, quantite: qte, prix_unitaire: p.prix_vente || p.prix || 0 });
+      });
+
+      /* Collecter les lignes assignées manuellement */
+      document.querySelectorAll('.ia-assign-sel').forEach((sel, i) => {
+        if (!sel.value) return;
+        const p   = produits.find(x => x.ref === sel.value);
+        const qte = (data.lignes || []).filter(l => !l.refDetectee)[i]?.qte || 1;
+        if (p) lignes.push({ produit_id: p.id, produit_nom: p.nom, quantite: qte, prix_unitaire: p.prix_vente || p.prix || 0 });
+      });
+
+      if (!lignes.length) { alert('Aucune ligne valide.'); return; }
+
+      try {
+        const { createCommande, getClients, createClient } = await import('/js/modules/commandes.js');
+        /* Générer une ref */
+        const ref = 'CMD' + Date.now().toString().slice(-6);
+        await createCommande({ ref, client_nom: client, date_cmd: dateCmd, date_livraison: dateLiv, statut: 'a_produire' }, lignes);
+        closeModal('modalImportIA');
+        document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'import_masse', entities: ['commandes'] } }));
+        alert('✅ Commande ' + ref + ' importée via IA.');
+        window._iaData = null;
+      } catch (err) {
+        alert('Erreur import : ' + err.message);
+      }
+    });
+  })();
+
   /* Init des modules */
   await commandes.init();
   await stock.init();
