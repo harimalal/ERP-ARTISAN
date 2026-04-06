@@ -103,6 +103,7 @@ function renderAlertes(articles) {
     if (!btn) return;
     const ref = btn.dataset.ref;
     document.dispatchEvent(new CustomEvent('appmee:openAchatFor', { detail: { ref } }));
+    openModal('modalAchat');
   };
 }
 
