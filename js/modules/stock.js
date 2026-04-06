@@ -61,7 +61,6 @@ function _renderTable() {
       <td style="font-size:11px;color:var(--ink-muted)">${esc(a.fournisseur || '—')}</td>
       <td>
         <button class="btn btn-outline btn-sm" data-ref="${esc(a.ref)}" data-action="commander">Commander</button>
-        <button class="btn btn-ghost btn-sm" data-id="${esc(a.id)}" data-action="inventaire">Inventaire</button>
       </td>
     </tr>`;
   }).join('');
