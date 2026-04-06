@@ -7,7 +7,7 @@
 
 import {
   getAchats, createAchat, updateAchat,
-  getArticles, getFournisseurs,
+  getArticles, getFournisseurs, getTenant,
   updateArticleStock, addMouvement,
 } from '../db.js';
 import {
@@ -19,14 +19,16 @@ import {
 let _achats       = [];
 let _articles     = [];
 let _fournisseurs = [];
+let _tenant       = {};   /* Coordonnées Mon Entreprise pour les PDFs */
 let _currentBCId  = null; /* UUID du BC en cours d'édition */
+let _bcLignes     = [];   /* Lignes du formulaire BC courant */
 
 /* -------------------------------------------------------
    INIT
 ------------------------------------------------------- */
 export async function init() {
-  [_achats, _articles, _fournisseurs] = await Promise.all([
-    getAchats(), getArticles(), getFournisseurs(),
+  [_achats, _articles, _fournisseurs, _tenant] = await Promise.all([
+    getAchats(), getArticles(), getFournisseurs(), getTenant(),
   ]);
   _bindAchatForm();
   _bindDetailBCForm();
@@ -102,34 +104,119 @@ function _renderTable() {
 /* -------------------------------------------------------
    FORMULAIRE NOUVEAU BC
 ------------------------------------------------------- */
-export function initAchatModal() {
+export function initAchatModal(preselectArticleRef = null) {
   document.getElementById('achatDate').value     = today();
-  document.getElementById('achatQte').value      = '';
-  document.getElementById('achatPrix').value     = '';
   document.getElementById('achatRemarque').value = '';
   document.getElementById('achatRefCmd').value   = '';
   document.getElementById('achatMontant').style.display = 'none';
 
   const fSel = document.getElementById('achatFournisseur');
-  fSel.innerHTML = '<option value="">— Tous —</option>' +
+  fSel.innerHTML = '<option value="">— Tous fournisseurs —</option>' +
     _fournisseurs.map(f => `<option value="${esc(f.nom)}">${esc(f.nom)}</option>`).join('');
 
-  _populateAchatArticles('');
+  /* Réinitialiser les lignes */
+  _bcLignes = [];
+  _renderBCLignes();
+
+  /* Ajouter une ligne initiale, pré-sélectionnée si ref fournie */
+  _addBCLigne(preselectArticleRef);
 }
 
 function _bindAchatForm() {
   document.getElementById('achatFournisseur')?.addEventListener('change', (e) => {
-    _populateAchatArticles(e.target.value);
+    /* Filtrer les articles par fournisseur pour toutes les lignes existantes */
+    _bcLignes.forEach((_, i) => _syncLigneFournisseur(i, e.target.value));
+    _renderBCTotal();
   });
-  document.getElementById('achatRef')?.addEventListener('change', _syncAchatNom);
-  document.getElementById('achatNom')?.addEventListener('change', () => {
-    document.getElementById('achatRef').value = document.getElementById('achatNom').value;
-    _syncAchatNom();
-  });
-  document.getElementById('achatQte')?.addEventListener('input',  _updateAchatMontant);
-  document.getElementById('achatPrix')?.addEventListener('input', _updateAchatMontant);
+  document.getElementById('btnAddBCLigne')?.addEventListener('click', () => _addBCLigne());
   document.getElementById('btnSaveAchat')?.addEventListener('click', _saveAchat);
   document.getElementById('btnAperçuBC')?.addEventListener('click', _aperçuBCFormulaire);
+}
+
+/* Rendu des lignes du BC dans le container */
+function _renderBCLignes() {
+  const container = document.getElementById('bcLignesContainer');
+  if (!container) return;
+  container.innerHTML = '';
+  _bcLignes.forEach((ligne, i) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:grid;grid-template-columns:1fr 90px 90px auto;gap:7px;margin-bottom:7px;align-items:center;';
+    const fournisseur = document.getElementById('achatFournisseur')?.value || '';
+    const list = fournisseur ? _articles.filter(a => a.fournisseur === fournisseur) : _articles;
+    const opts = list.map(a => `<option value="${esc(a.id)}" ${a.id === ligne.articleId ? 'selected' : ''}>${esc(a.ref)} — ${esc(a.nom)}</option>`).join('');
+    div.innerHTML = `
+      <select class="bc-art" data-idx="${i}">${opts}</select>
+      <input type="number" class="bc-qte" data-idx="${i}" value="${ligne.qte || ''}" placeholder="Qté" min="0.001" step="0.001">
+      <input type="number" class="bc-px" data-idx="${i}" value="${ligne.prix || ''}" placeholder="Prix HT" step="0.001">
+      <button class="bc-del" data-idx="${i}" style="background:none;border:none;color:var(--ui-red);font-size:18px;cursor:pointer;">×</button>`;
+    div.querySelector('.bc-art').addEventListener('change', (e) => {
+      const a = _articles.find(x => x.id === e.target.value);
+      _bcLignes[i].articleId = e.target.value;
+      _bcLignes[i].nom       = a ? a.nom : '';
+      _bcLignes[i].unite     = a ? a.unite : '';
+      if (a && !_bcLignes[i].prix) {
+        _bcLignes[i].prix = a.prix;
+        div.querySelector('.bc-px').value = a.prix;
+      }
+      /* Auto-sélectionner le fournisseur */
+      if (a && a.fournisseur) {
+        const fSel = document.getElementById('achatFournisseur');
+        if (fSel && !fSel.value) fSel.value = a.fournisseur;
+      }
+      _renderBCTotal();
+    });
+    div.querySelector('.bc-qte').addEventListener('input', (e) => {
+      _bcLignes[i].qte = parseFloat(e.target.value) || 0;
+      _renderBCTotal();
+    });
+    div.querySelector('.bc-px').addEventListener('input', (e) => {
+      _bcLignes[i].prix = parseFloat(e.target.value) || 0;
+      _renderBCTotal();
+    });
+    div.querySelector('.bc-del').addEventListener('click', () => {
+      _bcLignes.splice(i, 1);
+      _renderBCLignes();
+      _renderBCTotal();
+    });
+    container.appendChild(div);
+  });
+}
+
+function _addBCLigne(preselectRef = null) {
+  const fournisseur = document.getElementById('achatFournisseur')?.value || '';
+  const list = fournisseur ? _articles.filter(a => a.fournisseur === fournisseur) : _articles;
+  const defArt = preselectRef
+    ? _articles.find(a => a.ref === preselectRef)
+    : (list[0] || null);
+  _bcLignes.push({
+    articleId: defArt ? defArt.id   : (list[0]?.id || ''),
+    nom:       defArt ? defArt.nom  : '',
+    unite:     defArt ? defArt.unite: '',
+    qte:       0,
+    prix:      defArt ? defArt.prix : 0,
+  });
+  /* Auto-sélectionner le fournisseur */
+  if (defArt && defArt.fournisseur) {
+    const fSel = document.getElementById('achatFournisseur');
+    if (fSel && !fSel.value) fSel.value = defArt.fournisseur;
+  }
+  _renderBCLignes();
+  _renderBCTotal();
+}
+
+function _syncLigneFournisseur(idx, fournisseur) {
+  /* Met à jour les options d'un select article selon le fournisseur */
+  _renderBCLignes();
+}
+
+function _renderBCTotal() {
+  const total = _bcLignes.reduce((s, l) => s + (l.qte * l.prix), 0);
+  const el = document.getElementById('achatMontant');
+  const valEl = document.getElementById('achatMontantVal');
+  if (el && valEl) {
+    el.style.display = total > 0 ? 'block' : 'none';
+    valEl.textContent = fmt(total) + ' €';
+  }
 }
 
 function _populateAchatArticles(fournisseur) {
@@ -185,35 +272,47 @@ function _updateAchatMontant() {
 }
 
 async function _saveAchat() {
-  const articleId = document.getElementById('achatRef').value;
-  const qte       = parseFloat(document.getElementById('achatQte').value);
-  if (!articleId || !qte || qte <= 0) {
-    showToast('⚠ Remplissez la référence et la quantité.', 'error');
+  const lignesValides = _bcLignes.filter(l => l.articleId && l.qte > 0);
+  if (!lignesValides.length) {
+    showToast('⚠ Ajoutez au moins une ligne avec article et quantité.', 'error');
     return;
   }
 
-  const a     = _articles.find(x => x.id === articleId);
-  const pxRaw = parseFloat(document.getElementById('achatPrix').value);
-  const prix  = (!isNaN(pxRaw) && pxRaw > 0) ? pxRaw : (a ? a.prix : 0);
-  const ref   = nextRef('BC', _achats);
+  const fournisseur  = document.getElementById('achatFournisseur')?.value || '';
+  const refCommande  = document.getElementById('achatRefCmd')?.value || '';
+  const notes        = document.getElementById('achatRemarque')?.value || '';
+  const date         = document.getElementById('achatDate')?.value || today();
 
   try {
-    const bc = await createAchat({
-      ref,
-      article_id:   articleId,
-      article_nom:  a ? a.nom : '',
-      quantite:     qte,
-      prix_unitaire: prix,
-      fournisseur:  a ? a.fournisseur : '',
-      statut:       'brouillon',
-      ref_commande: document.getElementById('achatRefCmd').value,
-      notes:        document.getElementById('achatRemarque').value,
-    });
+    /* Créer un BC par ligne (1 article = 1 BC, regroupés par même numéro de base) */
+    const baseRef = nextRef('BC', _achats);
+    let nbCrees = 0;
 
-    _achats.unshift(bc);
+    for (const ligne of lignesValides) {
+      const a    = _articles.find(x => x.id === ligne.articleId);
+      const prix = ligne.prix > 0 ? ligne.prix : (a ? a.prix : 0);
+      const ref  = lignesValides.length === 1 ? baseRef : baseRef + '-' + (nbCrees + 1);
+
+      const bc = await createAchat({
+        ref,
+        article_id:    ligne.articleId,
+        article_nom:   ligne.nom || (a ? a.nom : ''),
+        quantite:      ligne.qte,
+        prix_unitaire: prix,
+        fournisseur:   fournisseur || (a ? a.fournisseur : ''),
+        statut:        'brouillon',
+        ref_commande:  refCommande,
+        notes,
+        date_cmd:      date,
+      });
+
+      _achats.unshift(bc);
+      nbCrees++;
+    }
+
     closeModal('modalAchat');
     _renderTable();
-    showToast('✅ BC ' + ref + ' créé (brouillon).');
+    showToast(`✅ ${nbCrees} BC créé(s) — brouillon.`);
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'achats' } }));
   } catch (err) {
     showToast('❌ Erreur création BC.', 'error');
@@ -354,26 +453,36 @@ function _aperçuPdfBC(id) {
 }
 
 function _aperçuBCFormulaire() {
-  const articleId = document.getElementById('achatRef').value;
-  const qte       = parseFloat(document.getElementById('achatQte').value) || 0;
-  const a         = _articles.find(x => x.id === articleId);
-  const px        = parseFloat(document.getElementById('achatPrix').value) || (a ? a.prix : 0);
+  const lignesValides = _bcLignes.filter(l => l.articleId && l.qte > 0);
+  if (!lignesValides.length) { showToast('⚠ Ajoutez au moins une ligne.', 'error'); return; }
+
+  const fournisseur = document.getElementById('achatFournisseur')?.value || '';
+  const montantTotal = lignesValides.reduce((s, l) => s + l.qte * l.prix, 0);
+
   const fake = {
-    ref: '[Aperçu]',
-    date_cmd:     document.getElementById('achatDate').value || today(),
-    article_nom:  a ? a.nom : '',
-    ref_article:  a ? a.ref : '',
-    unite:        a ? a.unite : '',
-    quantite:     qte,
-    prix_unitaire: px,
-    montant_ht:   qte * px,
-    fournisseur:  a ? a.fournisseur : '',
+    ref:          '[Aperçu]',
+    date_cmd:     document.getElementById('achatDate')?.value || today(),
+    fournisseur,
+    montant_ht:   montantTotal,
     statut:       'brouillon',
-    ref_commande: document.getElementById('achatRefCmd').value,
-    notes:        document.getElementById('achatRemarque').value,
+    ref_commande: document.getElementById('achatRefCmd')?.value || '',
+    notes:        document.getElementById('achatRemarque')?.value || '',
+    /* Lignes multiples */
+    lignes:       lignesValides.map(l => {
+      const a = _articles.find(x => x.id === l.articleId);
+      return {
+        article_nom: l.nom || (a ? a.nom : ''),
+        ref_article: a ? a.ref : '',
+        unite:       l.unite || (a ? a.unite : ''),
+        quantite:    l.qte,
+        prix_unitaire: l.prix,
+        montant_ht:  l.qte * l.prix,
+      };
+    }),
+    tenant: _tenant,
   };
   document.dispatchEvent(new CustomEvent('appmee:showPdf', {
-    detail: { title: 'Aperçu bon de commande', type: 'bc', data: fake },
+    detail: { title: 'Aperçu bon de commande', type: 'bc_multi', data: fake },
   }));
 }
 
