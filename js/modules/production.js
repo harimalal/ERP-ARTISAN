@@ -95,14 +95,14 @@ function _renderOFs() {
     return;
   }
 
-  /* Code couleur par statut */
-  const STATUT_COLOR = {
-    'a_planifier':     '#6c757d',
-    'planifie':        '#0d6efd',
-    'en_cours':        '#fd7e14',
-    'fabrique':        '#198754',
-    'clos':            '#20c997',
-    'annule':          '#dc3545',
+  /* Couleurs pastels pleines par statut — fond + texte foncé pour lisibilité */
+  const STATUT_STYLE = {
+    'a_planifier': { bg: '#e9ecef', txt: '#495057', brd: '#adb5bd' },
+    'planifie':    { bg: '#cfe2ff', txt: '#084298', brd: '#9ec5fe' },
+    'en_cours':    { bg: '#ffe5d0', txt: '#7c3b00', brd: '#ffb577' },
+    'fabrique':    { bg: '#d1e7dd', txt: '#0a3622', brd: '#a3cfbb' },
+    'clos':        { bg: '#c3f5e8', txt: '#0a5740', brd: '#6edfc4' },
+    'annule':      { bg: '#f8d7da', txt: '#842029', brd: '#f1aeb5' },
   };
 
   const STATUT_LABELS = {
@@ -114,25 +114,33 @@ function _renderOFs() {
     'annule':       'Annulé',
   };
 
-  const statutOpts = Object.entries(STATUT_LABELS).map(([val, label]) =>
-    `<option value="${val}">${label}</option>`).join('');
+  /* Formater une date ISO → format français JJ/MM/AAAA */
+  const fmtDateFR = (d) => {
+    if (!d) return '—';
+    const [y, m, j] = d.split('-');
+    return j && m && y ? `${j}/${m}/${y}` : d;
+  };
 
   tbody.innerHTML = _ofs.map(of => {
-    const color = STATUT_COLOR[of.statut] || '#6c757d';
-    return `<tr style="border-left:3px solid ${color};">
-      <td class="td-ref">${esc(of.ref)}</td>
-      <td class="td-bold">${esc(of.produit_nom)}</td>
-      <td><strong>${of.quantite}</strong></td>
-      <td style="font-size:10.5px;color:var(--ink-muted)">${esc(of.notes || '')}</td>
-      <td>
+    const st  = STATUT_STYLE[of.statut] || STATUT_STYLE['a_planifier'];
+    return `<tr style="background:${st.bg};">
+      <td class="td-ref" style="color:${st.txt};">${esc(of.ref)}</td>
+      <td class="td-bold" style="color:${st.txt};">${esc(of.produit_nom)}</td>
+      <td style="color:${st.txt};"><strong>${of.quantite}</strong></td>
+      <td style="font-size:10.5px;color:${st.txt};opacity:.8;">${esc(of.notes || '')}</td>
+      <td style="color:${st.txt};font-size:11.5px;font-weight:500;">${fmtDateFR(of.date_prevue)}
         <input type="date" value="${esc(of.date_prevue || '')}"
-          style="font-size:11px;padding:3px 6px;border:1px solid var(--ui-brd);border-radius:5px;"
-          data-id="${of.id}" data-action="update-date">
+          style="width:0;height:0;opacity:0;position:absolute;"
+          data-id="${of.id}" data-action="update-date"
+          id="datepick-${of.id}">
+        <button onclick="document.getElementById('datepick-${of.id}').showPicker?.()"
+          style="background:none;border:none;cursor:pointer;font-size:11px;padding:1px 4px;margin-left:3px;
+                 color:${st.txt};opacity:.6;" title="Changer la date">✏</button>
       </td>
       <td>
         <select data-id="${of.id}" data-action="changer-statut"
-          style="font-size:11px;padding:4px 7px;border:2px solid ${color};border-radius:5px;
-                 background:#fff;color:${color};font-weight:600;cursor:pointer;">
+          style="font-size:11px;padding:5px 8px;border:1.5px solid ${st.brd};border-radius:6px;
+                 background:${st.bg};color:${st.txt};font-weight:700;cursor:pointer;width:100%;">
           ${Object.entries(STATUT_LABELS).map(([val, label]) =>
             `<option value="${val}" ${of.statut === val ? 'selected' : ''}>${label}</option>`
           ).join('')}
@@ -152,20 +160,21 @@ function _renderOFs() {
       const of = _ofs.find(o => o.id === id);
       if (of) of.date_prevue = el.value;
       _renderCalendrier();
+      _renderOFs(); /* Re-render pour afficher la date FR */
     }
 
     if (el.dataset.action === 'changer-statut') {
       const newStatut = el.value;
-      /* Si passage à "clos" → déclencher la logique de fin de fab */
       if (newStatut === 'clos') {
+        /* MOD 5 — Passage à "clos" : déclencher fin de fab + facture auto */
         await _terminerFab(id);
       } else if (newStatut === 'annule') {
         await _annulerOF(id);
       } else {
         await _setOFStatut(id, newStatut);
+        _renderOFs();
+        _renderCalendrier();
       }
-      _renderOFs();
-      _renderCalendrier();
     }
   };
 }
