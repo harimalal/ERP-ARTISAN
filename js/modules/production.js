@@ -95,14 +95,14 @@ function _renderOFs() {
     return;
   }
 
-  /* Couleurs pastels pleines par statut — fond + texte foncé pour lisibilité */
+  /* Couleurs pastels lisibles — fond clair + texte foncé */
   const STATUT_STYLE = {
-    'a_planifier': { bg: '#e9ecef', txt: '#495057', brd: '#adb5bd' },
-    'planifie':    { bg: '#cfe2ff', txt: '#084298', brd: '#9ec5fe' },
-    'en_cours':    { bg: '#ffe5d0', txt: '#7c3b00', brd: '#ffb577' },
-    'fabrique':    { bg: '#d1e7dd', txt: '#0a3622', brd: '#a3cfbb' },
-    'clos':        { bg: '#c3f5e8', txt: '#0a5740', brd: '#6edfc4' },
-    'annule':      { bg: '#f8d7da', txt: '#842029', brd: '#f1aeb5' },
+    'a_planifier': { bg: '#f1f3f5', txt: '#495057', brd: '#ced4da' },
+    'planifie':    { bg: '#dbe4ff', txt: '#1c3a8a', brd: '#91a7ff' },
+    'en_cours':    { bg: '#fff3bf', txt: '#5c4000', brd: '#ffd43b' },
+    'fabrique':    { bg: '#d3f9d8', txt: '#1a4d2e', brd: '#69db7c' },
+    'clos':        { bg: '#c5f6fa', txt: '#0b4e5c', brd: '#66d9e8' },
+    'annule':      { bg: '#ffe3e3', txt: '#7d1d1d', brd: '#ff8787' },
   };
 
   const STATUT_LABELS = {
@@ -114,33 +114,32 @@ function _renderOFs() {
     'annule':       'Annulé',
   };
 
-  /* Formater une date ISO → format français JJ/MM/AAAA */
+  /* Format date ISO → JJ/MM/AAAA */
   const fmtDateFR = (d) => {
     if (!d) return '—';
-    const [y, m, j] = d.split('-');
-    return j && m && y ? `${j}/${m}/${y}` : d;
+    const parts = d.split('-');
+    return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
   };
 
   tbody.innerHTML = _ofs.map(of => {
-    const st  = STATUT_STYLE[of.statut] || STATUT_STYLE['a_planifier'];
+    const st = STATUT_STYLE[of.statut] || STATUT_STYLE['a_planifier'];
     return `<tr style="background:${st.bg};">
       <td class="td-ref" style="color:${st.txt};">${esc(of.ref)}</td>
       <td class="td-bold" style="color:${st.txt};">${esc(of.produit_nom)}</td>
       <td style="color:${st.txt};"><strong>${of.quantite}</strong></td>
-      <td style="font-size:10.5px;color:${st.txt};opacity:.8;">${esc(of.notes || '')}</td>
-      <td style="color:${st.txt};font-size:11.5px;font-weight:500;">${fmtDateFR(of.date_prevue)}
+      <td style="font-size:10.5px;color:${st.txt};opacity:.75;">${esc(of.notes || '')}</td>
+      <td style="color:${st.txt};font-size:11.5px;">
+        ${fmtDateFR(of.date_prevue)}
         <input type="date" value="${esc(of.date_prevue || '')}"
           style="width:0;height:0;opacity:0;position:absolute;"
-          data-id="${of.id}" data-action="update-date"
-          id="datepick-${of.id}">
-        <button onclick="document.getElementById('datepick-${of.id}').showPicker?.()"
-          style="background:none;border:none;cursor:pointer;font-size:11px;padding:1px 4px;margin-left:3px;
-                 color:${st.txt};opacity:.6;" title="Changer la date">✏</button>
+          data-id="${of.id}" data-action="update-date" id="dp-${of.id}">
+        <button onclick="document.getElementById('dp-${of.id}').showPicker?.()"
+          style="background:none;border:none;cursor:pointer;font-size:10px;padding:2px 4px;color:${st.txt};opacity:.5;" title="Modifier la date">✏</button>
       </td>
       <td>
         <select data-id="${of.id}" data-action="changer-statut"
           style="font-size:11px;padding:5px 8px;border:1.5px solid ${st.brd};border-radius:6px;
-                 background:${st.bg};color:${st.txt};font-weight:700;cursor:pointer;width:100%;">
+                 background:${st.bg};color:${st.txt};font-weight:700;cursor:pointer;width:100%;min-width:160px;">
           ${Object.entries(STATUT_LABELS).map(([val, label]) =>
             `<option value="${val}" ${of.statut === val ? 'selected' : ''}>${label}</option>`
           ).join('')}
@@ -160,13 +159,12 @@ function _renderOFs() {
       const of = _ofs.find(o => o.id === id);
       if (of) of.date_prevue = el.value;
       _renderCalendrier();
-      _renderOFs(); /* Re-render pour afficher la date FR */
+      _renderOFs();
     }
 
     if (el.dataset.action === 'changer-statut') {
       const newStatut = el.value;
       if (newStatut === 'clos') {
-        /* MOD 5 — Passage à "clos" : déclencher fin de fab + facture auto */
         await _terminerFab(id);
       } else if (newStatut === 'annule') {
         await _annulerOF(id);

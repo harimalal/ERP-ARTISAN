@@ -283,28 +283,15 @@ export function initNewFactureModal() {
   document.getElementById('nfDescription').value = '';
   document.getElementById('nfTtcPreview').textContent = '—';
 
-  /* Select client : option vide + tous les clients */
   const clientSel = document.getElementById('nfClient');
   clientSel.innerHTML =
     '<option value="">— Sélectionner un client —</option>' +
     _clients.map(c => `<option value="${esc(c.nom)}">${esc(c.nom)}</option>`).join('');
 
-  /* Select commandes : en cours / validées en premier, puis les autres */
-  const STATUTS_PRIORITAIRES = ['pret', 'en_production', 'planifie', 'a_produire'];
-  const cmdTriees = [..._commandes].sort((a, b) => {
-    const pa = STATUTS_PRIORITAIRES.includes(a.statut) ? 0 : 1;
-    const pb = STATUTS_PRIORITAIRES.includes(b.statut) ? 0 : 1;
-    return pa - pb;
-  });
-
   const cmdSel = document.getElementById('nfRefCmd');
-  cmdSel.innerHTML = '<option value="">— Sélectionner une commande —</option>' +
-    cmdTriees.map(c => {
-      const tot = (c.commande_lignes || []).reduce((s, l) =>
-        s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
-      const badge = STATUTS_PRIORITAIRES.includes(c.statut) ? '🟢 ' : '';
-      return `<option value="${esc(c.ref)}">${badge}${esc(c.ref)} — ${esc(c.client_nom)} (${tot.toFixed(0)} €)</option>`;
-    }).join('');
+  cmdSel.innerHTML = '<option value="">— Aucune —</option>' +
+    _commandes.map(c =>
+      `<option value="${esc(c.ref)}">${esc(c.ref)} — ${esc(c.client_nom)}</option>`).join('');
 }
 
 function _calcNFTtc() {
