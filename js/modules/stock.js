@@ -45,7 +45,7 @@ function _renderTable() {
       : a.stock <= a.seuil ? 'var(--ui-orange)'
       : a.stock <= a.seuil * 1.5 ? '#c8830a'
       : 'var(--ui-green)';
-    return `<tr class="clickable" data-id="${esc(a.id)}" data-action="edit-article">
+    return `<tr data-id="${esc(a.id)}">
       <td class="td-ref">${esc(a.ref)}</td>
       <td class="td-bold">${esc(a.nom)}</td>
       <td><span class="tag">${esc(a.categorie || '—')}</span></td>
@@ -67,19 +67,14 @@ function _renderTable() {
   }).join('');
 
   /* Délégation d'événements sur le tbody */
-  const tbody = document.getElementById('stockTbody');
   tbody.onclick = (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     if (btn.dataset.action === 'commander') {
       document.dispatchEvent(new CustomEvent('appmee:openAchatFor', { detail: { ref: btn.dataset.ref } }));
-    }
-    /* Clic sur la ligne → édition article */
-    if (btn.dataset.action === 'edit-article') {
-      _openEditArticle(btn.dataset.id);
+      openModal('modalAchat');
     }
   };
-}
 
 /* -------------------------------------------------------
    FORMULAIRE NOUVEL ARTICLE
@@ -249,7 +244,7 @@ function _openEditArticle(articleId) {
   if (!modal) {
     modal = document.createElement('div');
     modal.id = 'modalEditArticle';
-    modal.className = 'modal';
+    modal.className = 'modal-overlay';
     modal.innerHTML = `
       <div class="modal-box" style="max-width:520px;">
         <div class="modal-hdr">
