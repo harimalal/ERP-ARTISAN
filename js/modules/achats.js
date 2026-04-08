@@ -33,8 +33,8 @@ export async function init() {
   _bindAchatForm();
   _bindDetailBCForm();
 
-  /* Écouter l'événement "ouvrir BC pour cet article" */
-  
+  // listener appmee:openAchatFor géré dans app.html
+}
 
 /* -------------------------------------------------------
    RENDER
@@ -108,10 +108,12 @@ export function initAchatModal(preselectArticleRef = null) {
   /* Ajouter une ligne initiale, pré-sélectionnée si ref fournie */
   _addBCLigne(preselectArticleRef);
 
+  /* Forcer le fournisseur dans le select APRÈS _addBCLigne
+     (_addBCLigne tente de le setter mais peut échouer selon le timing —
+     on force ici sans condition pour garantir la sélection) */
   if (preselectArticleRef) {
     const art = _articles.find(a => a.ref === preselectArticleRef);
     if (art && art.fournisseur) {
-      const fSel = document.getElementById('achatFournisseur');
       if (fSel) fSel.value = art.fournisseur;
     }
   }
@@ -190,16 +192,15 @@ function _addBCLigne(preselectRef = null) {
     qte:       0,
     prix:      defArt ? defArt.prix : 0,
   });
-  /* Rendu des lignes d'abord — le DOM doit être prêt avant de setter fournisseur */
+  /* Rendu des lignes d'abord — DOM prêt avant de setter le fournisseur */
   _renderBCLignes();
   _renderBCTotal();
   /* Auto-sélectionner le fournisseur APRÈS render */
-  _renderBCLignes();
-  _renderBCTotal();
   if (defArt && defArt.fournisseur) {
     const fSel = document.getElementById('achatFournisseur');
     if (fSel && !fSel.value) fSel.value = defArt.fournisseur;
   }
+}
 
 function _syncLigneFournisseur(idx, fournisseur) {
   /* Met à jour les options d'un select article selon le fournisseur */
@@ -464,16 +465,15 @@ function _aperçuBCFormulaire() {
     statut:       'brouillon',
     ref_commande: document.getElementById('achatRefCmd')?.value || '',
     notes:        document.getElementById('achatRemarque')?.value || '',
-    /* Lignes multiples */
     lignes:       lignesValides.map(l => {
       const a = _articles.find(x => x.id === l.articleId);
       return {
-        article_nom: l.nom || (a ? a.nom : ''),
-        ref_article: a ? a.ref : '',
-        unite:       l.unite || (a ? a.unite : ''),
-        quantite:    l.qte,
+        article_nom:   l.nom || (a ? a.nom : ''),
+        ref_article:   a ? a.ref : '',
+        unite:         l.unite || (a ? a.unite : ''),
+        quantite:      l.qte,
         prix_unitaire: l.prix,
-        montant_ht:  l.qte * l.prix,
+        montant_ht:    l.qte * l.prix,
       };
     }),
     tenant: _tenant,
