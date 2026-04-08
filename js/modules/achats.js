@@ -34,19 +34,7 @@ export async function init() {
   _bindDetailBCForm();
 
   /* Écouter l'événement "ouvrir BC pour cet article" */
-  document.addEventListener('appmee:openAchatFor', (e) => {
-    const { ref, qte } = e.detail;
-    initAchatModal();
-    const a = _articles.find(x => x.ref === ref);
-    if (a) {
-      document.getElementById('achatRef').value = a.id;
-      document.getElementById('achatNom').value = a.id;
-      if (qte) document.getElementById('achatQte').value = Math.ceil(qte);
-      _syncAchatNom();
-    }
-    openModal('modalAchat');
-  });
-}
+  
 
 /* -------------------------------------------------------
    RENDER
@@ -120,12 +108,10 @@ export function initAchatModal(preselectArticleRef = null) {
   /* Ajouter une ligne initiale, pré-sélectionnée si ref fournie */
   _addBCLigne(preselectArticleRef);
 
-  /* Forcer le fournisseur dans le select APRÈS _addBCLigne
-     (_addBCLigne tente de le setter mais le DOM vient d'être réinitialisé —
-     on force ici pour garantir la sélection même si fSel.value était déjà non vide) */
   if (preselectArticleRef) {
     const art = _articles.find(a => a.ref === preselectArticleRef);
     if (art && art.fournisseur) {
+      const fSel = document.getElementById('achatFournisseur');
       if (fSel) fSel.value = art.fournisseur;
     }
   }
@@ -208,11 +194,12 @@ function _addBCLigne(preselectRef = null) {
   _renderBCLignes();
   _renderBCTotal();
   /* Auto-sélectionner le fournisseur APRÈS render */
+  _renderBCLignes();
+  _renderBCTotal();
   if (defArt && defArt.fournisseur) {
     const fSel = document.getElementById('achatFournisseur');
     if (fSel && !fSel.value) fSel.value = defArt.fournisseur;
   }
-}
 
 function _syncLigneFournisseur(idx, fournisseur) {
   /* Met à jour les options d'un select article selon le fournisseur */
