@@ -70,7 +70,6 @@ function renderKPIs({ articles, produits, commandes, achats, ofs }) {
       <div class="kpi-sub">ordres actifs</div>
     </div>`;
 }
-
 /* -------------------------------------------------------
    ALERTES STOCK ARTICLES
 ------------------------------------------------------- */
