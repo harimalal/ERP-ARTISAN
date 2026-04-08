@@ -119,6 +119,16 @@ export function initAchatModal(preselectArticleRef = null) {
 
   /* Ajouter une ligne initiale, pré-sélectionnée si ref fournie */
   _addBCLigne(preselectArticleRef);
+
+  /* Forcer le fournisseur dans le select APRÈS _addBCLigne
+     (_addBCLigne tente de le setter mais le DOM vient d'être réinitialisé —
+     on force ici pour garantir la sélection même si fSel.value était déjà non vide) */
+  if (preselectArticleRef) {
+    const art = _articles.find(a => a.ref === preselectArticleRef);
+    if (art && art.fournisseur) {
+      if (fSel) fSel.value = art.fournisseur;
+    }
+  }
 }
 
 function _bindAchatForm() {
@@ -194,13 +204,14 @@ function _addBCLigne(preselectRef = null) {
     qte:       0,
     prix:      defArt ? defArt.prix : 0,
   });
-  /* Auto-sélectionner le fournisseur */
+  /* Rendu des lignes d'abord — le DOM doit être prêt avant de setter fournisseur */
+  _renderBCLignes();
+  _renderBCTotal();
+  /* Auto-sélectionner le fournisseur APRÈS render */
   if (defArt && defArt.fournisseur) {
     const fSel = document.getElementById('achatFournisseur');
     if (fSel && !fSel.value) fSel.value = defArt.fournisseur;
   }
-  _renderBCLignes();
-  _renderBCTotal();
 }
 
 function _syncLigneFournisseur(idx, fournisseur) {
