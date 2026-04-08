@@ -66,7 +66,8 @@ function _renderTable() {
     </tr>`;
   }).join('');
 
-  /* Délégation d'événements sur le tbody */
+ /* Délégation d'événements sur le tbody */
+  const tbody = document.getElementById('stockTbody');
   tbody.onclick = (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
@@ -75,6 +76,7 @@ function _renderTable() {
       openModal('modalAchat');
     }
   };
+}
 
 /* -------------------------------------------------------
    FORMULAIRE NOUVEL ARTICLE
