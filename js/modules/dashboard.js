@@ -30,39 +30,34 @@ export async function render() {
 /* -------------------------------------------------------
    KPIs
 ------------------------------------------------------- */
-function renderKPIs({ articles, produits, commandes, achats, ofs }) {
-  const alertsA   = articles.filter(a => a.stock <= a.seuil).length;
-  const totalPF   = produits.reduce((s, p) => s + (p.stock || 0), 0);
-  const cmdOpen   = commandes.filter(c => c.statut !== 'cloture').length;
-  const valA      = articles.reduce((s, a) => s + (a.stock || 0) * (a.prix || 0), 0);
-  const bcPending = achats.filter(a => ['envoye', 'en_cours'].includes(a.statut)).length;
-  const ofCours   = ofs.filter(o => o.statut === 'en_cours').length;
+function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
+  const alertsA    = articles.filter(a => a.stock <= a.seuil).length;
+  const bcPending  = achats.filter(a => ['envoye', 'en_cours'].includes(a.statut)).length;
+  const valBdc     = achats.filter(a => ['envoye', 'en_cours'].includes(a.statut))
+                       .reduce((s, a) => s + (a.montant_ht || 0), 0);
+  const facRelance = (factures || []).filter(f => f.statut === 'a_relancer').length;
+  const ofCours    = ofs.filter(o => o.statut === 'en_cours').length;
 
   document.getElementById('kpiGrid').innerHTML = `
     <div class="kpi ${alertsA > 0 ? 'alert' : 'good'}">
-      <div class="kpi-label">Alertes articles</div>
+      <div class="kpi-label">Alertes stock</div>
       <div class="kpi-value">${alertsA}</div>
-      <div class="kpi-sub">${alertsA > 0 ? 'sous le seuil' : 'Tout OK'}</div>
-    </div>
-    <div class="kpi good">
-      <div class="kpi-label">Stock produits finis</div>
-      <div class="kpi-value">${totalPF.toLocaleString('fr')}</div>
-      <div class="kpi-sub">unités dispo</div>
-    </div>
-    <div class="kpi blue">
-      <div class="kpi-label">Commandes en cours</div>
-      <div class="kpi-value">${cmdOpen}</div>
-      <div class="kpi-sub">non clôturées</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Valeur stock articles</div>
-      <div class="kpi-value">${fmt(valA)} €</div>
-      <div class="kpi-sub">au prix d'achat</div>
+      <div class="kpi-sub">${alertsA > 0 ? 'articles sous le seuil' : 'Tout OK'}</div>
     </div>
     <div class="kpi ${bcPending > 0 ? 'warn' : ''}">
       <div class="kpi-label">BC en attente</div>
       <div class="kpi-value">${bcPending}</div>
-      <div class="kpi-sub">bons envoyés / cours</div>
+      <div class="kpi-sub">bons envoyés / en cours</div>
+    </div>
+    <div class="kpi blue">
+      <div class="kpi-label">Valeur BdC en cours</div>
+      <div class="kpi-value">${fmt(valBdc)} €</div>
+      <div class="kpi-sub">achats engagés</div>
+    </div>
+    <div class="kpi ${facRelance > 0 ? 'warn' : 'good'}">
+      <div class="kpi-label">Factures à relancer</div>
+      <div class="kpi-value">${facRelance}</div>
+      <div class="kpi-sub">${facRelance === 0 ? 'Tout à jour' : 'à relancer'}</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">OF en cours</div>
@@ -70,6 +65,7 @@ function renderKPIs({ articles, produits, commandes, achats, ofs }) {
       <div class="kpi-sub">ordres actifs</div>
     </div>`;
 }
+
 /* -------------------------------------------------------
    ALERTES STOCK ARTICLES
 ------------------------------------------------------- */
