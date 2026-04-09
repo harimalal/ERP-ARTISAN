@@ -840,7 +840,7 @@ async function handleLogin(btn) {
     }
 
     showMsg('Connexion réussie ! Redirection…', 'success');
-    setTimeout(() => { window.location.href = '/app'; }, 800);
+    setTimeout(() => { window.location.href = '/app.html'; }, 800);
   } catch (err) {
     btn.classList.remove('loading');
     btn.textContent = btn.dataset.orig;
