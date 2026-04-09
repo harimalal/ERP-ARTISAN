@@ -10,9 +10,9 @@
 <meta name="supa-key" content="sb_publishable_g_gefc-Mrw1wgSC_F8nZlw_BAMix93k">
 
 <!-- CSS -->
-<link rel="stylesheet" href="/css/base.css">
-<link rel="stylesheet" href="/css/components.css">
-<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/layout.css">
 
 <!-- XLSX pour import/export Excel -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -749,21 +749,21 @@
 
 <!-- ═══ SCRIPTS ═══════════════════════════════════════════ -->
 <script type="module">
-  import { initAuth, signOut } from '/js/auth.js';
-  import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
+  import { initAuth, signOut } from 'js/auth.js';
+  import { renderHeaderDate, openModal, closeModal, showPage } from 'js/ui.js';
 
   /* Chargement de tous les modules métier */
   async function demarrerApp() {
   const modules = await Promise.all([
-    import('/js/modules/dashboard.js'),
-    import('/js/modules/stock.js'),
-    import('/js/modules/produits.js'),
-    import('/js/modules/commandes.js'),
-    import('/js/modules/production.js'),
-    import('/js/modules/achats.js'),
-    import('/js/modules/livraisons.js'),
-    import('/js/modules/recettes.js'),
-    import('/js/modules/admin.js'),
+    import('js/modules/dashboard.js'),
+    import('js/modules/stock.js'),
+    import('js/modules/produits.js'),
+    import('js/modules/commandes.js'),
+    import('js/modules/production.js'),
+    import('js/modules/achats.js'),
+    import('js/modules/livraisons.js'),
+    import('js/modules/recettes.js'),
+    import('js/modules/admin.js'),
   ]);
 
   const [dashboard, stock, produits, commandes, production, achats, livraisons, recettes, admin] = modules;
