@@ -1162,8 +1162,8 @@
         const clientsCache     = window._appClients     || [];
 
         /* Appel à la Netlify Function */
-        const { data: { session } } = await (await import('/js/config.js')).supabase.auth.getSession();
-        const { getTenantId } = await import('/js/auth.js');
+        const { data: { session } } = await (await import('js/config.js')).supabase.auth.getSession();
+        const { getTenantId } = await import('js/auth.js');
         const token    = session?.access_token || '';
         const tenantId = getTenantId() || '';
 
@@ -1293,7 +1293,7 @@
       if (!lignes.length) { alert('Aucune ligne valide.'); return; }
 
       try {
-        const { createCommande, getClients, createClient } = await import('/js/modules/commandes.js');
+        const { createCommande, getClients, createClient } = await import('js/modules/commandes.js');
         /* Générer une ref */
         const ref = 'CMD' + Date.now().toString().slice(-6);
         await createCommande({ ref, client_nom: client, date_cmd: dateCmd, date_livraison: dateLiv, statut: 'a_produire' }, lignes);
