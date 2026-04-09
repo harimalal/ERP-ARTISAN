@@ -829,7 +829,14 @@ async function handleLogin(btn) {
       document.querySelector('meta[name="supa-url"]').content,
       document.querySelector('meta[name="supa-key"]').content
     );
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ 
+  email, 
+  password,
+  options: {
+    // On force Supabase à revenir sur TON nouveau site Cloudflare
+    emailRedirectTo: 'https://erpartisan.pages.dev/app.html'
+  }
+});
 
     btn.classList.remove('loading');
     btn.textContent = btn.dataset.orig;
