@@ -25,7 +25,7 @@ export async function initAuth() {
   const { data: { session }, error } = await supabase.auth.getSession();
 
   if (error || !session) {
-    window.location.href = '/index.html';
+    window.location.href = '/';
     return null;
   }
 
@@ -41,7 +41,7 @@ export async function initAuth() {
   if (profileError || !profile) {
     console.error('[AppMee] Profil utilisateur introuvable :', profileError);
     await supabase.auth.signOut();
-    window.location.href = '/index.html';
+    window.location.href = '/';
     return null;
   }
 
@@ -57,7 +57,7 @@ export async function initAuth() {
   /* Écouter les changements de session (expiration, déconnexion) */
   supabase.auth.onAuthStateChange((event, newSession) => {
     if (event === 'SIGNED_OUT' || !newSession) {
-      window.location.href = '/index.html';
+      window.location.href = '/';
     }
     if (event === 'TOKEN_REFRESHED') {
       _session = newSession;
@@ -88,7 +88,7 @@ export function getSession() {
 --------------------------------------------------- */
 export async function signOut() {
   await supabase.auth.signOut();
-  window.location.href = '/index.html';
+  window.location.href = '/';
 }
 
 /* ---------------------------------------------------
@@ -98,7 +98,7 @@ export async function signOut() {
 --------------------------------------------------- */
 export function requireAuth() {
   if (!_session || !_tenantId) {
-    window.location.href = '/index.html';
+    window.location.href = '/';
     return false;
   }
   return true;
