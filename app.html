@@ -1038,40 +1038,12 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
           if (qteInp) { qteInp.value = l.qte; qteInp.dispatchEvent(new Event('input')); }
         });
 
-        window._iaData = null;
+       window._iaData = null;
         window._iaProduits = null;
       }
 
-        /* Collecter les lignes assignées manuellement */
-        document.querySelectorAll('.ia-assign-sel').forEach((sel, i) => {
-          if (!sel.value) return;
-          const p   = produits.find(x => x.ref === sel.value);
-          const qte = (data.lignes || []).filter(l => !l.refDetectee || !produits.find(px => px.ref === l.refDetectee))[i]?.qte || 1;
-          if (p) lignes.push({ produit_id: p.id, produit_nom: p.nom, quantite: qte, prix_unitaire: p.prix_vente || p.prix || 0 });
-        });
-
-        /* Lignes non assignées restantes */
-        const totalNonMatch = document.querySelectorAll('.ia-assign-sel').length;
-        const assignees     = document.querySelectorAll('.ia-assign-sel[value]:not([value=""])').length ||
-                              [...document.querySelectorAll('.ia-assign-sel')].filter(s => s.value).length;
-        const nonAssignees  = totalNonMatch - assignees;
-
-        /* Message si aucune ligne valide */
-        if (!lignes.length) {
-          alert('Aucune ligne valide à importer.\nAssociez au moins un produit ou créez-les d\'abord dans Admin → Produits finis.');
-          return;
-        }
-
-        /* Confirmation si des lignes ne sont pas assignées */
-        if (nonAssignees > 0) {
-          const ok = confirm(
-            nonAssignees + ' produit' + (nonAssignees > 1 ? 's' : '') + ' non assigné' + (nonAssignees > 1 ? 's' : '') + ' ne seront pas importés.\n\n' +
-            'Continuer avec les ' + lignes.length + ' ligne' + (lignes.length > 1 ? 's' : '') + ' valide' + (lignes.length > 1 ? 's' : '') + ' ?\n\n' +
-            '(Annulez pour créer d\'abord les produits manquants dans Admin → Produits finis)'
-          );
-          if (!ok) return;
-        }
-
+    })();
+    
     await commandes.init();
     await stock.init();
     await produits.init();
