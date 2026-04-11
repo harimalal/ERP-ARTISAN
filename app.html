@@ -4,22 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AppMee — Espace de travail</title>
-
-<!-- Supabase — valeurs injectées par Netlify au déploiement -->
 <meta name="supa-url" content="https://rynfsrsevgqyiycdscov.supabase.co">
 <meta name="supa-key" content="sb_publishable_g_gefc-Mrw1wgSC_F8nZlw_BAMix93k">
-
-<!-- CSS -->
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/components.css">
 <link rel="stylesheet" href="/css/layout.css">
-
-<!-- XLSX pour import/export Excel -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
-<!-- ÉCRAN DE CHARGEMENT -->
 <div id="app-loading">
   <div class="logo-ico">
     <svg viewBox="0 0 24 24" fill="#fff" width="26" height="26">
@@ -29,7 +22,6 @@
   <p>Chargement de votre espace…</p>
 </div>
 
-<!-- ═══ HEADER ═══════════════════════════════════════════ -->
 <header>
   <div class="hdr">
     <div class="logo">
@@ -52,7 +44,6 @@
   </div>
 </header>
 
-<!-- ═══ NAVIGATION ═══════════════════════════════════════ -->
 <nav id="mainNav">
   <button class="tab active" data-page="dashboard">📊 Dashboard</button>
   <button class="tab" data-page="stock">📦 Stock Articles <span class="tab-badge warn" id="badgeStockAlert" style="display:none">0</span></button>
@@ -60,21 +51,19 @@
   <button class="tab" data-page="commandes">📋 Commandes <span class="tab-badge" id="badgeCmd" style="display:none">0</span></button>
   <button class="tab" data-page="production">🏭 Production</button>
   <button class="tab" data-page="achats">🛒 Achats</button>
-  <button class="tab" data-page="livraisons">🚚 Livraisons & Factures</button>
+  <button class="tab" data-page="livraisons">🚚 Livraisons &amp; Factures</button>
   <button class="tab" data-page="recettes">📖 Recettes</button>
   <button class="tab" data-page="admin">⚙️ Admin</button>
 </nav>
 
-<!-- ═══ MAIN ══════════════════════════════════════════════ -->
 <main>
 
 <!-- DASHBOARD -->
 <div id="page-dashboard" class="page active">
   <div class="sec-hdr">
     <div><div class="sec-title">Tableau de bord</div><div class="sec-sub">Vue d'ensemble de votre activité</div></div>
+    <!-- A1 — Suppression boutons Historique + BC -->
     <div class="btn-row">
-      <button class="btn btn-ghost" data-modal="modalHistorique">📜 Historique</button>
-      <button class="btn btn-outline" data-modal="modalAchat">🛒 Bon de commande</button>
       <button class="btn btn-primary" data-modal="modalCommande">+ Nouvelle commande</button>
     </div>
   </div>
@@ -96,9 +85,9 @@
 <div id="page-stock" class="page">
   <div class="sec-hdr">
     <div><div class="sec-title">Stock Articles</div><div class="sec-sub">Matières premières, emballages, consommables</div></div>
+    <!-- A2 — Suppression bouton Inventaire -->
     <div class="btn-row">
       <input type="text" class="search-input" placeholder="Rechercher..." id="stockSearchInput">
-      <button class="btn btn-ghost" id="btnInventaireGlobal">📦 Inventaire</button>
       <button class="btn btn-outline" data-modal="modalAchat">+ Bon de commande</button>
       <button class="btn btn-primary" data-modal="modalNewArticle">+ Nouvel article</button>
     </div>
@@ -112,7 +101,8 @@
         <th>Unité</th>
         <th class="sortable" data-sort-col="4">Stock <span class="sort-ico"></span></th>
         <th class="sortable" data-sort-col="5">Seuil <span class="sort-ico"></span></th>
-        <th>Statut</th>
+        <!-- A3 — th Statut rendu sortable col 6 -->
+        <th class="sortable" data-sort-col="6">Statut <span class="sort-ico"></span></th>
         <th class="sortable" data-sort-col="7">Prix achat <span class="sort-ico"></span></th>
         <th class="sortable" data-sort-col="8">Fournisseur <span class="sort-ico"></span></th>
         <th>Actions</th>
@@ -172,8 +162,8 @@
     <div class="card-hdr">
       <span class="card-hdr-title">📅 Calendrier de production — semaine en cours</span>
       <div style="display:flex;gap:6px;">
-        <button class="btn-icon" id="calPrev">◀</button>
-        <button class="btn-icon" id="calNext">▶</button>
+        <button class="btn-icon" id="calPrev">◄</button>
+        <button class="btn-icon" id="calNext">►</button>
       </div>
     </div>
     <div style="padding:12px;"><div class="cal-week" id="calWeek"></div></div>
@@ -215,7 +205,7 @@
 <!-- LIVRAISONS & FACTURES -->
 <div id="page-livraisons" class="page">
   <div class="sec-hdr">
-    <div><div class="sec-title">Livraisons & Factures</div><div class="sec-sub">Facturation et suivi des paiements</div></div>
+    <div><div class="sec-title">Livraisons &amp; Factures</div><div class="sec-sub">Facturation et suivi des paiements</div></div>
     <div class="btn-row"><button class="btn btn-primary" data-modal="modalNewFacture">+ Nouvelle facture</button></div>
   </div>
   <div class="card">
@@ -227,7 +217,7 @@
 <!-- RECETTES -->
 <div id="page-recettes" class="page">
   <div class="sec-hdr">
-    <div><div class="sec-title">Recettes &amp; Nomenclatures</div><div class="sec-sub">Composition de chaque produit fini — base de calcul des OF, stocks et coûts de revient</div></div>
+    <div><div class="sec-title">Recettes &amp; Nomenclatures</div><div class="sec-sub">Composition de chaque produit fini</div></div>
     <div class="btn-row"><button class="btn btn-outline" data-modal="modalNewProduit">+ Nouveau produit</button></div>
   </div>
   <div id="recettesList"></div>
@@ -314,9 +304,8 @@
 
 </main>
 
-<!-- ═══ MODALS ════════════════════════════════════════════ -->
+<!-- MODALS -->
 
-<!-- Commande -->
 <div class="modal-overlay" id="modalCommande"><div class="modal modal-lg">
   <div class="modal-hdr"><span class="modal-hdr-title">📋 Nouvelle commande client</span><button class="modal-close" data-close="modalCommande">×</button></div>
   <div class="form-grid">
@@ -344,7 +333,6 @@
   </div>
 </div></div>
 
-<!-- Achat / BC -->
 <div class="modal-overlay" id="modalAchat"><div class="modal modal-lg">
   <div class="modal-hdr"><span class="modal-hdr-title">🛒 Bon de commande fournisseur</span><button class="modal-close" data-close="modalAchat">×</button></div>
   <div class="form-grid" style="padding-bottom:0;">
@@ -354,10 +342,7 @@
     <div class="form-group full"><label>Remarque</label><input type="text" id="achatRemarque" placeholder="N° BL, lot…"></div>
   </div>
   <div style="padding:0 16px 10px;">
-    <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">
-      Articles à commander
-      <span style="font-size:9px;color:var(--ink-muted);font-weight:400;"> — Article | Quantité | Prix HT</span>
-    </div>
+    <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Articles à commander <span style="font-size:9px;color:var(--ink-muted);font-weight:400;"> — Article | Quantité | Prix HT</span></div>
     <div id="bcLignesContainer"></div>
     <button class="btn btn-ghost btn-sm" id="btnAddBCLigne" style="margin-top:5px;">+ Ajouter un article</button>
   </div>
@@ -371,7 +356,6 @@
   </div>
 </div></div>
 
-<!-- Détail / édition BC -->
 <div class="modal-overlay" id="modalDetailBC"><div class="modal modal-lg">
   <div class="modal-hdr"><span class="modal-hdr-title" id="detailBCTitle">Détail BC</span><button class="modal-close" data-close="modalDetailBC">×</button></div>
   <div style="padding:16px;" id="detailBCContent"></div>
@@ -384,7 +368,6 @@
   </div>
 </div></div>
 
-<!-- Inventaire -->
 <div class="modal-overlay" id="modalInventaire"><div class="modal">
   <div class="modal-hdr"><span class="modal-hdr-title">📦 Inventaire manuel</span><button class="modal-close" data-close="modalInventaire">×</button></div>
   <div class="form-grid">
@@ -393,14 +376,13 @@
     <div class="form-group"><label>Quantité réelle <span id="invUnite" style="font-weight:400;text-transform:none;font-size:10px;color:var(--ink-muted);"></span></label><input type="number" id="invQteReel" min="0" step="0.01"></div>
     <div class="form-group full"><label>Motif</label><input type="text" id="invMotif" placeholder="Inventaire mensuel, casse…"></div>
   </div>
-  <div class="alert-box alert-warn" style="margin:0 16px 12px;"><span>⚠</span><span>La quantité saisie remplacera le stock actuel. L'écart est enregistré dans l'historique.</span></div>
+  <div class="alert-box alert-warn" style="margin:0 16px 12px;"><span>⚠</span><span>La quantité saisie remplacera le stock actuel.</span></div>
   <div class="form-actions">
     <button class="btn btn-primary" id="btnSaveInventaire">💾 Valider</button>
     <button class="btn btn-ghost" data-close="modalInventaire">Annuler</button>
   </div>
 </div></div>
 
-<!-- Livraison -->
 <div class="modal-overlay" id="modalLivraison"><div class="modal">
   <div class="modal-hdr"><span class="modal-hdr-title">🚚 Livraison + Facture</span><button class="modal-close" data-close="modalLivraison">×</button></div>
   <div style="padding:16px;">
@@ -415,7 +397,6 @@
   </div>
 </div></div>
 
-<!-- Nouvelle facture manuelle -->
 <div class="modal-overlay" id="modalNewFacture"><div class="modal modal-lg">
   <div class="modal-hdr"><span class="modal-hdr-title">🧾 Nouvelle facture</span><button class="modal-close" data-close="modalNewFacture">×</button></div>
   <div class="form-grid">
@@ -449,7 +430,6 @@
   </div>
 </div></div>
 
-<!-- Aperçu PDF -->
 <div class="modal-overlay" id="modalPdfPreview"><div class="modal modal-xl">
   <div class="modal-hdr"><span class="modal-hdr-title" id="pdfPreviewTitle">Aperçu PDF</span><button class="modal-close" data-close="modalPdfPreview">×</button></div>
   <div style="padding:16px;"><div class="pdf-preview" id="pdfPreviewContent"></div></div>
@@ -459,13 +439,10 @@
   </div>
 </div></div>
 
-<!-- Planifier OF -->
 <div class="modal-overlay" id="modalPlanifier"><div class="modal modal-lg">
   <div class="modal-hdr"><span class="modal-hdr-title">🏭 Planifier des ordres de fabrication</span><button class="modal-close" data-close="modalPlanifier">×</button></div>
   <div style="padding:0 16px 6px;">
-    <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">
-      Ordres à créer — Produit | Nom | Qté | Date
-    </div>
+    <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Ordres à créer — Produit | Nom | Qté | Date</div>
     <div id="ofLignes"></div>
     <button class="btn btn-ghost btn-sm" id="btnAddOFLigne" style="margin-top:5px;">+ Ajouter un OF</button>
   </div>
@@ -482,7 +459,6 @@
   </div>
 </div></div>
 
-<!-- Historique mouvements -->
 <div class="modal-overlay" id="modalHistorique"><div class="modal modal-xl">
   <div class="modal-hdr"><span class="modal-hdr-title">📜 Historique des mouvements</span><button class="modal-close" data-close="modalHistorique">×</button></div>
   <div style="padding:10px 16px 0;display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
@@ -503,7 +479,6 @@
   <div class="form-actions"><button class="btn btn-ghost" data-close="modalHistorique">Fermer</button></div>
 </div></div>
 
-<!-- Nouveau article -->
 <div class="modal-overlay" id="modalNewArticle"><div class="modal modal-lg">
   <div class="modal-hdr"><span class="modal-hdr-title">📦 Nouvel article</span><button class="modal-close" data-close="modalNewArticle">×</button></div>
   <div class="form-grid">
@@ -540,7 +515,6 @@
   </div>
 </div></div>
 
-<!-- Nouveau produit + recette -->
 <div class="modal-overlay" id="modalNewProduit"><div class="modal modal-lg">
   <div class="modal-hdr"><span class="modal-hdr-title" id="modalNewProduitTitle">🏷 Nouveau produit fini &amp; recette</span><button class="modal-close" data-close="modalNewProduit">×</button></div>
   <div class="form-grid">
@@ -561,7 +535,6 @@
   </div>
 </div></div>
 
-<!-- Edit row générique (Admin) -->
 <div class="modal-overlay" id="modalEditRow"><div class="modal">
   <div class="modal-hdr"><span class="modal-hdr-title" id="editRowTitle">Modifier</span><button class="modal-close" data-close="modalEditRow">×</button></div>
   <div style="padding:16px;" id="editRowContent"></div>
@@ -574,7 +547,6 @@
   </div>
 </div></div>
 
-<!-- Nouveau client -->
 <div class="modal-overlay" id="modalNewClient"><div class="modal">
   <div class="modal-hdr"><span class="modal-hdr-title">👤 Nouveau client</span><button class="modal-close" data-close="modalNewClient">×</button></div>
   <div class="form-grid">
@@ -590,7 +562,6 @@
   </div>
 </div></div>
 
-<!-- Nouveau fournisseur -->
 <div class="modal-overlay" id="modalNewFournisseur"><div class="modal">
   <div class="modal-hdr"><span class="modal-hdr-title">🏪 Nouveau fournisseur</span><button class="modal-close" data-close="modalNewFournisseur">×</button></div>
   <div class="form-grid">
@@ -615,12 +586,12 @@
   </div>
 </div></div>
 
-<!-- Fiche client -->
+<!-- Fiche client — btnIAFicheClient supprimé -->
 <div class="modal-overlay" id="modalFicheClient"><div class="modal modal-lg">
   <div class="modal-hdr"><span class="modal-hdr-title">👤 Fiche client</span><button class="modal-close" data-close="modalFicheClient">×</button></div>
   <div class="form-grid" id="ficheClientForm" style="padding:16px;"></div>
   <div class="form-actions between">
-    <button class="btn btn-ghost btn-sm" id="btnIAFicheClient">🤖 Mise à jour IA</button>
+    <div></div>
     <div style="display:flex;gap:7px;">
       <button class="btn btn-primary" id="btnSaveFicheClient">💾 Enregistrer</button>
       <button class="btn btn-danger" id="btnSuppFicheClient">Supprimer</button>
@@ -629,12 +600,12 @@
   </div>
 </div></div>
 
-<!-- Fiche fournisseur -->
+<!-- Fiche fournisseur — btnIAFicheFournisseur supprimé -->
 <div class="modal-overlay" id="modalFicheFournisseur"><div class="modal modal-lg">
   <div class="modal-hdr"><span class="modal-hdr-title">🏪 Fiche fournisseur</span><button class="modal-close" data-close="modalFicheFournisseur">×</button></div>
   <div class="form-grid" id="ficheFournisseurForm" style="padding:16px;"></div>
   <div class="form-actions between">
-    <button class="btn btn-ghost btn-sm" id="btnIAFicheFournisseur">🤖 Mise à jour IA</button>
+    <div></div>
     <div style="display:flex;gap:7px;">
       <button class="btn btn-primary" id="btnSaveFicheFournisseur">💾 Enregistrer</button>
       <button class="btn btn-danger" id="btnSuppFicheFournisseur">Supprimer</button>
@@ -643,7 +614,6 @@
   </div>
 </div></div>
 
-<!-- Modal IA extraction entreprise/fiche -->
 <div class="modal-overlay" id="modalIAEntreprise"><div class="modal modal-lg">
   <div class="modal-hdr"><span class="modal-hdr-title" id="iaEntrepriseTitle">🤖 Mise à jour par IA</span><button class="modal-close" data-close="modalIAEntreprise">×</button></div>
   <div style="padding:14px 16px 0;">
@@ -675,7 +645,6 @@
   </div>
 </div></div>
 
-<!-- Import IA commande -->
 <div class="modal-overlay" id="modalImportIA"><div class="modal modal-lg">
   <div class="modal-hdr"><span class="modal-hdr-title">🤖 Import IA — Bon de commande</span><button class="modal-close" data-close="modalImportIA">×</button></div>
   <div id="iaStep1">
@@ -720,7 +689,6 @@
   </div>
 </div></div>
 
-<!-- Import en masse -->
 <div class="modal-overlay" id="modalImportMasse"><div class="modal modal-lg">
   <div class="modal-hdr"><span class="modal-hdr-title">📥 Import masse — Migration données</span><button class="modal-close" data-close="modalImportMasse">×</button></div>
   <div style="padding:14px 16px 0;">
@@ -747,580 +715,284 @@
   </div>
 </div></div>
 
-<!-- ═══ SCRIPTS ═══════════════════════════════════════════ -->
 <script type="module">
   import { initAuth, signOut } from '/js/auth.js';
   import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
 
-  /* Chargement de tous les modules métier */
   async function demarrerApp() {
-  const modules = await Promise.all([
-    import('/js/modules/dashboard.js'),
-    import('/js/modules/stock.js'),
-    import('/js/modules/produits.js'),
-    import('/js/modules/commandes.js'),
-    import('/js/modules/production.js'),
-    import('/js/modules/achats.js'),
-    import('/js/modules/livraisons.js'),
-    import('/js/modules/recettes.js'),
-    import('/js/modules/admin.js'),
-  ]);
-
-  const [dashboard, stock, produits, commandes, production, achats, livraisons, recettes, admin] = modules;
-
-  /* Auth — redirige vers /login si non connecté */
-  const session = await initAuth();
-  if (!session) return;
-
-  /* Header */
-  renderHeaderDate();
-
-  /* Navigation par data-page */
-  const pageMap = {
-    dashboard: dashboard.render,
-    stock:     stock.render,
-    produits:  produits.render,
-    commandes: commandes.render,
-    production: production.render,
-    achats:    achats.render,
-    livraisons: livraisons.render,
-    recettes:  recettes.render,
-    admin:     admin.render,
-  };
-
-  document.getElementById('mainNav').addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-page]');
-    if (!btn) return;
-    const page = btn.dataset.page;
-    showPage(page, btn);
-    if (pageMap[page]) pageMap[page]();
-  });
-
-  /* Boutons data-modal → openModal */
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-modal]');
-    if (btn) openModal(btn.dataset.modal);
-
-    const closeBtn = e.target.closest('[data-close]');
-    if (closeBtn) closeModal(closeBtn.dataset.close);
-
-    const navBtn = e.target.closest('[data-page-nav]');
-    if (navBtn) {
-      const page = navBtn.dataset.pageNav;
-      const tab = document.querySelector(`[data-page="${page}"]`);
-      showPage(page, tab);
-      if (pageMap[page]) pageMap[page]();
-    }
-  });
-
-  /* Boutons header */
-  document.getElementById('btnNewCommande').addEventListener('click', () => {
-    commandes.initCommandeModal();
-    openModal('modalCommande');
-  });
-  document.getElementById('btnSignOut').addEventListener('click', () => signOut());
-  document.getElementById('btnPrintPdf').addEventListener('click', () => window.print());
-
-  /* FIX 2 — initCommandeModal sur tous les boutons data-modal="modalCommande" */
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-modal="modalCommande"]');
-    if (btn && commandes.initCommandeModal) commandes.initCommandeModal();
-  }, true); /* capture = true pour s'exécuter avant le openModal générique */
-
-  /* FIX 3 — initPlanifierModal sur le bouton "+ Planifier un OF" du header production */
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-modal="modalPlanifier"]');
-    if (btn && production.initPlanifierModal) production.initPlanifierModal(null);
-  }, true);
-
-  /* FIX 7 — initNewFactureModal sur l'ouverture du modal Nouvelle Facture */
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-modal="modalNewFacture"]');
-    if (btn && livraisons.initNewFactureModal) livraisons.initNewFactureModal();
-  }, true);
-
-  /* FIX 4 — Bouton Inventaire global */
-  document.getElementById('btnInventaireGlobal')?.addEventListener('click', () => {
-    if (stock.openInventaireGlobal) stock.openInventaireGlobal();
-  });
-
-  /* FIX 1 — Bouton "+ Ajouter un OF" dans le modal Planifier */
-  document.getElementById('btnAddOFLigne')?.addEventListener('click', () => {
-    if (production.addOFLigne) production.addOFLigne();
-  });
-
-  /* Export CSV — branché sur le bouton Admin */
-  document.getElementById('btnExportCSV')?.addEventListener('click', () => admin.exporterTout());
-
-  /* Rechargement global après import masse
-     Recharge TOUS les modules pour garantir la cohérence des données.
-     Promise.allSettled évite qu'une erreur d'un module bloque les autres. */
-  document.addEventListener('appmee:datachanged', async (e) => {
-    const { entity } = e.detail || {};
-    if (entity !== 'import_masse') return;
-
-    await Promise.allSettled([
-      dashboard.render(),
-      stock.render(),
-      produits.render(),
-      commandes.render(),
-      production.render(),
-      achats.render(),
-      livraisons.render(),
-      recettes.render(),
-      admin.render(),
+    const modules = await Promise.all([
+      import('/js/modules/dashboard.js'),
+      import('/js/modules/stock.js'),
+      import('/js/modules/produits.js'),
+      import('/js/modules/commandes.js'),
+      import('/js/modules/production.js'),
+      import('/js/modules/achats.js'),
+      import('/js/modules/livraisons.js'),
+      import('/js/modules/recettes.js'),
+      import('/js/modules/admin.js'),
     ]);
-  });
 
-  /* ── LISTENERS GLOBAUX ──────────────────────────────────── */
+    const [dashboard, stock, produits, commandes, production, achats, livraisons, recettes, admin] = modules;
 
-  /* Aperçu PDF — dispatché par achats.js, commandes.js, livraisons.js */
-  document.addEventListener('appmee:showPdf', (e) => {
-    const { title, type, data, commande } = e.detail || {};
-    if (!data) return;
+    const session = await initAuth();
+    if (!session) return;
 
-    const me = {}; /* les infos entreprise sont dans le tenant — on laisse vide pour l'aperçu */
+    renderHeaderDate();
 
-    let html = '';
+    const pageMap = {
+      dashboard: dashboard.render,
+      stock:     stock.render,
+      produits:  produits.render,
+      commandes: commandes.render,
+      production: production.render,
+      achats:    achats.render,
+      livraisons: livraisons.render,
+      recettes:  recettes.render,
+      admin:     admin.render,
+    };
 
-    if (type === 'bc' || type === 'bc_multi') {
-      /* BC fournisseur — mono ou multi-articles */
-      const lignesBc = data.lignes || [{
-        article_nom:  data.article_nom || data.nom || '—',
-        ref_article:  data.ref_article || '—',
-        unite:        data.unite || '',
-        quantite:     data.quantite || 0,
-        prix_unitaire: data.prix_unitaire || data.prix || 0,
-        montant_ht:   data.montant_ht || 0,
-      }];
-      const totalHT = lignesBc.reduce((s, l) => s + (l.montant_ht || l.quantite * l.prix_unitaire || 0), 0);
-      const tva = totalHT * 0.20;
-      const ttc = totalHT + tva;
-      const tenant = data.tenant || {};
-
-      const blocEntreprise = tenant.nom ? `
-        <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:6px;">Émis par</div>
-        <div style="font-size:10px;line-height:1.6;color:#333;">
-          <div style="font-weight:700;font-size:12px;">${tenant.nom || ''}</div>
-          ${tenant.forme ? '<div>' + tenant.forme + '</div>' : ''}
-          ${tenant.adresse ? '<div>' + tenant.adresse + '</div>' : ''}
-          ${tenant.tel ? '<div>Tél : ' + tenant.tel + '</div>' : ''}
-          ${tenant.email ? '<div>' + tenant.email + '</div>' : ''}
-          ${tenant.siret ? '<div>SIRET : ' + tenant.siret + '</div>' : ''}
-        </div></div>` : '<div></div>';
-
-      html = `<div class="pdf-hdr">
-        <div><h2>Bon de commande fournisseur</h2>
-          <div style="font-size:12px;color:#888;margin-top:3px;">${data.ref || 'Brouillon'}</div></div>
-        <div style="text-align:right;font-size:11px;color:#555;">
-          <div>Date : ${data.date_cmd || data.date || ''}</div>
-          ${data.ref_commande ? '<div>Réf commande : ' + data.ref_commande + '</div>' : ''}
-          <div style="margin-top:6px;padding:4px 8px;background:#fff3e0;border-radius:4px;">
-            Statut : <strong>${data.statut || 'brouillon'}</strong></div>
-        </div></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:16px;">
-          ${blocEntreprise}
-          <div><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:6px;">Fournisseur</div>
-          <div style="font-size:12px;font-weight:700;">${data.fournisseur || '—'}</div></div>
-        </div>
-        <table><thead><tr>
-          <th>Article</th><th>Référence</th><th>Quantité</th><th>Unité</th>
-          <th>Prix unit. HT</th><th>Total HT</th>
-        </tr></thead><tbody>
-        ${lignesBc.map(l => '<tr><td>' + (l.article_nom || '—') + '</td><td>' + (l.ref_article || '—') + '</td><td>' + (l.quantite || 0) + '</td><td>' + (l.unite || '') + '</td><td>' + (l.prix_unitaire || 0).toFixed(2) + ' €</td><td style="font-weight:600">' + (l.montant_ht || (l.quantite * l.prix_unitaire) || 0).toFixed(2) + ' €</td></tr>').join('')}
-        </tbody>
-        <tr style="background:#f0f0f0;"><td colspan="5" style="text-align:right;font-weight:700;padding:6px 8px;">Total HT</td>
-          <td style="font-weight:700;padding:6px 8px;">${totalHT.toFixed(2)} €</td></tr>
-        <tr><td colspan="5" style="text-align:right;padding:4px 8px;font-size:10px;color:#888;">TVA 20%</td>
-          <td style="padding:4px 8px;font-size:10px;color:#888;">${tva.toFixed(2)} €</td></tr>
-        <tr style="background:#f0f0f0;"><td colspan="5" style="text-align:right;font-weight:700;padding:6px 8px;">Total TTC</td>
-          <td style="font-weight:700;padding:6px 8px;">${ttc.toFixed(2)} €</td></tr>
-        </table>
-        ${data.notes ? '<div style="margin-top:12px;font-size:11px;color:#555;padding:8px;background:#f9f9f9;border-radius:4px;">Note : ' + data.notes + '</div>' : ''}
-        ${tenant.iban ? '<div style="margin-top:12px;font-size:10px;color:#888;border-top:1px solid #eee;padding-top:8px;">Règlement : IBAN <strong>' + tenant.iban + '</strong>' + (tenant.cpt_paiement ? ' — ' + tenant.cpt_paiement : '') + '</div>' : ''}`;
-
-    } else if (type === 'commande') {
-      const lignes = data.commande_lignes || [];
-      const tot    = lignes.reduce((s, l) => s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
-      const tva    = tot * 0.20;
-      const ttc    = tot + tva;
-      html = `<div class="pdf-hdr">
-        <div><h2>Bon de commande client</h2>
-          <div style="font-size:12px;color:#888;margin-top:3px;">${data.ref}</div></div>
-        <div style="text-align:right;font-size:11px;color:#555;">
-          <div>Date : ${data.date_cmd || ''}</div>
-          ${data.date_livraison ? '<div>Livraison prévue : <strong>' + data.date_livraison + '</strong></div>' : ''}
-        </div></div>
-        <div style="margin-bottom:16px;padding:10px 14px;background:#f9f9f9;border-radius:7px;font-size:11px;">
-          <strong>Client :</strong> ${data.client_nom || '—'}
-        </div>
-        <table><thead><tr>
-          <th>Produit</th><th>Quantité</th><th>Prix unit. HT</th><th>Total HT</th>
-        </tr></thead><tbody>
-        ${lignes.map(l => '<tr><td>' + (l.produit_nom || '—') + '</td><td>' + l.quantite + '</td><td>' + (l.prix_unitaire || 0).toFixed(2) + ' €</td><td style="font-weight:600">' + (l.total_ht || l.quantite * l.prix_unitaire || 0).toFixed(2) + ' €</td></tr>').join('')}
-        </tbody>
-        <tr style="background:#f0f0f0;"><td colspan="3" style="text-align:right;font-weight:700;padding:6px 8px;">Total HT</td>
-          <td style="font-weight:700;padding:6px 8px;">${tot.toFixed(2)} €</td></tr>
-        <tr><td colspan="3" style="text-align:right;padding:4px 8px;font-size:10px;color:#888;">TVA 20%</td>
-          <td style="padding:4px 8px;font-size:10px;color:#888;">${tva.toFixed(2)} €</td></tr>
-        <tr style="background:#f0f0f0;"><td colspan="3" style="text-align:right;font-weight:700;padding:6px 8px;">Total TTC</td>
-          <td style="font-weight:700;padding:6px 8px;">${ttc.toFixed(2)} €</td></tr>
-        </table>
-        ${data.notes ? '<div style="margin-top:12px;font-size:11px;color:#555;padding:8px;background:#f9f9f9;">Notes : ' + data.notes + '</div>' : ''}`;
-
-    } else if (type === 'facture') {
-      const tva = (data.montant_ht || 0) * ((data.taux_tva || 20) / 100);
-      const ttc = data.montant_ttc || (data.montant_ht || 0) + tva;
-      const lignes = commande ? (commande.commande_lignes || []) : [];
-      html = `<div class="pdf-hdr">
-        <div><h2>Facture</h2>
-          <div style="font-size:12px;color:#888;margin-top:3px;">${data.ref}</div></div>
-        <div style="text-align:right;font-size:11px;color:#555;">
-          <div>Date : <strong>${data.date_facture || ''}</strong></div>
-          ${data.ref_commande ? '<div>Commande : ' + data.ref_commande + '</div>' : ''}
-        </div></div>
-        <div style="margin-bottom:16px;padding:10px 14px;background:#f9f9f9;border-radius:7px;font-size:11px;">
-          <strong>Client :</strong> ${data.client_nom || '—'}
-        </div>
-        <table><thead><tr>
-          <th>Désignation</th><th>Quantité</th><th>Prix unit. HT</th><th>Total HT</th>
-        </tr></thead><tbody>
-        ${lignes.length
-          ? lignes.map(l => '<tr><td>' + (l.produit_nom || '—') + '</td><td>' + l.quantite + '</td><td>' + (l.prix_unitaire || 0).toFixed(2) + ' €</td><td style="font-weight:600">' + (l.total_ht || l.quantite * l.prix_unitaire || 0).toFixed(2) + ' €</td></tr>').join('')
-          : '<tr><td colspan="3">' + (data.notes || 'Voir commande') + '</td><td style="font-weight:600">' + (data.montant_ht || 0).toFixed(2) + ' €</td></tr>'
-        }
-        </tbody>
-        <tr style="background:#f0f0f0;"><td colspan="3" style="text-align:right;font-weight:700;padding:6px 8px;">Total HT</td>
-          <td style="font-weight:700;padding:6px 8px;">${(data.montant_ht || 0).toFixed(2)} €</td></tr>
-        <tr><td colspan="3" style="text-align:right;padding:4px 8px;font-size:10px;color:#888;">TVA ${data.taux_tva || 20}%</td>
-          <td style="padding:4px 8px;font-size:10px;color:#888;">${tva.toFixed(2)} €</td></tr>
-        <tr style="background:#f0f0f0;"><td colspan="3" style="text-align:right;font-weight:700;padding:6px 8px;font-size:13px;">Total TTC</td>
-          <td style="font-weight:700;padding:6px 8px;font-size:13px;color:#2d6a4f;">${ttc.toFixed(2)} €</td></tr>
-        </table>
-        ${data.notes ? '<div style="margin-top:14px;font-size:11px;padding:10px;background:#f9f9f9;border-radius:4px;border-left:3px solid #c8432b;">' + data.notes + '</div>' : ''}`;
-    }
-
-    document.getElementById('pdfPreviewTitle').textContent = title || 'Aperçu';
-    document.getElementById('pdfPreviewContent').innerHTML = html;
-    openModal('modalPdfPreview');
-  });
-
-  /* Modifier recette — ouvre modal produit avec la nomenclature pré-remplie */
-  document.addEventListener('appmee:editProduit', async (e) => {
-    const { produitId } = e.detail || {};
-    if (!produitId) return;
-    /* Récupérer le produit complet depuis le cache produits */
-    const editProduit = produits.getProduitsCache
-      ? produits.getProduitsCache().find(p => p.id === produitId)
-      : null;
-    if (editProduit && produits.initNewProduitModal) {
-      produits.initNewProduitModal(editProduit);
-    }
-    /* Le modal est ouvert par recettes.js directement */
-  });
-
-  /* Planifier OF depuis recettes — pré-sélectionne le produit */
-  document.addEventListener('appmee:planifierOF', (e) => {
-    const { ref } = e.detail || {};
-    if (production.initPlanifierModal) {
-      production.initPlanifierModal(ref || null);
-    }
-    openModal('modalPlanifier');
-  });
-
-  /* Bon de commande fournisseur avec article pré-sélectionné
-     Stock.js dispatche l'event AVANT openModal — ce listener initialise le modal,
-     puis stock.js ouvre le modal. Pour les boutons génériques, la capture ci-dessous
-     initialise avec null (BC vide). */
-  document.addEventListener('appmee:openAchatFor', (e) => {
-    const { ref } = e.detail || {};
-    if (achats.initAchatModal) achats.initAchatModal(ref || null);
-  });
-
-  /* Initialisation vide pour les boutons génériques "+ Bon de commande" / "+ Nouveau BC" */
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-modal="modalAchat"]');
-    if (btn && achats.initAchatModal) achats.initAchatModal(null);
-  }, true);
-
-  /* ── Import IA — Branchement zone dépôt + analyse ──────── */
-  (function() {
-    let _iaFile = null;
-
-    const dropZone  = document.getElementById('iaDropZone');
-    const fileInput = document.getElementById('iaFileInput');
-    const fileInfo  = document.getElementById('iaFileInfo');
-    const fileName  = document.getElementById('iaFileName');
-    const fileSize  = document.getElementById('iaFileSize');
-    const fileIcon  = document.getElementById('iaFileIcon');
-    const fileClear = document.getElementById('iaFileClear');
-    const btnAnalyse= document.getElementById('iaBtnAnalyse');
-    const btnReset  = document.getElementById('iaResetBtn');
-    const btnConfirm= document.getElementById('iaConfirmBtn');
-    const iaError   = document.getElementById('iaError');
-
-    const ICONS = { pdf:'📄', xlsx:'📊', xls:'📊', docx:'📝', doc:'📝',
-                    csv:'📊', png:'🖼', jpg:'🖼', jpeg:'🖼', txt:'📄' };
-
-    function setFile(f) {
-      _iaFile = f;
-      const ext = f.name.split('.').pop().toLowerCase();
-      fileIcon.textContent = ICONS[ext] || '📄';
-      fileName.textContent = f.name;
-      fileSize.textContent = (f.size / 1024).toFixed(1) + ' Ko';
-      fileInfo.style.display = 'flex';
-      btnAnalyse.disabled = false;
-      btnAnalyse.style.opacity = '1';
-      if (iaError) iaError.style.display = 'none';
-    }
-
-    function clearFile() {
-      _iaFile = null;
-      fileInfo.style.display = 'none';
-      btnAnalyse.disabled = true;
-      btnAnalyse.style.opacity = '.5';
-      fileInput.value = '';
-    }
-
-    /* Clic sur la zone → ouvre le sélecteur de fichier */
-    dropZone?.addEventListener('click', () => fileInput?.click());
-
-    /* Sélection via l'input file */
-    fileInput?.addEventListener('change', (e) => {
-      if (e.target.files[0]) setFile(e.target.files[0]);
+    document.getElementById('mainNav').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-page]');
+      if (!btn) return;
+      const page = btn.dataset.page;
+      showPage(page, btn);
+      if (pageMap[page]) pageMap[page]();
     });
 
-    /* Glisser-déposer */
-    dropZone?.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropZone.style.borderColor = 'var(--accent)';
-      dropZone.style.background  = 'rgba(200,67,43,0.05)';
-    });
-    dropZone?.addEventListener('dragleave', () => {
-      dropZone.style.borderColor = '';
-      dropZone.style.background  = '';
-    });
-    dropZone?.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.style.borderColor = '';
-      dropZone.style.background  = '';
-      const f = e.dataTransfer.files[0];
-      if (f) setFile(f);
-    });
-
-    /* Supprimer le fichier */
-    fileClear?.addEventListener('click', clearFile);
-
-    /* Reset depuis l'étape 3 */
-    btnReset?.addEventListener('click', () => {
-      clearFile();
-      document.getElementById('iaStep1').style.display = 'block';
-      document.getElementById('iaStep2').style.display = 'none';
-      document.getElementById('iaStep3').style.display = 'none';
-    });
-
-    /* ── Analyse IA ── */
-    btnAnalyse?.addEventListener('click', async () => {
-      if (!_iaFile) return;
-
-      document.getElementById('iaStep1').style.display = 'none';
-      document.getElementById('iaStep2').style.display = 'block';
-      document.getElementById('iaStep3').style.display = 'none';
-
-      const statusEl = document.getElementById('iaStatusMsg');
-      const progEl   = document.getElementById('iaProgBar');
-      const steps    = [
-        [15, 'Lecture du fichier…'],
-        [35, 'Extraction du texte…'],
-        [60, 'Analyse par Claude AI…'],
-        [85, 'Identification produits…'],
-        [95, 'Finalisation…'],
-      ];
-      let si = 0;
-      const ticker = setInterval(() => {
-        if (si < steps.length) {
-          progEl.style.width  = steps[si][0] + '%';
-          statusEl.textContent = steps[si][1];
-          si++;
-        }
-      }, 700);
-
-      try {
-        /* Lire le fichier en base64 */
-        const b64 = await new Promise((res, rej) => {
-          const r = new FileReader();
-          r.onload  = () => res(r.result.split(',')[1]);
-          r.onerror = () => rej(new Error('Lecture impossible'));
-          r.readAsDataURL(_iaFile);
-        });
-
-        const ext    = _iaFile.name.split('.').pop().toLowerCase();
-        const ctx    = document.getElementById('iaContext')?.value || '';
-
-        /* Récupérer la liste des produits et clients depuis les modules */
-        const produitsCache    = window._appProduits    || [];
-        const clientsCache     = window._appClients     || [];
-
-        /* Appel à la Netlify Function */
-        const { data: { session } } = await (await import('/js/config.js')).supabase.auth.getSession();
-        const { getTenantId } = await import('/js/auth.js');
-        const token    = session?.access_token || '';
-        const tenantId = getTenantId() || '';
-
-        const resp = await fetch('/api/ai-analyse-bc', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fichier:   b64,
-            extension: ext,
-            contexte:  ctx,
-            produits:  produitsCache,
-            clients:   clientsCache,
-            tenantId,
-            token,
-          }),
-        });
-
-        clearInterval(ticker);
-        progEl.style.width = '100%';
-
-        if (!resp.ok) throw new Error('Erreur serveur ' + resp.status);
-        const result = await resp.json();
-        if (!result.ok) throw new Error(result.error || 'Erreur IA');
-
-        /* Afficher le résultat */
-        _iaShowPreview(result.data, produitsCache, clientsCache);
-
-      } catch (err) {
-        clearInterval(ticker);
-        document.getElementById('iaStep1').style.display = 'block';
-        document.getElementById('iaStep2').style.display = 'none';
-        if (iaError) {
-          iaError.style.display = 'flex';
-          iaError.textContent   = 'Erreur : ' + err.message;
-        }
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-modal]');
+      if (btn) openModal(btn.dataset.modal);
+      const closeBtn = e.target.closest('[data-close]');
+      if (closeBtn) closeModal(closeBtn.dataset.close);
+      const navBtn = e.target.closest('[data-page-nav]');
+      if (navBtn) {
+        const page = navBtn.dataset.pageNav;
+        const tab = document.querySelector(`[data-page="${page}"]`);
+        showPage(page, tab);
+        if (pageMap[page]) pageMap[page]();
       }
     });
 
-    /* ── Affichage résultat ── */
-    function _iaShowPreview(data, produits, clients) {
-      document.getElementById('iaStep2').style.display = 'none';
-      document.getElementById('iaStep3').style.display = 'block';
+    document.getElementById('btnNewCommande').addEventListener('click', () => {
+      commandes.initCommandeModal();
+      openModal('modalCommande');
+    });
+    document.getElementById('btnSignOut').addEventListener('click', () => signOut());
+    document.getElementById('btnPrintPdf').addEventListener('click', () => window.print());
 
-      const lignes    = data.lignes || [];
-      const matchees  = lignes.filter(l => l.refDetectee && produits.find(p => p.ref === l.refDetectee));
-      const nonMatch  = lignes.filter(l => !l.refDetectee || !produits.find(p => p.ref === l.refDetectee));
-      const tot       = matchees.reduce((s, l) => {
-        const p = produits.find(x => x.ref === l.refDetectee);
-        return s + (p ? (p.prix_vente || p.prix || 0) * l.qte : 0);
-      }, 0);
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-modal="modalCommande"]');
+      if (btn && commandes.initCommandeModal) commandes.initCommandeModal();
+    }, true);
 
-      document.getElementById('iaSummary').innerHTML = `
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-          <div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;flex:1;text-align:center;">
-            <div style="font-size:9.5px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Client</div>
-            <div style="font-weight:600;font-size:12px;">${data.client || '—'}</div>
-          </div>
-          <div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;flex:1;text-align:center;">
-            <div style="font-size:9.5px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Lignes OK</div>
-            <div style="font-weight:700;font-size:16px;color:var(--ui-green)">${matchees.length}</div>
-          </div>
-          ${nonMatch.length ? '<div style="background:#fdecea;border:1px solid #f5c2c2;border-radius:7px;padding:9px 12px;flex:1;text-align:center;"><div style="font-size:9.5px;color:var(--ui-red);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">À assigner</div><div style="font-weight:700;font-size:16px;color:var(--ui-red)">' + nonMatch.length + '</div></div>' : ''}
-          <div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;flex:1;text-align:center;">
-            <div style="font-size:9.5px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Valeur est.</div>
-            <div style="font-weight:700;font-size:14px;">${tot.toFixed(2)} €</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;">
-          <input type="text" id="iaEditClient" value="${data.client || ''}" placeholder="Client…" style="flex:1.5;min-width:140px;">
-          <input type="date" id="iaEditDate" value="${data.date || ''}" style="flex:0 0 130px;">
-          <input type="date" id="iaEditDateLiv" value="${data.dateLivraison || ''}" style="flex:0 0 130px;">
-        </div>`;
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-modal="modalPlanifier"]');
+      if (btn && production.initPlanifierModal) production.initPlanifierModal(null);
+    }, true);
 
-      const prodOpts = produits.map(p => '<option value="' + p.ref + '">' + p.ref + ' — ' + p.nom + '</option>').join('');
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-modal="modalNewFacture"]');
+      if (btn && livraisons.initNewFactureModal) livraisons.initNewFactureModal();
+    }, true);
+
+    /* A4 — Listener btnInventaireGlobal supprimé (bouton retiré du HTML) */
+
+    document.getElementById('btnAddOFLigne')?.addEventListener('click', () => {
+      if (production.addOFLigne) production.addOFLigne();
+    });
+
+    document.getElementById('btnExportCSV')?.addEventListener('click', () => admin.exporterTout());
+
+    document.addEventListener('appmee:datachanged', async (e) => {
+      const { entity } = e.detail || {};
+      if (entity !== 'import_masse') return;
+      await Promise.allSettled([
+        dashboard.render(), stock.render(), produits.render(), commandes.render(),
+        production.render(), achats.render(), livraisons.render(), recettes.render(), admin.render(),
+      ]);
+    });
+
+    /* Aperçu PDF */
+    document.addEventListener('appmee:showPdf', (e) => {
+      const { title, type, data, commande } = e.detail || {};
+      if (!data) return;
       let html = '';
 
-      if (matchees.length) {
-        html += '<div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;">Lignes reconnues</div>';
-        html += '<table style="margin-bottom:10px;"><thead><tr><th>Produit</th><th>Nom document</th><th>Qté</th></tr></thead><tbody>';
-        matchees.forEach(l => {
-          const p = produits.find(x => x.ref === l.refDetectee);
-          if (!p) return;
-          html += '<tr><td><span class="badge badge-ok" style="font-size:9.5px;">' + p.ref + '</span> ' + p.nom + '</td><td style="font-size:10.5px;color:var(--ink-muted);">"' + l.nomOriginal + '"</td><td><input type="number" min="1" value="' + l.qte + '" style="width:58px;padding:3px 6px;border:1px solid var(--ui-brd);border-radius:5px;font-size:12px;" data-ref="' + l.refDetectee + '"></td></tr>';
-        });
-        html += '</tbody></table>';
+      if (type === 'bc' || type === 'bc_multi') {
+        const lignesBc = data.lignes || [{ article_nom: data.article_nom || '—', ref_article: data.ref_article || '—', unite: data.unite || '', quantite: data.quantite || 0, prix_unitaire: data.prix_unitaire || 0, montant_ht: data.montant_ht || 0 }];
+        const totalHT = lignesBc.reduce((s, l) => s + (l.montant_ht || l.quantite * l.prix_unitaire || 0), 0);
+        const tva = totalHT * 0.20; const ttc = totalHT + tva;
+        const tenant = data.tenant || {};
+        const blocEm = tenant.nom ? `<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:6px;">Émis par</div><div style="font-size:10px;line-height:1.6;color:#333;"><div style="font-weight:700;font-size:12px;">${tenant.nom}</div>${tenant.adresse ? '<div>' + tenant.adresse + '</div>' : ''}${tenant.tel ? '<div>Tél : ' + tenant.tel + '</div>' : ''}${tenant.email ? '<div>' + tenant.email + '</div>' : ''}${tenant.siret ? '<div>SIRET : ' + tenant.siret + '</div>' : ''}</div></div>` : '<div></div>';
+        html = `<div class="pdf-hdr"><div><h2>Bon de commande fournisseur</h2><div style="font-size:12px;color:#888;margin-top:3px;">${data.ref || 'Brouillon'}</div></div><div style="text-align:right;font-size:11px;color:#555;"><div>Date : ${data.date_cmd || ''}</div>${data.ref_commande ? '<div>Réf commande : ' + data.ref_commande + '</div>' : ''}</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:16px;">${blocEm}<div><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:6px;">Fournisseur</div><div style="font-size:12px;font-weight:700;">${data.fournisseur || '—'}</div></div></div><table><thead><tr><th>Article</th><th>Référence</th><th>Quantité</th><th>Unité</th><th>Prix unit. HT</th><th>Total HT</th></tr></thead><tbody>${lignesBc.map(l => '<tr><td>' + (l.article_nom || '—') + '</td><td>' + (l.ref_article || '—') + '</td><td>' + (l.quantite || 0) + '</td><td>' + (l.unite || '') + '</td><td>' + (l.prix_unitaire || 0).toFixed(2) + ' €</td><td style="font-weight:600">' + (l.montant_ht || (l.quantite * l.prix_unitaire) || 0).toFixed(2) + ' €</td></tr>').join('')}</tbody><tr style="background:#f0f0f0;"><td colspan="5" style="text-align:right;font-weight:700;padding:6px 8px;">Total HT</td><td style="font-weight:700;padding:6px 8px;">${totalHT.toFixed(2)} €</td></tr><tr><td colspan="5" style="text-align:right;padding:4px 8px;font-size:10px;color:#888;">TVA 20%</td><td style="padding:4px 8px;font-size:10px;color:#888;">${tva.toFixed(2)} €</td></tr><tr style="background:#f0f0f0;"><td colspan="5" style="text-align:right;font-weight:700;padding:6px 8px;">Total TTC</td><td style="font-weight:700;padding:6px 8px;">${ttc.toFixed(2)} €</td></tr></table>${data.notes ? '<div style="margin-top:12px;font-size:11px;color:#555;padding:8px;background:#f9f9f9;">Note : ' + data.notes + '</div>' : ''}${tenant.iban ? '<div style="margin-top:12px;font-size:10px;color:#888;border-top:1px solid #eee;padding-top:8px;">Règlement : IBAN <strong>' + tenant.iban + '</strong></div>' : ''}`;
+
+      } else if (type === 'commande') {
+        const lignes = data.commande_lignes || [];
+        const tot = lignes.reduce((s, l) => s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
+        const tva = tot * 0.20; const ttc = tot + tva;
+        html = `<div class="pdf-hdr"><div><h2>Bon de commande client</h2><div style="font-size:12px;color:#888;">${data.ref}</div></div><div style="text-align:right;font-size:11px;color:#555;"><div>Date : ${data.date_cmd || ''}</div>${data.date_livraison ? '<div>Livraison : <strong>' + data.date_livraison + '</strong></div>' : ''}</div></div><div style="margin-bottom:16px;padding:10px 14px;background:#f9f9f9;border-radius:7px;font-size:11px;"><strong>Client :</strong> ${data.client_nom || '—'}</div><table><thead><tr><th>Produit</th><th>Quantité</th><th>Prix unit. HT</th><th>Total HT</th></tr></thead><tbody>${lignes.map(l => '<tr><td>' + (l.produit_nom || '—') + '</td><td>' + l.quantite + '</td><td>' + (l.prix_unitaire || 0).toFixed(2) + ' €</td><td style="font-weight:600">' + (l.total_ht || l.quantite * l.prix_unitaire || 0).toFixed(2) + ' €</td></tr>').join('')}</tbody><tr style="background:#f0f0f0;"><td colspan="3" style="text-align:right;font-weight:700;padding:6px 8px;">Total HT</td><td style="font-weight:700;padding:6px 8px;">${tot.toFixed(2)} €</td></tr><tr><td colspan="3" style="text-align:right;padding:4px 8px;font-size:10px;color:#888;">TVA 20%</td><td style="padding:4px 8px;font-size:10px;color:#888;">${tva.toFixed(2)} €</td></tr><tr style="background:#f0f0f0;"><td colspan="3" style="text-align:right;font-weight:700;padding:6px 8px;">Total TTC</td><td style="font-weight:700;padding:6px 8px;">${ttc.toFixed(2)} €</td></tr></table>`;
+
+      } else if (type === 'facture') {
+        const tva = (data.montant_ht || 0) * ((data.taux_tva || 20) / 100);
+        const ttc = data.montant_ttc || (data.montant_ht || 0) + tva;
+        const lignes = commande ? (commande.commande_lignes || []) : [];
+        html = `<div class="pdf-hdr"><div><h2>Facture</h2><div style="font-size:12px;color:#888;">${data.ref}</div></div><div style="text-align:right;font-size:11px;color:#555;"><div>Date : <strong>${data.date_facture || ''}</strong></div>${data.ref_commande ? '<div>Commande : ' + data.ref_commande + '</div>' : ''}</div></div><div style="margin-bottom:16px;padding:10px 14px;background:#f9f9f9;border-radius:7px;font-size:11px;"><strong>Client :</strong> ${data.client_nom || '—'}</div><table><thead><tr><th>Désignation</th><th>Quantité</th><th>Prix unit. HT</th><th>Total HT</th></tr></thead><tbody>${lignes.length ? lignes.map(l => '<tr><td>' + (l.produit_nom || '—') + '</td><td>' + l.quantite + '</td><td>' + (l.prix_unitaire || 0).toFixed(2) + ' €</td><td style="font-weight:600">' + (l.total_ht || l.quantite * l.prix_unitaire || 0).toFixed(2) + ' €</td></tr>').join('') : '<tr><td colspan="3">' + (data.notes || 'Voir commande') + '</td><td style="font-weight:600">' + (data.montant_ht || 0).toFixed(2) + ' €</td></tr>'}</tbody><tr style="background:#f0f0f0;"><td colspan="3" style="text-align:right;font-weight:700;padding:6px 8px;">Total HT</td><td style="font-weight:700;padding:6px 8px;">${(data.montant_ht || 0).toFixed(2)} €</td></tr><tr><td colspan="3" style="text-align:right;padding:4px 8px;font-size:10px;color:#888;">TVA ${data.taux_tva || 20}%</td><td style="padding:4px 8px;font-size:10px;color:#888;">${tva.toFixed(2)} €</td></tr><tr style="background:#f0f0f0;"><td colspan="3" style="text-align:right;font-weight:700;padding:6px 8px;font-size:13px;">Total TTC</td><td style="font-weight:700;padding:6px 8px;font-size:13px;color:#2d6a4f;">${ttc.toFixed(2)} €</td></tr></table>`;
       }
 
-      if (nonMatch.length) {
-        html += '<div style="font-size:10px;font-weight:600;color:var(--ui-orange);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;">À assigner</div>';
-        nonMatch.forEach((l, i) => {
-          html += '<div style="background:#fff3e0;border:1px solid #ffd09e;border-radius:7px;padding:8px 12px;margin-bottom:7px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><div style="flex:1;min-width:120px;"><div style="font-weight:600;font-size:12px;">"' + l.nomOriginal + '" ×' + l.qte + '</div></div><select data-idx="' + i + '" class="ia-assign-sel" style="flex:1;min-width:180px;font-size:11.5px;padding:5px 8px;border:1px solid #ffd09e;border-radius:5px;"><option value="">— Associer —</option>' + prodOpts + '</select></div>';
-        });
-      }
-
-      document.getElementById('iaPreview').innerHTML = html;
-      window._iaData    = data;
-      window._iaProduits = produits;
-    }
-
-    /* ── Confirmation import ── */
-    btnConfirm?.addEventListener('click', async () => {
-      const data     = window._iaData;
-      const produits = window._iaProduits || [];
-      if (!data) return;
-
-      const client    = document.getElementById('iaEditClient')?.value.trim() || data.client || 'Client inconnu';
-      const dateCmd   = document.getElementById('iaEditDate')?.value || '';
-      const dateLiv   = document.getElementById('iaEditDateLiv')?.value || '';
-
-      /* Collecter les lignes reconnues avec qtés éditées */
-      const lignes = [];
-      document.querySelectorAll('#iaPreview input[type="number"][data-ref]').forEach(inp => {
-        const ref = inp.dataset.ref;
-        const qte = parseInt(inp.value) || 1;
-        const p   = produits.find(x => x.ref === ref);
-        if (p) lignes.push({ produit_id: p.id, produit_nom: p.nom, quantite: qte, prix_unitaire: p.prix_vente || p.prix || 0 });
-      });
-
-      /* Collecter les lignes assignées manuellement */
-      document.querySelectorAll('.ia-assign-sel').forEach((sel, i) => {
-        if (!sel.value) return;
-        const p   = produits.find(x => x.ref === sel.value);
-        const qte = (data.lignes || []).filter(l => !l.refDetectee)[i]?.qte || 1;
-        if (p) lignes.push({ produit_id: p.id, produit_nom: p.nom, quantite: qte, prix_unitaire: p.prix_vente || p.prix || 0 });
-      });
-
-      if (!lignes.length) { alert('Aucune ligne valide.'); return; }
-
-      try {
-        const { createCommande, getClients, createClient } = await import('/js/modules/commandes.js');
-        /* Générer une ref */
-        const ref = 'CMD' + Date.now().toString().slice(-6);
-        await createCommande({ ref, client_nom: client, date_cmd: dateCmd, date_livraison: dateLiv, statut: 'a_produire' }, lignes);
-        closeModal('modalImportIA');
-        document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'import_masse', entities: ['commandes'] } }));
-        alert('✅ Commande ' + ref + ' importée via IA.');
-        window._iaData = null;
-      } catch (err) {
-        alert('Erreur import : ' + err.message);
-      }
+      document.getElementById('pdfPreviewTitle').textContent = title || 'Aperçu';
+      document.getElementById('pdfPreviewContent').innerHTML = html;
+      openModal('modalPdfPreview');
     });
-  })();
 
-  /* Init des modules */
-  await commandes.init();
-  await stock.init();
-  await produits.init();
-  await achats.init();
-  await production.init();
-  await admin.init();
+    document.addEventListener('appmee:editProduit', async (e) => {
+      const { produitId } = e.detail || {};
+      if (!produitId) return;
+      const editProduit = produits.getProduitsCache ? produits.getProduitsCache().find(p => p.id === produitId) : null;
+      if (editProduit && produits.initNewProduitModal) produits.initNewProduitModal(editProduit);
+    });
 
-  /* Rendu initial dashboard */
-  await dashboard.render();
+    document.addEventListener('appmee:planifierOF', (e) => {
+      const { ref } = e.detail || {};
+      if (production.initPlanifierModal) production.initPlanifierModal(ref || null);
+      openModal('modalPlanifier');
+    });
 
-  /* Masquer l'écran de chargement */
-  document.getElementById('app-loading').style.display = 'none';
-    }
+    document.addEventListener('appmee:openAchatFor', (e) => {
+      const { ref } = e.detail || {};
+      if (achats.initAchatModal) achats.initAchatModal(ref || null);
+    });
+
+    /* Navigation vers onglet depuis KPI cliquable */
+    document.addEventListener('appmee:navigate', (e) => {
+      const { section } = e.detail || {};
+      if (!section) return;
+      const tab = document.querySelector(`[data-page="${section}"]`);
+      if (tab) { showPage(section, tab); if (pageMap[section]) pageMap[section](); }
+    });
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-modal="modalAchat"]');
+      if (btn && achats.initAchatModal) achats.initAchatModal(null);
+    }, true);
+
+    /* Import IA */
+    (function() {
+      let _iaFile = null;
+      const dropZone  = document.getElementById('iaDropZone');
+      const fileInput = document.getElementById('iaFileInput');
+      const fileInfo  = document.getElementById('iaFileInfo');
+      const fileName  = document.getElementById('iaFileName');
+      const fileSize  = document.getElementById('iaFileSize');
+      const fileIcon  = document.getElementById('iaFileIcon');
+      const fileClear = document.getElementById('iaFileClear');
+      const btnAnalyse= document.getElementById('iaBtnAnalyse');
+      const btnReset  = document.getElementById('iaResetBtn');
+      const btnConfirm= document.getElementById('iaConfirmBtn');
+      const iaError   = document.getElementById('iaError');
+      const ICONS = { pdf:'📄', xlsx:'📊', xls:'📊', docx:'📝', doc:'📝', csv:'📊', png:'🖼', jpg:'🖼', jpeg:'🖼', txt:'📄' };
+
+      function setFile(f) {
+        _iaFile = f;
+        const ext = f.name.split('.').pop().toLowerCase();
+        fileIcon.textContent = ICONS[ext] || '📄';
+        fileName.textContent = f.name;
+        fileSize.textContent = (f.size / 1024).toFixed(1) + ' Ko';
+        fileInfo.style.display = 'flex';
+        btnAnalyse.disabled = false; btnAnalyse.style.opacity = '1';
+        if (iaError) iaError.style.display = 'none';
+      }
+      function clearFile() {
+        _iaFile = null; fileInfo.style.display = 'none';
+        btnAnalyse.disabled = true; btnAnalyse.style.opacity = '.5'; fileInput.value = '';
+      }
+
+      dropZone?.addEventListener('click', () => fileInput?.click());
+      fileInput?.addEventListener('change', (e) => { if (e.target.files[0]) setFile(e.target.files[0]); });
+      dropZone?.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--accent)'; });
+      dropZone?.addEventListener('dragleave', () => { dropZone.style.borderColor = ''; });
+      dropZone?.addEventListener('drop', (e) => { e.preventDefault(); dropZone.style.borderColor = ''; const f = e.dataTransfer.files[0]; if (f) setFile(f); });
+      fileClear?.addEventListener('click', clearFile);
+      btnReset?.addEventListener('click', () => { clearFile(); document.getElementById('iaStep1').style.display = 'block'; document.getElementById('iaStep2').style.display = 'none'; document.getElementById('iaStep3').style.display = 'none'; });
+
+      btnAnalyse?.addEventListener('click', async () => {
+        if (!_iaFile) return;
+        document.getElementById('iaStep1').style.display = 'none';
+        document.getElementById('iaStep2').style.display = 'block';
+        const statusEl = document.getElementById('iaStatusMsg');
+        const progEl   = document.getElementById('iaProgBar');
+        const steps = [[15,'Lecture du fichier…'],[35,'Extraction du texte…'],[60,'Analyse par Claude AI…'],[85,'Identification produits…'],[95,'Finalisation…']];
+        let si = 0;
+        const ticker = setInterval(() => { if (si < steps.length) { progEl.style.width = steps[si][0] + '%'; statusEl.textContent = steps[si][1]; si++; } }, 700);
+        try {
+          const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = () => rej(new Error('Lecture impossible')); r.readAsDataURL(_iaFile); });
+          const ext = _iaFile.name.split('.').pop().toLowerCase();
+          const ctx = document.getElementById('iaContext')?.value || '';
+          const produitsCache = window._appProduits || [];
+          const clientsCache  = window._appClients  || [];
+          const { data: { session } } = await (await import('/js/config.js')).supabase.auth.getSession();
+          const { getTenantId } = await import('/js/auth.js');
+          const resp = await fetch('/api/ai-analyse-bc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fichier: b64, extension: ext, contexte: ctx, produits: produitsCache, clients: clientsCache, tenantId: getTenantId() || '', token: session?.access_token || '' }) });
+          clearInterval(ticker); progEl.style.width = '100%';
+          if (!resp.ok) throw new Error('Erreur serveur ' + resp.status);
+          const result = await resp.json();
+          if (!result.ok) throw new Error(result.error || 'Erreur IA');
+          _iaShowPreview(result.data, produitsCache, clientsCache);
+        } catch (err) {
+          clearInterval(ticker);
+          document.getElementById('iaStep1').style.display = 'block';
+          document.getElementById('iaStep2').style.display = 'none';
+          if (iaError) { iaError.style.display = 'flex'; iaError.textContent = 'Erreur : ' + err.message; }
+        }
+      });
+
+      function _iaShowPreview(data, produits, clients) {
+        document.getElementById('iaStep2').style.display = 'none';
+        document.getElementById('iaStep3').style.display = 'block';
+        const lignes = data.lignes || [];
+        const matchees = lignes.filter(l => l.refDetectee && produits.find(p => p.ref === l.refDetectee));
+        const nonMatch = lignes.filter(l => !l.refDetectee || !produits.find(p => p.ref === l.refDetectee));
+        const tot = matchees.reduce((s, l) => { const p = produits.find(x => x.ref === l.refDetectee); return s + (p ? (p.prix_vente || p.prix || 0) * l.qte : 0); }, 0);
+        document.getElementById('iaSummary').innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"><div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;flex:1;text-align:center;"><div style="font-size:9.5px;color:var(--ink-muted);text-transform:uppercase;margin-bottom:3px;">Client</div><div style="font-weight:600;font-size:12px;">${data.client || '—'}</div></div><div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;flex:1;text-align:center;"><div style="font-size:9.5px;color:var(--ink-muted);text-transform:uppercase;margin-bottom:3px;">Lignes OK</div><div style="font-weight:700;font-size:16px;color:var(--ui-green)">${matchees.length}</div></div>${nonMatch.length ? '<div style="background:#fdecea;border:1px solid #f5c2c2;border-radius:7px;padding:9px 12px;flex:1;text-align:center;"><div style="font-size:9.5px;color:var(--ui-red);text-transform:uppercase;margin-bottom:3px;">À assigner</div><div style="font-weight:700;font-size:16px;color:var(--ui-red)">' + nonMatch.length + '</div></div>' : ''}<div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;flex:1;text-align:center;"><div style="font-size:9.5px;color:var(--ink-muted);text-transform:uppercase;margin-bottom:3px;">Valeur est.</div><div style="font-weight:700;font-size:14px;">${tot.toFixed(2)} €</div></div></div><div style="display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;"><input type="text" id="iaEditClient" value="${data.client || ''}" placeholder="Client…" style="flex:1.5;min-width:140px;"><input type="date" id="iaEditDate" value="${data.date || ''}" style="flex:0 0 130px;"><input type="date" id="iaEditDateLiv" value="${data.dateLivraison || ''}" style="flex:0 0 130px;"></div>`;
+        const prodOpts = produits.map(p => '<option value="' + p.ref + '">' + p.ref + ' — ' + p.nom + '</option>').join('');
+        let html = '';
+        if (matchees.length) { html += '<div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;margin-bottom:7px;">Lignes reconnues</div><table style="margin-bottom:10px;"><thead><tr><th>Produit</th><th>Nom document</th><th>Qté</th></tr></thead><tbody>'; matchees.forEach(l => { const p = produits.find(x => x.ref === l.refDetectee); if (!p) return; html += '<tr><td><span class="badge badge-ok" style="font-size:9.5px;">' + p.ref + '</span> ' + p.nom + '</td><td style="font-size:10.5px;color:var(--ink-muted);">&ldquo;' + l.nomOriginal + '&rdquo;</td><td><input type="number" min="1" value="' + l.qte + '" style="width:58px;padding:3px 6px;border:1px solid var(--ui-brd);border-radius:5px;font-size:12px;" data-ref="' + l.refDetectee + '"></td></tr>'; }); html += '</tbody></table>'; }
+        if (nonMatch.length) { html += '<div style="font-size:10px;font-weight:600;color:var(--ui-orange);text-transform:uppercase;margin-bottom:7px;">À assigner</div>'; nonMatch.forEach((l, i) => { html += '<div style="background:#fff3e0;border:1px solid #ffd09e;border-radius:7px;padding:8px 12px;margin-bottom:7px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><div style="flex:1;min-width:120px;"><div style="font-weight:600;font-size:12px;">&ldquo;' + l.nomOriginal + '&rdquo; ×' + l.qte + '</div></div><select data-idx="' + i + '" class="ia-assign-sel" style="flex:1;min-width:180px;font-size:11.5px;padding:5px 8px;border:1px solid #ffd09e;border-radius:5px;"><option value="">— Associer —</option>' + prodOpts + '</select></div>'; }); }
+        document.getElementById('iaPreview').innerHTML = html;
+        window._iaData = data; window._iaProduits = produits;
+      }
+
+      btnConfirm?.addEventListener('click', async () => {
+        const data = window._iaData; const produits = window._iaProduits || [];
+        if (!data) return;
+        const client = document.getElementById('iaEditClient')?.value.trim() || data.client || 'Client inconnu';
+        const dateCmd = document.getElementById('iaEditDate')?.value || '';
+        const dateLiv = document.getElementById('iaEditDateLiv')?.value || '';
+        const lignes = [];
+        document.querySelectorAll('#iaPreview input[type="number"][data-ref]').forEach(inp => { const ref = inp.dataset.ref; const qte = parseInt(inp.value) || 1; const p = produits.find(x => x.ref === ref); if (p) lignes.push({ produit_id: p.id, produit_nom: p.nom, quantite: qte, prix_unitaire: p.prix_vente || p.prix || 0 }); });
+        document.querySelectorAll('.ia-assign-sel').forEach((sel, i) => { if (!sel.value) return; const p = produits.find(x => x.ref === sel.value); const qte = (data.lignes || []).filter(l => !l.refDetectee)[i]?.qte || 1; if (p) lignes.push({ produit_id: p.id, produit_nom: p.nom, quantite: qte, prix_unitaire: p.prix_vente || p.prix || 0 }); });
+        if (!lignes.length) { alert('Aucune ligne valide.'); return; }
+        try {
+          const { createCommande } = await import('/js/modules/commandes.js');
+          const ref = 'CMD' + Date.now().toString().slice(-6);
+          await createCommande({ ref, client_nom: client, date_cmd: dateCmd, date_livraison: dateLiv, statut: 'a_produire' }, lignes);
+          closeModal('modalImportIA');
+          document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'import_masse', entities: ['commandes'] } }));
+          alert('✅ Commande ' + ref + ' importée via IA.');
+          window._iaData = null;
+        } catch (err) { alert('Erreur import : ' + err.message); }
+      });
+    })();
+
+    await commandes.init();
+    await stock.init();
+    await produits.init();
+    await achats.init();
+    await production.init();
+    await admin.init();
+    await dashboard.render();
+    document.getElementById('app-loading').style.display = 'none';
+  }
+
   demarrerApp().catch(err => console.error('[AppMee] Erreur :', err));
 </script>
 </body>
