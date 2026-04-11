@@ -962,109 +962,160 @@
       function _iaShowPreview(data, produits, clients) {
         document.getElementById('iaStep2').style.display = 'none';
         document.getElementById('iaStep3').style.display = 'block';
-        const lignes = data.lignes || [];
+
+        const lignes   = data.lignes || [];
         const matchees = lignes.filter(l => l.refDetectee && produits.find(p => p.ref === l.refDetectee));
         const nonMatch = lignes.filter(l => !l.refDetectee || !produits.find(p => p.ref === l.refDetectee));
-        const tot = matchees.reduce((s, l) => { const p = produits.find(x => x.ref === l.refDetectee); return s + (p ? (p.prix_vente || p.prix || 0) * l.qte : 0); }, 0);
-        document.getElementById('iaSummary').innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"><div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;flex:1;text-align:center;"><div style="font-size:9.5px;color:var(--ink-muted);text-transform:uppercase;margin-bottom:3px;">Client</div><div style="font-weight:600;font-size:12px;">${data.client || '—'}</div></div><div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;flex:1;text-align:center;"><div style="font-size:9.5px;color:var(--ink-muted);text-transform:uppercase;margin-bottom:3px;">Lignes OK</div><div style="font-weight:700;font-size:16px;color:var(--ui-green)">${matchees.length}</div></div>${nonMatch.length ? '<div style="background:#fdecea;border:1px solid #f5c2c2;border-radius:7px;padding:9px 12px;flex:1;text-align:center;"><div style="font-size:9.5px;color:var(--ui-red);text-transform:uppercase;margin-bottom:3px;">À assigner</div><div style="font-weight:700;font-size:16px;color:var(--ui-red)">' + nonMatch.length + '</div></div>' : ''}<div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;flex:1;text-align:center;"><div style="font-size:9.5px;color:var(--ink-muted);text-transform:uppercase;margin-bottom:3px;">Valeur est.</div><div style="font-weight:700;font-size:14px;">${tot.toFixed(2)} €</div></div></div><div style="display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;"><input type="text" id="iaEditClient" value="${data.client || ''}" placeholder="Client…" style="flex:1.5;min-width:140px;"><input type="date" id="iaEditDate" value="${data.date || ''}" style="flex:0 0 130px;"><input type="date" id="iaEditDateLiv" value="${data.dateLivraison || ''}" style="flex:0 0 130px;"></div>`;
-        const prodOpts = produits.map(p => '<option value="' + p.ref + '">' + p.ref + ' — ' + p.nom + '</option>').join('');
-        let html = '';
-        if (matchees.length) { html += '<div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;margin-bottom:7px;">Lignes reconnues</div><table style="margin-bottom:10px;"><thead><tr><th>Produit</th><th>Nom document</th><th>Qté</th></tr></thead><tbody>'; matchees.forEach(l => { const p = produits.find(x => x.ref === l.refDetectee); if (!p) return; html += '<tr><td><span class="badge badge-ok" style="font-size:9.5px;">' + p.ref + '</span> ' + p.nom + '</td><td style="font-size:10.5px;color:var(--ink-muted);">&ldquo;' + l.nomOriginal + '&rdquo;</td><td><input type="number" min="1" value="' + l.qte + '" style="width:58px;padding:3px 6px;border:1px solid var(--ui-brd);border-radius:5px;font-size:12px;" data-ref="' + l.refDetectee + '"></td></tr>'; }); html += '</tbody></table>'; }
-        if (nonMatch.length) { html += '<div style="font-size:10px;font-weight:600;color:var(--ui-orange);text-transform:uppercase;margin-bottom:7px;">À assigner</div>'; nonMatch.forEach((l, i) => {
-          const refLabel = l.refDetectee ? '<span style="font-size:10px;color:var(--ink-muted);margin-top:2px;">Réf détectée : ' + l.refDetectee + '</span>' : '';
-          html += '<div style="background:#fff3e0;border:1px solid #ffd09e;border-radius:7px;padding:8px 12px;margin-bottom:7px;display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;">' +
-            '<div>' +
-              '<div style="font-weight:600;font-size:12px;">&ldquo;' + l.nomOriginal + '&rdquo;</div>' +
-              '<div style="font-size:11px;color:var(--ink-muted);margin-top:2px;">Qté : <strong>' + l.qte + '</strong>' + (l.refDetectee ? ' &nbsp;·&nbsp; Réf : ' + l.refDetectee : '') + '</div>' +
+        const tot      = matchees.reduce((s, l) => {
+          const p = produits.find(x => x.ref === l.refDetectee);
+          return s + (p ? (p.prix_vente || p.prix || 0) * l.qte : 0);
+        }, 0);
+
+        /* ── Encarts récap ── */
+        document.getElementById('iaSummary').innerHTML =
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">' +
+            '<div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;flex:1;text-align:center;">' +
+              '<div style="font-size:9.5px;color:var(--ink-muted);text-transform:uppercase;margin-bottom:3px;">Client</div>' +
+              '<div style="font-weight:600;font-size:12px;">' + (data.client || '—') + '</div>' +
             '</div>' +
-            '<select data-idx="' + i + '" data-nom="' + (l.nomOriginal||'').replace(/"/g, '') + '" data-qte="' + l.qte + '" class="ia-assign-sel" style="min-width:180px;font-size:11.5px;padding:5px 8px;border:1px solid #ffd09e;border-radius:5px;">' +
-              '<option value="">— Associer —</option>' + prodOpts +
-            '</select>' +
-            '<button class="btn btn-ghost btn-sm ia-creer-btn" ' +
-              'data-nom="' + (l.nomOriginal||'').replace(/"/g, '') + '" ' +
-              'data-qte="' + l.qte + '" ' +
-              'data-idx="' + i + '" ' +
-              'title="Créer ce produit" ' +
-              'style="white-space:nowrap;border-color:var(--ui-orange);color:var(--ui-orange);">➕ Créer</button>' +
+            '<div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;flex:1;text-align:center;">' +
+              '<div style="font-size:9.5px;color:var(--ink-muted);text-transform:uppercase;margin-bottom:3px;">Lignes OK</div>' +
+              '<div style="font-weight:700;font-size:16px;color:var(--ui-green)">' + matchees.length + '</div>' +
+            '</div>' +
+            (nonMatch.length ?
+              '<div style="background:#fdecea;border:1px solid #f5c2c2;border-radius:7px;padding:9px 12px;flex:1;text-align:center;">' +
+                '<div style="font-size:9.5px;color:var(--ui-red);text-transform:uppercase;margin-bottom:3px;">À assigner</div>' +
+                '<div style="font-weight:700;font-size:16px;color:var(--ui-red)">' + nonMatch.length + '</div>' +
+              '</div>' : '') +
+            '<div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;flex:1;text-align:center;">' +
+              '<div style="font-size:9.5px;color:var(--ink-muted);text-transform:uppercase;margin-bottom:3px;">Valeur est.</div>' +
+              '<div style="font-weight:700;font-size:14px;">' + tot.toFixed(2) + ' €</div>' +
+            '</div>' +
+          '</div>' +
+          '<div style="display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;">' +
+            '<input type="text" id="iaEditClient" value="' + (data.client || '') + '" placeholder="Client…" style="flex:1.5;min-width:140px;">' +
+            '<input type="date" id="iaEditDate" value="' + (data.date || '') + '" style="flex:0 0 130px;">' +
+            '<input type="date" id="iaEditDateLiv" value="' + (data.dateLivraison || '') + '" style="flex:0 0 130px;">' +
           '</div>';
-        }); }
-        document.getElementById('iaPreview').innerHTML = html;
-        window._iaData = data; window._iaProduits = produits;
 
-        /* Délégation — bouton "Créer ce produit" dans les lignes nonMatch */
-        document.getElementById('iaPreview').addEventListener('click', async (ev) => {
-          const btn = ev.target.closest('.ia-creer-btn');
-          if (!btn) return;
-          const nomIA = btn.dataset.nom || '';
-          const qteIA = btn.dataset.qte || '';
-          const idx   = btn.dataset.idx;
+        const prodOpts = '<option value="">— Associer —</option>' +
+          produits.map(p => '<option value="' + p.ref + '">' + p.ref + ' — ' + p.nom + '</option>').join('');
 
-          /* Ouvrir le modal Nouveau Produit pré-rempli avec le nom détecté */
-          if (produits && produits.initNewProduitModal) {
-            await produits.initNewProduitModal(null);
-          } else {
-            /* Fallback : importer le module produits */
-            const produitsModule = await import('/js/modules/produits.js');
-            await produitsModule.initNewProduitModal(null);
-          }
+        let html = '';
 
-          /* Pré-remplir le nom avec ce que l'IA a détecté */
-          const npNom = document.getElementById('npNom');
-          if (npNom) npNom.value = nomIA;
-
-          /* Mémoriser l'index de la ligne pour màj après création */
-          window._iaPendingIdx = idx;
-
-          openModal('modalNewProduit');
-
-          /* Après fermeture du modal modalNewProduit → rafraîchir la liste déroulante */
-          const observer = new MutationObserver(() => {
-            const modal = document.getElementById('modalNewProduit');
-            if (modal && !modal.classList.contains('active') && !modal.classList.contains('open')) {
-              observer.disconnect();
-              /* Recharger la liste des produits et mettre à jour les selects */
-              import('/js/modules/produits.js').then(async (pm) => {
-                await pm.render();
-                const newProds = pm.getProduitsCache();
-                const opts = newProds.map(p => '<option value="' + p.ref + '">' + p.ref + ' — ' + p.nom + '</option>').join('');
-                document.querySelectorAll('.ia-assign-sel').forEach(sel => {
-                  const currentVal = sel.value;
-                  sel.innerHTML = '<option value="">— Associer —</option>' + opts;
-                  /* Sélectionner le dernier produit créé si l'idx correspond */
-                  if (sel.dataset.idx === window._iaPendingIdx && newProds.length) {
-                    const last = newProds[newProds.length - 1];
-                    sel.value = last.ref;
-                  } else {
-                    sel.value = currentVal;
-                  }
-                });
-                window._iaPendingIdx = null;
-              });
-            }
+        /* ── Lignes reconnues automatiquement ── */
+        if (matchees.length) {
+          html += '<div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Lignes reconnues</div>';
+          html += '<table style="margin-bottom:14px;"><thead><tr><th>Produit catalogue</th><th>Nom dans le document</th><th style="width:80px;text-align:center;">Qté</th></tr></thead><tbody>';
+          matchees.forEach(l => {
+            const p = produits.find(x => x.ref === l.refDetectee);
+            if (!p) return;
+            html += '<tr>' +
+              '<td><span class="badge badge-ok" style="font-size:9.5px;margin-right:5px;">' + p.ref + '</span>' + p.nom + '</td>' +
+              '<td style="font-size:11px;color:var(--ink-muted);">' + l.nomOriginal + '</td>' +
+              '<td style="text-align:center;"><input type="number" min="1" value="' + l.qte + '" style="width:60px;padding:4px 6px;border:1px solid var(--ui-brd);border-radius:5px;font-size:12px;text-align:center;" data-ref="' + l.refDetectee + '"></td>' +
+            '</tr>';
           });
-          observer.observe(document.getElementById('modalNewProduit'), { attributes: true, attributeFilter: ['class', 'style'] });
-        });
+          html += '</tbody></table>';
+        }
+
+        /* ── Lignes non reconnues — tableau 3 colonnes propre ── */
+        if (nonMatch.length) {
+          /* Message d'avertissement */
+          html += '<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:11px 14px;margin-bottom:12px;font-size:12px;">' +
+            '<strong>⚠ ' + nonMatch.length + ' produit' + (nonMatch.length > 1 ? 's' : '') + ' inexistant' + (nonMatch.length > 1 ? 's' : '') + ' dans votre catalogue.</strong><br>' +
+            '<span style="color:var(--ink-muted);">Pensez à les créer d'abord dans le module <strong>Admin → Produits finis</strong>, puis relancez l'import. Ou associez-les manuellement ci-dessous si un produit approchant existe.</span>' +
+          '</div>';
+
+          html += '<div style="font-size:10px;font-weight:600;color:var(--ui-orange);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">À assigner manuellement</div>';
+
+          /* Tableau 3 colonnes : Nom | Qté | Associer */
+          html += '<table style="margin-bottom:10px;"><thead><tr>' +
+            '<th>Nom détecté dans le document</th>' +
+            '<th style="width:70px;text-align:center;">Qté</th>' +
+            '<th style="width:220px;">Associer à un produit</th>' +
+          '</tr></thead><tbody>';
+
+          nonMatch.forEach((l, i) => {
+            html += '<tr style="background:#fffbf0;">' +
+              '<td style="font-weight:600;font-size:12px;">' + l.nomOriginal + '</td>' +
+              '<td style="text-align:center;font-weight:700;color:var(--accent);">' + l.qte + '</td>' +
+              '<td>' +
+                '<select data-idx="' + i + '" class="ia-assign-sel" style="width:100%;font-size:11.5px;padding:4px 7px;border:1px solid #ffd09e;border-radius:5px;">' +
+                  prodOpts +
+                '</select>' +
+              '</td>' +
+            '</tr>';
+          });
+
+          html += '</tbody></table>';
+        }
+
+        document.getElementById('iaPreview').innerHTML = html;
+        window._iaData     = data;
+        window._iaProduits = produits;
       }
 
+
       btnConfirm?.addEventListener('click', async () => {
-        const data = window._iaData; const produits = window._iaProduits || [];
+        const data     = window._iaData;
+        const produits = window._iaProduits || [];
         if (!data) return;
-        const client = document.getElementById('iaEditClient')?.value.trim() || data.client || 'Client inconnu';
-        const dateCmd = document.getElementById('iaEditDate')?.value || '';
+
+        const client  = document.getElementById('iaEditClient')?.value.trim() || data.client || 'Client inconnu';
+        const dateCmd = document.getElementById('iaEditDate')?.value    || '';
         const dateLiv = document.getElementById('iaEditDateLiv')?.value || '';
+
+        /* Collecter les lignes reconnues automatiquement */
         const lignes = [];
-        document.querySelectorAll('#iaPreview input[type="number"][data-ref]').forEach(inp => { const ref = inp.dataset.ref; const qte = parseInt(inp.value) || 1; const p = produits.find(x => x.ref === ref); if (p) lignes.push({ produit_id: p.id, produit_nom: p.nom, quantite: qte, prix_unitaire: p.prix_vente || p.prix || 0 }); });
-        document.querySelectorAll('.ia-assign-sel').forEach((sel, i) => { if (!sel.value) return; const p = produits.find(x => x.ref === sel.value); const qte = (data.lignes || []).filter(l => !l.refDetectee)[i]?.qte || 1; if (p) lignes.push({ produit_id: p.id, produit_nom: p.nom, quantite: qte, prix_unitaire: p.prix_vente || p.prix || 0 }); });
-        if (!lignes.length) { alert('Aucune ligne valide.'); return; }
+        document.querySelectorAll('#iaPreview input[type="number"][data-ref]').forEach(inp => {
+          const ref = inp.dataset.ref;
+          const qte = parseInt(inp.value) || 1;
+          const p   = produits.find(x => x.ref === ref);
+          if (p) lignes.push({ produit_id: p.id, produit_nom: p.nom, quantite: qte, prix_unitaire: p.prix_vente || p.prix || 0 });
+        });
+
+        /* Collecter les lignes assignées manuellement */
+        document.querySelectorAll('.ia-assign-sel').forEach((sel, i) => {
+          if (!sel.value) return;
+          const p   = produits.find(x => x.ref === sel.value);
+          const qte = (data.lignes || []).filter(l => !l.refDetectee || !produits.find(px => px.ref === l.refDetectee))[i]?.qte || 1;
+          if (p) lignes.push({ produit_id: p.id, produit_nom: p.nom, quantite: qte, prix_unitaire: p.prix_vente || p.prix || 0 });
+        });
+
+        /* Lignes non assignées restantes */
+        const totalNonMatch = document.querySelectorAll('.ia-assign-sel').length;
+        const assignees     = document.querySelectorAll('.ia-assign-sel[value]:not([value=""])').length ||
+                              [...document.querySelectorAll('.ia-assign-sel')].filter(s => s.value).length;
+        const nonAssignees  = totalNonMatch - assignees;
+
+        /* Message si aucune ligne valide */
+        if (!lignes.length) {
+          alert('Aucune ligne valide à importer.\nAssociez au moins un produit ou créez-les d\'abord dans Admin → Produits finis.');
+          return;
+        }
+
+        /* Confirmation si des lignes ne sont pas assignées */
+        if (nonAssignees > 0) {
+          const ok = confirm(
+            nonAssignees + ' produit' + (nonAssignees > 1 ? 's' : '') + ' non assigné' + (nonAssignees > 1 ? 's' : '') + ' ne seront pas importés.\n\n' +
+            'Continuer avec les ' + lignes.length + ' ligne' + (lignes.length > 1 ? 's' : '') + ' valide' + (lignes.length > 1 ? 's' : '') + ' ?\n\n' +
+            '(Annulez pour créer d\'abord les produits manquants dans Admin → Produits finis)'
+          );
+          if (!ok) return;
+        }
+
         try {
           const { createCommande } = await import('/js/modules/commandes.js');
           const ref = 'CMD' + Date.now().toString().slice(-6);
           await createCommande({ ref, client_nom: client, date_cmd: dateCmd, date_livraison: dateLiv, statut: 'a_produire' }, lignes);
           closeModal('modalImportIA');
           document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'import_masse', entities: ['commandes'] } }));
-          alert('✅ Commande ' + ref + ' importée via IA.');
+          alert('✅ Commande ' + ref + ' importée avec succès (' + lignes.length + ' ligne' + (lignes.length > 1 ? 's' : '') + ').');
           window._iaData = null;
-        } catch (err) { alert('Erreur import : ' + err.message); }
+        } catch (err) {
+          alert('Erreur import : ' + err.message);
+        }
       });
     })();
 
