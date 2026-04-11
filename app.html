@@ -1072,19 +1072,16 @@
           if (!ok) return;
         }
 
-        try {
-          const { createCommande } = await import('/js/modules/commandes.js');
+          try {
           const ref = 'CMD' + Date.now().toString().slice(-6);
-          await createCommande({ ref, client_nom: client, date_cmd: dateCmd, date_livraison: dateLiv, statut: 'a_produire' }, lignes);
-          closeModal('modalImportIA');
+          await db.createCommande({ ref, client_nom: client, date_cmd: dateCmd, date_livraison: dateLiv, statut: 'a_produire' }, lignes);
+          closeModal('modalImportMasse');
           document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'import_masse', entities: ['commandes'] } }));
-          alert('✅ Commande ' + ref + ' importée avec succès (' + lignes.length + ' ligne' + (lignes.length > 1 ? 's' : '') + ').');
+          alert('OK Commande ' + ref + ' importee avec succes (' + lignes.length + ' ligne' + (lignes.length > 1 ? 's' : '') + ').');
           window._iaData = null;
         } catch (err) {
           alert('Erreur import : ' + err.message);
         }
-      });
-    })();
 
     await commandes.init();
     await stock.init();
