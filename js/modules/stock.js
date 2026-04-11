@@ -130,18 +130,25 @@ function _bindNewArticleForm() {
   document.getElementById('btnSaveNewArticle')?.addEventListener('click', _saveNewArticle);
 }
 
-export function initNewArticleModal(fournisseurs) {
-  _fournisseurs = fournisseurs;
+export async function initNewArticleModal() {
+  /* Fix B3 — Recharger articles ET fournisseurs depuis BDD
+     pour avoir nextRef fiable et la liste fournisseurs à jour */
+  try {
+    [_articles, _fournisseurs] = await Promise.all([getArticles(), getFournisseurs()]);
+  } catch (err) {
+    console.error('[stock] initNewArticleModal ERREUR:', err.message);
+  }
+
   const ref = nextRef('A', _articles);
-  document.getElementById('naRef').value = ref;
-  document.getElementById('naNom').value = '';
-  document.getElementById('naPrix').value = '';
-  document.getElementById('naStock').value = '0';
-  document.getElementById('naSeuil').value = '';
+  document.getElementById('naRef').value    = ref;
+  document.getElementById('naNom').value    = '';
+  document.getElementById('naPrix').value   = '';
+  document.getElementById('naStock').value  = '0';
+  document.getElementById('naSeuil').value  = '';
 
   const fs = document.getElementById('naFournisseurSel');
   fs.innerHTML = '<option value="">— Choisir —</option>' +
-    fournisseurs.map(f => `<option value="${esc(f.nom)}">${esc(f.nom)}</option>`).join('');
+    _fournisseurs.map(f => `<option value="${esc(f.nom)}">${esc(f.nom)}</option>`).join('');
   document.getElementById('naFournisseur').value = '';
 
   /* Déclencher le remplissage des suggestions */
@@ -159,7 +166,14 @@ async function _saveNewArticle() {
   const stock      = parseFloat(document.getElementById('naStock').value) || 0;
 
   if (!ref || !nom) { showToast('⚠ Référence et nom requis.', 'error'); return; }
-  if (_articles.find(a => a.ref === ref)) { showToast('⚠ Référence déjà existante.', 'error'); return; }
+
+  /* Fix B3 — Recharger depuis BDD avant de vérifier le doublon
+     pour éviter les faux positifs dus au cache désynchronisé */
+  try { _articles = await getArticles(); } catch (_) {}
+  if (_articles.find(a => a.ref === ref)) {
+    showToast('⚠ Référence déjà existante — une référence a été regénérée, veuillez rouvrir le modal.', 'error');
+    return;
+  }
 
   try {
     const created = await createArticle({ ref, nom, categorie, unite, prix, fournisseur, seuil, stock });

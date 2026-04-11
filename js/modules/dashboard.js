@@ -35,18 +35,20 @@ export async function render() {
    D4 — KPI Factures avec montant total HT + nb en sous-titre
 ------------------------------------------------------- */
 function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
-  const alertsA   = articles.filter(a => a.stock <= a.seuil).length;
-  const totalPF   = produits.reduce((s, p) => s + (p.stock || 0), 0);
-  const cmdOpen   = commandes.filter(c => c.statut !== 'cloture').length;
-  const valA      = articles.reduce((s, a) => s + (a.stock || 0) * (a.prix || 0), 0);
-  const bcPending = achats.filter(a => ['envoye', 'en_cours'].includes(a.statut)).length;
-  const ofCours   = ofs.filter(o => o.statut === 'en_cours').length;
+  /* KPI 1 — Alertes Stock */
+  const alertsA = articles.filter(a => a.stock <= a.seuil).length;
 
-  /* D4 — Factures à relancer : statut 'a_relancer' ou 'facturee' depuis > 30j */
+  /* KPI 2 — Commandes enregistrées : valeur totale HT + nombre */
+  const cmdTotal  = commandes.length;
+  const cmdValeur = commandes.reduce((s, c) =>
+    s + (c.commande_lignes || []).reduce((sl, l) =>
+      sl + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0), 0);
+
+  /* KPI 3 — Factures à relancer : montant HT + nombre */
   const now = Date.now();
   const factRelancer = (factures || []).filter(f => {
-    if (f.statut === 'a_relancer') return true;
-    if (f.statut === 'facturee') {
+    if (f.statut === 'a_relancer' || f.statut === 'a_lancer') return true;
+    if (f.statut === 'facturee' || f.statut === 'facture') {
       const d = new Date(f.date_facture || f.created_at).getTime();
       return (now - d) / 86400000 > 30;
     }
@@ -55,60 +57,30 @@ function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
   const nbFactRelancer  = factRelancer.length;
   const mntFactRelancer = factRelancer.reduce((s, f) => s + (f.montant_ttc || f.montant_ht || 0), 0);
 
+  /* KPI 4 — OF en cours */
+  const ofCours = ofs.filter(o => o.statut === 'en_cours').length;
+
   document.getElementById('kpiGrid').innerHTML = `
     <div class="kpi ${alertsA > 0 ? 'alert' : 'good'}">
       <div class="kpi-label">Alertes Stock</div>
       <div class="kpi-value">${alertsA}</div>
-      <div class="kpi-sub">${alertsA > 0 ? 'sous le seuil' : 'Tout OK'}</div>
-    </div>
-    <div class="kpi good">
-      <div class="kpi-label">Stock produits finis</div>
-      <div class="kpi-value">${totalPF.toLocaleString('fr')}</div>
-      <div class="kpi-sub">unités dispo</div>
+      <div class="kpi-sub">${alertsA > 0 ? 'articles sous seuil' : 'Tout OK'}</div>
     </div>
     <div class="kpi blue">
-      <div class="kpi-label">Commandes en cours</div>
-      <div class="kpi-value">${cmdOpen}</div>
-      <div class="kpi-sub">non clôturées</div>
+      <div class="kpi-label">Commandes</div>
+      <div class="kpi-value">${fmt(cmdValeur)} €</div>
+      <div class="kpi-sub">${cmdTotal} commande${cmdTotal > 1 ? 's' : ''} enregistrée${cmdTotal > 1 ? 's' : ''}</div>
     </div>
-    <div class="kpi">
-      <div class="kpi-label">Valeur stock articles</div>
-      <div class="kpi-value">${fmt(valA)} €</div>
-      <div class="kpi-sub">au prix d'achat</div>
-    </div>
-    <div class="kpi ${bcPending > 0 ? 'warn' : ''}"
-         style="cursor:${bcPending > 0 ? 'pointer' : 'default'}"
-         title="${bcPending > 0 ? 'Voir les bons de commande' : ''}"
-         id="kpiBcPending">
-      <div class="kpi-label">BC en attente</div>
-      <div class="kpi-value">${bcPending}</div>
-      <div class="kpi-sub">bons envoyés / cours</div>
-    </div>
-    <div class="kpi ${nbFactRelancer > 0 ? 'alert' : ''}">
+    <div class="kpi ${nbFactRelancer > 0 ? 'alert' : 'good'}">
       <div class="kpi-label">Factures à relancer</div>
       <div class="kpi-value">${fmt(mntFactRelancer)} €</div>
-      <div class="kpi-sub">${nbFactRelancer} facture${nbFactRelancer > 1 ? 's' : ''}</div>
+      <div class="kpi-sub">${nbFactRelancer > 0 ? nbFactRelancer + ' facture' + (nbFactRelancer > 1 ? 's' : '') : 'Aucune'}</div>
     </div>
-    <div class="kpi">
+    <div class="kpi ${ofCours > 0 ? 'warn' : ''}">
       <div class="kpi-label">OF en cours</div>
       <div class="kpi-value">${ofCours}</div>
-      <div class="kpi-sub">ordres actifs</div>
+      <div class="kpi-sub">ordre${ofCours > 1 ? 's' : ''} de fabrication</div>
     </div>`;
-
-  /* D2 — Clic sur KPI "BC en attente" → naviguer vers onglet Achats */
-  const kpiBc = document.getElementById('kpiBcPending');
-  if (kpiBc) {
-    kpiBc.onclick = () => {
-      if (bcPending === 0) return;
-      const tabAchats = document.querySelector('[data-tab="achats"], [data-section="achats"], nav a[href="#achats"]');
-      if (tabAchats) {
-        tabAchats.click();
-      } else {
-        /* Fallback : dispatcher un event de navigation */
-        document.dispatchEvent(new CustomEvent('appmee:navigate', { detail: { section: 'achats' } }));
-      }
-    };
-  }
 }
 
 /* -------------------------------------------------------
