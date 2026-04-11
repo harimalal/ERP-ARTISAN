@@ -2,7 +2,7 @@
    AppMee — auth.js
    Gestion de la session Supabase Auth.
    - Vérifie si l'utilisateur est connecté
-   - Redirige vers /index.html si non connecté
+   - Redirige vers /login si non connecté
    - Expose le tenant_id de la session
    - Gère la déconnexion
    Dépend de : config.js (supabase)
@@ -19,13 +19,13 @@ let _userProfile = null;
    initAuth()
    À appeler au démarrage de app.html.
    Vérifie la session, charge le profil utilisateur.
-   Redirige vers /index.html si non connecté.
+   Redirige vers /login si non connecté.
 --------------------------------------------------- */
 export async function initAuth() {
   const { data: { session }, error } = await supabase.auth.getSession();
 
   if (error || !session) {
-    window.location.href = '/';
+    window.location.href = '/login';
     return null;
   }
 
@@ -41,7 +41,7 @@ export async function initAuth() {
   if (profileError || !profile) {
     console.error('[AppMee] Profil utilisateur introuvable :', profileError);
     await supabase.auth.signOut();
-    window.location.href = '/';
+    window.location.href = '/login';
     return null;
   }
 
@@ -57,7 +57,7 @@ export async function initAuth() {
   /* Écouter les changements de session (expiration, déconnexion) */
   supabase.auth.onAuthStateChange((event, newSession) => {
     if (event === 'SIGNED_OUT' || !newSession) {
-      window.location.href = '/';
+      window.location.href = '/login';
     }
     if (event === 'TOKEN_REFRESHED') {
       _session = newSession;
@@ -84,11 +84,11 @@ export function getSession() {
 
 /* ---------------------------------------------------
    signOut()
-   Déconnecte l'utilisateur et redirige vers /index.html
+   Déconnecte l'utilisateur et redirige vers /login
 --------------------------------------------------- */
 export async function signOut() {
   await supabase.auth.signOut();
-  window.location.href = '/';
+  window.location.href = '/login';
 }
 
 /* ---------------------------------------------------
@@ -98,7 +98,7 @@ export async function signOut() {
 --------------------------------------------------- */
 export function requireAuth() {
   if (!_session || !_tenantId) {
-    window.location.href = '/';
+    window.location.href = '/login';
     return false;
   }
   return true;
