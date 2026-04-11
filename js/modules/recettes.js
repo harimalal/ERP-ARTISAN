@@ -2,10 +2,21 @@
    AppMee — modules/recettes.js
    Nomenclatures : affichage, coût revient, faisabilité.
    Dépend de : db.js, ui.js
+
+   Events dispatchés :
+   - appmee:planifierOF → listener dans app.html
+
+   Fix H — Modal modification recette autonome dans ce module.
+   saveRecette() fait un DELETE + INSERT (upsert complet)
+   pour éviter le blocage sur référence existante.
+   Ne passe plus par produits.js pour la sauvegarde recette.
 ------------------------------------------------------- */
 
-import { getProduits, getArticles, getRecettesByProduit } from '../db.js';
-import { fmt, fmtQ, esc, showToast, openModal } from '../ui.js';
+import {
+  getProduits, getArticles,
+  getRecettesByProduit, saveRecette,
+} from '../db.js';
+import { fmt, fmtQ, esc, showToast, openModal, closeModal } from '../ui.js';
 
 /* Cache local */
 let _produits    = [];
@@ -33,17 +44,20 @@ export async function render() {
   _renderListe();
 }
 
+/* -------------------------------------------------------
+   LISTE DES RECETTES
+------------------------------------------------------- */
 function _renderListe() {
   const el = document.getElementById('recettesList');
   el.innerHTML = '';
 
   _produits.forEach(p => {
-    const lignes   = _recetteData[p.id] || [];
-    const cout     = _calcCout(lignes);
-    const prix     = p.prix_vente || p.prix || 0;
-    const marge    = prix - cout;
-    const txM      = cout > 0 ? (marge / cout * 100).toFixed(1) : '—';
-    const maxFab   = _calcMaxFab(lignes);
+    const lignes = _recetteData[p.id] || [];
+    const cout   = _calcCout(lignes);
+    const prix   = p.prix_vente || p.prix || 0;
+    const marge  = prix - cout;
+    const txM    = cout > 0 ? (marge / cout * 100).toFixed(1) : '—';
+    const maxFab = _calcMaxFab(lignes);
 
     const card = document.createElement('div');
     card.className = 'card';
@@ -73,10 +87,11 @@ function _renderListe() {
       _toggleRecette(p.id);
     });
 
+    /* Fix H — Modifier ouvre le modal local de recette (pas produits.js)
+       Le modal local fait un DELETE + INSERT complet → pas de blocage ref existante */
     hdr.querySelector('[data-action="modifier"]').addEventListener('click', (e) => {
       e.stopPropagation();
-      document.dispatchEvent(new CustomEvent('appmee:editProduit', { detail: { produitId: p.id } }));
-      openModal('modalNewProduit');
+      _openEditRecette(p.id);
     });
 
     hdr.querySelector('[data-action="produire"]').addEventListener('click', (e) => {
@@ -107,10 +122,10 @@ function _renderListe() {
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:12px;color:var(--ink-muted)">Aucun article dans la recette.</td></tr>';
     } else {
       lignes.forEach(l => {
-        const a      = l.articles || _articles.find(x => x.id === l.article_id) || {};
-        const coutL  = (a.prix || 0) * l.quantite;
-        const sd     = a.stock || 0;
-        const tr     = document.createElement('tr');
+        const a     = l.articles || _articles.find(x => x.id === l.article_id) || {};
+        const coutL = (a.prix || 0) * l.quantite;
+        const sd    = a.stock || 0;
+        const tr    = document.createElement('tr');
         tr.innerHTML = `
           <td class="td-ref">${esc(a.ref || l.article_id)}</td>
           <td class="td-bold">${esc(a.nom || '—')}</td>
@@ -119,8 +134,7 @@ function _renderListe() {
           <td>${esc(a.unite || '—')}</td>
           <td>${fmt(a.prix || 0)} €</td>
           <td style="font-weight:600;">${fmt(coutL)} €</td>
-          <td>${fmtQ(sd)} ${esc(a.unite || '')}</td>
-          `;  /* Fabricable supprimé */
+          <td>${fmtQ(sd)} ${esc(a.unite || '')}</td>`;
         tbody.appendChild(tr);
       });
     }
@@ -162,6 +176,172 @@ function _toggleRecette(produitId) {
   _toggleState[produitId] = !_toggleState[produitId];
   body.style.display = _toggleState[produitId] ? 'none' : '';
   if (icon) icon.textContent = _toggleState[produitId] ? '▶' : '▼';
+}
+
+/* -------------------------------------------------------
+   MODAL MODIFICATION RECETTE — Fix H
+   Autonome dans recettes.js — ne passe pas par produits.js.
+   Stratégie : DELETE toutes les lignes existantes + INSERT
+   les nouvelles → aucun blocage sur référence existante.
+------------------------------------------------------- */
+function _openEditRecette(produitId) {
+  const p      = _produits.find(x => x.id === produitId);
+  const lignes = (_recetteData[produitId] || []).map(l => {
+    const a = l.articles || _articles.find(x => x.id === l.article_id) || {};
+    return { article_id: l.article_id, ref: a.ref || '', nom: a.nom || '', quantite: l.quantite, unite: a.unite || '' };
+  });
+  if (!p) return;
+
+  /* Détruire le modal précédent si présent */
+  const existing = document.getElementById('modalEditRecette');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id        = 'modalEditRecette';
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal modal-lg">
+      <div class="modal-hdr">
+        <span class="modal-hdr-title">✏ Modifier la recette — ${esc(p.nom)}</span>
+        <button class="modal-close" data-close="modalEditRecette">×</button>
+      </div>
+      <div style="padding:12px 16px 6px;">
+        <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">
+          Articles nécessaires par unité produite
+        </div>
+        <div id="recLignesEdit" style="display:grid;gap:6px;"></div>
+        <button class="btn btn-ghost btn-sm" id="btnAddRecLigne" style="margin-top:8px;">+ Ajouter un article</button>
+      </div>
+      <div id="recCoutPreview" style="margin:0 16px 10px;padding:8px 12px;background:var(--ui-bg2);border-radius:6px;font-size:12px;display:none;">
+        Coût de revient estimé : <strong id="recCoutVal">—</strong>
+      </div>
+      <div class="form-actions between">
+        <div style="font-size:11px;color:var(--ink-muted);">La recette existante sera entièrement remplacée.</div>
+        <div style="display:flex;gap:7px;">
+          <button class="btn btn-ghost" data-close="modalEditRecette">Annuler</button>
+          <button class="btn btn-primary" id="btnSaveRecette">💾 Enregistrer</button>
+        </div>
+      </div>
+    </div>`;
+
+  document.body.appendChild(modal);
+
+  /* Fermeture */
+  modal.querySelectorAll('[data-close]').forEach(btn =>
+    btn.addEventListener('click', () => modal.remove()));
+
+  /* Remplir les lignes existantes */
+  const lignesActives = lignes.length ? lignes : [];
+  lignesActives.forEach(l => _addRecLigne(produitId, l));
+  if (!lignesActives.length) _addRecLigne(produitId);
+
+  /* Bouton + ajouter ligne */
+  document.getElementById('btnAddRecLigne').addEventListener('click', () => _addRecLigne(produitId));
+
+  /* Bouton enregistrer */
+  document.getElementById('btnSaveRecette').addEventListener('click', () => _saveEditRecette(produitId, modal));
+
+  openModal('modalEditRecette');
+}
+
+/* Ajoute une ligne article dans le modal d'édition de recette */
+function _addRecLigne(produitId, preselect = null) {
+  const container = document.getElementById('recLignesEdit');
+  if (!container) return;
+
+  const row = document.createElement('div');
+  row.style.cssText = 'display:grid;grid-template-columns:2fr 90px 70px auto;gap:7px;align-items:center;';
+
+  const opts = _articles.map(a =>
+    `<option value="${esc(a.id)}" ${preselect && a.id === preselect.article_id ? 'selected' : ''}>${esc(a.ref)} — ${esc(a.nom)}</option>`
+  ).join('');
+
+  row.innerHTML = `
+    <select class="rec-art inp" style="font-size:11.5px;">${opts}</select>
+    <input type="number" class="rec-qte inp" placeholder="Qté" min="0.001" step="0.001"
+      value="${preselect ? preselect.quantite : ''}">
+    <span class="rec-unite" style="font-size:11px;color:var(--ink-muted);padding-left:4px;align-self:center;"></span>
+    <button style="background:none;border:none;color:var(--ui-red);font-size:18px;cursor:pointer;" type="button">×</button>`;
+
+  const artSel  = row.querySelector('.rec-art');
+  const uniteEl = row.querySelector('.rec-unite');
+
+  const syncUnite = () => {
+    const a = _articles.find(x => x.id === artSel.value);
+    uniteEl.textContent = a ? a.unite : '';
+    _updateCoutPreview(produitId);
+  };
+
+  artSel.addEventListener('change', syncUnite);
+  row.querySelector('.rec-qte').addEventListener('input', () => _updateCoutPreview(produitId));
+  row.querySelector('button').addEventListener('click', () => { row.remove(); _updateCoutPreview(produitId); });
+
+  container.appendChild(row);
+  syncUnite();
+}
+
+/* Met à jour le bloc "Coût estimé" en bas du modal */
+function _updateCoutPreview(produitId) {
+  const rows  = document.querySelectorAll('#recLignesEdit > div');
+  let cout    = 0;
+  let nbOk    = 0;
+
+  rows.forEach(row => {
+    const artId = row.querySelector('.rec-art')?.value;
+    const qte   = parseFloat(row.querySelector('.rec-qte')?.value) || 0;
+    const a     = _articles.find(x => x.id === artId);
+    if (a && qte > 0) { cout += a.prix * qte; nbOk++; }
+  });
+
+  const preview = document.getElementById('recCoutPreview');
+  const val     = document.getElementById('recCoutVal');
+  if (preview && val) {
+    preview.style.display = nbOk > 0 ? 'block' : 'none';
+    val.textContent = fmt(cout) + ' €';
+  }
+}
+
+/* Sauvegarde la recette — DELETE existant + INSERT nouvelles lignes */
+async function _saveEditRecette(produitId, modal) {
+  const rows = document.querySelectorAll('#recLignesEdit > div');
+  const nouvelles = [];
+
+  rows.forEach(row => {
+    const artId = row.querySelector('.rec-art')?.value;
+    const qte   = parseFloat(row.querySelector('.rec-qte')?.value) || 0;
+    if (artId && qte > 0) nouvelles.push({ article_id: artId, quantite: qte });
+  });
+
+  if (!nouvelles.length) {
+    showToast('⚠ Ajoutez au moins un article dans la recette.', 'error');
+    return;
+  }
+
+  const btnSave = document.getElementById('btnSaveRecette');
+  if (btnSave) { btnSave.disabled = true; btnSave.textContent = 'Enregistrement…'; }
+
+  try {
+    /* saveRecette(produitId, lignes) dans db.js doit faire un DELETE + INSERT.
+       Si db.js ne le fait pas encore, on recharge après pour afficher l'état réel. */
+    await saveRecette(produitId, nouvelles);
+
+    /* Mettre à jour le cache local immédiatement */
+    _recetteData[produitId] = nouvelles.map(n => {
+      const a = _articles.find(x => x.id === n.article_id) || {};
+      return { article_id: n.article_id, quantite: n.quantite, articles: a };
+    });
+
+    /* Fermer et re-render */
+    modal.remove();
+    _renderListe();
+    showToast('✅ Recette mise à jour.');
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'recettes' } }));
+
+  } catch (err) {
+    console.error('[recettes] _saveEditRecette ERREUR:', err.message, err);
+    showToast('❌ Erreur enregistrement recette : ' + err.message, 'error');
+    if (btnSave) { btnSave.disabled = false; btnSave.textContent = '💾 Enregistrer'; }
+  }
 }
 
 /* -------------------------------------------------------

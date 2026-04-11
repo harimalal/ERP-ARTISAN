@@ -57,7 +57,7 @@ function _renderTable() {
         </div>
       </td>
       <td>${fmtQ(a.seuil)}</td>
-      <td>${stockStatus(a.stock, a.seuil)}</td>
+      <td data-statut="${esc(stockStatus(a.stock, a.seuil))}">${stockStatus(a.stock, a.seuil)}</td>
       <td>${fmt(a.prix)} €</td>
       <td style="font-size:11px;color:var(--ink-muted)">${esc(a.fournisseur || '—')}</td>
       <td onclick="event.stopPropagation()">
@@ -66,14 +66,35 @@ function _renderTable() {
     </tr>`;
   }).join('');
 
- /* Délégation d'événements sur le tbody */
+  /* S2 — Délégation Commander : dispatch openAchatFor avec ref + détail article complet
+     Le listener dans app.html doit pré-remplir le modal BC avec l'article et son fournisseur */
   const tbody = document.getElementById('stockTbody');
   tbody.onclick = (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
+
     if (btn.dataset.action === 'commander') {
-      document.dispatchEvent(new CustomEvent('appmee:openAchatFor', { detail: { ref: btn.dataset.ref } }));
+      const ref = btn.dataset.ref;
+      const article = _articles.find(a => a.ref === ref);
+      /* Dispatch avec article complet pour que app.html pré-remplisse tout */
+      document.dispatchEvent(new CustomEvent('appmee:openAchatFor', {
+        detail: {
+          ref,
+          nom:         article?.nom        || '',
+          fournisseur: article?.fournisseur || '',
+          prix:        article?.prix        || 0,
+          unite:       article?.unite       || '',
+        }
+      }));
       openModal('modalAchat');
+    }
+
+    if (btn.dataset.action === 'modifier') {
+      _openEditArticle(btn.closest('tr').dataset.id);
+    }
+
+    if (btn.dataset.action === 'inventaire') {
+      _openInventaire(btn.closest('tr').dataset.id);
     }
   };
 }
@@ -236,57 +257,58 @@ async function _saveInventaire() {
 }
 
 /* -------------------------------------------------------
-   ÉDITION ARTICLE — pop-up (MOD 4)
+   ÉDITION ARTICLE — pop-up
 ------------------------------------------------------- */
 function _openEditArticle(articleId) {
   const a = _articles.find(x => x.id === articleId);
   if (!a) return;
 
-  let modal = document.getElementById('modalEditArticle');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'modalEditArticle';
-    modal.className = 'modal-overlay';
-    modal.innerHTML = `
-      <div class="modal-box" style="max-width:520px;">
-        <div class="modal-hdr">
-          <h3>✏ Modifier l'article</h3>
-          <button class="btn-close" data-close="modalEditArticle">✕</button>
-        </div>
-        <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <label style="grid-column:1/2">Référence<input id="eaRef" class="inp" readonly style="opacity:.6;"></label>
-          <label style="grid-column:2/3">Unité
-            <select id="eaUnite" class="inp">
-              <option value="kg">kg</option><option value="g">g</option>
-              <option value="L">L</option><option value="ml">ml</option>
-              <option value="pièce">pièce</option><option value="boîte">boîte</option>
-              <option value="rouleau">rouleau</option><option value="m">m</option>
-            </select>
-          </label>
-          <label style="grid-column:1/-1">Nom<input id="eaNom" class="inp"></label>
-          <label>Catégorie
-            <select id="eaCategorie" class="inp">
-              <option value="matiere">Matière première</option>
-              <option value="emballage">Emballage</option>
-              <option value="ingredient">Ingrédient</option>
-              <option value="fourniture">Fourniture</option>
-              <option value="autre">Autre</option>
-            </select>
-          </label>
-          <label>Fournisseur<input id="eaFournisseur" class="inp"></label>
-          <label>Prix unitaire (€)<input id="eaPrix" type="number" step="0.001" class="inp"></label>
-          <label>Seuil alerte<input id="eaSeuil" type="number" class="inp"></label>
-          <label>Stock actuel<input id="eaStock" type="number" step="0.001" class="inp"></label>
-        </div>
-        <div class="modal-ftr">
-          <button class="btn btn-ghost" data-close="modalEditArticle">Annuler</button>
-          <button class="btn btn-primary" id="btnSaveEditArticle">Enregistrer</button>
-        </div>
-      </div>`;
-    document.body.appendChild(modal);
-    modal.querySelectorAll('[data-close]').forEach(btn =>
-      btn.addEventListener('click', () => closeModal('modalEditArticle')));
-  }
+  /* Détruire le modal précédent pour éviter persistance entre articles */
+  const existing = document.getElementById('modalEditArticle');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'modalEditArticle';
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:520px;">
+      <div class="modal-hdr">
+        <h3>✏ Modifier l'article</h3>
+        <button class="btn-close" data-close="modalEditArticle">✕</button>
+      </div>
+      <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <label style="grid-column:1/2">Référence<input id="eaRef" class="inp" readonly style="opacity:.6;"></label>
+        <label style="grid-column:2/3">Unité
+          <select id="eaUnite" class="inp">
+            <option value="kg">kg</option><option value="g">g</option>
+            <option value="L">L</option><option value="ml">ml</option>
+            <option value="pièce">pièce</option><option value="boîte">boîte</option>
+            <option value="rouleau">rouleau</option><option value="m">m</option>
+          </select>
+        </label>
+        <label style="grid-column:1/-1">Nom<input id="eaNom" class="inp"></label>
+        <label>Catégorie
+          <select id="eaCategorie" class="inp">
+            <option value="matiere">Matière première</option>
+            <option value="emballage">Emballage</option>
+            <option value="ingredient">Ingrédient</option>
+            <option value="fourniture">Fourniture</option>
+            <option value="autre">Autre</option>
+          </select>
+        </label>
+        <label>Fournisseur<input id="eaFournisseur" class="inp"></label>
+        <label>Prix unitaire (€)<input id="eaPrix" type="number" step="0.001" class="inp"></label>
+        <label>Seuil alerte<input id="eaSeuil" type="number" class="inp"></label>
+        <label>Stock actuel<input id="eaStock" type="number" step="0.001" class="inp"></label>
+      </div>
+      <div class="modal-ftr">
+        <button class="btn btn-ghost" data-close="modalEditArticle">Annuler</button>
+        <button class="btn btn-primary" id="btnSaveEditArticle">Enregistrer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelectorAll('[data-close]').forEach(btn =>
+    btn.addEventListener('click', () => closeModal('modalEditArticle')));
 
   /* Remplir */
   document.getElementById('eaRef').value        = a.ref;
@@ -298,11 +320,7 @@ function _openEditArticle(articleId) {
   document.getElementById('eaStock').value      = a.stock || 0;
   document.getElementById('eaFournisseur').value= a.fournisseur || '';
 
-  /* Remplacer le listener save */
-  const btnSave = document.getElementById('btnSaveEditArticle');
-  const newBtn  = btnSave.cloneNode(true);
-  btnSave.parentNode.replaceChild(newBtn, btnSave);
-  newBtn.addEventListener('click', () => _saveEditArticle(articleId));
+  document.getElementById('btnSaveEditArticle').addEventListener('click', () => _saveEditArticle(articleId));
 
   openModal('modalEditArticle');
 }
@@ -333,7 +351,7 @@ async function _saveEditArticle(articleId) {
 }
 
 /* -------------------------------------------------------
-   INVENTAIRE GLOBAL MULTI-LIGNES (MOD 6)
+   INVENTAIRE GLOBAL MULTI-LIGNES
    Ouvre une fenêtre avec tous les articles, possibilité
    d'ajuster n'importe lequel et d'ajouter des lignes.
 ------------------------------------------------------- */
@@ -381,7 +399,6 @@ export function openInventaireGlobal() {
 function _renderInvGlobalLignes() {
   const container = document.getElementById('invGlobalLignes');
   container.innerHTML = '';
-  /* Afficher d'emblée tous les articles en alerte + une ligne vide pour commencer */
   const alertes = _articles.filter(a => a.stock <= a.seuil);
   if (alertes.length) {
     alertes.forEach(a => _addInvGlobalLigne(a));
@@ -401,7 +418,7 @@ function _addInvGlobalLigne(preselectArticle = null) {
 
   row.innerHTML = `
     <select class="ig-art inp" style="font-size:11px;">${opts}</select>
-    <input type="number" step="0.001" placeholder="Qté réelle" class="ig-qte inp" value="${preselectArticle ? '' : ''}">
+    <input type="number" step="0.001" placeholder="Qté réelle" class="ig-qte inp">
     <span class="ig-unite" style="font-size:11px;color:var(--ink-muted);padding-left:4px;"></span>
     <button style="background:none;border:none;color:var(--ui-red);font-size:18px;cursor:pointer;" type="button">×</button>`;
 
@@ -463,6 +480,7 @@ async function _saveInvGlobal() {
 
 /* -------------------------------------------------------
    RECHERCHE ET TRI
+   S1 — tri colonne Statut activé
 ------------------------------------------------------- */
 function _bindSearchInput() {
   document.getElementById('stockSearchInput')?.addEventListener('input', (e) => {
@@ -471,9 +489,11 @@ function _bindSearchInput() {
 }
 
 function _bindSortHeaders() {
-  document.querySelectorAll('#stockTable th.sortable').forEach(th => {
+  /* S1 — inclure toutes les colonnes sortables, y compris Statut */
+  document.querySelectorAll('#stockTable th[data-sort-col], #stockTable th.sortable').forEach(th => {
     th.addEventListener('click', () => {
-      sortTable('stockTable', parseInt(th.dataset.sortCol));
+      const col = parseInt(th.dataset.sortCol ?? th.cellIndex);
+      sortTable('stockTable', col);
     });
   });
 }

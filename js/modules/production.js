@@ -91,15 +91,10 @@ function _renderOFs() {
   const tbody = document.getElementById('planningTbody');
 
   if (!_ofs.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun ordre de fabrication.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun ordre de fabrication.</td></tr>';
     return;
   }
 
-  /* Style inspiré du Plan de fabrication — très transparent, élégant
-     bg  : fond de ligne (quasi invisible)
-     acc : couleur d'accent pour le badge statut et la bordure gauche
-     txt : couleur du texte du badge
-     sel : fond du select statut                                        */
   const STATUT_STYLE = {
     'a_planifier': { bg: 'rgba(108,117,125,0.06)', acc: '#868e96', txt: '#495057', sel: 'rgba(108,117,125,0.10)' },
     'planifie':    { bg: 'rgba(76,110,245,0.06)',  acc: '#4c6ef5', txt: '#364fc7', sel: 'rgba(76,110,245,0.10)'  },
@@ -133,7 +128,13 @@ function _renderOFs() {
       <td><strong>${of.quantite}</strong></td>
       <td style="font-size:10.5px;color:var(--ink-muted)">${esc(of.notes || '')}</td>
       <td style="font-size:11.5px;color:var(--ink);">
-        ${fmtDateFR(of.date_prevue)}
+        <!-- G — Clic sur le texte de la date → ouvre le picker natif -->
+        <span
+          style="cursor:pointer;text-decoration:underline dotted;color:var(--ink);"
+          title="Cliquer pour modifier la date"
+          onclick="document.getElementById('dp-${of.id}').showPicker?.()">
+          ${fmtDateFR(of.date_prevue)}
+        </span>
         <input type="date" value="${esc(of.date_prevue || '')}"
           style="width:0;height:0;opacity:0;position:absolute;"
           data-id="${of.id}" data-action="update-date" id="dp-${of.id}">
@@ -359,10 +360,9 @@ async function _terminerFab(id) {
       });
       if (toutOK) {
         c.statut = 'pret';
-        /* Auto-créer facture si elle n'existe pas */
         const dejafac = await factureExistePourCommande(c.id);
         if (!dejafac) {
-          const tot = (c.commande_lignes || []).reduce((s, l) => s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
+          const tot    = (c.commande_lignes || []).reduce((s, l) => s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
           const facRef = nextRef('FAC', []);
           await createFacture({ ref: facRef, commande_id: c.id, client_nom: c.client_nom, montant_ht: tot, statut: 'facture' });
         }
@@ -375,7 +375,7 @@ async function _terminerFab(id) {
     showToast(`✅ ${of.quantite}×${of.produit_nom} produits.`);
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'production' } }));
   } catch (err) {
-    console.error(err);
+    console.error('[production] _terminerFab ERREUR:', err.message, err);
     showToast('❌ Erreur clôture OF.', 'error');
   }
 }
@@ -425,7 +425,6 @@ function _bindPlanifierForm() {
 }
 
 export function initPlanifierModal(preselectProduitRef = null) {
-  /* Vider le conteneur multi-lignes */
   const container = document.getElementById('ofLignes');
   if (container) {
     container.innerHTML = '';
@@ -475,22 +474,7 @@ function _addOFLigne(preselectProduitRef = null) {
 
 export function addOFLigne() { _addOFLigne(); }
 
-function _checkOFFaisabilite() {
-  const produitId = document.getElementById('ofRef').value;
-  const qte       = parseInt(document.getElementById('ofQte').value) || 0;
-  const p         = _produits.find(x => x.id === produitId);
-  if (!p || !qte) { document.getElementById('ofFaisabilite').style.display = 'none'; return; }
-
-  const manques = _calcManquesRecette(p, qte);
-  const ok = !manques.length;
-  document.getElementById('ofFaisabilite').style.display = 'block';
-  document.getElementById('ofFaisabiliteContent').innerHTML = ok
-    ? `<div class="alert-box alert-success"><span>✅</span><span>Stock suffisant pour produire ${qte} unités.</span></div>`
-    : `<div class="alert-box alert-warn"><span>⚠</span><div><strong>Articles insuffisants :</strong><br>${manques.map(m => '• ' + m).join('<br>')}</div></div>`;
-}
-
 async function _savePlanifier() {
-  /* Collecter toutes les lignes OF du formulaire multi-lignes */
   const container = document.getElementById('ofLignes');
   const lignes = [];
 
@@ -550,6 +534,7 @@ async function _savePlanifier() {
     showToast(`✅ ${createdCount} OF planifié(s).`);
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'production' } }));
   } catch (err) {
+    console.error('[production] _savePlanifier ERREUR:', err.message, err);
     showToast('❌ Erreur planification OF.', 'error');
   }
 }

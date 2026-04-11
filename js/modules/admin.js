@@ -27,9 +27,9 @@ let _produits     = [];
 let _clients      = [];
 let _fournisseurs = [];
 
-let _editType = null;   /* 'article' | 'produit' | 'client' | 'fournisseur' */
-let _editId   = null;   /* UUID de l'élément en cours d'édition */
-let _ficheClientId     = null;
+let _editType = null;
+let _editId   = null;
+let _ficheClientId      = null;
 let _ficheFournisseurId = null;
 
 /* -------------------------------------------------------
@@ -66,17 +66,10 @@ export async function render() {
 
 /* -------------------------------------------------------
    ENTREPRISE
+   Fix I — recharger _tenant dans le cache après save
 ------------------------------------------------------- */
 function _renderEntreprise() {
   const me = _tenant || {};
-  ['nom', 'siret', 'tva', 'adresse', 'tel', 'email', 'site', 'iban', 'cpt_paiement'].forEach(k => {
-    const el = document.getElementById('me_' + k.replace('_paiement', '').replace('_', ''));
-    /* Mapping champ HTML → colonne DB */
-    const map = { me_raison: 'nom', me_siret: 'siret', me_tva: 'tva', me_forme: 'forme',
-      me_adresse: 'adresse', me_tel: 'tel', me_email: 'email', me_web: 'site',
-      me_iban: 'iban', me_cpt: 'cpt_paiement' };
-  });
-  /* Remplissage direct par ID */
   const set = (id, key) => { const el = document.getElementById(id); if (el) el.value = me[key] || ''; };
   set('me_raison', 'nom'); set('me_siret', 'siret'); set('me_tva', 'tva');
   set('me_adresse', 'adresse'); set('me_tel', 'tel'); set('me_email', 'email');
@@ -87,22 +80,26 @@ function _renderEntreprise() {
 
 function _bindEntrepriseForm() {
   document.getElementById('btnSaveEntreprise')?.addEventListener('click', async () => {
+    const data = {
+      nom:          document.getElementById('me_raison').value,
+      siret:        document.getElementById('me_siret').value,
+      tva:          document.getElementById('me_tva').value,
+      forme:        document.getElementById('me_forme').value,
+      adresse:      document.getElementById('me_adresse').value,
+      tel:          document.getElementById('me_tel').value,
+      email:        document.getElementById('me_email').value,
+      site:         document.getElementById('me_web').value,
+      iban:         document.getElementById('me_iban').value,
+      cpt_paiement: document.getElementById('me_cpt').value,
+    };
     try {
-      await updateTenant({
-        nom:          document.getElementById('me_raison').value,
-        siret:        document.getElementById('me_siret').value,
-        tva:          document.getElementById('me_tva').value,
-        forme:        document.getElementById('me_forme').value,
-        adresse:      document.getElementById('me_adresse').value,
-        tel:          document.getElementById('me_tel').value,
-        email:        document.getElementById('me_email').value,
-        site:         document.getElementById('me_web').value,
-        iban:         document.getElementById('me_iban').value,
-        cpt_paiement: document.getElementById('me_cpt').value,
-      });
+      await updateTenant(data);
+      /* Fix I — mettre à jour le cache local immédiatement */
+      Object.assign(_tenant, data);
       showToast('✅ Entreprise enregistrée.');
     } catch (err) {
-      showToast('❌ Erreur enregistrement.', 'error');
+      console.error('[admin] updateTenant ERREUR:', err.message, err);
+      showToast('❌ Erreur enregistrement entreprise.', 'error');
     }
   });
 }
@@ -358,10 +355,10 @@ async function _saveEditRow() {
       });
     } else if (_editType === 'produit') {
       await updateProduit(_editId, {
-        nom:       document.getElementById('er_nom').value,
+        nom:        document.getElementById('er_nom').value,
         prix_vente: parseFloat(document.getElementById('er_prix').value) || 0,
-        seuil:     parseInt(document.getElementById('er_seuil').value) || 0,
-        stock:     parseFloat(document.getElementById('er_stock').value) || 0,
+        seuil:      parseInt(document.getElementById('er_seuil').value) || 0,
+        stock:      parseFloat(document.getElementById('er_stock').value) || 0,
       });
     } else if (_editType === 'client') {
       await updateClient(_editId, { nom: document.getElementById('er_nom').value });
@@ -372,6 +369,7 @@ async function _saveEditRow() {
     await render();
     showToast('✅ Modifications enregistrées.');
   } catch (err) {
+    console.error('[admin] _saveEditRow ERREUR:', err.message, err);
     showToast('❌ Erreur enregistrement.', 'error');
   }
 }
@@ -429,6 +427,8 @@ function _bindNewFournisseurForm() {
 
 /* -------------------------------------------------------
    FICHE CLIENT
+   Fix J — mettre à jour TOUS les champs du cache après save
+           (pas seulement le nom)
 ------------------------------------------------------- */
 function _openFicheClient(id) {
   _ficheClientId = id;
@@ -448,21 +448,27 @@ function _openFicheClient(id) {
 function _bindFicheClientForm() {
   document.getElementById('btnSaveFicheClient')?.addEventListener('click', async () => {
     if (!_ficheClientId) return;
+    const changes = {
+      nom:     document.getElementById('fc_nom').value.trim(),
+      email:   document.getElementById('fc_email').value.trim(),
+      tel:     document.getElementById('fc_tel').value.trim(),
+      adresse: document.getElementById('fc_adresse').value.trim(),
+      contact: document.getElementById('fc_contact')?.value.trim() || '',
+      cpt:     document.getElementById('fc_cpt')?.value.trim()     || '',
+      notes:   document.getElementById('fc_notes').value.trim(),
+    };
+    if (!changes.nom) { showToast('⚠ Le nom est requis.', 'error'); return; }
     try {
-      await updateClient(_ficheClientId, {
-        nom:     document.getElementById('fc_nom').value,
-        email:   document.getElementById('fc_email').value,
-        tel:     document.getElementById('fc_tel').value,
-        adresse: document.getElementById('fc_adresse').value,
-        notes:   document.getElementById('fc_notes').value,
-      });
+      await updateClient(_ficheClientId, changes);
+      /* Fix J — mettre à jour tous les champs dans le cache, pas seulement le nom */
       const idx = _clients.findIndex(c => c.id === _ficheClientId);
-      if (idx >= 0) _clients[idx].nom = document.getElementById('fc_nom').value;
+      if (idx >= 0) Object.assign(_clients[idx], changes);
       closeModal('modalFicheClient');
       _renderClients();
       showToast('✅ Fiche client enregistrée.');
     } catch (err) {
-      showToast('❌ Erreur.', 'error');
+      console.error('[admin] saveFicheClient ERREUR:', err.message, err);
+      showToast('❌ Erreur enregistrement client.', 'error');
     }
   });
 
@@ -474,14 +480,16 @@ function _bindFicheClientForm() {
       _clients = _clients.filter(c => c.id !== _ficheClientId);
       closeModal('modalFicheClient');
       _renderClients();
+      showToast('✅ Client supprimé.');
     } catch (err) {
-      showToast('❌ Erreur.', 'error');
+      showToast('❌ Erreur suppression.', 'error');
     }
   });
 }
 
 /* -------------------------------------------------------
    FICHE FOURNISSEUR
+   Fix K — mettre à jour TOUS les champs du cache après save
 ------------------------------------------------------- */
 function _openFicheFournisseur(id) {
   _ficheFournisseurId = id;
@@ -511,23 +519,29 @@ function _openFicheFournisseur(id) {
 function _bindFicheFournisseurForm() {
   document.getElementById('btnSaveFicheFournisseur')?.addEventListener('click', async () => {
     if (!_ficheFournisseurId) return;
+    const changes = {
+      nom:       document.getElementById('ff_nom').value.trim(),
+      contact:   document.getElementById('ff_contact').value.trim(),
+      email:     document.getElementById('ff_email').value.trim(),
+      tel:       document.getElementById('ff_tel').value.trim(),
+      adresse:   document.getElementById('ff_adresse').value.trim(),
+      delai:     document.getElementById('ff_delai').value.trim(),
+      categorie: document.getElementById('ff_categorie').value,
+      iban:      document.getElementById('ff_iban').value.trim(),
+      notes:     document.getElementById('ff_notes').value.trim(),
+    };
+    if (!changes.nom) { showToast('⚠ Le nom est requis.', 'error'); return; }
     try {
-      await updateFournisseur(_ficheFournisseurId, {
-        nom:       document.getElementById('ff_nom').value,
-        contact:   document.getElementById('ff_contact').value,
-        email:     document.getElementById('ff_email').value,
-        tel:       document.getElementById('ff_tel').value,
-        adresse:   document.getElementById('ff_adresse').value,
-        delai:     document.getElementById('ff_delai').value,
-        categorie: document.getElementById('ff_categorie').value,
-        iban:      document.getElementById('ff_iban').value,
-        notes:     document.getElementById('ff_notes').value,
-      });
+      await updateFournisseur(_ficheFournisseurId, changes);
+      /* Fix K — mettre à jour tous les champs dans le cache */
+      const idx = _fournisseurs.findIndex(f => f.id === _ficheFournisseurId);
+      if (idx >= 0) Object.assign(_fournisseurs[idx], changes);
       closeModal('modalFicheFournisseur');
       _renderFournisseurs();
       showToast('✅ Fiche fournisseur enregistrée.');
     } catch (err) {
-      showToast('❌ Erreur.', 'error');
+      console.error('[admin] saveFicheFournisseur ERREUR:', err.message, err);
+      showToast('❌ Erreur enregistrement fournisseur.', 'error');
     }
   });
 
@@ -539,8 +553,9 @@ function _bindFicheFournisseurForm() {
       _fournisseurs = _fournisseurs.filter(f => f.id !== _ficheFournisseurId);
       closeModal('modalFicheFournisseur');
       _renderFournisseurs();
+      showToast('✅ Fournisseur supprimé.');
     } catch (err) {
-      showToast('❌ Erreur.', 'error');
+      showToast('❌ Erreur suppression.', 'error');
     }
   });
 }
@@ -594,14 +609,10 @@ function _bindSearchInputs() {
 
 /* -------------------------------------------------------
    EXPORT CSV
-   Télécharge toutes les données en fichiers CSV séparés.
-   Un fichier ZIP avec tout est créé via l'API native.
 ------------------------------------------------------- */
 export async function exporterTout() {
   showToast('⏳ Préparation de l\'export…');
-
   try {
-    /* Charger toutes les données en parallèle */
     const [articles, produits, clients, fournisseurs,
            commandes, achats, factures, ofs, mouvements] = await Promise.all([
       getArticles(), getProduits(), getClients(), getFournisseurs(),
@@ -609,80 +620,35 @@ export async function exporterTout() {
       getMouvements(),
     ]);
 
-    /* Définition des exports */
     const exports = [
-      {
-        nom: 'articles',
-        data: articles,
-        colonnes: ['ref', 'nom', 'categorie', 'unite', 'prix', 'fournisseur', 'seuil', 'stock'],
-      },
-      {
-        nom: 'produits',
-        data: produits,
-        colonnes: ['ref', 'nom', 'prix_vente', 'seuil', 'stock'],
-      },
-      {
-        nom: 'clients',
-        data: clients,
-        colonnes: ['nom', 'email', 'tel', 'adresse', 'notes'],
-      },
-      {
-        nom: 'fournisseurs',
-        data: fournisseurs,
-        colonnes: ['nom', 'contact', 'email', 'tel', 'adresse', 'delai', 'categorie', 'iban'],
-      },
-      {
-        nom: 'commandes',
-        data: commandes,
-        colonnes: ['ref', 'client_nom', 'date_cmd', 'date_livraison', 'statut', 'notes'],
-      },
+      { nom: 'articles',      data: articles,      colonnes: ['ref', 'nom', 'categorie', 'unite', 'prix', 'fournisseur', 'seuil', 'stock'] },
+      { nom: 'produits',      data: produits,      colonnes: ['ref', 'nom', 'prix_vente', 'seuil', 'stock'] },
+      { nom: 'clients',       data: clients,       colonnes: ['nom', 'email', 'tel', 'adresse', 'notes'] },
+      { nom: 'fournisseurs',  data: fournisseurs,  colonnes: ['nom', 'contact', 'email', 'tel', 'adresse', 'delai', 'categorie', 'iban'] },
+      { nom: 'commandes',     data: commandes,     colonnes: ['ref', 'client_nom', 'date_cmd', 'date_livraison', 'statut', 'notes'] },
       {
         nom: 'commandes_lignes',
-        /* Aplatir les lignes de commandes pour l'export */
         data: commandes.flatMap(c => (c.commande_lignes || []).map(l => ({
-          commande_ref:  c.ref,
-          client_nom:    c.client_nom,
-          date_cmd:      c.date_cmd,
-          produit_nom:   l.produit_nom,
-          quantite:      l.quantite,
-          prix_unitaire: l.prix_unitaire,
-          total_ht:      l.total_ht || (l.quantite * l.prix_unitaire),
+          commande_ref: c.ref, client_nom: c.client_nom, date_cmd: c.date_cmd,
+          produit_nom: l.produit_nom, quantite: l.quantite,
+          prix_unitaire: l.prix_unitaire, total_ht: l.total_ht || (l.quantite * l.prix_unitaire),
         }))),
         colonnes: ['commande_ref', 'client_nom', 'date_cmd', 'produit_nom', 'quantite', 'prix_unitaire', 'total_ht'],
       },
-      {
-        nom: 'achats',
-        data: achats,
-        colonnes: ['ref', 'article_nom', 'quantite', 'prix_unitaire', 'montant_ht', 'fournisseur', 'date_cmd', 'date_livraison', 'statut', 'ref_commande'],
-      },
-      {
-        nom: 'factures',
-        data: factures,
-        colonnes: ['ref', 'client_nom', 'date_facture', 'montant_ht', 'taux_tva', 'montant_ttc', 'statut', 'date_echeance'],
-      },
-      {
-        nom: 'production_of',
-        data: ofs,
-        colonnes: ['ref', 'produit_nom', 'quantite', 'date_prevue', 'statut', 'notes'],
-      },
-      {
-        nom: 'mouvements',
-        data: mouvements,
-        colonnes: ['created_at', 'type', 'ref', 'nom', 'qte', 'motif', 'ref_doc'],
-      },
+      { nom: 'achats',        data: achats,        colonnes: ['ref', 'article_nom', 'quantite', 'prix_unitaire', 'montant_ht', 'fournisseur', 'date_cmd', 'statut', 'ref_commande'] },
+      { nom: 'factures',      data: factures,      colonnes: ['ref', 'client_nom', 'date_facture', 'montant_ht', 'taux_tva', 'montant_ttc', 'statut'] },
+      { nom: 'production_of', data: ofs,           colonnes: ['ref', 'produit_nom', 'quantite', 'date_prevue', 'statut', 'notes'] },
+      { nom: 'mouvements',    data: mouvements,    colonnes: ['created_at', 'type', 'ref', 'nom', 'qte', 'motif', 'ref_doc'] },
     ];
 
-    /* Générer et télécharger chaque CSV */
     let nbFichiers = 0;
     for (const exp of exports) {
       if (!exp.data || !exp.data.length) continue;
       const csv = _genererCSV(exp.data, exp.colonnes);
       _telechargerCSV(csv, `appmee_${exp.nom}_${today()}.csv`);
       nbFichiers++;
-      /* Petit délai entre les téléchargements pour éviter les blocages navigateur */
       await new Promise(r => setTimeout(r, 300));
     }
-
     showToast(`✅ ${nbFichiers} fichiers CSV exportés.`);
   } catch (err) {
     console.error('[Export]', err);
@@ -690,35 +656,23 @@ export async function exporterTout() {
   }
 }
 
-/* Génère le contenu CSV depuis un tableau d'objets */
 function _genererCSV(data, colonnes) {
-  /* Échappement CSV : entoure de guillemets si virgule, guillemet ou saut de ligne */
   const escape = (val) => {
     const s = String(val === null || val === undefined ? '' : val);
-    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-      return '"' + s.replace(/"/g, '""') + '"';
-    }
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
     return s;
   };
-
   const header = colonnes.join(',');
-  const rows   = data.map(row =>
-    colonnes.map(col => escape(row[col] ?? '')).join(',')
-  );
-
-  /* BOM UTF-8 pour que Excel ouvre correctement les accents */
+  const rows   = data.map(row => colonnes.map(col => escape(row[col] ?? '')).join(','));
   return '\uFEFF' + [header, ...rows].join('\r\n');
 }
 
-/* Déclenche le téléchargement d'un fichier CSV dans le navigateur */
 function _telechargerCSV(contenu, nomFichier) {
   const blob = new Blob([contenu], { type: 'text/csv;charset=utf-8;' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  a.href     = url;
-  a.download = nomFichier;
-  document.body.appendChild(a);
-  a.click();
+  a.href = url; a.download = nomFichier;
+  document.body.appendChild(a); a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
@@ -729,7 +683,6 @@ function _telechargerCSV(contenu, nomFichier) {
 let _massLoaded = {};
 
 function _bindImportMasse() {
-  /* Génération dynamique des zones d'import */
   const zones = [
     { key: 'articles',     label: '📦 Articles',     fields: 'ref, nom, categorie, unite, prix, fournisseur, seuil, stock' },
     { key: 'produits',     label: '🏷 Produits',      fields: 'ref, nom, prix, seuil, stock' },
@@ -763,7 +716,6 @@ function _bindImportMasse() {
     });
   }
 
-  /* Boutons templates */
   ['articles', 'produits', 'recettes', 'clients', 'fournisseurs', 'commandes'].forEach(type => {
     document.getElementById('dl' + _cap(type))?.addEventListener('click', () => _dlTemplate(type));
   });
@@ -831,7 +783,6 @@ async function _massImport() {
   const btn     = document.getElementById('massBtnImport');
   if (btn) { btn.disabled = true; btn.textContent = 'Import en cours…'; }
 
-  /* ── ARTICLES ── */
   if (_massLoaded.articles) {
     for (const r of _massLoaded.articles.rows) {
       const ref = String(r.ref || '').trim();
@@ -839,25 +790,12 @@ async function _massImport() {
       if (!ref || !nom) continue;
       if (_articles.find(a => a.ref === ref)) continue;
       try {
-        const created = await createArticle({
-          ref,
-          nom,
-          categorie:   String(r.categorie || r.Catégorie || 'autre').trim().toLowerCase(),
-          unite:       String(r.unite || r.Unité || 'unité').trim(),
-          prix:        parseFloat(String(r.prix || r.Prix || '0').replace(',', '.')) || 0,
-          fournisseur: String(r.fournisseur || r.Fournisseur || '').trim(),
-          seuil:       parseInt(r.seuil || r.Seuil || '0') || 0,
-          stock:       parseFloat(String(r.stock || r.Stock || '0').replace(',', '.')) || 0,
-        });
-        _articles.push(created);
-        counts.articles++;
-      } catch (err) {
-        errors.push('Article ' + ref + ' : ' + err.message);
-      }
+        const created = await createArticle({ ref, nom, categorie: String(r.categorie || 'autre').trim().toLowerCase(), unite: String(r.unite || 'unité').trim(), prix: parseFloat(String(r.prix || '0').replace(',', '.')) || 0, fournisseur: String(r.fournisseur || '').trim(), seuil: parseInt(r.seuil || '0') || 0, stock: parseFloat(String(r.stock || '0').replace(',', '.')) || 0 });
+        _articles.push(created); counts.articles++;
+      } catch (err) { errors.push('Article ' + ref + ' : ' + err.message); }
     }
   }
 
-  /* ── PRODUITS ── */
   if (_massLoaded.produits) {
     for (const r of _massLoaded.produits.rows) {
       const ref = String(r.ref || '').trim();
@@ -865,279 +803,125 @@ async function _massImport() {
       if (!ref || !nom) continue;
       if (_produits.find(p => p.ref === ref)) continue;
       try {
-        const created = await createProduit({
-          ref,
-          nom,
-          prix_vente: parseFloat(String(r.prix || r.Prix || '0').replace(',', '.')) || 0,
-          seuil:      parseInt(r.seuil || r.Seuil || '0') || 0,
-          stock:      parseFloat(String(r.stock || r.Stock || '0').replace(',', '.')) || 0,
-        });
-        _produits.push(created);
-        counts.produits++;
-      } catch (err) {
-        errors.push('Produit ' + ref + ' : ' + err.message);
-      }
+        const created = await createProduit({ ref, nom, prix_vente: parseFloat(String(r.prix || '0').replace(',', '.')) || 0, seuil: parseInt(r.seuil || '0') || 0, stock: parseFloat(String(r.stock || '0').replace(',', '.')) || 0 });
+        _produits.push(created); counts.produits++;
+      } catch (err) { errors.push('Produit ' + ref + ' : ' + err.message); }
     }
   }
 
-  /* ── RECETTES ──
-     Format CSV : produit_ref, produit_nom, produit_prix, article_ref, quantite
-     Regroupement par produit_ref — 1 produit créé, N lignes recette insérées.
-     Si le produit existe déjà (même ref), on met à jour sa recette uniquement.
-  ── */
   if (_massLoaded.recettes) {
-    /* Recharger les articles et produits pour avoir les UUIDs à jour */
     const articlesDB = _articles.length ? _articles : await getArticles();
     const produitsDB = _produits.length ? _produits : await getProduits();
-
-    /* Regrouper les lignes par produit_ref */
     const parProduit = {};
     for (const r of _massLoaded.recettes.rows) {
       const prodRef = String(r.produit_ref || '').trim();
       const artRef  = String(r.article_ref || '').trim();
       if (!prodRef || !artRef) continue;
       if (!parProduit[prodRef]) {
-        parProduit[prodRef] = {
-          nom:   String(r.produit_nom  || r.produit_ref || '').trim(),
-          prix:  parseFloat(String(r.produit_prix || '0').replace(',', '.')) || 0,
-          lignes: [],
-        };
+        parProduit[prodRef] = { nom: String(r.produit_nom || prodRef).trim(), prix: parseFloat(String(r.produit_prix || '0').replace(',', '.')) || 0, lignes: [] };
       }
       const art = articlesDB.find(a => a.ref === artRef);
-      if (!art) {
-        errors.push(`Recette ${prodRef} : article "${artRef}" introuvable — vérifiez la ref`);
-        continue;
-      }
+      if (!art) { errors.push(`Recette ${prodRef} : article "${artRef}" introuvable`); continue; }
       const qte = parseFloat(String(r.quantite || r.qte || '0').replace(',', '.')) || 0;
       if (qte <= 0) continue;
       parProduit[prodRef].lignes.push({ article_id: art.id, quantite: qte, unite: art.unite });
     }
-
-    /* Pour chaque produit : créer si absent, puis sauvegarder la recette */
     for (const [prodRef, infos] of Object.entries(parProduit)) {
       if (!infos.lignes.length) continue;
       try {
         let produit = produitsDB.find(p => p.ref === prodRef);
         if (!produit) {
-          produit = await createProduit({
-            ref:       prodRef,
-            nom:       infos.nom,
-            prix_vente: infos.prix,
-            seuil:     0,
-            stock:     0,
-          });
-          _produits.push(produit);
-          counts.produits++;
+          produit = await createProduit({ ref: prodRef, nom: infos.nom, prix_vente: infos.prix, seuil: 0, stock: 0 });
+          _produits.push(produit); counts.produits++;
         }
         await saveRecette(produit.id, infos.lignes);
         counts.recettes++;
-      } catch (err) {
-        errors.push(`Recette ${prodRef} : ${err.message}`);
-      }
+      } catch (err) { errors.push(`Recette ${prodRef} : ${err.message}`); }
     }
   }
 
-  /* ── CLIENTS ── */
   if (_massLoaded.clients) {
     for (const r of _massLoaded.clients.rows) {
       const nom = String(r.nom || r.Nom || '').trim();
       if (!nom) continue;
       if (_clients.find(c => c.nom === nom)) continue;
       try {
-        const created = await createClient({
-          nom,
-          email:   String(r.email   || r.Email   || '').trim(),
-          tel:     String(r.tel     || r.Tel     || r.Téléphone || '').trim(),
-          adresse: String(r.adresse || r.Adresse || '').trim(),
-          notes:   String(r.notes   || r.Notes   || '').trim(),
-        });
-        _clients.push(created);
-        counts.clients++;
-      } catch (err) {
-        errors.push('Client ' + nom + ' : ' + err.message);
-      }
+        const created = await createClient({ nom, email: String(r.email || '').trim(), tel: String(r.tel || '').trim(), adresse: String(r.adresse || '').trim(), notes: String(r.notes || '').trim() });
+        _clients.push(created); counts.clients++;
+      } catch (err) { errors.push('Client ' + nom + ' : ' + err.message); }
     }
   }
 
-  /* ── FOURNISSEURS ── */
   if (_massLoaded.fournisseurs) {
     for (const r of _massLoaded.fournisseurs.rows) {
       const nom = String(r.nom || r.Nom || '').trim();
       if (!nom) continue;
       if (_fournisseurs.find(f => f.nom === nom)) continue;
       try {
-        const created = await createFournisseur({
-          nom,
-          contact:   String(r.contact   || r.Contact   || '').trim(),
-          email:     String(r.email     || r.Email     || '').trim(),
-          tel:       String(r.tel       || r.Tel       || '').trim(),
-          adresse:   String(r.adresse   || r.Adresse   || '').trim(),
-          delai:     String(r.delai     || r.Délai     || '').trim(),
-          categorie: String(r.categorie || r.Catégorie || '').trim().toLowerCase(),
-        });
-        _fournisseurs.push(created);
-        counts.fournisseurs++;
-      } catch (err) {
-        errors.push('Fournisseur ' + nom + ' : ' + err.message);
-      }
+        const created = await createFournisseur({ nom, contact: String(r.contact || '').trim(), email: String(r.email || '').trim(), tel: String(r.tel || '').trim(), adresse: String(r.adresse || '').trim(), delai: String(r.delai || '').trim(), categorie: String(r.categorie || '').trim().toLowerCase() });
+        _fournisseurs.push(created); counts.fournisseurs++;
+      } catch (err) { errors.push('Fournisseur ' + nom + ' : ' + err.message); }
     }
   }
 
-  /* ── COMMANDES ──
-     Format CSV : commande_ref, client_nom, date_cmd, date_livraison, produit_ref, quantite, prix_unitaire
-     Regroupement par commande_ref — 1 commande créée, N lignes insérées.
-     Le client est créé automatiquement s'il n'existe pas.
-  ── */
   if (_massLoaded.commandes) {
-    const produitsDB = _produits.length ? _produits : await getProduits();
-    const clientsDB  = _clients.length  ? _clients  : await getClients();
+    const produitsDB  = _produits.length ? _produits : await getProduits();
+    const clientsDB   = _clients.length  ? _clients  : await getClients();
     const commandesDB = await getCommandes();
-
-    /* Regrouper par commande_ref */
     const parCommande = {};
     for (const r of _massLoaded.commandes.rows) {
       const cmdRef    = String(r.commande_ref || r.ref || '').trim();
       const prodRef   = String(r.produit_ref  || '').trim();
       const clientNom = String(r.client_nom   || r.client || '').trim();
       if (!cmdRef || !prodRef || !clientNom) continue;
-
       if (!parCommande[cmdRef]) {
-        parCommande[cmdRef] = {
-          client_nom:     clientNom,
-          date_cmd:       String(r.date_cmd  || r.date || today()).trim(),
-          date_livraison: String(r.date_livraison || '').trim() || null,
-          statut:         'a_produire',
-          notes:          String(r.notes || '').trim(),
-          lignes: [],
-        };
+        parCommande[cmdRef] = { client_nom: clientNom, date_cmd: String(r.date_cmd || today()).trim(), date_livraison: String(r.date_livraison || '').trim() || null, statut: 'a_produire', notes: String(r.notes || '').trim(), lignes: [] };
       }
-
       const produit = produitsDB.find(p => p.ref === prodRef);
-      if (!produit) {
-        errors.push(`Commande ${cmdRef} : produit "${prodRef}" introuvable — vérifiez la ref`);
-        continue;
-      }
-
-      const qte  = parseFloat(String(r.quantite || r.qte || '1').replace(',', '.')) || 1;
-      const prix = parseFloat(String(r.prix_unitaire || r.prix || '0').replace(',', '.'))
-                   || produit.prix_vente || produit.prix || 0;
-
-      parCommande[cmdRef].lignes.push({
-        produit_id:    produit.id,
-        produit_nom:   produit.nom,
-        quantite:      qte,
-        prix_unitaire: prix,
-      });
+      if (!produit) { errors.push(`Commande ${cmdRef} : produit "${prodRef}" introuvable`); continue; }
+      const qte  = parseFloat(String(r.quantite || '1').replace(',', '.')) || 1;
+      const prix = parseFloat(String(r.prix_unitaire || '0').replace(',', '.')) || produit.prix_vente || produit.prix || 0;
+      parCommande[cmdRef].lignes.push({ produit_id: produit.id, produit_nom: produit.nom, quantite: qte, prix_unitaire: prix });
     }
-
-    /* Créer chaque commande */
     for (const [cmdRef, infos] of Object.entries(parCommande)) {
       if (!infos.lignes.length) continue;
-      /* Ignorer si la commande existe déjà */
-      if (commandesDB.find(c => c.ref === cmdRef)) {
-        errors.push(`Commande ${cmdRef} : déjà existante, ignorée`);
-        continue;
-      }
+      if (commandesDB.find(c => c.ref === cmdRef)) { errors.push(`Commande ${cmdRef} : déjà existante, ignorée`); continue; }
       try {
-        /* Créer le client s'il n'existe pas */
         let client = clientsDB.find(c => c.nom === infos.client_nom);
-        if (!client) {
-          client = await createClient({ nom: infos.client_nom });
-          _clients.push(client);
-        }
-
-        await createCommande({
-          ref:            cmdRef,
-          client_id:      client.id,
-          client_nom:     infos.client_nom,
-          date_cmd:       infos.date_cmd,
-          date_livraison: infos.date_livraison,
-          statut:         infos.statut,
-          notes:          infos.notes,
-        }, infos.lignes);
-
+        if (!client) { client = await createClient({ nom: infos.client_nom }); _clients.push(client); }
+        await createCommande({ ref: cmdRef, client_id: client.id, client_nom: infos.client_nom, date_cmd: infos.date_cmd, date_livraison: infos.date_livraison, statut: infos.statut, notes: infos.notes }, infos.lignes);
         counts.commandes++;
-      } catch (err) {
-        errors.push(`Commande ${cmdRef} : ${err.message}`);
-      }
+      } catch (err) { errors.push(`Commande ${cmdRef} : ${err.message}`); }
     }
   }
 
-  /* ── Résultat ── */
   _massLoaded = {};
   if (btn) { btn.disabled = false; btn.textContent = '📥 Importer'; }
-
   closeModal('modalImportMasse');
-
-  /* Rafraîchir l'affichage */
-  _renderArticles();
-  _renderProduits();
-  _renderClients();
-  _renderFournisseurs();
+  _renderArticles(); _renderProduits(); _renderClients(); _renderFournisseurs();
 
   const total = Object.values(counts).reduce((s, v) => s + v, 0);
-
   if (errors.length > 0) {
     showToast(`⚠ ${total} importés, ${errors.length} erreur(s). Voir console.`, 'warn');
     errors.forEach(e => console.warn('[Import]', e));
   } else {
-    showToast(
-      `✅ Import terminé : ${counts.articles} articles, ${counts.produits} produits, ` +
-      `${counts.recettes} recettes, ${counts.clients} clients, ` +
-      `${counts.fournisseurs} fournisseurs, ${counts.commandes} commandes.`
-    );
+    showToast(`✅ Import : ${counts.articles} articles, ${counts.produits} produits, ${counts.recettes} recettes, ${counts.clients} clients, ${counts.fournisseurs} fournisseurs, ${counts.commandes} commandes.`);
   }
 
-  /* Notifier tous les modules qu'un import a eu lieu
-     → chaque module écoute appmee:datachanged et recharge ses données */
-  const entities = [];
-  if (counts.articles  > 0) entities.push('articles');
-  if (counts.produits  > 0) entities.push('produits');
-  if (counts.recettes  > 0) entities.push('recettes');
-  if (counts.clients   > 0) entities.push('clients');
-  if (counts.fournisseurs > 0) entities.push('fournisseurs');
-  if (counts.commandes > 0) entities.push('commandes');
-
+  const entities = Object.entries(counts).filter(([, v]) => v > 0).map(([k]) => k);
   if (entities.length > 0) {
-    /* Un seul événement global couvre tous les modules impactés */
-    document.dispatchEvent(new CustomEvent('appmee:datachanged', {
-      detail: { entity: 'import_masse', entities }
-    }));
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'import_masse', entities } }));
   }
 }
 
 function _dlTemplate(type) {
   const tpl = {
-    articles:     [
-      ['ref', 'nom', 'categorie', 'unite', 'prix', 'fournisseur', 'seuil', 'stock'],
-      ['A0001', 'Pot verre 50ml', 'emballage', 'unité', '0.45', 'Fournisseur A', '500', '1000'],
-      ['A0002', 'Fraises kg', 'matiere', 'kg', '3.50', 'Fournisseur B', '10', '50'],
-    ],
-    produits:     [
-      ['ref', 'nom', 'prix', 'seuil', 'stock'],
-      ['P0001', 'Confiture fraise 250g', '5.20', '200', '0'],
-      ['P0002', 'Confiture abricot 250g', '4.80', '100', '0'],
-    ],
-    recettes:     [
-      ['produit_ref', 'produit_nom', 'produit_prix', 'article_ref', 'quantite'],
-      ['P0001', 'Confiture fraise 250g', '5.20', 'A0001', '1'],
-      ['P0001', 'Confiture fraise 250g', '5.20', 'A0002', '0.200'],
-      ['P0002', 'Confiture abricot 250g', '4.80', 'A0001', '1'],
-    ],
-    clients:      [
-      ['nom', 'email', 'tel', 'adresse', 'notes'],
-      ['Épicerie Martin', 'contact@epicerie.fr', '0556001234', '1 rue du Marché, 47000 Agen', ''],
-    ],
-    fournisseurs: [
-      ['nom', 'contact', 'email', 'tel', 'adresse', 'delai', 'categorie'],
-      ['Fournisseur A', 'Jean Dupont', 'jean@fournisseur.fr', '0556005678', '10 route de Paris', '5 jours ouvrés', 'emballage'],
-    ],
-    commandes:    [
-      ['commande_ref', 'client_nom', 'date_cmd', 'date_livraison', 'produit_ref', 'quantite', 'prix_unitaire'],
-      ['CMD0001', 'Épicerie Martin', '2026-04-01', '2026-04-15', 'P0001', '50', '5.20'],
-      ['CMD0001', 'Épicerie Martin', '2026-04-01', '2026-04-15', 'P0002', '30', '4.80'],
-      ['CMD0002', 'Bio Marché', '2026-04-02', '2026-04-20', 'P0001', '100', '5.20'],
-    ],
+    articles:     [['ref', 'nom', 'categorie', 'unite', 'prix', 'fournisseur', 'seuil', 'stock'], ['A0001', 'Pot verre 50ml', 'emballage', 'unité', '0.45', 'Fournisseur A', '500', '1000']],
+    produits:     [['ref', 'nom', 'prix', 'seuil', 'stock'], ['P0001', 'Confiture fraise 250g', '5.20', '200', '0']],
+    recettes:     [['produit_ref', 'produit_nom', 'produit_prix', 'article_ref', 'quantite'], ['P0001', 'Confiture fraise 250g', '5.20', 'A0001', '1'], ['P0001', 'Confiture fraise 250g', '5.20', 'A0002', '0.200']],
+    clients:      [['nom', 'email', 'tel', 'adresse', 'notes'], ['Épicerie Martin', 'contact@epicerie.fr', '0556001234', '1 rue du Marché', '']],
+    fournisseurs: [['nom', 'contact', 'email', 'tel', 'adresse', 'delai', 'categorie'], ['Fournisseur A', 'Jean Dupont', 'jean@fournisseur.fr', '0556005678', '10 route de Paris', '5 jours ouvrés', 'emballage']],
+    commandes:    [['commande_ref', 'client_nom', 'date_cmd', 'date_livraison', 'produit_ref', 'quantite', 'prix_unitaire'], ['CMD0001', 'Épicerie Martin', '2026-04-01', '2026-04-15', 'P0001', '50', '5.20'], ['CMD0001', 'Épicerie Martin', '2026-04-01', '2026-04-15', 'P0002', '30', '4.80']],
   };
   const ws = XLSX.utils.aoa_to_sheet(tpl[type] || []);
   const wb = XLSX.utils.book_new();

@@ -29,8 +29,12 @@ export async function render() {
 
 /* -------------------------------------------------------
    KPIs
+   D1 — "Alertes articles" → "Alertes Stock"
+   D2 — "BC en attente" cliquable → redirige onglet Achats
+   D3 — Suppression KPI "Valeur BdC en cours"
+   D4 — KPI Factures avec montant total HT + nb en sous-titre
 ------------------------------------------------------- */
-function renderKPIs({ articles, produits, commandes, achats, ofs }) {
+function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
   const alertsA   = articles.filter(a => a.stock <= a.seuil).length;
   const totalPF   = produits.reduce((s, p) => s + (p.stock || 0), 0);
   const cmdOpen   = commandes.filter(c => c.statut !== 'cloture').length;
@@ -38,9 +42,22 @@ function renderKPIs({ articles, produits, commandes, achats, ofs }) {
   const bcPending = achats.filter(a => ['envoye', 'en_cours'].includes(a.statut)).length;
   const ofCours   = ofs.filter(o => o.statut === 'en_cours').length;
 
+  /* D4 — Factures à relancer : statut 'a_relancer' ou 'facturee' depuis > 30j */
+  const now = Date.now();
+  const factRelancer = (factures || []).filter(f => {
+    if (f.statut === 'a_relancer') return true;
+    if (f.statut === 'facturee') {
+      const d = new Date(f.date_facture || f.created_at).getTime();
+      return (now - d) / 86400000 > 30;
+    }
+    return false;
+  });
+  const nbFactRelancer  = factRelancer.length;
+  const mntFactRelancer = factRelancer.reduce((s, f) => s + (f.montant_ttc || f.montant_ht || 0), 0);
+
   document.getElementById('kpiGrid').innerHTML = `
     <div class="kpi ${alertsA > 0 ? 'alert' : 'good'}">
-      <div class="kpi-label">Alertes articles</div>
+      <div class="kpi-label">Alertes Stock</div>
       <div class="kpi-value">${alertsA}</div>
       <div class="kpi-sub">${alertsA > 0 ? 'sous le seuil' : 'Tout OK'}</div>
     </div>
@@ -59,17 +76,41 @@ function renderKPIs({ articles, produits, commandes, achats, ofs }) {
       <div class="kpi-value">${fmt(valA)} €</div>
       <div class="kpi-sub">au prix d'achat</div>
     </div>
-    <div class="kpi ${bcPending > 0 ? 'warn' : ''}">
+    <div class="kpi ${bcPending > 0 ? 'warn' : ''}"
+         style="cursor:${bcPending > 0 ? 'pointer' : 'default'}"
+         title="${bcPending > 0 ? 'Voir les bons de commande' : ''}"
+         id="kpiBcPending">
       <div class="kpi-label">BC en attente</div>
       <div class="kpi-value">${bcPending}</div>
       <div class="kpi-sub">bons envoyés / cours</div>
+    </div>
+    <div class="kpi ${nbFactRelancer > 0 ? 'alert' : ''}">
+      <div class="kpi-label">Factures à relancer</div>
+      <div class="kpi-value">${fmt(mntFactRelancer)} €</div>
+      <div class="kpi-sub">${nbFactRelancer} facture${nbFactRelancer > 1 ? 's' : ''}</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">OF en cours</div>
       <div class="kpi-value">${ofCours}</div>
       <div class="kpi-sub">ordres actifs</div>
     </div>`;
+
+  /* D2 — Clic sur KPI "BC en attente" → naviguer vers onglet Achats */
+  const kpiBc = document.getElementById('kpiBcPending');
+  if (kpiBc) {
+    kpiBc.onclick = () => {
+      if (bcPending === 0) return;
+      const tabAchats = document.querySelector('[data-tab="achats"], [data-section="achats"], nav a[href="#achats"]');
+      if (tabAchats) {
+        tabAchats.click();
+      } else {
+        /* Fallback : dispatcher un event de navigation */
+        document.dispatchEvent(new CustomEvent('appmee:navigate', { detail: { section: 'achats' } }));
+      }
+    };
+  }
 }
+
 /* -------------------------------------------------------
    ALERTES STOCK ARTICLES
 ------------------------------------------------------- */
@@ -108,17 +149,17 @@ function renderAlertes(articles) {
 
 /* -------------------------------------------------------
    STOCK PRODUITS FINIS
+   D5 — Suppression colonne Prix
 ------------------------------------------------------- */
 function renderStockProduits(produits) {
   document.getElementById('dashProduits').innerHTML = `
     <table>
-      <thead><tr><th>Produit</th><th>Stock</th><th>Statut</th><th>Prix</th></tr></thead>
+      <thead><tr><th>Produit</th><th>Stock</th><th>Statut</th></tr></thead>
       <tbody>${produits.map(p => `
         <tr>
           <td>${esc(p.nom)}</td>
           <td><strong>${p.stock}</strong></td>
           <td>${stockStatus(p.stock, p.seuil)}</td>
-          <td>${fmt(p.prix_vente || p.prix)} €</td>
         </tr>`).join('')}
       </tbody>
     </table>`;
