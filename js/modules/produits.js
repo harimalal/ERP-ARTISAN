@@ -249,7 +249,7 @@ async function _saveNewProduit() {
   if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
 
   try {
-    const produit = await createProduit({ ref, nom, prix_vente: prix, seuil, stock: 0, cout });
+    const produit = await createProduit({ ref, nom, prix_vente: prix, seuil, stock: 0 });
     if (lignes.length) {
       await saveRecette(produit.id, lignes);
     }
@@ -290,7 +290,7 @@ async function _saveEditProduit() {
   if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
 
   try {
-    const updated = await updateProduit(_editProduitId, { nom, prix_vente: prix, seuil, cout });
+    const updated = await updateProduit(_editProduitId, { nom, prix_vente: prix, seuil });
     await saveRecette(_editProduitId, lignes);
 
     /* Mettre à jour le cache local */

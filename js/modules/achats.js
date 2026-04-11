@@ -306,6 +306,9 @@ async function _saveAchat() {
   const date        = document.getElementById('achatDate')?.value        || today();
 
   try {
+    /* Fix B4 — Recharger _achats depuis Supabase avant nextRef
+       pour éviter les doublons de ref (contrainte unique tenant_id, ref) */
+    try { _achats = await getAchats(); } catch (_) {}
     const baseRef = nextRef('BC', _achats);
     let nbCrees = 0;
 
