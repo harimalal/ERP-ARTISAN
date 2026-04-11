@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AppMee — Connexion</title>
 <meta name="supa-url" content="https://rynfsrsevgqyiycdscov.supabase.co">
-<meta name="supa-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5bmZzcnNldmdxeWl5Y2RzY292Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzOTY1ODYsImV4cCI6MjA5MDk3MjU4Nn0.ZUBVkTNX_rNRIYyIOduykBw7jcWDmGylORhyGKGbWOk">
+<meta name="supa-key" content="sb_publishable_g_gefc-Mrw1wgSC_F8nZlw_BAMix93k">
 <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -51,6 +51,7 @@ html, body {
   padding: 36px 44px;
 }
 
+/* Texture grain subtile */
 .panel-left::before {
   content: '';
   position: absolute;
@@ -60,6 +61,7 @@ html, body {
   z-index: 0;
 }
 
+/* Lueur chaude en bas à gauche */
 .panel-left::after {
   content: '';
   position: absolute;
@@ -74,6 +76,7 @@ html, body {
 
 .panel-left > * { position: relative; z-index: 1; }
 
+/* LOGO */
 .logo {
   display: flex;
   align-items: center;
@@ -107,6 +110,7 @@ html, body {
   text-transform: uppercase;
 }
 
+/* HOOK */
 .hook {
   margin: auto 0;
   padding: 20px 0;
@@ -178,6 +182,7 @@ html, body {
   transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.55,0,1,0.45);
 }
 
+/* FONCTIONNALITÉS */
 .features {
   display: flex;
   flex-direction: column;
@@ -245,6 +250,8 @@ html, body {
   border-color: rgba(255,255,255,0.08);
 }
 
+
+
 /* ── PANNEAU DROIT (clair) ───────────────────── */
 .panel-right {
   background: var(--cream);
@@ -296,6 +303,7 @@ html, body {
   margin-bottom: 28px;
 }
 
+/* ONGLETS */
 .tabs {
   display: flex;
   border-bottom: 1.5px solid var(--rule);
@@ -325,8 +333,11 @@ html, body {
   font-weight: 600;
 }
 
-.tab-btn:hover:not(.active) { color: var(--ink); }
+.tab-btn:hover:not(.active) {
+  color: var(--ink);
+}
 
+/* FORMULAIRES */
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
@@ -365,8 +376,13 @@ html, body {
   box-shadow: 0 0 0 3px rgba(200,67,43,0.1);
 }
 
-.input-wrap { position: relative; }
-.input-wrap .form-input { padding-right: 42px; }
+.input-wrap {
+  position: relative;
+}
+
+.input-wrap .form-input {
+  padding-right: 42px;
+}
 
 .eye-btn {
   position: absolute;
@@ -421,6 +437,7 @@ html, body {
 
 .link-forgot:hover { opacity: 0.75; }
 
+/* BOUTON PRINCIPAL */
 .btn-submit {
   width: 100%;
   padding: 13px;
@@ -439,6 +456,7 @@ html, body {
 .btn-submit:hover { background: var(--accent-hover); }
 .btn-submit:active { transform: scale(0.99); }
 
+/* BOUTON LOADING */
 .btn-submit.loading {
   background: var(--accent-hover);
   pointer-events: none;
@@ -459,6 +477,7 @@ html, body {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* SEPARATEUR */
 .divider {
   display: flex;
   align-items: center;
@@ -476,6 +495,7 @@ html, body {
   background: var(--rule);
 }
 
+/* LIEN INSCRIPTION */
 .switch-link {
   text-align: center;
   margin-top: 20px;
@@ -492,6 +512,7 @@ html, body {
 
 .switch-link a:hover { opacity: 0.75; }
 
+/* MESSAGE ERREUR / SUCCÈS */
 .msg-box {
   padding: 10px 14px;
   border-radius: 7px;
@@ -518,12 +539,14 @@ html, body {
   gap: 7px;
 }
 
+/* CHAMP NOM pour inscription */
 .name-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
+/* ── RESPONSIVE ──────────────────────────────── */
 @media (max-width: 860px) {
   html, body { overflow: auto; }
   .split {
@@ -532,7 +555,9 @@ html, body {
     height: auto;
     min-height: 100vh;
   }
-  .panel-left { padding: 28px 28px 32px; }
+  .panel-left {
+    padding: 28px 28px 32px;
+  }
   .hook-title { font-size: 26px; }
   .hook-sub { font-size: 22px; }
   .panel-right {
@@ -541,6 +566,7 @@ html, body {
   }
 }
 
+/* ── ANIMATION ENTRÉE ────────────────────────── */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -557,6 +583,8 @@ html, body {
 
   <!-- ═══ PANNEAU GAUCHE ═══ -->
   <div class="panel-left">
+
+    <!-- Logo -->
     <div class="logo">
       <div class="logo-icon">
         <svg viewBox="0 0 24 24">
@@ -568,6 +596,7 @@ html, body {
       <span class="logo-name">AppMee</span>
     </div>
 
+    <!-- Hook -->
     <div class="hook">
       <div class="hook-label">La plateforme métier faite pour les artisans</div>
       <h1 class="hook-title">Toute votre activité,</h1>
@@ -578,33 +607,53 @@ html, body {
         <span class="hook-word">boostée par l'IA.</span>
       </div>
 
+      <!-- Fonctionnalités dans l'ordre du flux métier -->
       <div class="features">
         <div class="feature-item">
-          <div class="feature-left"><div class="feature-dot"></div><span class="feature-name">Dashboard & KPIs</span></div>
+          <div class="feature-left">
+            <div class="feature-dot"></div>
+            <span class="feature-name">Dashboard & KPIs</span>
+          </div>
           <span class="feature-badge green">Actif</span>
         </div>
         <div class="feature-item">
-          <div class="feature-left"><div class="feature-dot"></div><span class="feature-name">Commandes clients</span></div>
+          <div class="feature-left">
+            <div class="feature-dot"></div>
+            <span class="feature-name">Commandes clients</span>
+          </div>
           <span class="feature-badge green">Actif</span>
         </div>
         <div class="feature-item">
-          <div class="feature-left"><div class="feature-dot"></div><span class="feature-name">Production & Planning</span></div>
+          <div class="feature-left">
+            <div class="feature-dot"></div>
+            <span class="feature-name">Production & Planning</span>
+          </div>
           <span class="feature-badge green">Actif</span>
         </div>
         <div class="feature-item">
-          <div class="feature-left"><div class="feature-dot"></div><span class="feature-name">Stock & Approvisionnement</span></div>
+          <div class="feature-left">
+            <div class="feature-dot"></div>
+            <span class="feature-name">Stock & Approvisionnement</span>
+          </div>
           <span class="feature-badge green">Actif</span>
         </div>
         <div class="feature-item">
-          <div class="feature-left"><div class="feature-dot"></div><span class="feature-name">Livraisons & Facturation</span></div>
+          <div class="feature-left">
+            <div class="feature-dot"></div>
+            <span class="feature-name">Livraisons & Facturation</span>
+          </div>
           <span class="feature-badge green">Actif</span>
         </div>
         <div class="feature-item">
-          <div class="feature-left"><div class="feature-dot"></div><span class="feature-name">Saisie automatique par IA</span></div>
+          <div class="feature-left">
+            <div class="feature-dot"></div>
+            <span class="feature-name">Saisie automatique par IA</span>
+          </div>
           <span class="feature-badge green">Actif</span>
         </div>
       </div>
     </div>
+
   </div>
 
   <!-- ═══ PANNEAU DROIT ═══ -->
@@ -615,19 +664,23 @@ html, body {
       <h2 class="auth-title" id="authTitle">Bon retour.</h2>
       <p class="auth-sub" id="authSub">Connectez-vous à votre espace AppMee.</p>
 
+      <!-- Onglets -->
       <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('login')">Se connecter</button>
         <button class="tab-btn" onclick="switchTab('signup')">Créer un compte</button>
       </div>
 
+      <!-- Message d'état -->
       <div class="msg-box" id="msgBox"></div>
 
       <!-- ── ONGLET CONNEXION ── -->
       <div class="tab-panel active" id="panel-login">
+
         <div class="form-group">
           <label class="form-label">Adresse e-mail</label>
           <input class="form-input" type="email" id="loginEmail" placeholder="vous@exemple.fr" autocomplete="email">
         </div>
+
         <div class="form-group">
           <label class="form-label">Mot de passe</label>
           <div class="input-wrap">
@@ -639,6 +692,7 @@ html, body {
             </button>
           </div>
         </div>
+
         <div class="form-row">
           <label class="checkbox-label">
             <input type="checkbox" id="rememberMe">
@@ -646,14 +700,18 @@ html, body {
           </label>
           <a href="#" class="link-forgot">Mot de passe oublié&nbsp;?</a>
         </div>
+
         <button class="btn-submit" onclick="handleLogin(this)">Se connecter</button>
+
         <div class="switch-link">
           Pas encore de compte&nbsp;? <a href="#" onclick="switchTab('signup');return false;">Créer un compte gratuit</a>
         </div>
+
       </div>
 
       <!-- ── ONGLET INSCRIPTION ── -->
       <div class="tab-panel" id="panel-signup">
+
         <div class="name-grid">
           <div class="form-group">
             <label class="form-label">Prénom</label>
@@ -664,14 +722,17 @@ html, body {
             <input class="form-input" type="text" id="signupNom" placeholder="Martin" autocomplete="family-name">
           </div>
         </div>
+
         <div class="form-group">
           <label class="form-label">Nom de votre entreprise</label>
           <input class="form-input" type="text" id="signupEntreprise" placeholder="Les Confitures du Sud" autocomplete="organization">
         </div>
+
         <div class="form-group">
           <label class="form-label">Adresse e-mail</label>
           <input class="form-input" type="email" id="signupEmail" placeholder="vous@exemple.fr" autocomplete="email">
         </div>
+
         <div class="form-group" style="margin-bottom:20px;">
           <label class="form-label">Mot de passe</label>
           <div class="input-wrap">
@@ -683,13 +744,17 @@ html, body {
             </button>
           </div>
         </div>
+
         <button class="btn-submit" onclick="handleSignup(this)">Créer mon compte gratuit</button>
+
         <div class="switch-link" style="margin-top:16px;">
           Déjà un compte&nbsp;? <a href="#" onclick="switchTab('login');return false;">Se connecter</a>
         </div>
+
         <div class="switch-link" style="margin-top:10px;font-size:11px;color:#bbb8b2;">
           En créant un compte, vous acceptez nos <a href="#" style="color:#bbb8b2;">Conditions d'utilisation</a>
         </div>
+
       </div>
 
     </div>
@@ -698,20 +763,26 @@ html, body {
 </div>
 
 <script>
+// ── SWITCH ONGLETS ─────────────────────────────
 function switchTab(tab) {
   const isLogin = tab === 'login';
+
   document.querySelectorAll('.tab-btn').forEach((b, i) => {
     b.classList.toggle('active', isLogin ? i === 0 : i === 1);
   });
+
   document.getElementById('panel-login').classList.toggle('active', isLogin);
   document.getElementById('panel-signup').classList.toggle('active', !isLogin);
+
   document.getElementById('authTitle').textContent = isLogin ? 'Bon retour.' : 'Commençons.';
   document.getElementById('authSub').textContent = isLogin
     ? 'Connectez-vous à votre espace AppMee.'
-    : "Créez votre compte — c'est gratuit et sans engagement.";
+    : 'Créez votre compte — c\'est gratuit et sans engagement.';
+
   hideMsg();
 }
 
+// ── TOGGLE MOT DE PASSE ───────────────────────
 function togglePwd(inputId, btn) {
   const input = document.getElementById(inputId);
   const isHidden = input.type === 'password';
@@ -721,6 +792,7 @@ function togglePwd(inputId, btn) {
     : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
 }
 
+// ── MESSAGES ──────────────────────────────────
 function showMsg(text, type = 'error') {
   const box = document.getElementById('msgBox');
   box.className = `msg-box ${type}`;
@@ -728,25 +800,28 @@ function showMsg(text, type = 'error') {
 }
 
 function hideMsg() {
-  document.getElementById('msgBox').className = 'msg-box';
+  const box = document.getElementById('msgBox');
+  box.className = 'msg-box';
 }
 
+// ── VALIDATION ────────────────────────────────
 function validateEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+// ── CONNEXION ─────────────────────────────────
 async function handleLogin(btn) {
   hideMsg();
-  const email    = document.getElementById('loginEmail').value.trim();
+  const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
 
-  if (!email)               { showMsg('Veuillez saisir votre adresse e-mail.'); return; }
-  if (!validateEmail(email)){ showMsg('Adresse e-mail invalide.'); return; }
-  if (!password)            { showMsg('Veuillez saisir votre mot de passe.'); return; }
+  if (!email) { showMsg('Veuillez saisir votre adresse e-mail.'); return; }
+  if (!validateEmail(email)) { showMsg('Adresse e-mail invalide.'); return; }
+  if (!password) { showMsg('Veuillez saisir votre mot de passe.'); return; }
 
   btn.classList.add('loading');
   btn.dataset.orig = btn.textContent;
-  btn.textContent  = 'Connexion en cours';
+  btn.textContent = 'Connexion en cours';
 
   try {
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
@@ -754,17 +829,18 @@ async function handleLogin(btn) {
       document.querySelector('meta[name="supa-url"]').content,
       document.querySelector('meta[name="supa-key"]').content
     );
-
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     btn.classList.remove('loading');
     btn.textContent = btn.dataset.orig;
 
-    if (error) { showMsg('Email ou mot de passe incorrect.'); return; }
+    if (error) {
+      showMsg('Email ou mot de passe incorrect.');
+      return;
+    }
 
     showMsg('Connexion réussie ! Redirection…', 'success');
-    setTimeout(() => { window.location.href = '/app.html'; }, 800);
-
+    setTimeout(() => { window.location.href = '/app'; }, 800);
   } catch (err) {
     btn.classList.remove('loading');
     btn.textContent = btn.dataset.orig;
@@ -772,22 +848,23 @@ async function handleLogin(btn) {
   }
 }
 
+// ── INSCRIPTION ───────────────────────────────
 async function handleSignup(btn) {
   hideMsg();
-  const prenom     = document.getElementById('signupPrenom').value.trim();
-  const nom        = document.getElementById('signupNom').value.trim();
+  const prenom = document.getElementById('signupPrenom').value.trim();
+  const nom = document.getElementById('signupNom').value.trim();
   const entreprise = document.getElementById('signupEntreprise').value.trim();
-  const email      = document.getElementById('signupEmail').value.trim();
-  const password   = document.getElementById('signupPassword').value;
+  const email = document.getElementById('signupEmail').value.trim();
+  const password = document.getElementById('signupPassword').value;
 
-  if (!prenom || !nom)             { showMsg('Veuillez saisir votre prénom et nom.'); return; }
-  if (!entreprise)                 { showMsg('Veuillez saisir le nom de votre entreprise.'); return; }
+  if (!prenom || !nom) { showMsg('Veuillez saisir votre prénom et nom.'); return; }
+  if (!entreprise) { showMsg('Veuillez saisir le nom de votre entreprise.'); return; }
   if (!email || !validateEmail(email)) { showMsg('Adresse e-mail invalide.'); return; }
-  if (password.length < 8)        { showMsg('Le mot de passe doit contenir au moins 8 caractères.'); return; }
+  if (password.length < 8) { showMsg('Le mot de passe doit contenir au moins 8 caractères.'); return; }
 
   btn.classList.add('loading');
   btn.dataset.orig = btn.textContent;
-  btn.textContent  = 'Création en cours';
+  btn.textContent = 'Création en cours';
 
   try {
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
@@ -798,17 +875,21 @@ async function handleSignup(btn) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { prenom, nom, entreprise } }
+      options: {
+        data: { prenom, nom, entreprise }
+      }
     });
 
     btn.classList.remove('loading');
     btn.textContent = btn.dataset.orig;
 
-    if (error) { showMsg(error.message || 'Erreur lors de la création du compte.'); return; }
+    if (error) {
+      showMsg(error.message || 'Erreur lors de la création du compte.');
+      return;
+    }
 
     showMsg('Compte créé avec succès ! Vous pouvez maintenant vous connecter.', 'success');
     setTimeout(() => { switchTab('login'); }, 2000);
-
   } catch (err) {
     btn.classList.remove('loading');
     btn.textContent = btn.dataset.orig;
@@ -816,9 +897,11 @@ async function handleSignup(btn) {
   }
 }
 
+// ── CYCLE MOTS HOOK ──────────────────────────
 (function() {
-  const HOLD  = 1800;
-  const GAP   = 120;
+  const HOLD    = 1800;  // ms visible
+  const GAP     = 120;   // ms entre sortie et entrée suivante
+
   const words = document.querySelectorAll('#hookSub .hook-word');
   let current = 0;
 
@@ -826,20 +909,29 @@ async function handleSignup(btn) {
     const prev = words[current];
     current = (current + 1) % words.length;
     const next = words[current];
+
+    // Sortie du précédent
     prev.classList.remove('state-in');
     prev.classList.add('state-out');
+
+    // Entrée du suivant après le GAP
     setTimeout(() => {
+      // Reset position basse avant d'animer
       next.classList.remove('state-out');
+      // Force reflow pour que la transition joue
       void next.offsetWidth;
       next.classList.add('state-in');
     }, GAP);
+
     setTimeout(showNext, HOLD + GAP);
   }
 
+  // Premier mot : apparaît immédiatement au chargement
   words[0].classList.add('state-in');
   setTimeout(showNext, HOLD);
 })();
 
+// ── ENTRÉE CLAVIER ────────────────────────────
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter') return;
   const loginActive = document.getElementById('panel-login').classList.contains('active');
