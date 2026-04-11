@@ -716,8 +716,9 @@
 </div></div>
 
 <script type="module">
-  import { initAuth, signOut } from '/js/auth.js';
-  import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
+ import { initAuth, signOut } from '/js/auth.js';
+import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
+import { createCommande } from '/js/db.js';
 
   async function demarrerApp() {
     const modules = await Promise.all([
