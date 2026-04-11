@@ -1072,17 +1072,6 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
           if (!ok) return;
         }
 
-          try {
-          const ref = 'CMD' + Date.now().toString().slice(-6);
-          await db.createCommande({ ref, client_nom: client, date_cmd: dateCmd, date_livraison: dateLiv, statut: 'a_produire' }, lignes);
-          closeModal('modalImportMasse');
-          document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'import_masse', entities: ['commandes'] } }));
-          alert('OK Commande ' + ref + ' importee avec succes (' + lignes.length + ' ligne' + (lignes.length > 1 ? 's' : '') + ').');
-          window._iaData = null;
-        } catch (err) {
-          alert('Erreur import : ' + err.message);
-        }
-
     await commandes.init();
     await stock.init();
     await produits.init();
