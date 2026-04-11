@@ -785,6 +785,20 @@
       if (btn && commandes.initCommandeModal) commandes.initCommandeModal();
     }, true);
 
+    /* Fix B3 — initNewArticleModal avant ouverture du modal Nouvel Article
+       Recharge articles + fournisseurs depuis BDD : nextRef fiable + liste fournisseurs */
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-modal="modalNewArticle"]');
+      if (btn && stock.initNewArticleModal) await stock.initNewArticleModal();
+    }, true);
+
+    /* Fix B5 — initNewProduitModal avant ouverture du modal Nouveau Produit
+       Recharge produits + articles depuis BDD avant d'ouvrir le modal */
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-modal="modalNewProduit"]');
+      if (btn && produits.initNewProduitModal) await produits.initNewProduitModal(null);
+    }, true);
+
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-modal="modalPlanifier"]');
       if (btn && production.initPlanifierModal) production.initPlanifierModal(null);
@@ -956,9 +970,80 @@
         const prodOpts = produits.map(p => '<option value="' + p.ref + '">' + p.ref + ' — ' + p.nom + '</option>').join('');
         let html = '';
         if (matchees.length) { html += '<div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;margin-bottom:7px;">Lignes reconnues</div><table style="margin-bottom:10px;"><thead><tr><th>Produit</th><th>Nom document</th><th>Qté</th></tr></thead><tbody>'; matchees.forEach(l => { const p = produits.find(x => x.ref === l.refDetectee); if (!p) return; html += '<tr><td><span class="badge badge-ok" style="font-size:9.5px;">' + p.ref + '</span> ' + p.nom + '</td><td style="font-size:10.5px;color:var(--ink-muted);">&ldquo;' + l.nomOriginal + '&rdquo;</td><td><input type="number" min="1" value="' + l.qte + '" style="width:58px;padding:3px 6px;border:1px solid var(--ui-brd);border-radius:5px;font-size:12px;" data-ref="' + l.refDetectee + '"></td></tr>'; }); html += '</tbody></table>'; }
-        if (nonMatch.length) { html += '<div style="font-size:10px;font-weight:600;color:var(--ui-orange);text-transform:uppercase;margin-bottom:7px;">À assigner</div>'; nonMatch.forEach((l, i) => { html += '<div style="background:#fff3e0;border:1px solid #ffd09e;border-radius:7px;padding:8px 12px;margin-bottom:7px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><div style="flex:1;min-width:120px;"><div style="font-weight:600;font-size:12px;">&ldquo;' + l.nomOriginal + '&rdquo; ×' + l.qte + '</div></div><select data-idx="' + i + '" class="ia-assign-sel" style="flex:1;min-width:180px;font-size:11.5px;padding:5px 8px;border:1px solid #ffd09e;border-radius:5px;"><option value="">— Associer —</option>' + prodOpts + '</select></div>'; }); }
+        if (nonMatch.length) { html += '<div style="font-size:10px;font-weight:600;color:var(--ui-orange);text-transform:uppercase;margin-bottom:7px;">À assigner</div>'; nonMatch.forEach((l, i) => {
+          const refLabel = l.refDetectee ? '<span style="font-size:10px;color:var(--ink-muted);margin-top:2px;">Réf détectée : ' + l.refDetectee + '</span>' : '';
+          html += '<div style="background:#fff3e0;border:1px solid #ffd09e;border-radius:7px;padding:8px 12px;margin-bottom:7px;display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;">' +
+            '<div>' +
+              '<div style="font-weight:600;font-size:12px;">&ldquo;' + l.nomOriginal + '&rdquo;</div>' +
+              '<div style="font-size:11px;color:var(--ink-muted);margin-top:2px;">Qté : <strong>' + l.qte + '</strong>' + (l.refDetectee ? ' &nbsp;·&nbsp; Réf : ' + l.refDetectee : '') + '</div>' +
+            '</div>' +
+            '<select data-idx="' + i + '" data-nom="' + (l.nomOriginal||'').replace(/"/g,\'\') + '" data-qte="' + l.qte + '" class="ia-assign-sel" style="min-width:180px;font-size:11.5px;padding:5px 8px;border:1px solid #ffd09e;border-radius:5px;">' +
+              '<option value="">— Associer —</option>' + prodOpts +
+            '</select>' +
+            '<button class="btn btn-ghost btn-sm ia-creer-btn" ' +
+              'data-nom="' + (l.nomOriginal||'').replace(/"/g,\'\') + '" ' +
+              'data-qte="' + l.qte + '" ' +
+              'data-idx="' + i + '" ' +
+              'title="Créer ce produit" ' +
+              'style="white-space:nowrap;border-color:var(--ui-orange);color:var(--ui-orange);">➕ Créer</button>' +
+          '</div>';
+        }); }
         document.getElementById('iaPreview').innerHTML = html;
         window._iaData = data; window._iaProduits = produits;
+
+        /* Délégation — bouton "Créer ce produit" dans les lignes nonMatch */
+        document.getElementById('iaPreview').addEventListener('click', async (ev) => {
+          const btn = ev.target.closest('.ia-creer-btn');
+          if (!btn) return;
+          const nomIA = btn.dataset.nom || '';
+          const qteIA = btn.dataset.qte || '';
+          const idx   = btn.dataset.idx;
+
+          /* Ouvrir le modal Nouveau Produit pré-rempli avec le nom détecté */
+          if (produits && produits.initNewProduitModal) {
+            await produits.initNewProduitModal(null);
+          } else {
+            /* Fallback : importer le module produits */
+            const produitsModule = await import('/js/modules/produits.js');
+            await produitsModule.initNewProduitModal(null);
+          }
+
+          /* Pré-remplir le nom avec ce que l'IA a détecté */
+          const npNom = document.getElementById('npNom');
+          if (npNom) npNom.value = nomIA;
+
+          /* Mémoriser l'index de la ligne pour màj après création */
+          window._iaPendingIdx = idx;
+
+          openModal('modalNewProduit');
+
+          /* Après fermeture du modal modalNewProduit → rafraîchir la liste déroulante */
+          const observer = new MutationObserver(() => {
+            const modal = document.getElementById('modalNewProduit');
+            if (modal && !modal.classList.contains('active') && !modal.classList.contains('open')) {
+              observer.disconnect();
+              /* Recharger la liste des produits et mettre à jour les selects */
+              import('/js/modules/produits.js').then(async (pm) => {
+                await pm.render();
+                const newProds = pm.getProduitsCache();
+                const opts = newProds.map(p => '<option value="' + p.ref + '">' + p.ref + ' — ' + p.nom + '</option>').join('');
+                document.querySelectorAll('.ia-assign-sel').forEach(sel => {
+                  const currentVal = sel.value;
+                  sel.innerHTML = '<option value="">— Associer —</option>' + opts;
+                  /* Sélectionner le dernier produit créé si l'idx correspond */
+                  if (sel.dataset.idx === window._iaPendingIdx && newProds.length) {
+                    const last = newProds[newProds.length - 1];
+                    sel.value = last.ref;
+                  } else {
+                    sel.value = currentVal;
+                  }
+                });
+                window._iaPendingIdx = null;
+              });
+            }
+          });
+          observer.observe(document.getElementById('modalNewProduit'), { attributes: true, attributeFilter: ['class', 'style'] });
+        });
       }
 
       btnConfirm?.addEventListener('click', async () => {
