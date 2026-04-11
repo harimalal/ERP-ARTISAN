@@ -928,6 +928,16 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
       fileClear?.addEventListener('click', clearFile);
       btnReset?.addEventListener('click', () => { clearFile(); document.getElementById('iaStep1').style.display = 'block'; document.getElementById('iaStep2').style.display = 'none'; document.getElementById('iaStep3').style.display = 'none'; });
 
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-modal="modalImportIA"]');
+        if (!btn) return;
+        clearFile();
+        document.getElementById('iaStep1').style.display = 'block';
+        document.getElementById('iaStep2').style.display = 'none';
+        document.getElementById('iaStep3').style.display = 'none';
+        if (iaError) iaError.style.display = 'none';
+      }, true);
+
       btnAnalyse?.addEventListener('click', async () => {
         if (!_iaFile) return;
         document.getElementById('iaStep1').style.display = 'none';
