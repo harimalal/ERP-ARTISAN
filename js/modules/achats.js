@@ -299,7 +299,6 @@ async function _saveAchat() {
     showToast('⚠ Ajoutez au moins une ligne avec article et quantité.', 'error');
     return;
   }
-
   const fournisseur = document.getElementById('achatFournisseur')?.value || '';
   const refCommande = document.getElementById('achatRefCmd')?.value     || '';
   const notes       = document.getElementById('achatRemarque')?.value   || '';
@@ -309,29 +308,43 @@ async function _saveAchat() {
   if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
 
   try {
-    /* Fix BC1 — Recharger _achats ET _articles depuis Supabase avant nextRef
-       pour éviter cache vide si onglet Achats jamais visité (article_id null → rejeté) */
     try { [_achats, _articles] = await Promise.all([getAchats(), getArticles()]); } catch (_) {}
     const baseRef = nextRef('BC', _achats);
     let nbCrees = 0;
 
     for (const ligne of lignesValides) {
-      const a   = _articles.find(x => x.id === ligne.articleId);
+      const a    = _articles.find(x => x.id === ligne.articleId);
       const prix = ligne.prix > 0 ? ligne.prix : (a ? a.prix : 0);
       const ref  = lignesValides.length === 1 ? baseRef : baseRef + '-' + (nbCrees + 1);
 
-const bc = await createAchat({
-  ref,
-  article_id:    ligne.articleId,
-  article_nom:   ligne.nom || (a ? a.nom : ''),
-  quantite:      ligne.qte,
-  prix_unitaire: prix,
-  fournisseur:   fournisseur || (a ? a.fournisseur : ''),
-  statut:        'brouillon',
-  ref_commande:  refCommande,
-  notes,
-  date_cmd:      date,
-});
+      const bc = await createAchat({
+        ref,
+        article_id:    ligne.articleId,
+        article_nom:   ligne.nom || (a ? a.nom : ''),
+        quantite:      ligne.qte,
+        prix_unitaire: prix,
+        fournisseur:   fournisseur || (a ? a.fournisseur : ''),
+        statut:        'brouillon',
+        ref_commande:  refCommande,
+        notes,
+        date_cmd:      date,
+      });
+
+      _achats.unshift(bc);
+      nbCrees++;
+    }
+
+    closeModal('modalAchat');
+    _renderTable();
+    showToast(`✅ ${nbCrees} BC créé(s) — brouillon.`);
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'achats' } }));
+  } catch (err) {
+    showToast('❌ Erreur création BC.', 'error');
+    console.error('[achats] _saveAchat ERREUR:', err.message, err);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Créer le BC'; }
+  }
+}
 
     closeModal('modalAchat');
     _renderTable();
