@@ -49,7 +49,7 @@
   <button class="tab" data-page="stock">📦 Stock Articles <span class="tab-badge warn" id="badgeStockAlert" style="display:none">0</span></button>
   <button class="tab" data-page="produits">🏷 Produits Finis</button>
   <button class="tab" data-page="commandes">📋 Commandes <span class="tab-badge" id="badgeCmd" style="display:none">0</span></button>
-  <button class="tab" data-page="production">🏭 Production</button>
+  <button class="tab" data-page="production">🏭 Production <span class="tab-badge warn" id="badgeOF" style="display:none">0</span></button>
   <button class="tab" data-page="achats">🛒 Achats</button>
   <button class="tab" data-page="livraisons">🚚 Livraisons &amp; Factures</button>
   <button class="tab" data-page="recettes">📖 Recettes</button>
@@ -170,7 +170,7 @@
   </div>
   <div class="card" style="margin-bottom:16px;">
     <div class="card-hdr"><span class="card-hdr-title">📋 Ordres de fabrication (OF)</span></div>
-    <table><thead><tr><th>Référence</th><th>Produit</th><th>Qté</th><th>Clients</th><th>Date planifiée</th><th>Statut</th><th>Actions</th></tr></thead>
+    <table><thead><tr><th>Référence</th><th>Produit</th><th>Qté</th><th>Clients</th><th>Date planifiée</th><th>Statut</th><th>Actions</th><th></th></tr></thead>
     <tbody id="planningTbody"></tbody></table>
   </div>
   <div class="card" style="margin-bottom:16px;">
@@ -197,7 +197,7 @@
     <div class="btn-row"><button class="btn btn-primary" data-modal="modalAchat">+ Nouveau BC</button></div>
   </div>
   <div class="card">
-    <table><thead><tr><th>N° BC</th><th>Date</th><th>Article</th><th>Qté</th><th>Montant HT</th><th>Fournisseur</th><th>Réf commande</th><th>Statut</th><th>Aperçu</th></tr></thead>
+    <table><thead><tr><th>N° BC</th><th>Date</th><th>Article</th><th>Qté</th><th>Montant HT</th><th>Fournisseur</th><th>Réf commande</th><th>Statut</th></tr></thead>
     <tbody id="achatsTbody"></tbody></table>
   </div>
 </div>
@@ -427,6 +427,38 @@
   <div class="form-actions">
     <button class="btn btn-primary" id="btnSaveNewFacture">💾 Créer la facture</button>
     <button class="btn btn-ghost" data-close="modalNewFacture">Annuler</button>
+  </div>
+</div></div>
+
+<div class="modal-overlay" id="modalEditFacture"><div class="modal modal-lg">
+  <div class="modal-hdr"><span class="modal-hdr-title">✏️ Modifier la facture</span><button class="modal-close" data-close="modalEditFacture">×</button></div>
+  <div class="form-grid">
+    <div class="form-group"><label>Référence</label><input type="text" id="efRef" readonly style="background:var(--ui-bg2);"></div>
+    <div class="form-group"><label>Date</label><input type="date" id="efDate"></div>
+    <div class="form-group full"><label>Client</label><input type="text" id="efClient"></div>
+    <div class="form-group"><label>Montant HT (€)</label><input type="number" id="efMontant" step="0.01"></div>
+    <div class="form-group"><label>TVA (%)</label>
+      <select id="efTva">
+        <option value="0">0%</option>
+        <option value="5.5">5,5%</option>
+        <option value="10">10%</option>
+        <option value="20" selected>20%</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Statut</label>
+      <select id="efStatut">
+        <option value="a_lancer">À lancer</option>
+        <option value="facture">Facturée</option>
+        <option value="a_relancer">À relancer</option>
+        <option value="paye">Payée ✓</option>
+      </select>
+    </div>
+    <div class="form-group full"><label>Notes</label><textarea id="efNotes" rows="2"></textarea></div>
+  </div>
+  <input type="hidden" id="efId">
+  <div class="form-actions">
+    <button class="btn btn-primary" id="btnSaveEditFacture">💾 Enregistrer</button>
+    <button class="btn btn-ghost" data-close="modalEditFacture">Annuler</button>
   </div>
 </div></div>
 
@@ -809,6 +841,46 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
       if (btn && livraisons.initNewFactureModal) livraisons.initNewFactureModal();
     }, true);
 
+    /* Fix modal Modifier la facture — branché sur appmee:editFacture dispatché par livraisons.js */
+    document.addEventListener('appmee:editFacture', (e) => {
+      const f = e.detail || {};
+      document.getElementById('efId').value       = f.id || '';
+      document.getElementById('efRef').value      = f.ref || '';
+      document.getElementById('efDate').value     = f.date_facture || '';
+      document.getElementById('efClient').value   = f.client_nom || '';
+      document.getElementById('efMontant').value  = f.montant_ht || '';
+      const tvaEl = document.getElementById('efTva');
+      if (tvaEl) tvaEl.value = String(f.taux_tva || '20');
+      const statEl = document.getElementById('efStatut');
+      if (statEl) statEl.value = f.statut || 'facture';
+      document.getElementById('efNotes').value    = f.notes || '';
+      openModal('modalEditFacture');
+    });
+
+    document.getElementById('btnSaveEditFacture')?.addEventListener('click', async () => {
+      const id = document.getElementById('efId').value;
+      if (!id) return;
+      const montantHt = parseFloat(document.getElementById('efMontant').value) || 0;
+      const tva = parseFloat(document.getElementById('efTva').value) || 20;
+      try {
+        if (livraisons.saveEditFacture) {
+          await livraisons.saveEditFacture(id, {
+            date_facture: document.getElementById('efDate').value,
+            client_nom:   document.getElementById('efClient').value,
+            montant_ht:   montantHt,
+            taux_tva:     tva,
+            montant_ttc:  montantHt * (1 + tva / 100),
+            statut:       document.getElementById('efStatut').value,
+            notes:        document.getElementById('efNotes').value,
+          });
+        }
+        closeModal('modalEditFacture');
+      } catch(err) {
+        console.error('[modalEditFacture] ERREUR:', err.message);
+        alert('Erreur enregistrement : ' + err.message);
+      }
+    });
+
     /* A4 — Listener btnInventaireGlobal supprimé (bouton retiré du HTML) */
 
     document.getElementById('btnAddOFLigne')?.addEventListener('click', () => {
@@ -874,6 +946,7 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
     document.addEventListener('appmee:openAchatFor', (e) => {
       const { ref } = e.detail || {};
       if (achats.initAchatModal) achats.initAchatModal(ref || null);
+      openModal('modalAchat');
     });
 
     /* Navigation vers onglet depuis KPI cliquable */
@@ -1029,26 +1102,32 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
         /* Vider la ligne vide créée par initCommandeModal */
         document.getElementById('cmdLignes').innerHTML = '';
 
-        /* Injecter les lignes reconnues */
+        /* Injecter les lignes reconnues — séquentiellement pour éviter les races DOM */
         const toutes = [...matchees, ...nonMatch];
-        toutes.forEach(l => {
-          const p = produits.find(x => x.ref === l.refDetectee);
-          /* Simuler _addCmdLigne en cliquant le bouton */
-          document.getElementById('btnAddCmdLigne')?.click();
-          /* Récupérer la dernière ligne ajoutée */
-          const divs = document.querySelectorAll('#cmdLignes > div[id]');
-          const div  = divs[divs.length - 1];
-          if (!div) return;
-          if (p) {
-            div.querySelector('.crs').value = p.id;
-            div.querySelector('.cns').value = p.id;
-            div.querySelector('.crs').dispatchEvent(new Event('change'));
+        async function _injecterLignes() {
+          const btnAdd = document.getElementById('btnAddCmdLigne');
+          for (const l of toutes) {
+            const p = produits.find(x => x.ref === l.refDetectee);
+            const avantCount = document.querySelectorAll('#cmdLignes > div[id]').length;
+            btnAdd?.click();
+            await new Promise(res => setTimeout(res, 30));
+            const divs = document.querySelectorAll('#cmdLignes > div[id]');
+            const div  = divs[avantCount];
+            if (!div) continue;
+            if (p) {
+              const selRef = div.querySelector('.crs');
+              if (selRef) {
+                selRef.value = p.id;
+                selRef.dispatchEvent(new Event('change', { bubbles: false }));
+              }
+            }
+            const qteInp = div.querySelector('.cq');
+            if (qteInp) { qteInp.value = l.qte || 1; qteInp.dispatchEvent(new Event('input', { bubbles: false })); }
           }
-          const qteInp = div.querySelector('.cq');
-          if (qteInp) { qteInp.value = l.qte; qteInp.dispatchEvent(new Event('input')); }
-        });
+        }
+        _injecterLignes();
 
-       window._iaData = null;
+        window._iaData = null;
         window._iaProduits = null;
       }
 
