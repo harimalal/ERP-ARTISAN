@@ -8,6 +8,9 @@
    - _saveEditProduit() → updateProduit + saveRecette (ref existante)
    - initNewProduitModal() recharge toujours _articles depuis BDD
      pour éviter le cache vide ou désynchronisé.
+
+   Fix B1 — Coût revient calculé au render() depuis recettes + prix articles.
+   La colonne `cout` n'existe pas en BDD — calcul en mémoire à chaque render.
 ------------------------------------------------------- */
 
 import {
@@ -38,9 +41,26 @@ export async function init() {
 
 /* -------------------------------------------------------
    RENDER
+   Fix B1 — Charger articles + recettes de chaque produit,
+   calculer le coût et l'injecter dans le cache avant affichage.
+   Pattern identique à recettes.js qui fonctionne correctement.
 ------------------------------------------------------- */
 export async function render() {
-  _produits = await getProduits();
+  [_produits, _articles] = await Promise.all([getProduits(), getArticles()]);
+
+  /* Charger toutes les recettes en parallèle — une requête par produit */
+  const recettesRaw = await Promise.all(_produits.map(p => getRecettesByProduit(p.id)));
+
+  /* Calculer et injecter le coût dans chaque produit du cache */
+  _produits.forEach((p, i) => {
+    const lignes = recettesRaw[i] || [];
+    p.cout = lignes.reduce((s, l) => {
+      /* getRecettesByProduit retourne les lignes avec articles(prix) jointé */
+      const prix = l.articles?.prix ?? 0;
+      return s + prix * (l.quantite || 0);
+    }, 0);
+  });
+
   _renderTable();
 }
 
@@ -98,7 +118,6 @@ export async function initNewProduitModal(editProduit = null) {
     _articles = await getArticles();
   } catch (err) {
     console.error('[produits] initNewProduitModal — getArticles ERREUR:', err.message);
-    /* Continuer avec le cache existant si le rechargement échoue */
   }
 
   /* Recharger les produits pour avoir nextRef fiable */
@@ -293,7 +312,7 @@ async function _saveEditProduit() {
     const updated = await updateProduit(_editProduitId, { nom, prix_vente: prix, seuil });
     await saveRecette(_editProduitId, lignes);
 
-    /* Mettre à jour le cache local */
+    /* Mettre à jour le cache local avec le nouveau coût calculé */
     const idx = _produits.findIndex(p => p.id === _editProduitId);
     if (idx >= 0) Object.assign(_produits[idx], { nom, prix_vente: prix, seuil, cout });
 
