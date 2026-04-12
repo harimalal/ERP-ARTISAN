@@ -60,14 +60,16 @@ function _renderTable() {
       <td data-statut="${esc(stockStatus(a.stock, a.seuil))}">${stockStatus(a.stock, a.seuil)}</td>
       <td>${fmt(a.prix)} €</td>
       <td style="font-size:11px;color:var(--ink-muted)">${esc(a.fournisseur || '—')}</td>
-      <td onclick="event.stopPropagation()">
+      <td onclick="event.stopPropagation()" style="display:flex;gap:5px;align-items:center;">
         <button class="btn btn-outline btn-sm" data-ref="${esc(a.ref)}" data-action="commander">Commander</button>
+        <button class="btn btn-ghost btn-sm" data-action="inventaire">Inventaire</button>
       </td>
     </tr>`;
   }).join('');
 
-  /* S2 — Délégation Commander : dispatch openAchatFor avec ref + détail article complet
-     Le listener dans app.html doit pré-remplir le modal BC avec l'article et son fournisseur */
+  /* S2 — Délégation Commander + Inventaire par ligne
+     Commander : dispatch openAchatFor avec article complet → pré-remplit modal BC
+     Inventaire : ouvre modal inventaire pré-sélectionné sur cet article */
   const tbody = document.getElementById('stockTbody');
   tbody.onclick = (e) => {
     const btn = e.target.closest('[data-action]');
@@ -76,7 +78,6 @@ function _renderTable() {
     if (btn.dataset.action === 'commander') {
       const ref = btn.dataset.ref;
       const article = _articles.find(a => a.ref === ref);
-      /* Dispatch avec article complet pour que app.html pré-remplisse tout */
       document.dispatchEvent(new CustomEvent('appmee:openAchatFor', {
         detail: {
           ref,
@@ -93,6 +94,7 @@ function _renderTable() {
       _openEditArticle(btn.closest('tr').dataset.id);
     }
 
+    /* Fix B4 — Bouton Inventaire par ligne : handler existait, bouton manquait */
     if (btn.dataset.action === 'inventaire') {
       _openInventaire(btn.closest('tr').dataset.id);
     }
@@ -366,8 +368,6 @@ async function _saveEditArticle(articleId) {
 
 /* -------------------------------------------------------
    INVENTAIRE GLOBAL MULTI-LIGNES
-   Ouvre une fenêtre avec tous les articles, possibilité
-   d'ajuster n'importe lequel et d'ajouter des lignes.
 ------------------------------------------------------- */
 export function openInventaireGlobal() {
   let modal = document.getElementById('modalInventaireGlobal');
@@ -401,7 +401,6 @@ export function openInventaireGlobal() {
   _renderInvGlobalLignes();
 
   document.getElementById('btnAddInvLigne').onclick = _addInvGlobalLigne;
-  /* Remplacer le listener save */
   const btnSave = document.getElementById('btnSaveInvGlobal');
   const newBtn  = btnSave.cloneNode(true);
   btnSave.parentNode.replaceChild(newBtn, btnSave);
