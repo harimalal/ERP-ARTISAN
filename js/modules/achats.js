@@ -346,6 +346,22 @@ async function _saveAchat() {
   }
 }
 
+      _achats.unshift(bc);
+      nbCrees++;
+    }
+
+    closeModal('modalAchat');
+    _renderTable();
+    showToast(`✅ ${nbCrees} BC créé(s) — brouillon.`);
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'achats' } }));
+  } catch (err) {
+    showToast('❌ Erreur création BC.', 'error');
+    console.error('[achats] _saveAchat ERREUR:', err.message, err);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Créer le BC'; }
+  }
+}
+
     closeModal('modalAchat');
     _renderTable();
     showToast(`✅ ${nbCrees} BC créé(s) — brouillon.`);
