@@ -944,6 +944,9 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
     });
 
     document.addEventListener('appmee:openAchatFor', (e) => {
+      /* Fix B3 — transmettre la ref pour pré-sélection article + fournisseur dans le modal BC.
+         Ce listener est le seul point d'ouverture du modal quand un article est pré-sélectionné.
+         Le listener data-modal générique ci-dessous gère uniquement les ouvertures sans pré-sélection. */
       const { ref } = e.detail || {};
       if (achats.initAchatModal) achats.initAchatModal(ref || null);
       openModal('modalAchat');
@@ -957,9 +960,17 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
       if (tab) { showPage(section, tab); if (pageMap[section]) pageMap[section](); }
     });
 
+    /* Fix B3 — Ce listener capture les clics sur data-modal="modalAchat" (bouton "+ Nouveau BC")
+       sans pré-sélection. Il NE s'exécute PAS quand appmee:openAchatFor a déjà ouvert le modal,
+       car appmee:openAchatFor est dispatché AVANT le clic (depuis stock.js et dashboard.js via onclick).
+       Le openModal est géré par le listener appmee:openAchatFor — le listener générique
+       data-modal le ré-ouvre proprement sans écraser la pré-sélection. */
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-modal="modalAchat"]');
-      if (btn && achats.initAchatModal) achats.initAchatModal(null);
+      if (!btn) return;
+      /* Uniquement pour les boutons sans data-action (bouton direct, pas délégation stock/dashboard) */
+      if (e.target.closest('[data-action="commander"]')) return;
+      if (achats.initAchatModal) achats.initAchatModal(null);
     }, true);
 
     /* Import IA */
@@ -1024,8 +1035,9 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
           const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = () => rej(new Error('Lecture impossible')); r.readAsDataURL(_iaFile); });
           const ext = _iaFile.name.split('.').pop().toLowerCase();
           const ctx = document.getElementById('iaContext')?.value || '';
-          const produitsCache = window._appProduits || [];
-          const clientsCache  = window._appClients  || [];
+          /* Fix B7 — utiliser les vrais caches des modules au lieu de window._appProduits (non défini) */
+          const produitsCache = produits.getProduitsCache?.() || [];
+          const clientsCache  = commandes.getClientsCache?.() || [];
           const { data: { session } } = await (await import('/js/config.js')).supabase.auth.getSession();
           const { getTenantId } = await import('/js/auth.js');
           const resp = await fetch('/api/ai-analyse-bc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fichier: b64, extension: ext, contexte: ctx, produits: produitsCache, clients: clientsCache, tenantId: getTenantId() || '', token: session?.access_token || '' }) });
@@ -1071,7 +1083,25 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
         const matchees = lignes.filter(l => l.refDetectee && produits.find(p => p.ref === l.refDetectee));
         const nonMatch = lignes.filter(l => !l.refDetectee || !produits.find(p => p.ref === l.refDetectee));
 
-        
+        /* Fix B9 — Afficher un message clair si des lignes n'ont pas de correspondance */
+        const iaSummary = document.getElementById('iaSummary');
+        if (iaSummary) {
+          let html = `<div style="font-size:12px;color:var(--ink-muted);margin-bottom:8px;">
+            <strong>${matchees.length}</strong> produit(s) reconnu(s) · <strong>${nonMatch.length}</strong> non reconnu(s)
+          </div>`;
+          if (nonMatch.length > 0) {
+            html += `<div class="alert-box alert-warn" style="margin-bottom:10px;">
+              <span>⚠</span>
+              <span>
+                <strong>${nonMatch.length} produit(s) non reconnu(s)</strong> dans votre catalogue.<br>
+                Utilisez la liste déroulante ci-dessous pour les associer manuellement,
+                ou créez-les d'abord dans <strong>l'onglet Produits Finis</strong> puis relancez l'import.
+              </span>
+            </div>`;
+          }
+          iaSummary.innerHTML = html;
+        }
+
         /* ── Fermer modal IA → injecter dans modalCommande ── */
         closeModal('modalImportMasse');
         if (commandes?.initCommandeModal) commandes.initCommandeModal();
@@ -1101,6 +1131,50 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
 
         /* Vider la ligne vide créée par initCommandeModal */
         document.getElementById('cmdLignes').innerHTML = '';
+
+        /* Fix B8 — Afficher un bloc de sélection manuelle pour les lignes non reconnues
+           La liste déroulante contient TOUS les produits finis du catalogue */
+        if (nonMatch.length > 0) {
+          const iaPreview = document.getElementById('iaPreview');
+          if (iaPreview) {
+            /* Construire les options avec tous les produits finis */
+            const opts = produits.map(p =>
+              `<option value="${p.ref}">${p.ref} — ${p.nom}</option>`
+            ).join('');
+
+            const rows = nonMatch.map((l, i) => `
+              <tr>
+                <td style="font-size:11.5px;color:var(--ui-red);">⚠ ${l.nomOriginal || '—'}</td>
+                <td><input type="number" value="${l.qte || 1}" min="1" step="1"
+                  class="ia-nm-qte" data-idx="${i}"
+                  style="width:60px;padding:4px 6px;border:1.5px solid var(--ui-brd);border-radius:5px;font-size:12px;"></td>
+                <td>
+                  <select class="ia-nm-sel" data-idx="${i}" data-nom="${(l.nomOriginal || '').replace(/"/g, '')}"
+                    style="font-size:11.5px;padding:4px 6px;border:1.5px solid var(--ui-brd);border-radius:5px;">
+                    <option value="">— Ignorer cette ligne —</option>
+                    ${opts}
+                  </select>
+                </td>
+              </tr>`).join('');
+
+            iaPreview.innerHTML = `
+              <div style="margin-bottom:10px;font-size:11px;font-weight:600;color:var(--ink-muted);
+                text-transform:uppercase;letter-spacing:.5px;">Lignes à associer manuellement</div>
+              <table style="width:100%;border-collapse:collapse;">
+                <thead><tr>
+                  <th style="text-align:left;font-size:10.5px;padding:4px 6px;">Nom détecté</th>
+                  <th style="text-align:left;font-size:10.5px;padding:4px 6px;">Qté</th>
+                  <th style="text-align:left;font-size:10.5px;padding:4px 6px;">Associer à</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+              </table>`;
+
+            iaPreview.style.display = 'block';
+            document.getElementById('iaStep3').style.display = 'block';
+            document.getElementById('iaStep1').style.display = 'none';
+            document.getElementById('iaStep2').style.display = 'none';
+          }
+        }
 
         /* Injecter les lignes reconnues — séquentiellement pour éviter les races DOM */
         const toutes = [...matchees, ...nonMatch];
