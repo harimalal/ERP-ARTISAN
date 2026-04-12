@@ -225,7 +225,7 @@ function _renderBCLignes() {
       _bcLignes[i].articleId = e.target.value;
       _bcLignes[i].nom       = a ? a.nom  : '';
       _bcLignes[i].unite     = a ? a.unite : '';
-      if (a && !_bcLignes[i].prix) {
+      if (a) {
         _bcLignes[i].prix = a.prix;
         div.querySelector('.bc-px').value = a.prix;
       }
@@ -305,10 +305,13 @@ async function _saveAchat() {
   const notes       = document.getElementById('achatRemarque')?.value   || '';
   const date        = document.getElementById('achatDate')?.value        || today();
 
+  const btn = document.getElementById('btnSaveAchat');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
+
   try {
-    /* Fix B4 — Recharger _achats depuis Supabase avant nextRef
-       pour éviter les doublons de ref (contrainte unique tenant_id, ref) */
-    try { _achats = await getAchats(); } catch (_) {}
+    /* Fix BC1 — Recharger _achats ET _articles depuis Supabase avant nextRef
+       pour éviter cache vide si onglet Achats jamais visité (article_id null → rejeté) */
+    try { [_achats, _articles] = await Promise.all([getAchats(), getArticles()]); } catch (_) {}
     const baseRef = nextRef('BC', _achats);
     let nbCrees = 0;
 
@@ -342,6 +345,8 @@ async function _saveAchat() {
   } catch (err) {
     showToast('❌ Erreur création BC.', 'error');
     console.error('[achats] _saveAchat ERREUR:', err.message, err);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Créer le BC'; }
   }
 }
 
