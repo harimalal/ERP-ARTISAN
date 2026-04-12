@@ -23,9 +23,9 @@ import {
 let _achats       = [];
 let _articles     = [];
 let _fournisseurs = [];
-let _tenant       = {};   /* Coordonnées Mon Entreprise pour les PDFs */
-let _currentBCId  = null; /* UUID du BC en cours d'édition */
-let _bcLignes     = [];   /* Lignes du formulaire BC courant */
+let _tenant       = {};
+let _currentBCId  = null;
+let _bcLignes     = [];
 
 /* -------------------------------------------------------
    INIT
@@ -36,7 +36,6 @@ export async function init() {
   ]);
   _bindAchatForm();
   _bindDetailBCForm();
-  // listener appmee:openAchatFor géré dans app.html
 }
 
 /* -------------------------------------------------------
@@ -76,21 +75,10 @@ function _renderTable() {
 
   const tbody = document.getElementById('achatsTbody');
 
-  /* Clic ligne → ouvre modal BC (création) avec article pré-sélectionné
-     Clic bouton PDF → aperçu PDF */
   tbody.onclick = (e) => {
-    /* Bouton PDF — action explicite */
     const btn = e.target.closest('[data-action="pdf"]');
-    if (btn) {
-      e.stopPropagation();
-      _aperçuPdfBC(btn.dataset.id);
-      return;
-    }
-
-    /* Ignore les select (changement statut) */
+    if (btn) { e.stopPropagation(); _aperçuPdfBC(btn.dataset.id); return; }
     if (e.target.closest('[data-action="changer-statut"]')) return;
-
-    /* Clic ligne → ouvre le modal BC en mode édition */
     const tr = e.target.closest('tr[data-id]');
     if (tr) _openDetailBC(tr.dataset.id);
   };
@@ -103,7 +91,6 @@ function _renderTable() {
 
 /* -------------------------------------------------------
    FORMULAIRE NOUVEAU BC
-   Amélioré : affiche les coordonnées émetteur + fournisseur
 ------------------------------------------------------- */
 export function initAchatModal(preselectArticleRef = null) {
   document.getElementById('achatDate').value     = today();
@@ -111,46 +98,34 @@ export function initAchatModal(preselectArticleRef = null) {
   document.getElementById('achatRefCmd').value   = '';
   document.getElementById('achatMontant').style.display = 'none';
 
-  /* Fournisseurs */
   const fSel = document.getElementById('achatFournisseur');
   fSel.innerHTML = '<option value="">— Tous fournisseurs —</option>' +
     _fournisseurs.map(f => `<option value="${esc(f.nom)}">${esc(f.nom)}</option>`).join('');
 
-  /* Bloc coordonnées émetteur sous le formulaire */
   _renderBlocEmetteur();
-
-  /* Réinitialiser les lignes */
   _bcLignes = [];
   _renderBCLignes();
-
-  /* Ajouter une ligne initiale, pré-sélectionnée si ref fournie */
   _addBCLigne(preselectArticleRef);
 
-  /* Forcer le fournisseur dans le select APRÈS _addBCLigne */
   if (preselectArticleRef) {
     const art = _articles.find(a => a.ref === preselectArticleRef);
     if (art && art.fournisseur) {
       fSel.value = art.fournisseur;
-      /* Afficher les coordonnées du fournisseur sélectionné */
       _renderBlocFournisseur(art.fournisseur);
     }
   }
 }
 
-/* Affiche un bloc lecture seule "Émetteur" dans le modal BC */
 function _renderBlocEmetteur() {
-  /* Chercher ou créer le bloc */
   let bloc = document.getElementById('bcBlocEmetteur');
   if (!bloc) {
     bloc = document.createElement('div');
     bloc.id = 'bcBlocEmetteur';
     bloc.style.cssText = 'margin:0 16px 10px;padding:9px 12px;background:var(--ui-bg2);border-radius:7px;font-size:11.5px;display:grid;grid-template-columns:1fr 1fr;gap:6px;';
-    /* Insérer après le form-grid du modal, avant les lignes articles */
     const lignesLabel = document.querySelector('#modalAchat [style*="Articles à commander"]');
     if (lignesLabel) {
       lignesLabel.parentElement.insertBefore(bloc, lignesLabel.parentElement.querySelector('#bcLignesContainer'));
     } else {
-      /* Fallback : insérer avant bcLignesContainer */
       const container = document.getElementById('bcLignesContainer');
       if (container) container.parentElement.insertBefore(bloc, container);
     }
@@ -172,7 +147,6 @@ function _renderBlocEmetteur() {
     </div>`;
 }
 
-/* Met à jour le bloc fournisseur à droite quand on change le select */
 function _renderBlocFournisseur(nomFournisseur) {
   const el = document.getElementById('bcBlocFournisseurInfo');
   if (!el) return;
@@ -196,7 +170,6 @@ function _bindAchatForm() {
   document.getElementById('achatFournisseur')?.addEventListener('change', (e) => {
     _bcLignes.forEach((_, i) => _syncLigneFournisseur(i, e.target.value));
     _renderBCTotal();
-    /* Mettre à jour le bloc coordonnées fournisseur */
     _renderBlocFournisseur(e.target.value);
   });
   document.getElementById('btnAddBCLigne')?.addEventListener('click', () => _addBCLigne());
@@ -204,7 +177,6 @@ function _bindAchatForm() {
   document.getElementById('btnAperçuBC')?.addEventListener('click', _aperçuBCFormulaire);
 }
 
-/* Rendu des lignes du BC dans le container */
 function _renderBCLignes() {
   const container = document.getElementById('bcLignesContainer');
   if (!container) return;
@@ -231,10 +203,7 @@ function _renderBCLignes() {
       }
       if (a && a.fournisseur) {
         const fSel = document.getElementById('achatFournisseur');
-        if (fSel && !fSel.value) {
-          fSel.value = a.fournisseur;
-          _renderBlocFournisseur(a.fournisseur);
-        }
+        if (fSel && !fSel.value) { fSel.value = a.fournisseur; _renderBlocFournisseur(a.fournisseur); }
       }
       _renderBCTotal();
     });
@@ -272,10 +241,7 @@ function _addBCLigne(preselectRef = null) {
   _renderBCTotal();
   if (defArt && defArt.fournisseur) {
     const fSel = document.getElementById('achatFournisseur');
-    if (fSel && !fSel.value) {
-      fSel.value = defArt.fournisseur;
-      _renderBlocFournisseur(defArt.fournisseur);
-    }
+    if (fSel && !fSel.value) { fSel.value = defArt.fournisseur; _renderBlocFournisseur(defArt.fournisseur); }
   }
 }
 
@@ -346,38 +312,8 @@ async function _saveAchat() {
   }
 }
 
-      _achats.unshift(bc);
-      nbCrees++;
-    }
-
-    closeModal('modalAchat');
-    _renderTable();
-    showToast(`✅ ${nbCrees} BC créé(s) — brouillon.`);
-    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'achats' } }));
-  } catch (err) {
-    showToast('❌ Erreur création BC.', 'error');
-    console.error('[achats] _saveAchat ERREUR:', err.message, err);
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '💾 Créer le BC'; }
-  }
-}
-
-    closeModal('modalAchat');
-    _renderTable();
-    showToast(`✅ ${nbCrees} BC créé(s) — brouillon.`);
-    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'achats' } }));
-  } catch (err) {
-    showToast('❌ Erreur création BC.', 'error');
-    console.error('[achats] _saveAchat ERREUR:', err.message, err);
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '💾 Créer le BC'; }
-  }
-}
-
 /* -------------------------------------------------------
    DÉTAIL / ÉDITION BC
-   Clic ligne → ouvre le modal modalDetailBC avec tous les
-   champs éditables + coordonnées émetteur et fournisseur
 ------------------------------------------------------- */
 function _openDetailBC(id) {
   _currentBCId = id;
@@ -389,7 +325,6 @@ function _openDetailBC(id) {
 
   document.getElementById('detailBCTitle').textContent = 'BC ' + (a.ref || '—') + ' — Détail & édition';
   document.getElementById('detailBCContent').innerHTML = `
-    <!-- Bloc émetteur / fournisseur -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;padding:10px 12px;background:var(--ui-bg2);border-radius:7px;font-size:11.5px;">
       <div>
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-muted);margin-bottom:4px;">Émetteur</div>
@@ -408,7 +343,6 @@ function _openDetailBC(id) {
         ${f.email   ? '<div>' + esc(f.email)   + '</div>'                                   : ''}
       </div>
     </div>
-    <!-- Formulaire édition -->
     <div class="form-grid" style="padding:0;">
       <div class="form-group"><label>N° BC</label>
         <input type="text" id="dbcRef" value="${esc(a.ref || '')}" readonly style="background:var(--ui-bg2);color:var(--ink-muted);"></div>
@@ -463,18 +397,17 @@ async function _saveDetailBC() {
   const prix      = parseFloat(document.getElementById('dbcPrix').value) || 0;
 
   try {
-const updated = await updateAchat(_currentBCId, {
-  date_cmd:      document.getElementById('dbcDate').value,
-  article_nom:   document.getElementById('dbcNom').value,
-  quantite:      qte,
-  prix_unitaire: prix,
-  fournisseur:   document.getElementById('dbcFournisseur').value,
-  ref_commande:  document.getElementById('dbcRefCmd').value,
-  notes:         document.getElementById('dbcRemarque').value,
-  statut:        newStatut,
-});
+    const updated = await updateAchat(_currentBCId, {
+      date_cmd:      document.getElementById('dbcDate').value,
+      article_nom:   document.getElementById('dbcNom').value,
+      quantite:      qte,
+      prix_unitaire: prix,
+      fournisseur:   document.getElementById('dbcFournisseur').value,
+      ref_commande:  document.getElementById('dbcRefCmd').value,
+      notes:         document.getElementById('dbcRemarque').value,
+      statut:        newStatut,
+    });
 
-    /* Si nouveau statut = reçu → mettre à jour le stock */
     if (newStatut === 'recu' && oldStatut !== 'recu') {
       const bc = _achats.find(x => x.id === _currentBCId);
       if (bc) {
@@ -501,7 +434,7 @@ const updated = await updateAchat(_currentBCId, {
 }
 
 /* -------------------------------------------------------
-   CHANGEMENT STATUT RAPIDE (depuis la liste)
+   CHANGEMENT STATUT RAPIDE
 ------------------------------------------------------- */
 async function _changerStatutBC(id, statut) {
   if (!statut) return;
@@ -531,17 +464,12 @@ async function _changerStatutBC(id, statut) {
 
 /* -------------------------------------------------------
    APERÇU PDF
-   Fix : dispatch correct avec type 'bc' ou 'bc_multi'
 ------------------------------------------------------- */
 function _aperçuPdfBC(id) {
   const bc = _achats.find(x => x.id === id);
   if (!bc) { showToast('⚠ BC introuvable.', 'error'); return; }
   document.dispatchEvent(new CustomEvent('appmee:showPdf', {
-    detail: {
-      title: 'BC ' + (bc.ref || ''),
-      type:  'bc',
-      data:  { ...bc, tenant: _tenant },
-    },
+    detail: { title: 'BC ' + (bc.ref || ''), type: 'bc', data: { ...bc, tenant: _tenant } },
   }));
 }
 
