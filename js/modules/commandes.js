@@ -263,6 +263,9 @@ function _updateCmdHint(produitId, el, qte) {
 }
 
 async function _saveCommande() {
+  /* Fix B10 — protection double-clic : désactiver le bouton pendant l'appel */
+  const btnSave = document.getElementById('btnSaveCommande');
+  if (btnSave) { btnSave.disabled = true; btnSave.textContent = 'Enregistrement…'; }
   const date      = document.getElementById('cmdDate').value || today();
   const dateLiv   = document.getElementById('cmdDateLiv').value || null;
   const selVal    = document.getElementById('cmdClientSel')?.value || '';
@@ -286,7 +289,11 @@ async function _saveCommande() {
     }
   });
 
-  if (!lignes.length) { showToast('⚠ Ajoutez au moins une ligne.', 'error'); return; }
+  if (!lignes.length) {
+    showToast('⚠ Ajoutez au moins une ligne.', 'error');
+    if (btnSave) { btnSave.disabled = false; btnSave.textContent = '💾 Enregistrer'; }
+    return;
+  }
 
   const ref = nextRef('CMD', _commandes);
 
@@ -313,6 +320,9 @@ async function _saveCommande() {
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'commandes' } }));
   } catch (err) {
     showToast('❌ Erreur création commande.', 'error');
+  } finally {
+    /* Fix B10 — réactiver le bouton dans tous les cas (succès ou erreur) */
+    if (btnSave) { btnSave.disabled = false; btnSave.textContent = '💾 Enregistrer'; }
   }
 }
 
