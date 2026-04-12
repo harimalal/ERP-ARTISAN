@@ -2,11 +2,22 @@
    AppMee — modules/production.js
    Ordres de fabrication, calendrier, besoins, manques.
    Dépend de : db.js, ui.js
+
+   Fix B2 — _terminerFab() : p.recette n'existe pas en BDD.
+   Les recettes sont chargées depuis getRecettesByProduit()
+   au render() et stockées dans _recettes[produitId].
+   Format réel : [{ article_id, quantite, articles: { ref, prix, ... } }]
+
+   Fix B6 — _savePlanifier() : même problème sur p.recette.
+   Les BCs automatiques lisent maintenant _recettes[p.id].
+
+   Fix commun — _calcManquesRecette(), _renderBesoins() :
+   lisent _recettes[produitId] au lieu de p.recette.
 ------------------------------------------------------- */
 
 import {
   getAllOFs, createOF, updateOFStatut, updateOFDate,
-  getCommandes, getProduits, getArticles,
+  getCommandes, getProduits, getArticles, getRecettesByProduit,
   updateArticleStock, updateProduitStock,
   createAchat, achatDoublonExiste, getAchats,
   addMouvement, factureExistePourCommande, createFacture,
@@ -21,6 +32,7 @@ let _ofs       = [];
 let _commandes = [];
 let _produits  = [];
 let _articles  = [];
+let _recettes  = {}; /* Fix B2/B6 — { produitId: [lignes recette] } */
 let _calOffset = 0;
 
 /* -------------------------------------------------------
@@ -30,6 +42,8 @@ export async function init() {
   [_ofs, _commandes, _produits, _articles] = await Promise.all([
     getAllOFs(), getCommandes(), getProduits(), getArticles(),
   ]);
+  /* Charger les recettes de tous les produits en parallèle */
+  await _chargerRecettes();
   _bindCalNav();
   _bindPlanifierForm();
 }
@@ -41,10 +55,25 @@ export async function render() {
   [_ofs, _commandes, _produits, _articles] = await Promise.all([
     getAllOFs(), getCommandes(), getProduits(), getArticles(),
   ]);
+  /* Recharger les recettes à chaque render pour avoir les prix à jour */
+  await _chargerRecettes();
   _renderCalendrier();
   _renderOFs();
   _renderFabPlan();
   _renderBesoins();
+}
+
+/* -------------------------------------------------------
+   Fix B2/B6 — Charger toutes les recettes en parallèle
+   et les stocker dans _recettes[produitId]
+   Format : [{ article_id, quantite, articles: { ref, nom, unite, prix, stock } }]
+------------------------------------------------------- */
+async function _chargerRecettes() {
+  const recettesRaw = await Promise.all(_produits.map(p => getRecettesByProduit(p.id)));
+  _recettes = {};
+  _produits.forEach((p, i) => {
+    _recettes[p.id] = recettesRaw[i] || [];
+  });
 }
 
 /* -------------------------------------------------------
@@ -113,7 +142,6 @@ function _renderOFs() {
     'annule':       'Annulé',
   };
 
-  /* Date ISO → JJ/MM/AAAA */
   const fmtDateFR = (d) => {
     if (!d) return '—';
     const p = d.split('-');
@@ -128,7 +156,6 @@ function _renderOFs() {
       <td><strong>${of.quantite}</strong></td>
       <td style="font-size:10.5px;color:var(--ink-muted)">${esc(of.notes || '')}</td>
       <td style="font-size:11.5px;color:var(--ink);">
-        <!-- G — Clic sur le texte de la date → ouvre le picker natif -->
         <span
           style="cursor:pointer;text-decoration:underline dotted;color:var(--ink);"
           title="Cliquer pour modifier la date"
@@ -153,7 +180,6 @@ function _renderOFs() {
     </tr>`;
   }).join('');
 
-  /* Délégation d'événements */
   tbody.onchange = async (e) => {
     const el = e.target.closest('[data-action]');
     if (!el) return;
@@ -197,7 +223,7 @@ function _renderFabPlan() {
     Object.entries(fab).map(([produitId, f]) => {
       const p = _produits.find(x => x.id === produitId);
       if (!p) return '';
-      const manques = _calcManquesRecette(p, f.qte);
+      const manques = _calcManquesRecette(produitId, f.qte);
       const ok = !manques.length;
       return `<tr class="${ok ? 'prod-ok' : 'prod-fail'}">
         <td class="td-bold">${esc(f.nom)}</td>
@@ -225,7 +251,7 @@ function _renderBesoins() {
   Object.entries(besoins).forEach(([produitId, qteCmd]) => {
     const p = _produits.find(x => x.id === produitId);
     if (!p) return;
-    const manques = _calcManquesRecette(p, qteCmd);
+    const manques = _calcManquesRecette(produitId, qteCmd);
     const ok = !manques.length;
     bHtml += `<tr class="${ok ? 'prod-ok' : 'prod-fail'}">
       <td class="td-bold">${esc(p.nom)}</td>
@@ -242,13 +268,14 @@ function _renderBesoins() {
   document.getElementById('besoinsTbody').innerHTML = bHtml ||
     '<tr><td colspan="5" style="text-align:center;padding:14px;color:var(--ui-green)">✅ Aucune commande en attente.</td></tr>';
 
-  /* Manques globaux articles */
+  /* Fix B2/B6 — Manques globaux articles depuis _recettes (plus p.recette) */
   const mg = {};
   Object.entries(besoins).forEach(([produitId, q]) => {
-    const p = _produits.find(x => x.id === produitId);
-    if (!p || !p.recette) return;
-    Object.entries(p.recette).forEach(([aref, qp]) => {
-      mg[aref] = (mg[aref] || 0) + qp * q;
+    const lignes = _recettes[produitId] || [];
+    lignes.forEach(l => {
+      const aref = l.articles?.ref;
+      if (!aref) return;
+      mg[aref] = (mg[aref] || 0) + l.quantite * q;
     });
   });
 
@@ -273,7 +300,6 @@ function _renderBesoins() {
   document.getElementById('manquesTbody').innerHTML = mHtml ||
     '<tr><td colspan="8" style="text-align:center;padding:12px;color:var(--ui-green)">✅ Tous les articles disponibles.</td></tr>';
 
-  /* Délégation */
   document.getElementById('besoinsTbody').onclick = async (e) => {
     const btn = e.target.closest('[data-action="creer-of"]');
     if (btn) await _creerOF(btn.dataset.produitId, parseInt(btn.dataset.qte));
@@ -292,14 +318,17 @@ function _renderBesoins() {
 
 /* -------------------------------------------------------
    HELPERS
+   Fix B2 — _calcManquesRecette reçoit produitId (string UUID)
+   et lit depuis _recettes[produitId] au lieu de p.recette
 ------------------------------------------------------- */
-function _calcManquesRecette(produit, qte) {
-  if (!produit.recette) return [];
+function _calcManquesRecette(produitId, qte) {
+  const lignes = _recettes[produitId] || [];
+  if (!lignes.length) return [];
   const manques = [];
-  Object.entries(produit.recette).forEach(([aref, qp]) => {
-    const a = _articles.find(x => x.ref === aref);
-    if (a && a.stock < qp * qte) {
-      manques.push(`${a.nom} (manque ${fmtQ(qp * qte - a.stock)} ${a.unite})`);
+  lignes.forEach(l => {
+    const a = _articles.find(x => x.ref === l.articles?.ref);
+    if (a && a.stock < l.quantite * qte) {
+      manques.push(`${a.nom} (manque ${fmtQ(l.quantite * qte - a.stock)} ${a.unite})`);
     }
   });
   return manques;
@@ -330,22 +359,41 @@ async function _terminerFab(id) {
   if (!ok) return;
 
   try {
-    /* Déduire les articles consommés */
-    if (p.recette) {
-      for (const [aref, qp] of Object.entries(p.recette)) {
-        const a = _articles.find(x => x.ref === aref);
-        if (!a) continue;
-        const newStock = Math.max(0, a.stock - qp * of.quantite);
-        await updateArticleStock(a.id, newStock);
-        await addMouvement({ type: 'sortie', ref: aref, nom: a.nom, qte: qp * of.quantite, motif: 'Production ' + of.ref, ref_doc: of.ref });
-        a.stock = newStock;
-      }
+    /* Fix B2 — Lire les lignes de recette depuis _recettes[produit_id]
+       Format réel BDD : [{ article_id, quantite, articles: { ref, nom, unite, prix } }]
+       Plus de p.recette qui n'existe pas en base */
+    const lignesRecette = _recettes[of.produit_id] || [];
+
+    for (const l of lignesRecette) {
+      const aref = l.articles?.ref;
+      const qp   = l.quantite || 0;
+      if (!aref || !qp) continue;
+      const a = _articles.find(x => x.ref === aref);
+      if (!a) continue;
+      const newStock = Math.max(0, a.stock - qp * of.quantite);
+      await updateArticleStock(a.id, newStock);
+      await addMouvement({
+        type:    'sortie',
+        ref:     aref,
+        nom:     a.nom,
+        qte:     qp * of.quantite,
+        motif:   'Production ' + of.ref,
+        ref_doc: of.ref,
+      });
+      a.stock = newStock;
     }
 
     /* Ajouter au stock produits finis */
     const newPFStock = (p.stock || 0) + of.quantite;
     await updateProduitStock(p.id, newPFStock);
-    await addMouvement({ type: 'entree_pf', ref: p.ref, nom: p.nom, qte: of.quantite, motif: 'Production ' + of.ref, ref_doc: of.ref });
+    await addMouvement({
+      type:    'entree_pf',
+      ref:     p.ref,
+      nom:     p.nom,
+      qte:     of.quantite,
+      motif:   'Production ' + of.ref,
+      ref_doc: of.ref,
+    });
     p.stock = newPFStock;
 
     await updateOFStatut(id, 'clos');
@@ -437,7 +485,6 @@ export function initPlanifierModal(preselectProduitRef = null) {
   if (ofFaisabilite) ofFaisabilite.style.display = 'none';
 }
 
-/* Compteur lignes OF */
 let _ofLigneN = 0;
 
 function _addOFLigne(preselectProduitRef = null) {
@@ -513,18 +560,31 @@ async function _savePlanifier() {
       _ofs.push(of);
       createdCount++;
 
-      /* Créer BCs automatiques si articles insuffisants */
-      if (p.recette) {
-        for (const [aref, qp] of Object.entries(p.recette)) {
-          const a = _articles.find(x => x.ref === aref);
-          if (!a) continue;
-          const manque = qp * qte - a.stock;
-          if (manque <= 0) continue;
-          const doublon = await achatDoublonExiste(aref, ref);
-          if (doublon) continue;
-          const bcRef = nextRef('BC', await getAchats());
-          await createAchat({ ref: bcRef, article_id: a.id, article_nom: a.nom, quantite: Math.ceil(manque), prix_unitaire: a.prix, fournisseur: a.fournisseur || '', statut: 'brouillon', ref_commande: ref, notes: 'Auto OF ' + ref });
-        }
+      /* Fix B6 — Créer BCs automatiques depuis _recettes[p.id]
+         Plus de p.recette qui n'existe pas en base */
+      const lignesRecette = _recettes[p.id] || [];
+      for (const l of lignesRecette) {
+        const aref = l.articles?.ref;
+        const qp   = l.quantite || 0;
+        if (!aref || !qp) continue;
+        const a = _articles.find(x => x.ref === aref);
+        if (!a) continue;
+        const manque = qp * qte - a.stock;
+        if (manque <= 0) continue;
+        const doublon = await achatDoublonExiste(a.id, ref);
+        if (doublon) continue;
+        const bcRef = nextRef('BC', await getAchats());
+        await createAchat({
+          ref:           bcRef,
+          article_id:    a.id,
+          article_nom:   a.nom,
+          quantite:      Math.ceil(manque),
+          prix_unitaire: a.prix,
+          fournisseur:   a.fournisseur || '',
+          statut:        'brouillon',
+          ref_commande:  ref,
+          notes:         'Auto OF ' + ref,
+        });
       }
     }
 
