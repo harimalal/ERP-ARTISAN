@@ -1205,6 +1205,30 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
         window._iaProduits = null;
       }
 
+    btnConfirm?.addEventListener('click', async () => {
+        /* Récupérer les associations manuelles des lignes non reconnues */
+        const sels = document.querySelectorAll('.ia-nm-sel');
+        const qtes = document.querySelectorAll('.ia-nm-qte');
+        sels.forEach((sel, i) => {
+          if (!sel.value) return;
+          const produit = produits.find(p => p.ref === sel.value);
+          if (!produit) return;
+          const qte = parseFloat(qtes[i]?.value) || 1;
+          const btnAdd = document.getElementById('btnAddCmdLigne');
+          btnAdd?.click();
+          setTimeout(() => {
+            const divs = document.querySelectorAll('#cmdLignes > div[id]');
+            const div = divs[divs.length - 1];
+            if (!div) return;
+            const selRef = div.querySelector('.crs');
+            if (selRef) { selRef.value = produit.id; selRef.dispatchEvent(new Event('change')); }
+            const qteInp = div.querySelector('.cq');
+            if (qteInp) { qteInp.value = qte; qteInp.dispatchEvent(new Event('input')); }
+          }, 50);
+        });
+        closeModal('modalImportIA');
+      });
+
     })();
     
     await commandes.init();
