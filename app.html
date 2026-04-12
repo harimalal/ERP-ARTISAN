@@ -1203,7 +1203,9 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
 
         window._iaData = null;
         window._iaProduits = null;
-      }
+      }  /* fin _iaShowPreview */
+
+    }  /* ← AJOUTER CETTE ACCOLADE — ferme _iaShowPreview */
 
     btnConfirm?.addEventListener('click', async () => {
         /* Récupérer les associations manuelles des lignes non reconnues */
