@@ -973,7 +973,7 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
       if (achats.initAchatModal) achats.initAchatModal(null);
     }, true);
 
-    /* Import IA */
+/* Import IA */
     (function() {
       let _iaFile = null;
       const dropZone  = document.getElementById('iaDropZone');
@@ -999,6 +999,7 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
         btnAnalyse.disabled = false; btnAnalyse.style.opacity = '1';
         if (iaError) iaError.style.display = 'none';
       }
+
       function clearFile() {
         _iaFile = null; fileInfo.style.display = 'none';
         btnAnalyse.disabled = true; btnAnalyse.style.opacity = '.5'; fileInput.value = '';
@@ -1010,7 +1011,12 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
       dropZone?.addEventListener('dragleave', () => { dropZone.style.borderColor = ''; });
       dropZone?.addEventListener('drop', (e) => { e.preventDefault(); dropZone.style.borderColor = ''; const f = e.dataTransfer.files[0]; if (f) setFile(f); });
       fileClear?.addEventListener('click', clearFile);
-      btnReset?.addEventListener('click', () => { clearFile(); document.getElementById('iaStep1').style.display = 'block'; document.getElementById('iaStep2').style.display = 'none'; document.getElementById('iaStep3').style.display = 'none'; });
+      btnReset?.addEventListener('click', () => {
+        clearFile();
+        document.getElementById('iaStep1').style.display = 'block';
+        document.getElementById('iaStep2').style.display = 'none';
+        document.getElementById('iaStep3').style.display = 'none';
+      });
 
       document.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-modal="modalImportIA"]');
@@ -1030,17 +1036,27 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
         const progEl   = document.getElementById('iaProgBar');
         const steps = [[15,'Lecture du fichier…'],[35,'Extraction du texte…'],[60,'Analyse par Claude AI…'],[85,'Identification produits…'],[95,'Finalisation…']];
         let si = 0;
-        const ticker = setInterval(() => { if (si < steps.length) { progEl.style.width = steps[si][0] + '%'; statusEl.textContent = steps[si][1]; si++; } }, 700);
+        const ticker = setInterval(() => {
+          if (si < steps.length) { progEl.style.width = steps[si][0] + '%'; statusEl.textContent = steps[si][1]; si++; }
+        }, 700);
         try {
-          const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = () => rej(new Error('Lecture impossible')); r.readAsDataURL(_iaFile); });
+          const b64 = await new Promise((res, rej) => {
+            const r = new FileReader();
+            r.onload = () => res(r.result.split(',')[1]);
+            r.onerror = () => rej(new Error('Lecture impossible'));
+            r.readAsDataURL(_iaFile);
+          });
           const ext = _iaFile.name.split('.').pop().toLowerCase();
           const ctx = document.getElementById('iaContext')?.value || '';
-          /* Fix B7 — utiliser les vrais caches des modules au lieu de window._appProduits (non défini) */
           const produitsCache = produits.getProduitsCache?.() || [];
           const clientsCache  = commandes.getClientsCache?.() || [];
           const { data: { session } } = await (await import('/js/config.js')).supabase.auth.getSession();
           const { getTenantId } = await import('/js/auth.js');
-          const resp = await fetch('/api/ai-analyse-bc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fichier: b64, extension: ext, contexte: ctx, produits: produitsCache, clients: clientsCache, tenantId: getTenantId() || '', token: session?.access_token || '' }) });
+          const resp = await fetch('/api/ai-analyse-bc', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fichier: b64, extension: ext, contexte: ctx, produits: produitsCache, clients: clientsCache, tenantId: getTenantId() || '', token: session?.access_token || '' })
+          });
           clearInterval(ticker); progEl.style.width = '100%';
           if (!resp.ok) throw new Error('Erreur serveur ' + resp.status);
           const result = await resp.json();
@@ -1073,7 +1089,6 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
       }
 
       function _iaShowPreview(data, produits, clients) {
-        /* Matching fuzzy — enrichir refDetectee si null */
         const lignes = (data.lignes || []).map(l => {
           if (l.refDetectee && produits.find(p => p.ref === l.refDetectee)) return l;
           const match = _fuzzyMatch(l.nomOriginal, produits);
@@ -1083,7 +1098,6 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
         const matchees = lignes.filter(l => l.refDetectee && produits.find(p => p.ref === l.refDetectee));
         const nonMatch = lignes.filter(l => !l.refDetectee || !produits.find(p => p.ref === l.refDetectee));
 
-        /* Fix B9 — Afficher un message clair si des lignes n'ont pas de correspondance */
         const iaSummary = document.getElementById('iaSummary');
         if (iaSummary) {
           let html = `<div style="font-size:12px;color:var(--ink-muted);margin-bottom:8px;">
@@ -1102,12 +1116,10 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
           iaSummary.innerHTML = html;
         }
 
-        /* ── Fermer modal IA → injecter dans modalCommande ── */
         closeModal('modalImportMasse');
         if (commandes?.initCommandeModal) commandes.initCommandeModal();
         openModal('modalCommande');
 
-        /* Pré-remplir le client */
         const clientNom = data.client || '';
         const selClient = document.getElementById('cmdClientSel');
         if (selClient && clientNom) {
@@ -1125,23 +1137,15 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
           }
         }
 
-        /* Pré-remplir les dates */
         if (data.date) { const d = document.getElementById('cmdDate'); if (d) d.value = data.date; }
         if (data.dateLivraison) { const dl = document.getElementById('cmdDateLiv'); if (dl) dl.value = data.dateLivraison; }
 
-        /* Vider la ligne vide créée par initCommandeModal */
         document.getElementById('cmdLignes').innerHTML = '';
 
-        /* Fix B8 — Afficher un bloc de sélection manuelle pour les lignes non reconnues
-           La liste déroulante contient TOUS les produits finis du catalogue */
         if (nonMatch.length > 0) {
           const iaPreview = document.getElementById('iaPreview');
           if (iaPreview) {
-            /* Construire les options avec tous les produits finis */
-            const opts = produits.map(p =>
-              `<option value="${p.ref}">${p.ref} — ${p.nom}</option>`
-            ).join('');
-
+            const opts = produits.map(p => `<option value="${p.ref}">${p.ref} — ${p.nom}</option>`).join('');
             const rows = nonMatch.map((l, i) => `
               <tr>
                 <td style="font-size:11.5px;color:var(--ui-red);">⚠ ${l.nomOriginal || '—'}</td>
@@ -1156,7 +1160,6 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
                   </select>
                 </td>
               </tr>`).join('');
-
             iaPreview.innerHTML = `
               <div style="margin-bottom:10px;font-size:11px;font-weight:600;color:var(--ink-muted);
                 text-transform:uppercase;letter-spacing:.5px;">Lignes à associer manuellement</div>
@@ -1168,7 +1171,6 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
                 </tr></thead>
                 <tbody>${rows}</tbody>
               </table>`;
-
             iaPreview.style.display = 'block';
             document.getElementById('iaStep3').style.display = 'block';
             document.getElementById('iaStep1').style.display = 'none';
@@ -1176,7 +1178,6 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
           }
         }
 
-        /* Injecter les lignes reconnues — séquentiellement pour éviter les races DOM */
         const toutes = [...matchees, ...nonMatch];
         async function _injecterLignes() {
           const btnAdd = document.getElementById('btnAddCmdLigne');
@@ -1190,10 +1191,7 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
             if (!div) continue;
             if (p) {
               const selRef = div.querySelector('.crs');
-              if (selRef) {
-                selRef.value = p.id;
-                selRef.dispatchEvent(new Event('change', { bubbles: false }));
-              }
+              if (selRef) { selRef.value = p.id; selRef.dispatchEvent(new Event('change', { bubbles: false })); }
             }
             const qteInp = div.querySelector('.cq');
             if (qteInp) { qteInp.value = l.qte || 1; qteInp.dispatchEvent(new Event('input', { bubbles: false })); }
@@ -1203,12 +1201,9 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
 
         window._iaData = null;
         window._iaProduits = null;
-      }  /* fin _iaShowPreview */
+      } /* fin _iaShowPreview */
 
-    }  /* ← AJOUTER CETTE ACCOLADE — ferme _iaShowPreview */
-
-    btnConfirm?.addEventListener('click', async () => {
-        /* Récupérer les associations manuelles des lignes non reconnues */
+      btnConfirm?.addEventListener('click', async () => {
         const sels = document.querySelectorAll('.ia-nm-sel');
         const qtes = document.querySelectorAll('.ia-nm-qte');
         sels.forEach((sel, i) => {
@@ -1229,9 +1224,9 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
           }, 50);
         });
         closeModal('modalImportIA');
-      });
+      }); /* fin btnConfirm */
 
-    })();
+    })(); /* fin IIFE Import IA */
     
     await commandes.init();
     await stock.init();
