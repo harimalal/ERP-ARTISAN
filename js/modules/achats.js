@@ -320,23 +320,18 @@ async function _saveAchat() {
       const prix = ligne.prix > 0 ? ligne.prix : (a ? a.prix : 0);
       const ref  = lignesValides.length === 1 ? baseRef : baseRef + '-' + (nbCrees + 1);
 
-      const bc = await createAchat({
-        ref,
-        article_id:    ligne.articleId,
-        article_nom:   ligne.nom || (a ? a.nom : ''),
-        quantite:      ligne.qte,
-        prix_unitaire: prix,
-        montant_ht:    ligne.qte * prix,
-        fournisseur:   fournisseur || (a ? a.fournisseur : ''),
-        statut:        'brouillon',
-        ref_commande:  refCommande,
-        notes,
-        date_cmd:      date,
-      });
-
-      _achats.unshift(bc);
-      nbCrees++;
-    }
+const bc = await createAchat({
+  ref,
+  article_id:    ligne.articleId,
+  article_nom:   ligne.nom || (a ? a.nom : ''),
+  quantite:      ligne.qte,
+  prix_unitaire: prix,
+  fournisseur:   fournisseur || (a ? a.fournisseur : ''),
+  statut:        'brouillon',
+  ref_commande:  refCommande,
+  notes,
+  date_cmd:      date,
+});
 
     closeModal('modalAchat');
     _renderTable();
@@ -439,17 +434,16 @@ async function _saveDetailBC() {
   const prix      = parseFloat(document.getElementById('dbcPrix').value) || 0;
 
   try {
-    const updated = await updateAchat(_currentBCId, {
-      date_cmd:      document.getElementById('dbcDate').value,
-      article_nom:   document.getElementById('dbcNom').value,
-      quantite:      qte,
-      prix_unitaire: prix,
-      montant_ht:    qte * prix,
-      fournisseur:   document.getElementById('dbcFournisseur').value,
-      ref_commande:  document.getElementById('dbcRefCmd').value,
-      notes:         document.getElementById('dbcRemarque').value,
-      statut:        newStatut,
-    });
+const updated = await updateAchat(_currentBCId, {
+  date_cmd:      document.getElementById('dbcDate').value,
+  article_nom:   document.getElementById('dbcNom').value,
+  quantite:      qte,
+  prix_unitaire: prix,
+  fournisseur:   document.getElementById('dbcFournisseur').value,
+  ref_commande:  document.getElementById('dbcRefCmd').value,
+  notes:         document.getElementById('dbcRemarque').value,
+  statut:        newStatut,
+});
 
     /* Si nouveau statut = reçu → mettre à jour le stock */
     if (newStatut === 'recu' && oldStatut !== 'recu') {
