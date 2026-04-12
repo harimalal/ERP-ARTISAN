@@ -94,7 +94,6 @@ function _bindEntrepriseForm() {
     };
     try {
       await updateTenant(data);
-      /* Fix I — mettre à jour le cache local immédiatement */
       Object.assign(_tenant, data);
       showToast('✅ Entreprise enregistrée.');
     } catch (err) {
@@ -269,6 +268,8 @@ async function _suppFournisseur(id) {
 
 /* -------------------------------------------------------
    EDIT ROW GÉNÉRIQUE
+   Fix B5 — client et fournisseur : formulaire complet
+   (tous les champs, pas juste le nom)
 ------------------------------------------------------- */
 function _editRow(type, id) {
   _editType = type;
@@ -312,11 +313,32 @@ function _editRow(type, id) {
       <div class="form-group"><label>Seuil alerte</label><input type="number" id="er_seuil" value="${p.seuil}"></div>
       <div class="form-group"><label>Stock actuel</label><input type="number" id="er_stock" value="${p.stock}" step="0.01"></div>`;
   } else if (type === 'client') {
+    /* Fix B5 — formulaire complet client (tous les champs) */
     const c = _clients.find(x => x.id === id);
-    html += `<div class="form-group full"><label>Nom</label><input id="er_nom" value="${esc(c.nom)}"></div>`;
+    html += `
+      <div class="form-group full"><label>Nom</label><input id="er_nom" value="${esc(c.nom || '')}"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="er_email" value="${esc(c.email || '')}"></div>
+      <div class="form-group"><label>Téléphone</label><input id="er_tel" value="${esc(c.tel || '')}"></div>
+      <div class="form-group full"><label>Adresse</label><input id="er_adresse" value="${esc(c.adresse || '')}"></div>
+      <div class="form-group full"><label>Notes</label><input id="er_notes" value="${esc(c.notes || '')}"></div>`;
   } else if (type === 'fournisseur') {
+    /* Fix B5 — formulaire complet fournisseur (tous les champs) */
     const f = _fournisseurs.find(x => x.id === id);
-    html += `<div class="form-group full"><label>Nom</label><input id="er_nom" value="${esc(f.nom)}"></div>`;
+    html += `
+      <div class="form-group full"><label>Nom</label><input id="er_nom" value="${esc(f.nom || '')}"></div>
+      <div class="form-group"><label>Contact</label><input id="er_contact" value="${esc(f.contact || '')}"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="er_email" value="${esc(f.email || '')}"></div>
+      <div class="form-group"><label>Téléphone</label><input id="er_tel" value="${esc(f.tel || '')}"></div>
+      <div class="form-group"><label>Délai livraison</label><input id="er_delai" value="${esc(f.delai || '')}"></div>
+      <div class="form-group"><label>Catégorie</label>
+        <select id="er_categorie">
+          <option value="">—</option>
+          <option value="emballage"  ${f.categorie === 'emballage'  ? 'selected' : ''}>Emballage</option>
+          <option value="matiere"    ${f.categorie === 'matiere'    ? 'selected' : ''}>Matière</option>
+          <option value="ingredient" ${f.categorie === 'ingredient' ? 'selected' : ''}>Ingrédient</option>
+          <option value="fourniture" ${f.categorie === 'fourniture' ? 'selected' : ''}>Fourniture</option>
+        </select>
+      </div>`;
   }
 
   html += '</div>';
@@ -361,9 +383,24 @@ async function _saveEditRow() {
         stock:      parseFloat(document.getElementById('er_stock').value) || 0,
       });
     } else if (_editType === 'client') {
-      await updateClient(_editId, { nom: document.getElementById('er_nom').value });
+      /* Fix B5 — sauvegarder tous les champs client, pas uniquement le nom */
+      await updateClient(_editId, {
+        nom:     document.getElementById('er_nom').value.trim(),
+        email:   document.getElementById('er_email')?.value.trim()   || '',
+        tel:     document.getElementById('er_tel')?.value.trim()     || '',
+        adresse: document.getElementById('er_adresse')?.value.trim() || '',
+        notes:   document.getElementById('er_notes')?.value.trim()   || '',
+      });
     } else if (_editType === 'fournisseur') {
-      await updateFournisseur(_editId, { nom: document.getElementById('er_nom').value });
+      /* Fix B5 — sauvegarder tous les champs fournisseur, pas uniquement le nom */
+      await updateFournisseur(_editId, {
+        nom:       document.getElementById('er_nom').value.trim(),
+        contact:   document.getElementById('er_contact')?.value.trim()   || '',
+        email:     document.getElementById('er_email')?.value.trim()     || '',
+        tel:       document.getElementById('er_tel')?.value.trim()       || '',
+        delai:     document.getElementById('er_delai')?.value.trim()     || '',
+        categorie: document.getElementById('er_categorie')?.value        || '',
+      });
     }
     closeModal('modalEditRow');
     await render();
@@ -428,7 +465,6 @@ function _bindNewFournisseurForm() {
 /* -------------------------------------------------------
    FICHE CLIENT
    Fix J — mettre à jour TOUS les champs du cache après save
-           (pas seulement le nom)
 ------------------------------------------------------- */
 function _openFicheClient(id) {
   _ficheClientId = id;
@@ -460,7 +496,6 @@ function _bindFicheClientForm() {
     if (!changes.nom) { showToast('⚠ Le nom est requis.', 'error'); return; }
     try {
       await updateClient(_ficheClientId, changes);
-      /* Fix J — mettre à jour tous les champs dans le cache, pas seulement le nom */
       const idx = _clients.findIndex(c => c.id === _ficheClientId);
       if (idx >= 0) Object.assign(_clients[idx], changes);
       closeModal('modalFicheClient');
@@ -533,7 +568,6 @@ function _bindFicheFournisseurForm() {
     if (!changes.nom) { showToast('⚠ Le nom est requis.', 'error'); return; }
     try {
       await updateFournisseur(_ficheFournisseurId, changes);
-      /* Fix K — mettre à jour tous les champs dans le cache */
       const idx = _fournisseurs.findIndex(f => f.id === _ficheFournisseurId);
       if (idx >= 0) Object.assign(_fournisseurs[idx], changes);
       closeModal('modalFicheFournisseur');
