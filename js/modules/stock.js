@@ -17,10 +17,10 @@ import {
 
 /* Cache local */
 let _articles = [];
-let _fournisseurs = []; /* injecté par admin.init() */
+let _fournisseurs = [];
 
 /* -------------------------------------------------------
-   INIT — appelé une fois au démarrage
+   INIT
 ------------------------------------------------------- */
 export async function init() {
   _articles = await getArticles();
@@ -60,23 +60,29 @@ function _renderTable() {
       <td data-statut="${esc(stockStatus(a.stock, a.seuil))}">${stockStatus(a.stock, a.seuil)}</td>
       <td>${fmt(a.prix)} €</td>
       <td style="font-size:11px;color:var(--ink-muted)">${esc(a.fournisseur || '—')}</td>
-      <td onclick="event.stopPropagation()" style="display:flex;gap:5px;align-items:center;">
-        <button class="btn btn-outline btn-sm" data-ref="${esc(a.ref)}" data-action="commander">Commander</button>
-        <button class="btn btn-ghost btn-sm" data-action="inventaire">Inventaire</button>
+      <td>
+        <div style="display:flex;gap:5px;align-items:center;">
+          <button class="btn btn-outline btn-sm"
+            data-ref="${esc(a.ref)}"
+            data-action="commander"
+            onclick="event.stopPropagation()">Commander</button>
+          <button class="btn btn-ghost btn-sm"
+            data-id="${esc(a.id)}"
+            data-action="inventaire"
+            onclick="event.stopPropagation()">Inventaire</button>
+        </div>
       </td>
     </tr>`;
   }).join('');
 
-  /* S2 — Délégation Commander + Inventaire par ligne
-     Commander : dispatch openAchatFor avec article complet → pré-remplit modal BC
-     Inventaire : ouvre modal inventaire pré-sélectionné sur cet article */
+  /* Délégation sur tbody — onclick écrasé à chaque render (Règle 7) */
   const tbody = document.getElementById('stockTbody');
   tbody.onclick = (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
 
     if (btn.dataset.action === 'commander') {
-      const ref = btn.dataset.ref;
+      const ref     = btn.dataset.ref;
       const article = _articles.find(a => a.ref === ref);
       document.dispatchEvent(new CustomEvent('appmee:openAchatFor', {
         detail: {
@@ -90,13 +96,13 @@ function _renderTable() {
       openModal('modalAchat');
     }
 
-    if (btn.dataset.action === 'modifier') {
-      _openEditArticle(btn.closest('tr').dataset.id);
+    if (btn.dataset.action === 'inventaire') {
+      /* Fix : data-id sur le bouton directement — pas besoin de remonter au tr */
+      _openInventaire(btn.dataset.id);
     }
 
-    /* Fix B4 — Bouton Inventaire par ligne : handler existait, bouton manquait */
-    if (btn.dataset.action === 'inventaire') {
-      _openInventaire(btn.closest('tr').dataset.id);
+    if (btn.dataset.action === 'modifier') {
+      _openEditArticle(btn.closest('tr').dataset.id);
     }
   };
 }
@@ -105,7 +111,6 @@ function _renderTable() {
    FORMULAIRE NOUVEL ARTICLE
 ------------------------------------------------------- */
 function _bindNewArticleForm() {
-  /* Suggestions de noms par catégorie */
   const CAT_NOMS = {
     matiere:    ['Fraises kg', 'Framboises kg', 'Myrtilles kg', 'Abricots kg', 'Lait L', 'Farine kg'],
     emballage:  ['Pot verre 50 ml', 'Pot verre 100 ml', 'Pot verre 200 ml', 'Couvercle', 'Étiquette'],
@@ -133,8 +138,6 @@ function _bindNewArticleForm() {
 }
 
 export async function initNewArticleModal() {
-  /* Fix B3 — Recharger articles ET fournisseurs depuis BDD
-     pour avoir nextRef fiable et la liste fournisseurs à jour */
   try {
     [_articles, _fournisseurs] = await Promise.all([getArticles(), getFournisseurs()]);
   } catch (err) {
@@ -153,27 +156,24 @@ export async function initNewArticleModal() {
     _fournisseurs.map(f => `<option value="${esc(f.nom)}">${esc(f.nom)}</option>`).join('');
   document.getElementById('naFournisseur').value = '';
 
-  /* Déclencher le remplissage des suggestions */
   document.getElementById('naCategorie').dispatchEvent(new Event('change'));
 }
 
 async function _saveNewArticle() {
-  const ref        = document.getElementById('naRef').value.trim();
-  const nom        = document.getElementById('naNom').value.trim() || document.getElementById('naNomSel').value;
-  const categorie  = document.getElementById('naCategorie').value;
-  const unite      = document.getElementById('naUnite').value;
-  const prix       = parseFloat(document.getElementById('naPrix').value) || 0;
-  const fournisseur= document.getElementById('naFournisseur').value || document.getElementById('naFournisseurSel').value;
-  const seuil      = parseInt(document.getElementById('naSeuil').value) || 50;
-  const stock      = parseFloat(document.getElementById('naStock').value) || 0;
+  const ref         = document.getElementById('naRef').value.trim();
+  const nom         = document.getElementById('naNom').value.trim() || document.getElementById('naNomSel').value;
+  const categorie   = document.getElementById('naCategorie').value;
+  const unite       = document.getElementById('naUnite').value;
+  const prix        = parseFloat(document.getElementById('naPrix').value) || 0;
+  const fournisseur = document.getElementById('naFournisseur').value || document.getElementById('naFournisseurSel').value;
+  const seuil       = parseInt(document.getElementById('naSeuil').value) || 50;
+  const stock       = parseFloat(document.getElementById('naStock').value) || 0;
 
   if (!ref || !nom) { showToast('⚠ Référence et nom requis.', 'error'); return; }
 
-  /* Fix B3 — Recharger depuis BDD avant de vérifier le doublon
-     pour éviter les faux positifs dus au cache désynchronisé */
   try { _articles = await getArticles(); } catch (_) {}
   if (_articles.find(a => a.ref === ref)) {
-    showToast('⚠ Référence déjà existante — une référence a été regénérée, veuillez rouvrir le modal.', 'error');
+    showToast('⚠ Référence déjà existante — rouvrir le modal.', 'error');
     return;
   }
 
@@ -220,7 +220,6 @@ function _bindInventaireForm() {
     _inventaireArticleId = e.target.value;
     _syncInvArticle(e.target.value);
   });
-
   document.getElementById('btnSaveInventaire')?.addEventListener('click', _saveInventaire);
 }
 
@@ -254,14 +253,13 @@ async function _saveInventaire() {
   try {
     await updateArticleStock(articleId, qReal);
     await addMouvement({
-      type: 'inventaire',
-      ref: a.ref,
-      nom: a.nom,
-      qte: Math.abs(ecart),
-      motif: 'Inventaire — ' + motif,
+      type:    'inventaire',
+      ref:     a.ref,
+      nom:     a.nom,
+      qte:     Math.abs(ecart),
+      motif:   'Inventaire — ' + motif,
       ref_doc: 'INV-' + Date.now(),
     });
-
     a.stock = qReal;
     closeModal('modalInventaire');
     _renderTable();
@@ -279,7 +277,6 @@ function _openEditArticle(articleId) {
   const a = _articles.find(x => x.id === articleId);
   if (!a) return;
 
-  /* Détruire le modal précédent pour éviter persistance entre articles */
   const existing = document.getElementById('modalEditArticle');
   if (existing) existing.remove();
 
@@ -326,18 +323,16 @@ function _openEditArticle(articleId) {
   modal.querySelectorAll('[data-close]').forEach(btn =>
     btn.addEventListener('click', () => closeModal('modalEditArticle')));
 
-  /* Remplir */
-  document.getElementById('eaRef').value        = a.ref;
-  document.getElementById('eaNom').value        = a.nom;
-  document.getElementById('eaCategorie').value  = a.categorie || 'autre';
-  document.getElementById('eaUnite').value      = a.unite || 'kg';
-  document.getElementById('eaPrix').value       = a.prix || '';
-  document.getElementById('eaSeuil').value      = a.seuil || '';
-  document.getElementById('eaStock').value      = a.stock || 0;
-  document.getElementById('eaFournisseur').value= a.fournisseur || '';
+  document.getElementById('eaRef').value         = a.ref;
+  document.getElementById('eaNom').value         = a.nom;
+  document.getElementById('eaCategorie').value   = a.categorie || 'autre';
+  document.getElementById('eaUnite').value       = a.unite || 'kg';
+  document.getElementById('eaPrix').value        = a.prix || '';
+  document.getElementById('eaSeuil').value       = a.seuil || '';
+  document.getElementById('eaStock').value       = a.stock || 0;
+  document.getElementById('eaFournisseur').value = a.fournisseur || '';
 
   document.getElementById('btnSaveEditArticle').addEventListener('click', () => _saveEditArticle(articleId));
-
   openModal('modalEditArticle');
 }
 
@@ -345,13 +340,13 @@ async function _saveEditArticle(articleId) {
   const a = _articles.find(x => x.id === articleId);
   if (!a) return;
   const changes = {
-    nom:        document.getElementById('eaNom').value.trim(),
-    categorie:  document.getElementById('eaCategorie').value,
-    unite:      document.getElementById('eaUnite').value,
-    prix:       parseFloat(document.getElementById('eaPrix').value) || 0,
-    seuil:      parseFloat(document.getElementById('eaSeuil').value) || 0,
-    stock:      parseFloat(document.getElementById('eaStock').value) || 0,
-    fournisseur:document.getElementById('eaFournisseur').value.trim(),
+    nom:         document.getElementById('eaNom').value.trim(),
+    categorie:   document.getElementById('eaCategorie').value,
+    unite:       document.getElementById('eaUnite').value,
+    prix:        parseFloat(document.getElementById('eaPrix').value) || 0,
+    seuil:       parseFloat(document.getElementById('eaSeuil').value) || 0,
+    stock:       parseFloat(document.getElementById('eaStock').value) || 0,
+    fournisseur: document.getElementById('eaFournisseur').value.trim(),
   };
   if (!changes.nom) { showToast('⚠ Le nom est requis.', 'error'); return; }
   try {
@@ -383,7 +378,7 @@ export function openInventaireGlobal() {
         </div>
         <div class="modal-body" style="flex:1;overflow-y:auto;">
           <p style="font-size:11.5px;color:var(--ink-muted);margin-bottom:10px;">
-            Saisissez les quantités réelles pour chaque article à ajuster. Les autres lignes seront ignorées.
+            Saisissez les quantités réelles pour chaque article à ajuster.
           </p>
           <div id="invGlobalLignes" style="display:grid;gap:6px;"></div>
           <button class="btn btn-ghost btn-sm" id="btnAddInvLigne" style="margin-top:8px;">+ Ajouter une ligne</button>
@@ -399,13 +394,11 @@ export function openInventaireGlobal() {
   }
 
   _renderInvGlobalLignes();
-
   document.getElementById('btnAddInvLigne').onclick = _addInvGlobalLigne;
   const btnSave = document.getElementById('btnSaveInvGlobal');
   const newBtn  = btnSave.cloneNode(true);
   btnSave.parentNode.replaceChild(newBtn, btnSave);
   newBtn.addEventListener('click', _saveInvGlobal);
-
   openModal('modalInventaireGlobal');
 }
 
@@ -435,16 +428,14 @@ function _addInvGlobalLigne(preselectArticle = null) {
     <span class="ig-unite" style="font-size:11px;color:var(--ink-muted);padding-left:4px;"></span>
     <button style="background:none;border:none;color:var(--ui-red);font-size:18px;cursor:pointer;" type="button">×</button>`;
 
-  const artSel = row.querySelector('.ig-art');
-  const uniteEl= row.querySelector('.ig-unite');
-
+  const artSel  = row.querySelector('.ig-art');
+  const uniteEl = row.querySelector('.ig-unite');
   const syncUnite = () => {
     const a = _articles.find(x => x.id === artSel.value);
     uniteEl.textContent = a ? a.unite : '';
   };
   artSel.addEventListener('change', syncUnite);
   syncUnite();
-
   row.querySelector('button').addEventListener('click', () => row.remove());
   container.appendChild(row);
 }
@@ -452,17 +443,12 @@ function _addInvGlobalLigne(preselectArticle = null) {
 async function _saveInvGlobal() {
   const rows = document.querySelectorAll('#invGlobalLignes > div');
   const toUpdate = [];
-
   rows.forEach(row => {
     const artId = row.querySelector('.ig-art')?.value;
     const qte   = parseFloat(row.querySelector('.ig-qte')?.value);
     if (artId && !isNaN(qte) && qte >= 0) toUpdate.push({ artId, qte });
   });
-
-  if (!toUpdate.length) {
-    showToast('⚠ Aucune ligne à enregistrer.', 'error');
-    return;
-  }
+  if (!toUpdate.length) { showToast('⚠ Aucune ligne à enregistrer.', 'error'); return; }
 
   let ok = 0;
   for (const { artId, qte } of toUpdate) {
@@ -471,20 +457,13 @@ async function _saveInvGlobal() {
     const ecart = qte - a.stock;
     try {
       await updateArticleStock(artId, qte);
-      await addMouvement({
-        type: 'inventaire',
-        ref: a.ref, nom: a.nom,
-        qte: Math.abs(ecart),
-        motif: 'Inventaire global',
-        ref_doc: 'INV-' + Date.now(),
-      });
+      await addMouvement({ type: 'inventaire', ref: a.ref, nom: a.nom, qte: Math.abs(ecart), motif: 'Inventaire global', ref_doc: 'INV-' + Date.now() });
       a.stock = qte;
       ok++;
     } catch (err) {
       showToast(`❌ Erreur sur ${a.ref}.`, 'error');
     }
   }
-
   closeModal('modalInventaireGlobal');
   _renderTable();
   showToast(`✅ ${ok} article(s) mis à jour.`);
@@ -493,7 +472,6 @@ async function _saveInvGlobal() {
 
 /* -------------------------------------------------------
    RECHERCHE ET TRI
-   S1 — tri colonne Statut activé
 ------------------------------------------------------- */
 function _bindSearchInput() {
   document.getElementById('stockSearchInput')?.addEventListener('input', (e) => {
@@ -502,7 +480,6 @@ function _bindSearchInput() {
 }
 
 function _bindSortHeaders() {
-  /* S1 — inclure toutes les colonnes sortables, y compris Statut */
   document.querySelectorAll('#stockTable th[data-sort-col], #stockTable th.sortable').forEach(th => {
     th.addEventListener('click', () => {
       const col = parseInt(th.dataset.sortCol ?? th.cellIndex);
@@ -512,10 +489,7 @@ function _bindSortHeaders() {
 }
 
 /* -------------------------------------------------------
-   GETTERS publics (utilisés par d'autres modules via events)
+   GETTERS publics
 ------------------------------------------------------- */
 export function getArticlesCache() { return _articles; }
-
-export function getArticleByRef(ref) {
-  return _articles.find(a => a.ref === ref) || null;
-}
+export function getArticleByRef(ref) { return _articles.find(a => a.ref === ref) || null; }
