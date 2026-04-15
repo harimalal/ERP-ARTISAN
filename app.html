@@ -62,7 +62,6 @@
 <div id="page-dashboard" class="page active">
   <div class="sec-hdr">
     <div><div class="sec-title">Tableau de bord</div><div class="sec-sub">Vue d'ensemble de votre activité</div></div>
-    <!-- A1 — Suppression boutons Historique + BC -->
     <div class="btn-row">
       <button class="btn btn-primary" data-modal="modalCommande">+ Nouvelle commande</button>
     </div>
@@ -85,7 +84,6 @@
 <div id="page-stock" class="page">
   <div class="sec-hdr">
     <div><div class="sec-title">Stock Articles</div><div class="sec-sub">Matières premières, emballages, consommables</div></div>
-    <!-- A2 — Suppression bouton Inventaire -->
     <div class="btn-row">
       <input type="text" class="search-input" placeholder="Rechercher..." id="stockSearchInput">
       <button class="btn btn-outline" data-modal="modalAchat">+ Bon de commande</button>
@@ -101,7 +99,6 @@
         <th>Unité</th>
         <th class="sortable" data-sort-col="4">Stock <span class="sort-ico"></span></th>
         <th class="sortable" data-sort-col="5">Seuil <span class="sort-ico"></span></th>
-        <!-- A3 — th Statut rendu sortable col 6 -->
         <th class="sortable" data-sort-col="6">Statut <span class="sort-ico"></span></th>
         <th class="sortable" data-sort-col="7">Prix achat <span class="sort-ico"></span></th>
         <th class="sortable" data-sort-col="8">Fournisseur <span class="sort-ico"></span></th>
@@ -113,10 +110,12 @@
 </div>
 
 <!-- PRODUITS FINIS -->
+<!-- Fix S3 — Ajout champ recherche -->
 <div id="page-produits" class="page">
   <div class="sec-hdr">
     <div><div class="sec-title">Stock Produits Finis</div><div class="sec-sub">Produits assemblés, prêts à la vente</div></div>
     <div class="btn-row">
+      <input type="text" class="search-input" placeholder="Rechercher un produit..." id="produitsSearchInput">
       <button class="btn btn-primary" data-modal="modalNewProduit">+ Nouveau produit</button>
     </div>
   </div>
@@ -170,7 +169,7 @@
   </div>
   <div class="card" style="margin-bottom:16px;">
     <div class="card-hdr"><span class="card-hdr-title">📋 Ordres de fabrication (OF)</span></div>
-    <table><thead><tr><th>Référence</th><th>Produit</th><th>Qté</th><th>Clients</th><th>Date planifiée</th><th>Statut</th><th>Actions</th><th></th></tr></thead>
+    <table><thead><tr><th>Référence</th><th>Produit</th><th>Qté</th><th>Clients</th><th>Date planifiée</th><th>Statut</th><th>Actions</th></tr></thead>
     <tbody id="planningTbody"></tbody></table>
   </div>
   <div class="card" style="margin-bottom:16px;">
@@ -618,7 +617,6 @@
   </div>
 </div></div>
 
-<!-- Fiche client — btnIAFicheClient supprimé -->
 <div class="modal-overlay" id="modalFicheClient"><div class="modal modal-lg">
   <div class="modal-hdr"><span class="modal-hdr-title">👤 Fiche client</span><button class="modal-close" data-close="modalFicheClient">×</button></div>
   <div class="form-grid" id="ficheClientForm" style="padding:16px;"></div>
@@ -632,7 +630,6 @@
   </div>
 </div></div>
 
-<!-- Fiche fournisseur — btnIAFicheFournisseur supprimé -->
 <div class="modal-overlay" id="modalFicheFournisseur"><div class="modal modal-lg">
   <div class="modal-hdr"><span class="modal-hdr-title">🏪 Fiche fournisseur</span><button class="modal-close" data-close="modalFicheFournisseur">×</button></div>
   <div class="form-grid" id="ficheFournisseurForm" style="padding:16px;"></div>
@@ -817,15 +814,11 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
       if (btn && commandes.initCommandeModal) commandes.initCommandeModal();
     }, true);
 
-    /* Fix B3 — initNewArticleModal avant ouverture du modal Nouvel Article
-       Recharge articles + fournisseurs depuis BDD : nextRef fiable + liste fournisseurs */
     document.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-modal="modalNewArticle"]');
       if (btn && stock.initNewArticleModal) await stock.initNewArticleModal();
     }, true);
 
-    /* Fix B5 — initNewProduitModal avant ouverture du modal Nouveau Produit
-       Recharge produits + articles depuis BDD avant d'ouvrir le modal */
     document.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-modal="modalNewProduit"]');
       if (btn && produits.initNewProduitModal) await produits.initNewProduitModal(null);
@@ -841,7 +834,6 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
       if (btn && livraisons.initNewFactureModal) livraisons.initNewFactureModal();
     }, true);
 
-    /* Fix modal Modifier la facture — branché sur appmee:editFacture dispatché par livraisons.js */
     document.addEventListener('appmee:editFacture', (e) => {
       const f = e.detail || {};
       document.getElementById('efId').value       = f.id || '';
@@ -880,8 +872,6 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
         alert('Erreur enregistrement : ' + err.message);
       }
     });
-
-    /* A4 — Listener btnInventaireGlobal supprimé (bouton retiré du HTML) */
 
     document.getElementById('btnAddOFLigne')?.addEventListener('click', () => {
       if (production.addOFLigne) production.addOFLigne();
@@ -944,15 +934,11 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
     });
 
     document.addEventListener('appmee:openAchatFor', (e) => {
-      /* Fix B3 — transmettre la ref pour pré-sélection article + fournisseur dans le modal BC.
-         Ce listener est le seul point d'ouverture du modal quand un article est pré-sélectionné.
-         Le listener data-modal générique ci-dessous gère uniquement les ouvertures sans pré-sélection. */
       const { ref } = e.detail || {};
       if (achats.initAchatModal) achats.initAchatModal(ref || null);
       openModal('modalAchat');
     });
 
-    /* Navigation vers onglet depuis KPI cliquable */
     document.addEventListener('appmee:navigate', (e) => {
       const { section } = e.detail || {};
       if (!section) return;
@@ -960,15 +946,9 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
       if (tab) { showPage(section, tab); if (pageMap[section]) pageMap[section](); }
     });
 
-    /* Fix B3 — Ce listener capture les clics sur data-modal="modalAchat" (bouton "+ Nouveau BC")
-       sans pré-sélection. Il NE s'exécute PAS quand appmee:openAchatFor a déjà ouvert le modal,
-       car appmee:openAchatFor est dispatché AVANT le clic (depuis stock.js et dashboard.js via onclick).
-       Le openModal est géré par le listener appmee:openAchatFor — le listener générique
-       data-modal le ré-ouvre proprement sans écraser la pré-sélection. */
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-modal="modalAchat"]');
       if (!btn) return;
-      /* Uniquement pour les boutons sans data-action (bouton direct, pas délégation stock/dashboard) */
       if (e.target.closest('[data-action="commander"]')) return;
       if (achats.initAchatModal) achats.initAchatModal(null);
     }, true);
