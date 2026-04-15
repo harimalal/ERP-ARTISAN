@@ -3,14 +3,9 @@
    Produits finis : affichage, création, recettes.
    Dépend de : db.js, ui.js
 
-   Fix B5 — Séparation claire création / édition :
-   - _saveNewProduit()  → createProduit + saveRecette (nouvelle ref)
-   - _saveEditProduit() → updateProduit + saveRecette (ref existante)
-   - initNewProduitModal() recharge toujours _articles depuis BDD
-     pour éviter le cache vide ou désynchronisé.
-
-   Fix B1 — Coût revient calculé au render() depuis recettes + prix articles.
-   La colonne `cout` n'existe pas en BDD — calcul en mémoire à chaque render.
+   Fix B5 — Séparation claire création / édition
+   Fix B1 — Coût revient calculé au render() depuis recettes + prix articles
+   Fix S3 — Recherche texte ajoutée (champ dans app.html + filtre ici)
 ------------------------------------------------------- */
 
 import {
@@ -37,31 +32,42 @@ let _editProduitId = null;
 export async function init() {
   [_produits, _articles] = await Promise.all([getProduits(), getArticles()]);
   _bindNewProduitForm();
+  _bindSearchInput();
 }
 
 /* -------------------------------------------------------
    RENDER
    Fix B1 — Charger articles + recettes de chaque produit,
    calculer le coût et l'injecter dans le cache avant affichage.
-   Pattern identique à recettes.js qui fonctionne correctement.
 ------------------------------------------------------- */
 export async function render() {
   [_produits, _articles] = await Promise.all([getProduits(), getArticles()]);
 
-  /* Charger toutes les recettes en parallèle — une requête par produit */
   const recettesRaw = await Promise.all(_produits.map(p => getRecettesByProduit(p.id)));
 
-  /* Calculer et injecter le coût dans chaque produit du cache */
   _produits.forEach((p, i) => {
     const lignes = recettesRaw[i] || [];
     p.cout = lignes.reduce((s, l) => {
-      /* getRecettesByProduit retourne les lignes avec articles(prix) jointé */
       const prix = l.articles?.prix ?? 0;
       return s + prix * (l.quantite || 0);
     }, 0);
   });
 
   _renderTable();
+}
+
+/* -------------------------------------------------------
+   Fix S3 — Recherche texte
+------------------------------------------------------- */
+function _bindSearchInput() {
+  document.getElementById('produitsSearchInput')?.addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#produitsTbody tr');
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = !q || text.includes(q) ? '' : 'none';
+    });
+  });
 }
 
 function _renderTable() {
@@ -94,6 +100,12 @@ function _renderTable() {
       openModal('modalPlanifier');
     }
   };
+
+  /* Réinitialiser le filtre recherche au render */
+  const inp = document.getElementById('produitsSearchInput');
+  if (inp && inp.value) {
+    inp.dispatchEvent(new Event('input'));
+  }
 }
 
 /* -------------------------------------------------------
@@ -106,21 +118,17 @@ function _bindNewProduitForm() {
 
 /* -------------------------------------------------------
    INIT MODAL — création ou édition
-   Fix B5 : recharge toujours _articles depuis BDD pour éviter
-   le cache vide. Distingue création (editProduit=null) vs édition.
 ------------------------------------------------------- */
 export async function initNewProduitModal(editProduit = null) {
   _recN = 0;
   _editProduitId = editProduit ? editProduit.id : null;
 
-  /* Recharger les articles depuis BDD — garantit un cache à jour */
   try {
     _articles = await getArticles();
   } catch (err) {
     console.error('[produits] initNewProduitModal — getArticles ERREUR:', err.message);
   }
 
-  /* Recharger les produits pour avoir nextRef fiable */
   try {
     _produits = await getProduits();
   } catch (err) {
@@ -130,7 +138,6 @@ export async function initNewProduitModal(editProduit = null) {
   document.getElementById('modalNewProduitTitle').textContent =
     editProduit ? '✏ Modifier — ' + editProduit.nom : '🏷 Nouveau produit fini & recette';
 
-  /* En création : générer une ref auto. En édition : afficher la ref existante (readonly) */
   const refInput = document.getElementById('npRef');
   if (editProduit) {
     refInput.value    = editProduit.ref;
@@ -148,14 +155,11 @@ export async function initNewProduitModal(editProduit = null) {
   document.getElementById('recetteLignes').innerHTML = '';
   document.getElementById('npCoutPreview').style.display = 'none';
 
-  /* Charger les lignes de recette existantes (mode édition) */
   if (editProduit) {
     try {
       const lignes = await getRecettesByProduit(editProduit.id);
       if (lignes.length) {
-        lignes.forEach(l => {
-          _addRecetteLigne(l.article_id, l.quantite);
-        });
+        lignes.forEach(l => { _addRecetteLigne(l.article_id, l.quantite); });
       } else {
         _addRecetteLigne();
       }
@@ -234,9 +238,6 @@ async function _handleSave() {
 
 /* -------------------------------------------------------
    CRÉATION — nouveau produit
-   Fix B5 : vérifie la ref uniquement en mode création.
-   Recharge _produits depuis BDD avant de vérifier le doublon
-   pour éviter les faux positifs dus au cache.
 ------------------------------------------------------- */
 async function _saveNewProduit() {
   const ref   = document.getElementById('npRef').value.trim();
@@ -246,7 +247,6 @@ async function _saveNewProduit() {
 
   if (!ref || !nom) { showToast('⚠ Référence et nom requis.', 'error'); return; }
 
-  /* Fix B5 — Recharger depuis BDD pour avoir les refs réelles, pas le cache */
   try {
     _produits = await getProduits();
   } catch (err) {
@@ -287,8 +287,6 @@ async function _saveNewProduit() {
 
 /* -------------------------------------------------------
    ÉDITION — modifier un produit existant
-   Fix B5 : utilise updateProduit au lieu de createProduit.
-   Ne vérifie PAS le doublon de ref (la ref ne change pas).
 ------------------------------------------------------- */
 async function _saveEditProduit() {
   if (!_editProduitId) return;
@@ -312,7 +310,6 @@ async function _saveEditProduit() {
     const updated = await updateProduit(_editProduitId, { nom, prix_vente: prix, seuil });
     await saveRecette(_editProduitId, lignes);
 
-    /* Mettre à jour le cache local avec le nouveau coût calculé */
     const idx = _produits.findIndex(p => p.id === _editProduitId);
     if (idx >= 0) Object.assign(_produits[idx], { nom, prix_vente: prix, seuil, cout });
 
