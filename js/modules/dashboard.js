@@ -29,22 +29,15 @@ export async function render() {
 
 /* -------------------------------------------------------
    KPIs
-   D1 — "Alertes articles" → "Alertes Stock"
-   D2 — "BC en attente" cliquable → redirige onglet Achats
-   D3 — Suppression KPI "Valeur BdC en cours"
-   D4 — KPI Factures avec montant total HT + nb en sous-titre
 ------------------------------------------------------- */
 function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
-  /* KPI 1 — Alertes Stock */
   const alertsA = articles.filter(a => a.stock <= a.seuil).length;
 
-  /* KPI 2 — Commandes enregistrées : valeur totale HT + nombre */
   const cmdTotal  = commandes.length;
   const cmdValeur = commandes.reduce((s, c) =>
     s + (c.commande_lignes || []).reduce((sl, l) =>
       sl + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0), 0);
 
-  /* KPI 3 — Factures à relancer : montant HT + nombre */
   const now = Date.now();
   const factRelancer = (factures || []).filter(f => {
     if (f.statut === 'a_relancer' || f.statut === 'a_lancer') return true;
@@ -57,7 +50,6 @@ function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
   const nbFactRelancer  = factRelancer.length;
   const mntFactRelancer = factRelancer.reduce((s, f) => s + (f.montant_ttc || f.montant_ht || 0), 0);
 
-  /* KPI 4 — OF en cours */
   const ofCours = ofs.filter(o => o.statut === 'en_cours').length;
 
   document.getElementById('kpiGrid').innerHTML = `
@@ -109,7 +101,6 @@ function renderAlertes(articles) {
       </tbody>
     </table>`;
 
-  /* Délégation via onclick — remplacé à chaque render, jamais cumulé */
   document.getElementById('dashAlertsTbody').onclick = (e) => {
     const btn = e.target.closest('[data-action="commander"]');
     if (!btn) return;
@@ -121,13 +112,23 @@ function renderAlertes(articles) {
 
 /* -------------------------------------------------------
    STOCK PRODUITS FINIS
-   D5 — Suppression colonne Prix
+   Fix D5 — N'affiche que les produits en stock bas ou rupture
 ------------------------------------------------------- */
 function renderStockProduits(produits) {
-  document.getElementById('dashProduits').innerHTML = `
+  const el = document.getElementById('dashProduits');
+
+  /* Filtrer : rupture (stock <= 0) ou stock bas (stock <= seuil) */
+  const alertes = produits.filter(p => p.stock <= p.seuil);
+
+  if (!alertes.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><p>Tous les produits finis sont en stock suffisant.</p></div>';
+    return;
+  }
+
+  el.innerHTML = `
     <table>
       <thead><tr><th>Produit</th><th>Stock</th><th>Statut</th></tr></thead>
-      <tbody>${produits.map(p => `
+      <tbody>${alertes.map(p => `
         <tr>
           <td>${esc(p.nom)}</td>
           <td><strong>${p.stock}</strong></td>
