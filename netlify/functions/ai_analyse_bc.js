@@ -186,4 +186,4 @@ export default async function handler(req) {
   }
 }
 
-export const config = { path: '/api/ai-analyse-bc' };
+export const config = { path: '/api/ai_analyse_bc' };
