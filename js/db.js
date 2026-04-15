@@ -15,13 +15,11 @@ import { getTenantId } from './auth.js';
    HELPERS INTERNES
 ------------------------------------------------------- */
 
-/* Gestion centralisée des erreurs Supabase */
 function handleError(context, error) {
   console.error(`[AppMee][${context}]`, error.message || error);
   throw new Error(`Erreur ${context} : ${error.message || 'inconnue'}`);
 }
 
-/* Raccourci : retourne le tenant_id courant */
 function tid() {
   return getTenantId();
 }
@@ -93,7 +91,6 @@ export async function deleteArticle(id) {
   if (error) handleError('deleteArticle', error);
 }
 
-/* Mise à jour du stock uniquement (utilisé par réceptions et livraisons) */
 export async function updateArticleStock(id, newStock) {
   return updateArticle(id, { stock: newStock });
 }
@@ -173,8 +170,6 @@ export async function getRecettesByProduit(produitId) {
 }
 
 export async function saveRecette(produitId, lignes) {
-  /* lignes = [{ article_id, quantite, unite }]
-     Remplace toute la recette du produit (delete + insert) */
   const { error: delError } = await supabase
     .from('recettes')
     .delete()
@@ -236,7 +231,6 @@ export async function createClient(client) {
 }
 
 export async function upsertClient(nom, extraFields = {}) {
-  /* Crée le client s'il n'existe pas encore */
   const existing = await getClientByNom(nom);
   if (existing) return existing;
   return createClient({ nom, ...extraFields });
@@ -343,10 +337,6 @@ export async function getCommande(id) {
 }
 
 export async function createCommande(commande, lignes) {
-  /* commande = { ref, client_id, client_nom, date_cmd, date_livraison, statut, notes }
-     lignes   = [{ produit_id, produit_nom, quantite, prix_unitaire }]
-     BUG CORRIGÉ : on utilise l'UUID de la commande retourné par Supabase
-     au lieu d'un index de tableau — plus de désynchronisation. */
   const { data: cmd, error: cmdError } = await supabase
     .from('commandes')
     .insert({ ...commande, tenant_id: tid() })
@@ -373,8 +363,6 @@ export async function createCommande(commande, lignes) {
 }
 
 export async function updateCommandeStatut(id, statut) {
-  /* BUG CORRIGÉ : on identifie la commande par son UUID,
-     jamais par son index dans un tableau. */
   const { data, error } = await supabase
     .from('commandes')
     .update({ statut })
@@ -395,7 +383,6 @@ export async function avancerStatutCommande(id) {
 }
 
 export async function deleteCommande(id) {
-  /* Supprime d'abord les lignes (FK), puis la commande */
   const { error: lignesError } = await supabase
     .from('commande_lignes')
     .delete()
@@ -475,6 +462,16 @@ export async function updateOFDate(id, datePrevue) {
   return data;
 }
 
+/* Fix OF — Suppression physique d'un OF */
+export async function deleteOF(id) {
+  const { error } = await supabase
+    .from('production_of')
+    .delete()
+    .eq('id', id)
+    .eq('tenant_id', tid());
+  if (error) handleError('deleteOF', error);
+}
+
 /* -------------------------------------------------------
    ACHATS — BONS DE COMMANDE FOURNISSEURS
 ------------------------------------------------------- */
@@ -511,8 +508,6 @@ export async function updateAchat(id, changes) {
   return data;
 }
 
-/* Vérifie qu'il n'existe pas déjà un BC brouillon pour cet article/commande
-   BUG CORRIGÉ : évite les doublons de BCs automatiques */
 export async function achatDoublonExiste(articleRef, refCommande) {
   const { data, error } = await supabase
     .from('achats')
@@ -653,10 +648,6 @@ export async function incrementAiUsage(mois, tokensUsed = 0) {
 
 /* -------------------------------------------------------
    MOUVEMENTS DE STOCK
-   Enregistrés dans une table dédiée pour l'historique.
-   (La table n'est pas dans le schéma initial — on la
-    crée dynamiquement ou on stocke en JSON dans Supabase.)
-   Pour l'instant : table simple avec les champs essentiels.
 ------------------------------------------------------- */
 
 export async function getMouvements({ type = null } = {}) {
@@ -691,13 +682,9 @@ export async function addMouvement({ type, ref, nom, qte, motif, ref_doc }) {
 
 /* -------------------------------------------------------
    DASHBOARD — Requêtes agrégées
-   dashboard.js appelle ces fonctions directement.
-   Elles regroupent plusieurs lectures en parallèle
-   pour minimiser les aller-retours réseau.
 ------------------------------------------------------- */
 
 export async function getDashboardData() {
-  /* Toutes les requêtes en parallèle via Promise.all */
   const [articles, produits, commandes, achats, ofs, factures] = await Promise.all([
     getArticles(),
     getProduits(),
