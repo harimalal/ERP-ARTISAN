@@ -3,13 +3,9 @@
    Nomenclatures : affichage, coût revient, faisabilité.
    Dépend de : db.js, ui.js
 
-   Events dispatchés :
-   - appmee:planifierOF → listener dans app.html
-
-   Fix H — Modal modification recette autonome dans ce module.
-   saveRecette() fait un DELETE + INSERT (upsert complet)
-   pour éviter le blocage sur référence existante.
-   Ne passe plus par produits.js pour la sauvegarde recette.
+   Fix R1 — Suppression badges header (Coût, Vente, Marge, Fabricable)
+            Suppression footer résumé
+            Suppression colonne Stock dispo du tableau
 ------------------------------------------------------- */
 
 import {
@@ -21,8 +17,8 @@ import { fmt, fmtQ, esc, showToast, openModal, closeModal } from '../ui.js';
 /* Cache local */
 let _produits    = [];
 let _articles    = [];
-let _recetteData = {}; /* { produitId: [lignes recette] } */
-let _toggleState = {}; /* { produitId: bool } */
+let _recetteData = {};
+let _toggleState = {};
 
 /* -------------------------------------------------------
    INIT
@@ -36,16 +32,16 @@ export async function init() {
 ------------------------------------------------------- */
 export async function render() {
   [_produits, _articles] = await Promise.all([getProduits(), getArticles()]);
-
-  /* Charger toutes les recettes en parallèle */
   const recettesRaw = await Promise.all(_produits.map(p => getRecettesByProduit(p.id)));
   _produits.forEach((p, i) => { _recetteData[p.id] = recettesRaw[i]; });
-
   _renderListe();
 }
 
 /* -------------------------------------------------------
    LISTE DES RECETTES
+   Fix R1 — Header simplifié : nom + ref + boutons seulement
+            Pas de footer résumé
+            Tableau sans colonne Stock dispo
 ------------------------------------------------------- */
 function _renderListe() {
   const el = document.getElementById('recettesList');
@@ -54,16 +50,12 @@ function _renderListe() {
   _produits.forEach(p => {
     const lignes = _recetteData[p.id] || [];
     const cout   = _calcCout(lignes);
-    const prix   = p.prix_vente || p.prix || 0;
-    const marge  = prix - cout;
-    const txM    = cout > 0 ? (marge / cout * 100).toFixed(1) : '—';
-    const maxFab = _calcMaxFab(lignes);
 
     const card = document.createElement('div');
     card.className = 'card';
     card.style.marginBottom = '16px';
 
-    /* Header */
+    /* Header — nom + ref + boutons uniquement */
     const hdr = document.createElement('div');
     hdr.className = 'card-hdr';
     hdr.style.cursor = 'pointer';
@@ -71,10 +63,6 @@ function _renderListe() {
       <div style="display:flex;align-items:center;gap:10px;flex:1;flex-wrap:wrap;">
         <span class="card-hdr-title">${esc(p.nom)}</span>
         <span class="td-ref">${esc(p.ref)}</span>
-        <span class="badge badge-neutral">Coût : <strong>${fmt(cout)} €</strong></span>
-        <span class="badge badge-ok">Vente : <strong>${fmt(prix)} €</strong></span>
-        <span class="badge badge-blue">Marge : <strong>${fmt(marge)} € (${txM}%)</strong></span>
-        <span class="badge badge-warn">Fabricable : <strong>${maxFab} u.</strong></span>
       </div>
       <div style="display:flex;gap:7px;">
         <button class="btn btn-outline btn-sm" data-produit-id="${p.id}" data-action="modifier">✏ Modifier</button>
@@ -87,8 +75,6 @@ function _renderListe() {
       _toggleRecette(p.id);
     });
 
-    /* Fix H — Modifier ouvre le modal local de recette (pas produits.js)
-       Le modal local fait un DELETE + INSERT complet → pas de blocage ref existante */
     hdr.querySelector('[data-action="modifier"]').addEventListener('click', (e) => {
       e.stopPropagation();
       _openEditRecette(p.id);
@@ -100,7 +86,7 @@ function _renderListe() {
       openModal('modalPlanifier');
     });
 
-    /* Body (table recette) */
+    /* Body — tableau sans colonne Stock dispo */
     const body = document.createElement('div');
     body.id = 'rec-body-' + p.id;
 
@@ -113,18 +99,16 @@ function _renderListe() {
     tbl.style.margin = '0';
     tbl.innerHTML = `<thead><tr>
       <th>Réf</th><th>Désignation</th><th>Catégorie</th>
-      <th>Qté / u.</th><th>Unité</th><th>Prix achat HT</th>
-      <th>Coût / produit</th><th>Stock dispo</th>
+      <th>Qté / u.</th><th>Unité</th><th>Prix achat HT</th><th>Coût / produit</th>
     </tr></thead>`;
 
     const tbody = document.createElement('tbody');
     if (!lignes.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:12px;color:var(--ink-muted)">Aucun article dans la recette.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:12px;color:var(--ink-muted)">Aucun article dans la recette.</td></tr>';
     } else {
       lignes.forEach(l => {
         const a     = l.articles || _articles.find(x => x.id === l.article_id) || {};
         const coutL = (a.prix || 0) * l.quantite;
-        const sd    = a.stock || 0;
         const tr    = document.createElement('tr');
         tr.innerHTML = `
           <td class="td-ref">${esc(a.ref || l.article_id)}</td>
@@ -133,8 +117,7 @@ function _renderListe() {
           <td style="font-weight:700;color:var(--accent);">${fmtQ(l.quantite)}</td>
           <td>${esc(a.unite || '—')}</td>
           <td>${fmt(a.prix || 0)} €</td>
-          <td style="font-weight:600;">${fmt(coutL)} €</td>
-          <td>${fmtQ(sd)} ${esc(a.unite || '')}</td>`;
+          <td style="font-weight:600;">${fmt(coutL)} €</td>`;
         tbody.appendChild(tr);
       });
     }
@@ -143,22 +126,13 @@ function _renderListe() {
 
     const tfoot = document.createElement('tfoot');
     tfoot.innerHTML = `<tr style="background:var(--ui-bg2);">
-      <td colspan="6" style="text-align:right;font-weight:600;padding:8px 12px;">Coût de revient par unité :</td>
-      <td style="font-weight:700;color:var(--accent);padding:8px 12px;">${fmt(cout)} €</td>
-      <td></td>
+      <td colspan="5" style="text-align:right;font-weight:600;padding:8px 12px;">Coût de revient par unité :</td>
+      <td colspan="2" style="font-weight:700;color:var(--accent);padding:8px 12px;">${fmt(cout)} €</td>
     </tr>`;
     tbl.appendChild(tfoot);
     body.appendChild(tbl);
 
-    /* Footer résumé */
-    const footer = document.createElement('div');
-    footer.style.cssText = 'padding:9px 16px;background:var(--ui-bg2);border-top:1px solid var(--rule);display:flex;gap:16px;flex-wrap:wrap;font-size:12px;';
-    footer.innerHTML = `
-      <span>📦 Stock : <strong>${p.stock}</strong> / seuil ${p.seuil}</span>
-      <span>💰 Prix vente : <strong>${fmt(prix)} €</strong></span>
-      <span style="color:var(--ui-green);font-weight:600;">✓ Marge : ${fmt(marge)} € (${txM}%)</span>
-      <span>🏭 Fabricable : <strong>${maxFab} u.</strong></span>`;
-    body.appendChild(footer);
+    /* Pas de footer résumé (supprimé Fix R1) */
 
     card.appendChild(hdr);
     card.appendChild(body);
@@ -179,10 +153,7 @@ function _toggleRecette(produitId) {
 }
 
 /* -------------------------------------------------------
-   MODAL MODIFICATION RECETTE — Fix H
-   Autonome dans recettes.js — ne passe pas par produits.js.
-   Stratégie : DELETE toutes les lignes existantes + INSERT
-   les nouvelles → aucun blocage sur référence existante.
+   MODAL MODIFICATION RECETTE
 ------------------------------------------------------- */
 function _openEditRecette(produitId) {
   const p      = _produits.find(x => x.id === produitId);
@@ -192,7 +163,6 @@ function _openEditRecette(produitId) {
   });
   if (!p) return;
 
-  /* Détruire le modal précédent si présent */
   const existing = document.getElementById('modalEditRecette');
   if (existing) existing.remove();
 
@@ -225,26 +195,19 @@ function _openEditRecette(produitId) {
     </div>`;
 
   document.body.appendChild(modal);
-
-  /* Fermeture */
   modal.querySelectorAll('[data-close]').forEach(btn =>
     btn.addEventListener('click', () => modal.remove()));
 
-  /* Remplir les lignes existantes */
   const lignesActives = lignes.length ? lignes : [];
   lignesActives.forEach(l => _addRecLigne(produitId, l));
   if (!lignesActives.length) _addRecLigne(produitId);
 
-  /* Bouton + ajouter ligne */
   document.getElementById('btnAddRecLigne').addEventListener('click', () => _addRecLigne(produitId));
-
-  /* Bouton enregistrer */
   document.getElementById('btnSaveRecette').addEventListener('click', () => _saveEditRecette(produitId, modal));
 
   openModal('modalEditRecette');
 }
 
-/* Ajoute une ligne article dans le modal d'édition de recette */
 function _addRecLigne(produitId, preselect = null) {
   const container = document.getElementById('recLignesEdit');
   if (!container) return;
@@ -280,19 +243,15 @@ function _addRecLigne(produitId, preselect = null) {
   syncUnite();
 }
 
-/* Met à jour le bloc "Coût estimé" en bas du modal */
 function _updateCoutPreview(produitId) {
-  const rows  = document.querySelectorAll('#recLignesEdit > div');
-  let cout    = 0;
-  let nbOk    = 0;
-
+  const rows = document.querySelectorAll('#recLignesEdit > div');
+  let cout = 0, nbOk = 0;
   rows.forEach(row => {
     const artId = row.querySelector('.rec-art')?.value;
     const qte   = parseFloat(row.querySelector('.rec-qte')?.value) || 0;
     const a     = _articles.find(x => x.id === artId);
     if (a && qte > 0) { cout += a.prix * qte; nbOk++; }
   });
-
   const preview = document.getElementById('recCoutPreview');
   const val     = document.getElementById('recCoutVal');
   if (preview && val) {
@@ -301,42 +260,30 @@ function _updateCoutPreview(produitId) {
   }
 }
 
-/* Sauvegarde la recette — DELETE existant + INSERT nouvelles lignes */
 async function _saveEditRecette(produitId, modal) {
   const rows = document.querySelectorAll('#recLignesEdit > div');
   const nouvelles = [];
-
   rows.forEach(row => {
     const artId = row.querySelector('.rec-art')?.value;
     const qte   = parseFloat(row.querySelector('.rec-qte')?.value) || 0;
     if (artId && qte > 0) nouvelles.push({ article_id: artId, quantite: qte });
   });
 
-  if (!nouvelles.length) {
-    showToast('⚠ Ajoutez au moins un article dans la recette.', 'error');
-    return;
-  }
+  if (!nouvelles.length) { showToast('⚠ Ajoutez au moins un article.', 'error'); return; }
 
   const btnSave = document.getElementById('btnSaveRecette');
   if (btnSave) { btnSave.disabled = true; btnSave.textContent = 'Enregistrement…'; }
 
   try {
-    /* saveRecette(produitId, lignes) dans db.js doit faire un DELETE + INSERT.
-       Si db.js ne le fait pas encore, on recharge après pour afficher l'état réel. */
     await saveRecette(produitId, nouvelles);
-
-    /* Mettre à jour le cache local immédiatement */
     _recetteData[produitId] = nouvelles.map(n => {
       const a = _articles.find(x => x.id === n.article_id) || {};
       return { article_id: n.article_id, quantite: n.quantite, articles: a };
     });
-
-    /* Fermer et re-render */
     modal.remove();
     _renderListe();
     showToast('✅ Recette mise à jour.');
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'recettes' } }));
-
   } catch (err) {
     console.error('[recettes] _saveEditRecette ERREUR:', err.message, err);
     showToast('❌ Erreur enregistrement recette : ' + err.message, 'error');
