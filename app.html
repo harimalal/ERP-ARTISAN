@@ -1032,7 +1032,7 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
           const clientsCache  = commandes.getClientsCache?.() || [];
           const { data: { session } } = await (await import('/js/config.js')).supabase.auth.getSession();
           const { getTenantId } = await import('/js/auth.js');
-          const resp = await fetch('/api/ai-analyse-bc', {
+          const resp = await fetch('/api/ai_analyse_bc', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ fichier: b64, extension: ext, contexte: ctx, produits: produitsCache, clients: clientsCache, tenantId: getTenantId() || '', token: session?.access_token || '' })
