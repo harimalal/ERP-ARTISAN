@@ -1,6 +1,8 @@
 /* -------------------------------------------------------
    AppMee — modules/stock.js
    Stock articles : affichage, inventaire, alertes.
+   Fix STOCK-BTN — délégation sur document en phase capture
+   (init une seule fois) — impossible à écraser par render().
    Dépend de : db.js, ui.js
 ------------------------------------------------------- */
 
@@ -16,11 +18,12 @@ import {
 } from '../ui.js';
 
 /* Cache local */
-let _articles = [];
+let _articles    = [];
 let _fournisseurs = [];
 
 /* -------------------------------------------------------
-   INIT
+   INIT — appelé une fois au démarrage
+   Fix STOCK-BTN — _bindTableActions() ici, pas dans render()
 ------------------------------------------------------- */
 export async function init() {
   _articles = await getArticles();
@@ -28,6 +31,7 @@ export async function init() {
   _bindSortHeaders();
   _bindNewArticleForm();
   _bindInventaireForm();
+  _bindTableActions(); /* ← une seule fois, sur document */
 }
 
 /* -------------------------------------------------------
@@ -36,6 +40,48 @@ export async function init() {
 export async function render() {
   _articles = await getArticles();
   _renderTable();
+}
+
+/* -------------------------------------------------------
+   Fix STOCK-BTN — Délégation sur document, phase capture
+   Posé UNE SEULE FOIS dans init() — jamais écrasé par render()
+------------------------------------------------------- */
+let _tableActionsbound = false;
+function _bindTableActions() {
+  if (_tableActionsbound) return;
+  _tableActionsbound = true;
+
+  document.addEventListener('click', (e) => {
+    /* Guard : le clic doit venir d'un bouton dans #stockTbody */
+    const btn = e.target.closest('#stockTbody [data-action]');
+    if (!btn) return;
+
+    e.stopPropagation();
+
+    if (btn.dataset.action === 'commander') {
+      const ref     = btn.dataset.ref;
+      const article = _articles.find(a => a.ref === ref);
+      document.dispatchEvent(new CustomEvent('appmee:openAchatFor', {
+        detail: {
+          ref,
+          nom:         article?.nom        || '',
+          fournisseur: article?.fournisseur || '',
+          prix:        article?.prix        || 0,
+          unite:       article?.unite       || '',
+        }
+      }));
+      openModal('modalAchat');
+    }
+
+    if (btn.dataset.action === 'inventaire') {
+      _openInventaire(btn.dataset.id);
+    }
+
+    if (btn.dataset.action === 'modifier') {
+      _openEditArticle(btn.dataset.id);
+    }
+
+  }, true); /* true = phase capture — avant tout stopPropagation dans le DOM */
 }
 
 function _renderTable() {
@@ -64,47 +110,14 @@ function _renderTable() {
         <div style="display:flex;gap:5px;align-items:center;">
           <button class="btn btn-outline btn-sm"
             data-ref="${esc(a.ref)}"
-            data-action="commander"
-            onclick="event.stopPropagation()">Commander</button>
+            data-action="commander">Commander</button>
           <button class="btn btn-ghost btn-sm"
             data-id="${esc(a.id)}"
-            data-action="inventaire"
-            onclick="event.stopPropagation()">Inventaire</button>
+            data-action="inventaire">Inventaire</button>
         </div>
       </td>
     </tr>`;
   }).join('');
-
-  /* Délégation sur tbody — onclick écrasé à chaque render (Règle 7) */
-  const tbody = document.getElementById('stockTbody');
-  tbody.onclick = (e) => {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-
-    if (btn.dataset.action === 'commander') {
-      const ref     = btn.dataset.ref;
-      const article = _articles.find(a => a.ref === ref);
-      document.dispatchEvent(new CustomEvent('appmee:openAchatFor', {
-        detail: {
-          ref,
-          nom:         article?.nom        || '',
-          fournisseur: article?.fournisseur || '',
-          prix:        article?.prix        || 0,
-          unite:       article?.unite       || '',
-        }
-      }));
-      openModal('modalAchat');
-    }
-
-    if (btn.dataset.action === 'inventaire') {
-      /* Fix : data-id sur le bouton directement — pas besoin de remonter au tr */
-      _openInventaire(btn.dataset.id);
-    }
-
-    if (btn.dataset.action === 'modifier') {
-      _openEditArticle(btn.closest('tr').dataset.id);
-    }
-  };
 }
 
 /* -------------------------------------------------------
@@ -406,11 +419,8 @@ function _renderInvGlobalLignes() {
   const container = document.getElementById('invGlobalLignes');
   container.innerHTML = '';
   const alertes = _articles.filter(a => a.stock <= a.seuil);
-  if (alertes.length) {
-    alertes.forEach(a => _addInvGlobalLigne(a));
-  } else {
-    _addInvGlobalLigne();
-  }
+  if (alertes.length) { alertes.forEach(a => _addInvGlobalLigne(a)); }
+  else { _addInvGlobalLigne(); }
 }
 
 function _addInvGlobalLigne(preselectArticle = null) {
@@ -430,10 +440,7 @@ function _addInvGlobalLigne(preselectArticle = null) {
 
   const artSel  = row.querySelector('.ig-art');
   const uniteEl = row.querySelector('.ig-unite');
-  const syncUnite = () => {
-    const a = _articles.find(x => x.id === artSel.value);
-    uniteEl.textContent = a ? a.unite : '';
-  };
+  const syncUnite = () => { const a = _articles.find(x => x.id === artSel.value); uniteEl.textContent = a ? a.unite : ''; };
   artSel.addEventListener('change', syncUnite);
   syncUnite();
   row.querySelector('button').addEventListener('click', () => row.remove());
@@ -460,9 +467,7 @@ async function _saveInvGlobal() {
       await addMouvement({ type: 'inventaire', ref: a.ref, nom: a.nom, qte: Math.abs(ecart), motif: 'Inventaire global', ref_doc: 'INV-' + Date.now() });
       a.stock = qte;
       ok++;
-    } catch (err) {
-      showToast(`❌ Erreur sur ${a.ref}.`, 'error');
-    }
+    } catch (err) { showToast(`❌ Erreur sur ${a.ref}.`, 'error'); }
   }
   closeModal('modalInventaireGlobal');
   _renderTable();
