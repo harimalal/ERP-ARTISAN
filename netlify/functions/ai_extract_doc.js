@@ -1,5 +1,5 @@
 /* -------------------------------------------------------
-   AppMee — netlify/functions/ai-extract-doc.js
+   AppMee — netlify/functions/ai_extract_doc.js
    Extrait les informations d'un document (facture, BC,
    carte de visite…) pour remplir une fiche :
    - Mon entreprise
@@ -279,4 +279,4 @@ export default async function handler(req) {
   }
 }
 
-export const config = { path: '/api/ai-extract-doc' };
+export const config = { path: '/api/ai_extract_doc' };
