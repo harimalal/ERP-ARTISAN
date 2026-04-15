@@ -1069,6 +1069,10 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
       }
 
       function _iaShowPreview(data, produits, clients) {
+        /* Toujours masquer le spinner — résultats prêts */
+        document.getElementById('iaStep1').style.display = 'none';
+        document.getElementById('iaStep2').style.display = 'none';
+        document.getElementById('iaStep3').style.display = 'block';
         const lignes = (data.lignes || []).map(l => {
           if (l.refDetectee && produits.find(p => p.ref === l.refDetectee)) return l;
           const match = _fuzzyMatch(l.nomOriginal, produits);
@@ -1098,6 +1102,7 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
 
         closeModal('modalImportMasse');
         if (commandes?.initCommandeModal) commandes.initCommandeModal();
+        document.getElementById('iaStep2').style.display = 'none';
         openModal('modalCommande');
 
         const clientNom = data.client || '';
