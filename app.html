@@ -13,68 +13,185 @@
 </head>
 <body>
 
+<!-- ÉCRAN DE CHARGEMENT -->
 <div id="app-loading">
   <div class="logo-ico">
-    <svg viewBox="0 0 24 24" fill="#fff" width="26" height="26">
+    <svg viewBox="0 0 24 24" width="26" height="26">
       <path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zM10 5h4v2h-4V5zm9 14H5V9h14v10z"/>
     </svg>
   </div>
   <p>Chargement de votre espace…</p>
 </div>
 
-<header>
-  <div class="hdr">
-    <div class="logo">
-      <div class="logo-ico">
+<!-- LAYOUT PRINCIPAL -->
+<div class="app-layout">
+
+  <!-- ═══════════════════════════════════════════
+       SIDEBAR
+  ═══════════════════════════════════════════ -->
+  <aside class="app-side" id="mainNav">
+
+    <!-- Logo -->
+    <div class="side-logo">
+      <div class="side-logo-mark">
         <svg viewBox="0 0 24 24">
           <path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zM10 5h4v2h-4V5zm9 14H5V9h14v10z"/>
-          <rect x="9" y="12" width="6" height="1.5" rx=".75"/>
-          <rect x="9" y="15" width="4" height="1.5" rx=".75"/>
         </svg>
       </div>
-      <span class="logo-name">AppMee</span>
-      <span class="logo-tag">PRO</span>
+      <span class="side-logo-name">AppMee</span>
+      <span class="side-logo-tag">PRO</span>
     </div>
-    <div class="hdr-date" id="headerDate"></div>
-    <div class="hdr-right">
-      <span class="hdr-user" id="hdrUserName"></span>
-      <button class="hdr-btn" id="btnNewCommande">+ Commande</button>
-      <button class="hdr-btn-ghost" id="btnSignOut">Déconnexion</button>
+
+    <!-- Navigation -->
+    <nav class="side-nav">
+      <div class="side-section">Vue générale</div>
+
+      <button class="side-item active" data-page="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Dashboard
+      </button>
+
+      <button class="side-item flagged" data-page="stock">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        Stock Articles
+        <span class="side-pill red" id="badgeStockAlert" style="display:none">0</span>
+      </button>
+
+      <button class="side-item" data-page="produits">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Produits Finis
+      </button>
+
+      <button class="side-item" data-page="commandes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Commandes
+        <span class="side-pill red" id="badgeCmd" style="display:none">0</span>
+      </button>
+
+      <div class="side-section">Fabrication</div>
+
+      <button class="side-item" data-page="production">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+        Production
+        <span class="side-pill sand" id="badgeOF" style="display:none">0</span>
+      </button>
+
+      <button class="side-item" data-page="achats">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        Achats
+      </button>
+
+      <div class="side-section">Gestion</div>
+
+      <button class="side-item" data-page="livraisons">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-4"/><line x1="12" y1="12" x2="23" y2="12"/></svg>
+        Livraisons &amp; Factures
+      </button>
+
+      <button class="side-item" data-page="recettes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        Recettes
+      </button>
+
+      <button class="side-item" data-page="admin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Admin
+      </button>
+    </nav>
+
+    <!-- Footer user -->
+    <div class="side-footer">
+      <div class="side-avatar" id="hdrUserInitial">R</div>
+      <div>
+        <div class="side-user-name" id="hdrUserName"></div>
+        <div class="side-user-date" id="headerDate"></div>
+      </div>
     </div>
-  </div>
-</header>
 
-<nav id="mainNav">
-  <button class="tab active" data-page="dashboard">📊 Dashboard</button>
-  <button class="tab" data-page="stock">📦 Stock Articles <span class="tab-badge warn" id="badgeStockAlert" style="display:none">0</span></button>
-  <button class="tab" data-page="produits">🏷 Produits Finis</button>
-  <button class="tab" data-page="commandes">📋 Commandes <span class="tab-badge" id="badgeCmd" style="display:none">0</span></button>
-  <button class="tab" data-page="production">🏭 Production <span class="tab-badge warn" id="badgeOF" style="display:none">0</span></button>
-  <button class="tab" data-page="achats">🛒 Achats</button>
-  <button class="tab" data-page="livraisons">🚚 Livraisons &amp; Factures</button>
-  <button class="tab" data-page="recettes">📖 Recettes</button>
-  <button class="tab" data-page="admin">⚙️ Admin</button>
-</nav>
+  </aside>
 
-<main>
+  <!-- ═══════════════════════════════════════════
+       MAIN
+  ═══════════════════════════════════════════ -->
+  <div class="app-main">
+
+    <!-- Topbar blanc -->
+    <div class="app-topbar">
+      <div>
+        <div class="topbar-title" id="topbarTitle">Tableau de bord</div>
+        <div class="topbar-sub" id="topbarSub">Vue d'ensemble de votre activité</div>
+      </div>
+      <div class="topbar-right">
+        <button class="hdr-btn" id="btnNewCommande">+ Commande</button>
+        <button class="hdr-btn-ghost" id="btnSignOut">Déconnexion</button>
+      </div>
+    </div>
+
+    <!-- Bottom nav mobile (visible < 760px) -->
+    <nav class="bottom-nav">
+      <button class="bottom-nav-item active" data-page="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Dashboard
+      </button>
+      <button class="bottom-nav-item flagged" data-page="stock">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        Stock
+      </button>
+      <button class="bottom-nav-item" data-page="commandes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Commandes
+      </button>
+      <button class="bottom-nav-item" data-page="production">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Production
+      </button>
+      <button class="bottom-nav-item" data-page="achats">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        Achats
+      </button>
+    </nav>
+
+    <!-- ═══════════════════════════════════════
+         PAGES
+    ═══════════════════════════════════════ -->
+    <main>
 
 <!-- DASHBOARD -->
 <div id="page-dashboard" class="page active">
   <div class="sec-hdr">
-    <div><div class="sec-title">Tableau de bord</div><div class="sec-sub">Vue d'ensemble de votre activité</div></div>
+    <div></div>
     <div class="btn-row">
       <button class="btn btn-primary" data-modal="modalCommande">+ Nouvelle commande</button>
     </div>
   </div>
   <div class="kpi-grid" id="kpiGrid"></div>
   <div class="dash-grid-2">
-    <div class="card"><div class="card-hdr"><span class="card-hdr-title">⚠ Alertes stock articles</span></div><div id="dashAlerts"></div></div>
-    <div class="card"><div class="card-hdr"><span class="card-hdr-title">🏷 Stock produits finis</span></div><div id="dashProduits"></div></div>
+    <div class="card">
+      <div class="card-hdr hdr-alert">
+        <span class="card-hdr-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+          Alertes stock articles
+        </span>
+      </div>
+      <div id="dashAlerts"></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr hdr-sage">
+        <span class="card-hdr-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          Stock produits finis
+        </span>
+      </div>
+      <div id="dashProduits"></div>
+    </div>
   </div>
   <div class="card">
-    <div class="card-hdr">
-      <span class="card-hdr-title">📋 Dernières commandes</span>
-      <button class="btn btn-ghost btn-sm" data-page-nav="commandes">Voir tout</button>
+    <div class="card-hdr hdr-blue">
+      <span class="card-hdr-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Dernières commandes
+      </span>
+      <button class="btn btn-ghost btn-sm" data-page-nav="commandes">Voir tout →</button>
     </div>
     <div id="dashCommandes"></div>
   </div>
@@ -83,7 +200,7 @@
 <!-- STOCK ARTICLES -->
 <div id="page-stock" class="page">
   <div class="sec-hdr">
-    <div><div class="sec-title">Stock Articles</div><div class="sec-sub">Matières premières, emballages, consommables</div></div>
+    <div></div>
     <div class="btn-row">
       <input type="text" class="search-input" placeholder="Rechercher..." id="stockSearchInput">
       <button class="btn btn-outline" data-modal="modalAchat">+ Bon de commande</button>
@@ -110,19 +227,24 @@
 </div>
 
 <!-- PRODUITS FINIS -->
-<!-- Fix S3 — Ajout champ recherche -->
 <div id="page-produits" class="page">
   <div class="sec-hdr">
-    <div><div class="sec-title">Stock Produits Finis</div><div class="sec-sub">Produits assemblés, prêts à la vente</div></div>
+    <div></div>
     <div class="btn-row">
       <input type="text" class="search-input" placeholder="Rechercher un produit..." id="produitsSearchInput">
       <button class="btn btn-primary" data-modal="modalNewProduit">+ Nouveau produit</button>
     </div>
   </div>
   <div class="card">
+    <div class="card-hdr hdr-sage">
+      <span class="card-hdr-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Catalogue produits finis
+      </span>
+    </div>
     <table>
       <thead><tr>
-        <th>Référence</th><th>Produit</th><th>Stock</th><th>Seuil</th>
+        <th>Produit</th><th>Stock</th><th>Seuil</th>
         <th>Statut</th><th>Prix vente HT</th><th>Coût revient</th><th>Marge</th><th>Action</th>
       </tr></thead>
       <tbody id="produitsTbody"></tbody>
@@ -133,9 +255,9 @@
 <!-- COMMANDES -->
 <div id="page-commandes" class="page">
   <div class="sec-hdr">
-    <div><div class="sec-title">Commandes clients</div><div class="sec-sub">Cycle complet commande → livraison</div></div>
+    <div></div>
     <div class="btn-row">
-      <button class="btn btn-ghost" data-modal="modalImportIA">🤖 Import IA</button>
+      <button class="btn btn-ghost" data-modal="modalImportIA">Import IA</button>
       <button class="btn btn-primary" data-modal="modalCommande">+ Nouvelle commande</button>
     </div>
   </div>
@@ -152,38 +274,54 @@
 <!-- PRODUCTION -->
 <div id="page-production" class="page">
   <div class="sec-hdr">
-    <div><div class="sec-title">Plan de production</div><div class="sec-sub">Ordres de fabrication et calendrier hebdomadaire</div></div>
+    <div></div>
     <div class="btn-row">
       <button class="btn btn-outline" data-modal="modalPlanifier">+ Planifier un OF</button>
     </div>
   </div>
   <div class="card" style="margin-bottom:16px;">
-    <div class="card-hdr">
-      <span class="card-hdr-title">📅 Calendrier de production — semaine en cours</span>
-      <div style="display:flex;gap:6px;">
+    <div class="card-hdr hdr-blue">
+      <span class="card-hdr-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+        Calendrier de production — semaine en cours
+      </span>
+      <div style="display:flex;gap:6px;align-items:center;">
         <button class="btn-icon" id="calPrev">◄</button>
         <button class="btn-icon" id="calNext">►</button>
       </div>
     </div>
-    <div style="padding:12px;"><div class="cal-week" id="calWeek"></div></div>
+    <div style="padding:14px 16px;">
+      <div class="cal-week" id="calWeek"></div>
+      <div class="cal-legend">
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#FEF3D8;border:1px solid #F0D9A0;"></div>En cours</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#E8EFFE;border:1px solid #C4CAEF;"></div>Planifié</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#D8EDE3;border:1px solid #B0D4C0;"></div>Fabriqué</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#1E1A16;"></div>Livraison client</div>
+      </div>
+    </div>
   </div>
   <div class="card" style="margin-bottom:16px;">
-    <div class="card-hdr"><span class="card-hdr-title">📋 Ordres de fabrication (OF)</span></div>
+    <div class="card-hdr hdr-amber">
+      <span class="card-hdr-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+        Ordres de fabrication (OF)
+      </span>
+    </div>
     <table><thead><tr><th>Référence</th><th>Produit</th><th>Qté</th><th>Clients</th><th>Date planifiée</th><th>Statut</th><th>Actions</th></tr></thead>
     <tbody id="planningTbody"></tbody></table>
   </div>
   <div class="card" style="margin-bottom:16px;">
-    <div class="card-hdr"><span class="card-hdr-title">🍳 Plan de fabrication</span></div>
+    <div class="card-hdr"><span class="card-hdr-title">Plan de fabrication</span></div>
     <table><thead><tr><th>Produit à fabriquer</th><th>Qté à fabriquer</th><th>OF liés</th><th>Faisabilité stock</th><th>Articles manquants</th></tr></thead>
     <tbody id="fabPlanTbody"></tbody></table>
   </div>
   <div class="card" style="margin-bottom:16px;">
-    <div class="card-hdr"><span class="card-hdr-title">🔍 Besoins calculés depuis les commandes</span></div>
+    <div class="card-hdr"><span class="card-hdr-title">Besoins calculés depuis les commandes</span></div>
     <table><thead><tr><th>Produit</th><th>Qté à produire</th><th>Faisabilité</th><th>Articles manquants</th><th>Action</th></tr></thead>
     <tbody id="besoinsTbody"></tbody></table>
   </div>
   <div class="card">
-    <div class="card-hdr"><span class="card-hdr-title">🛒 Articles à commander</span></div>
+    <div class="card-hdr"><span class="card-hdr-title">Articles à commander</span></div>
     <table><thead><tr><th>Réf</th><th>Article</th><th>Stock</th><th>Besoin</th><th>Manque</th><th>Montant</th><th>Fournisseur</th><th>Action</th></tr></thead>
     <tbody id="manquesTbody"></tbody></table>
   </div>
@@ -192,7 +330,7 @@
 <!-- ACHATS -->
 <div id="page-achats" class="page">
   <div class="sec-hdr">
-    <div><div class="sec-title">Bons de commande fournisseurs</div><div class="sec-sub">Cliquez sur une ligne pour voir / modifier le détail</div></div>
+    <div></div>
     <div class="btn-row"><button class="btn btn-primary" data-modal="modalAchat">+ Nouveau BC</button></div>
   </div>
   <div class="card">
@@ -204,7 +342,7 @@
 <!-- LIVRAISONS & FACTURES -->
 <div id="page-livraisons" class="page">
   <div class="sec-hdr">
-    <div><div class="sec-title">Livraisons &amp; Factures</div><div class="sec-sub">Facturation et suivi des paiements</div></div>
+    <div></div>
     <div class="btn-row"><button class="btn btn-primary" data-modal="modalNewFacture">+ Nouvelle facture</button></div>
   </div>
   <div class="card">
@@ -216,7 +354,7 @@
 <!-- RECETTES -->
 <div id="page-recettes" class="page">
   <div class="sec-hdr">
-    <div><div class="sec-title">Recettes &amp; Nomenclatures</div><div class="sec-sub">Composition de chaque produit fini</div></div>
+    <div></div>
     <div class="btn-row"><button class="btn btn-outline" data-modal="modalNewProduit">+ Nouveau produit</button></div>
   </div>
   <div id="recettesList"></div>
@@ -225,18 +363,18 @@
 <!-- ADMIN -->
 <div id="page-admin" class="page">
   <div class="sec-hdr">
-    <div><div class="sec-title">Administration</div><div class="sec-sub">Référentiels complets — cliquer sur une ligne pour modifier</div></div>
+    <div></div>
     <div class="btn-row">
-      <button class="btn btn-ghost" id="btnExportCSV">📤 Exporter tout en CSV</button>
-      <button class="btn btn-ghost" data-modal="modalImportMasse">📥 Import Excel/CSV</button>
+      <button class="btn btn-ghost" id="btnExportCSV">Exporter tout en CSV</button>
+      <button class="btn btn-ghost" data-modal="modalImportMasse">Import Excel/CSV</button>
     </div>
   </div>
   <div class="card" style="margin-bottom:14px;">
     <div class="card-hdr">
-      <span class="card-hdr-title">🏢 Mon entreprise</span>
+      <span class="card-hdr-title">Mon entreprise</span>
       <div style="display:flex;gap:7px;">
-        <button class="btn btn-ghost btn-sm" id="btnIAEntreprise">🤖 Mise à jour IA</button>
-        <button class="btn btn-primary btn-sm" id="btnSaveEntreprise">💾 Enregistrer</button>
+        <button class="btn btn-ghost btn-sm" id="btnIAEntreprise">Mise à jour IA</button>
+        <button class="btn btn-primary btn-sm" id="btnSaveEntreprise">Enregistrer</button>
       </div>
     </div>
     <div class="form-grid" style="padding:16px;">
@@ -263,7 +401,7 @@
   </div>
   <div class="card" style="margin-bottom:14px;">
     <div class="card-hdr">
-      <span class="card-hdr-title">📦 Articles</span>
+      <span class="card-hdr-title">Articles</span>
       <div style="display:flex;gap:7px;align-items:center;">
         <input type="text" class="search-input" placeholder="Rechercher…" id="adminArticlesSearch" style="width:160px;">
         <button class="btn btn-primary btn-sm" data-modal="modalNewArticle">+ Nouvel article</button>
@@ -274,7 +412,7 @@
   </div>
   <div class="card" style="margin-bottom:14px;">
     <div class="card-hdr">
-      <span class="card-hdr-title">🏷 Produits finis</span>
+      <span class="card-hdr-title">Produits finis</span>
       <button class="btn btn-primary btn-sm" data-modal="modalNewProduit">+ Nouveau produit</button>
     </div>
     <table><thead><tr><th>Réf</th><th>Nom</th><th>Prix vente HT</th><th>Coût revient</th><th>Marge</th><th>Seuil</th><th>Stock</th><th>Statut</th><th></th></tr></thead>
@@ -282,7 +420,7 @@
   </div>
   <div class="card" style="margin-bottom:14px;">
     <div class="card-hdr">
-      <span class="card-hdr-title">👤 Clients</span>
+      <span class="card-hdr-title">Clients</span>
       <button class="btn btn-primary btn-sm" data-modal="modalNewClient">+ Nouveau client</button>
     </div>
     <table><thead><tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Adresse</th><th>Notes</th><th></th></tr></thead>
@@ -290,9 +428,9 @@
   </div>
   <div class="card" style="margin-bottom:14px;">
     <div class="card-hdr">
-      <span class="card-hdr-title">🏪 Fournisseurs</span>
+      <span class="card-hdr-title">Fournisseurs</span>
       <div style="display:flex;gap:7px;">
-        <button class="btn btn-ghost btn-sm" id="btnIAFournisseur">🤖 Import IA</button>
+        <button class="btn btn-ghost btn-sm" id="btnIAFournisseur">Import IA</button>
         <button class="btn btn-primary btn-sm" data-modal="modalNewFournisseur">+ Nouveau fournisseur</button>
       </div>
     </div>
@@ -301,12 +439,16 @@
   </div>
 </div>
 
-</main>
+    </main>
+  </div><!-- fin .app-main -->
+</div><!-- fin .app-layout -->
 
-<!-- MODALS -->
+<!-- ═══════════════════════════════════════════════
+     MODALS — identiques à l'original
+═══════════════════════════════════════════════ -->
 
 <div class="modal-overlay" id="modalCommande"><div class="modal modal-lg">
-  <div class="modal-hdr"><span class="modal-hdr-title">📋 Nouvelle commande client</span><button class="modal-close" data-close="modalCommande">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title">Nouvelle commande client</span><button class="modal-close" data-close="modalCommande">×</button></div>
   <div class="form-grid">
     <div class="form-group"><label>Date</label><input type="date" id="cmdDate"></div>
     <div class="form-group"><label>Date livraison <span class="opt">(opt.)</span></label><input type="date" id="cmdDateLiv"></div>
@@ -327,13 +469,13 @@
   </div>
   <div class="alert-box alert-info" style="margin:0 16px 12px;"><span>ℹ</span><span>AppMee analyse le stock et génère les bons de commande fournisseur automatiquement si des articles manquent.</span></div>
   <div class="form-actions">
-    <button class="btn btn-primary" id="btnSaveCommande">💾 Enregistrer</button>
+    <button class="btn btn-primary" id="btnSaveCommande">Enregistrer</button>
     <button class="btn btn-ghost" data-close="modalCommande">Annuler</button>
   </div>
 </div></div>
 
 <div class="modal-overlay" id="modalAchat"><div class="modal modal-lg">
-  <div class="modal-hdr"><span class="modal-hdr-title">🛒 Bon de commande fournisseur</span><button class="modal-close" data-close="modalAchat">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title">Bon de commande fournisseur</span><button class="modal-close" data-close="modalAchat">×</button></div>
   <div class="form-grid" style="padding-bottom:0;">
     <div class="form-group"><label>Date</label><input type="date" id="achatDate"></div>
     <div class="form-group"><label>Fournisseur <span class="opt">(filtre articles)</span></label><select id="achatFournisseur"></select></div>
@@ -345,11 +487,11 @@
     <div id="bcLignesContainer"></div>
     <button class="btn btn-ghost btn-sm" id="btnAddBCLigne" style="margin-top:5px;">+ Ajouter un article</button>
   </div>
-  <div id="achatMontant" style="display:none;margin:0 16px 10px;padding:9px 12px;background:var(--ui-bg2);border-radius:7px;font-size:12.5px;">💰 Total HT estimé : <strong id="achatMontantVal">—</strong></div>
+  <div id="achatMontant" style="display:none;margin:0 16px 10px;padding:9px 12px;background:var(--ui-bg2);border-radius:7px;font-size:12.5px;">Total HT estimé : <strong id="achatMontantVal">—</strong></div>
   <div class="form-actions between">
-    <button class="btn btn-ghost" id="btnAperçuBC">👁 Aperçu PDF</button>
+    <button class="btn btn-ghost" id="btnAperçuBC">Aperçu PDF</button>
     <div style="display:flex;gap:7px;">
-      <button class="btn btn-primary" id="btnSaveAchat">💾 Créer le BC</button>
+      <button class="btn btn-primary" id="btnSaveAchat">Créer le BC</button>
       <button class="btn btn-ghost" data-close="modalAchat">Annuler</button>
     </div>
   </div>
@@ -359,31 +501,31 @@
   <div class="modal-hdr"><span class="modal-hdr-title" id="detailBCTitle">Détail BC</span><button class="modal-close" data-close="modalDetailBC">×</button></div>
   <div style="padding:16px;" id="detailBCContent"></div>
   <div class="form-actions between">
-    <button class="btn btn-ghost" id="btnAperçuBCDetail">👁 Aperçu PDF</button>
+    <button class="btn btn-ghost" id="btnAperçuBCDetail">Aperçu PDF</button>
     <div style="display:flex;gap:7px;">
-      <button class="btn btn-primary" id="btnSaveDetailBC">💾 Enregistrer</button>
+      <button class="btn btn-primary" id="btnSaveDetailBC">Enregistrer</button>
       <button class="btn btn-ghost" data-close="modalDetailBC">Fermer</button>
     </div>
   </div>
 </div></div>
 
 <div class="modal-overlay" id="modalInventaire"><div class="modal">
-  <div class="modal-hdr"><span class="modal-hdr-title">📦 Inventaire manuel</span><button class="modal-close" data-close="modalInventaire">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title">Inventaire manuel</span><button class="modal-close" data-close="modalInventaire">×</button></div>
   <div class="form-grid">
     <div class="form-group full"><label>Article</label><select id="invRef"></select></div>
-    <div class="form-group"><label>Stock système</label><div style="padding:7px 10px;background:var(--ui-bg2);border:1.5px solid var(--ui-brd);border-radius:6px;font-size:12.5px;font-weight:600;" id="invStockActuel">—</div></div>
+    <div class="form-group"><label>Stock système</label><div style="padding:7px 10px;background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:8px;font-size:12.5px;font-weight:600;" id="invStockActuel">—</div></div>
     <div class="form-group"><label>Quantité réelle <span id="invUnite" style="font-weight:400;text-transform:none;font-size:10px;color:var(--ink-muted);"></span></label><input type="number" id="invQteReel" min="0" step="0.01"></div>
     <div class="form-group full"><label>Motif</label><input type="text" id="invMotif" placeholder="Inventaire mensuel, casse…"></div>
   </div>
   <div class="alert-box alert-warn" style="margin:0 16px 12px;"><span>⚠</span><span>La quantité saisie remplacera le stock actuel.</span></div>
   <div class="form-actions">
-    <button class="btn btn-primary" id="btnSaveInventaire">💾 Valider</button>
+    <button class="btn btn-primary" id="btnSaveInventaire">Valider</button>
     <button class="btn btn-ghost" data-close="modalInventaire">Annuler</button>
   </div>
 </div></div>
 
 <div class="modal-overlay" id="modalLivraison"><div class="modal">
-  <div class="modal-hdr"><span class="modal-hdr-title">🚚 Livraison + Facture</span><button class="modal-close" data-close="modalLivraison">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title">Livraison + Facture</span><button class="modal-close" data-close="modalLivraison">×</button></div>
   <div style="padding:16px;">
     <div class="alert-box alert-success" style="margin-bottom:14px;"><span>✅</span><div><strong id="livCmd">—</strong><br><span>Montant : <strong id="livMontant">—</strong></span></div></div>
     <div class="form-group"><label>Date de livraison</label><input type="date" id="livDate"></div>
@@ -391,13 +533,13 @@
   </div>
   <div class="alert-box alert-info" style="margin:0 16px 12px;"><span>ℹ</span><span>Une facture est générée automatiquement. Le stock produits finis est décrémenté.</span></div>
   <div class="form-actions">
-    <button class="btn btn-primary" id="btnSaveLivraison">✅ Confirmer livraison</button>
+    <button class="btn btn-primary" id="btnSaveLivraison">Confirmer livraison</button>
     <button class="btn btn-ghost" data-close="modalLivraison">Annuler</button>
   </div>
 </div></div>
 
 <div class="modal-overlay" id="modalNewFacture"><div class="modal modal-lg">
-  <div class="modal-hdr"><span class="modal-hdr-title">🧾 Nouvelle facture</span><button class="modal-close" data-close="modalNewFacture">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title">Nouvelle facture</span><button class="modal-close" data-close="modalNewFacture">×</button></div>
   <div class="form-grid">
     <div class="form-group"><label>Date facture</label><input type="date" id="nfDate"></div>
     <div class="form-group"><label>Client</label><select id="nfClient"></select></div>
@@ -420,17 +562,17 @@
         <option value="20" selected>20%</option>
       </select>
     </div>
-    <div class="form-group"><label>Montant TTC</label><div id="nfTtcPreview" style="padding:7px 10px;background:var(--ui-bg2);border:1.5px solid var(--ui-brd);border-radius:6px;font-size:12.5px;font-weight:600;">—</div></div>
+    <div class="form-group"><label>Montant TTC</label><div id="nfTtcPreview" style="padding:7px 10px;background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:8px;font-size:12.5px;font-weight:600;">—</div></div>
     <div class="form-group full"><label>Notes</label><textarea id="nfNotes" rows="2" placeholder="Conditions de paiement, délai…"></textarea></div>
   </div>
   <div class="form-actions">
-    <button class="btn btn-primary" id="btnSaveNewFacture">💾 Créer la facture</button>
+    <button class="btn btn-primary" id="btnSaveNewFacture">Créer la facture</button>
     <button class="btn btn-ghost" data-close="modalNewFacture">Annuler</button>
   </div>
 </div></div>
 
 <div class="modal-overlay" id="modalEditFacture"><div class="modal modal-lg">
-  <div class="modal-hdr"><span class="modal-hdr-title">✏️ Modifier la facture</span><button class="modal-close" data-close="modalEditFacture">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title">Modifier la facture</span><button class="modal-close" data-close="modalEditFacture">×</button></div>
   <div class="form-grid">
     <div class="form-group"><label>Référence</label><input type="text" id="efRef" readonly style="background:var(--ui-bg2);"></div>
     <div class="form-group"><label>Date</label><input type="date" id="efDate"></div>
@@ -456,7 +598,7 @@
   </div>
   <input type="hidden" id="efId">
   <div class="form-actions">
-    <button class="btn btn-primary" id="btnSaveEditFacture">💾 Enregistrer</button>
+    <button class="btn btn-primary" id="btnSaveEditFacture">Enregistrer</button>
     <button class="btn btn-ghost" data-close="modalEditFacture">Annuler</button>
   </div>
 </div></div>
@@ -465,13 +607,13 @@
   <div class="modal-hdr"><span class="modal-hdr-title" id="pdfPreviewTitle">Aperçu PDF</span><button class="modal-close" data-close="modalPdfPreview">×</button></div>
   <div style="padding:16px;"><div class="pdf-preview" id="pdfPreviewContent"></div></div>
   <div class="form-actions">
-    <button class="btn btn-primary" id="btnPrintPdf">🖨 Imprimer / Télécharger PDF</button>
+    <button class="btn btn-primary" id="btnPrintPdf">Imprimer / Télécharger PDF</button>
     <button class="btn btn-ghost" data-close="modalPdfPreview">Fermer</button>
   </div>
 </div></div>
 
 <div class="modal-overlay" id="modalPlanifier"><div class="modal modal-lg">
-  <div class="modal-hdr"><span class="modal-hdr-title">🏭 Planifier des ordres de fabrication</span><button class="modal-close" data-close="modalPlanifier">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title">Planifier des ordres de fabrication</span><button class="modal-close" data-close="modalPlanifier">×</button></div>
   <div style="padding:0 16px 6px;">
     <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Ordres à créer — Produit | Nom | Qté | Date</div>
     <div id="ofLignes"></div>
@@ -484,16 +626,16 @@
   <div class="form-actions between">
     <div></div>
     <div style="display:flex;gap:7px;">
-      <button class="btn btn-primary" id="btnSavePlanifier">✅ Planifier</button>
+      <button class="btn btn-primary" id="btnSavePlanifier">Planifier</button>
       <button class="btn btn-ghost" data-close="modalPlanifier">Annuler</button>
     </div>
   </div>
 </div></div>
 
 <div class="modal-overlay" id="modalHistorique"><div class="modal modal-xl">
-  <div class="modal-hdr"><span class="modal-hdr-title">📜 Historique des mouvements</span><button class="modal-close" data-close="modalHistorique">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title">Historique des mouvements</span><button class="modal-close" data-close="modalHistorique">×</button></div>
   <div style="padding:10px 16px 0;display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
-    <select id="histoType" style="font-size:12px;padding:5px 9px;border:1.5px solid var(--ui-brd);border-radius:6px;">
+    <select id="histoType" style="font-size:12px;padding:5px 9px;border:1px solid var(--ui-brd2);border-radius:8px;">
       <option value="">Tous les types</option>
       <option value="entree">Entrées articles</option>
       <option value="sortie">Sorties articles</option>
@@ -511,7 +653,7 @@
 </div></div>
 
 <div class="modal-overlay" id="modalNewArticle"><div class="modal modal-lg">
-  <div class="modal-hdr"><span class="modal-hdr-title">📦 Nouvel article</span><button class="modal-close" data-close="modalNewArticle">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title">Nouvel article</span><button class="modal-close" data-close="modalNewArticle">×</button></div>
   <div class="form-grid">
     <div class="form-group"><label>Référence</label><input type="text" id="naRef" placeholder="A0028"></div>
     <div class="form-group"><label>Catégorie</label>
@@ -541,13 +683,13 @@
     <div class="form-group"><label>Stock initial</label><input type="number" id="naStock" value="0" step="0.01"></div>
   </div>
   <div class="form-actions">
-    <button class="btn btn-primary" id="btnSaveNewArticle">💾 Créer l'article</button>
+    <button class="btn btn-primary" id="btnSaveNewArticle">Créer l'article</button>
     <button class="btn btn-ghost" data-close="modalNewArticle">Annuler</button>
   </div>
 </div></div>
 
 <div class="modal-overlay" id="modalNewProduit"><div class="modal modal-lg">
-  <div class="modal-hdr"><span class="modal-hdr-title" id="modalNewProduitTitle">🏷 Nouveau produit fini &amp; recette</span><button class="modal-close" data-close="modalNewProduit">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title" id="modalNewProduitTitle">Nouveau produit fini &amp; recette</span><button class="modal-close" data-close="modalNewProduit">×</button></div>
   <div class="form-grid">
     <div class="form-group"><label>Référence</label><input type="text" id="npRef" placeholder="P0009"></div>
     <div class="form-group"><label>Nom du produit</label><input type="text" id="npNom" placeholder="Confiture…"></div>
@@ -558,10 +700,10 @@
     <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Recette (articles nécessaires par unité produite)</div>
     <div id="recetteLignes"></div>
     <button class="btn btn-ghost btn-sm" id="btnAddRecetteLigne" style="margin-top:5px;">+ Ajouter un article</button>
-    <div id="npCoutPreview" style="display:none;margin-top:10px;padding:8px 12px;background:var(--ui-bg2);border-radius:6px;font-size:12px;">Coût de revient estimé : <strong id="npCoutVal">—</strong></div>
+    <div id="npCoutPreview" style="display:none;margin-top:10px;padding:8px 12px;background:var(--ui-bg2);border-radius:8px;font-size:12px;">Coût de revient estimé : <strong id="npCoutVal">—</strong></div>
   </div>
   <div class="form-actions">
-    <button class="btn btn-primary" id="btnSaveNewProduit">💾 Enregistrer</button>
+    <button class="btn btn-primary" id="btnSaveNewProduit">Enregistrer</button>
     <button class="btn btn-ghost" data-close="modalNewProduit">Annuler</button>
   </div>
 </div></div>
@@ -572,14 +714,14 @@
   <div class="form-actions between">
     <button class="btn btn-danger" id="editRowDeleteBtn">Supprimer</button>
     <div style="display:flex;gap:7px;">
-      <button class="btn btn-primary" id="btnSaveEditRow">💾 Enregistrer</button>
+      <button class="btn btn-primary" id="btnSaveEditRow">Enregistrer</button>
       <button class="btn btn-ghost" data-close="modalEditRow">Annuler</button>
     </div>
   </div>
 </div></div>
 
 <div class="modal-overlay" id="modalNewClient"><div class="modal">
-  <div class="modal-hdr"><span class="modal-hdr-title">👤 Nouveau client</span><button class="modal-close" data-close="modalNewClient">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title">Nouveau client</span><button class="modal-close" data-close="modalNewClient">×</button></div>
   <div class="form-grid">
     <div class="form-group full"><label>Nom du client</label><input type="text" id="ncNom" placeholder="Épicerie Fine…"></div>
     <div class="form-group full"><label>Email <span class="opt">(opt.)</span></label><input type="email" id="ncEmail"></div>
@@ -588,13 +730,13 @@
     <div class="form-group full"><label>Notes <span class="opt">(opt.)</span></label><input type="text" id="ncNotes"></div>
   </div>
   <div class="form-actions">
-    <button class="btn btn-primary" id="btnSaveNewClient">💾 Enregistrer</button>
+    <button class="btn btn-primary" id="btnSaveNewClient">Enregistrer</button>
     <button class="btn btn-ghost" data-close="modalNewClient">Annuler</button>
   </div>
 </div></div>
 
 <div class="modal-overlay" id="modalNewFournisseur"><div class="modal">
-  <div class="modal-hdr"><span class="modal-hdr-title">🏪 Nouveau fournisseur</span><button class="modal-close" data-close="modalNewFournisseur">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title">Nouveau fournisseur</span><button class="modal-close" data-close="modalNewFournisseur">×</button></div>
   <div class="form-grid">
     <div class="form-group full"><label>Nom</label><input type="text" id="nfNom2" placeholder="Nom du fournisseur…"></div>
     <div class="form-group full"><label>Contact <span class="opt">(opt.)</span></label><input type="text" id="nfContact"></div>
@@ -612,18 +754,18 @@
     </div>
   </div>
   <div class="form-actions">
-    <button class="btn btn-primary" id="btnSaveNewFournisseur">💾 Enregistrer</button>
+    <button class="btn btn-primary" id="btnSaveNewFournisseur">Enregistrer</button>
     <button class="btn btn-ghost" data-close="modalNewFournisseur">Annuler</button>
   </div>
 </div></div>
 
 <div class="modal-overlay" id="modalFicheClient"><div class="modal modal-lg">
-  <div class="modal-hdr"><span class="modal-hdr-title">👤 Fiche client</span><button class="modal-close" data-close="modalFicheClient">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title">Fiche client</span><button class="modal-close" data-close="modalFicheClient">×</button></div>
   <div class="form-grid" id="ficheClientForm" style="padding:16px;"></div>
   <div class="form-actions between">
     <div></div>
     <div style="display:flex;gap:7px;">
-      <button class="btn btn-primary" id="btnSaveFicheClient">💾 Enregistrer</button>
+      <button class="btn btn-primary" id="btnSaveFicheClient">Enregistrer</button>
       <button class="btn btn-danger" id="btnSuppFicheClient">Supprimer</button>
       <button class="btn btn-ghost" data-close="modalFicheClient">Fermer</button>
     </div>
@@ -631,12 +773,12 @@
 </div></div>
 
 <div class="modal-overlay" id="modalFicheFournisseur"><div class="modal modal-lg">
-  <div class="modal-hdr"><span class="modal-hdr-title">🏪 Fiche fournisseur</span><button class="modal-close" data-close="modalFicheFournisseur">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title">Fiche fournisseur</span><button class="modal-close" data-close="modalFicheFournisseur">×</button></div>
   <div class="form-grid" id="ficheFournisseurForm" style="padding:16px;"></div>
   <div class="form-actions between">
     <div></div>
     <div style="display:flex;gap:7px;">
-      <button class="btn btn-primary" id="btnSaveFicheFournisseur">💾 Enregistrer</button>
+      <button class="btn btn-primary" id="btnSaveFicheFournisseur">Enregistrer</button>
       <button class="btn btn-danger" id="btnSuppFicheFournisseur">Supprimer</button>
       <button class="btn btn-ghost" data-close="modalFicheFournisseur">Fermer</button>
     </div>
@@ -644,7 +786,7 @@
 </div></div>
 
 <div class="modal-overlay" id="modalIAEntreprise"><div class="modal modal-lg">
-  <div class="modal-hdr"><span class="modal-hdr-title" id="iaEntrepriseTitle">🤖 Mise à jour par IA</span><button class="modal-close" data-close="modalIAEntreprise">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title" id="iaEntrepriseTitle">Mise à jour par IA</span><button class="modal-close" data-close="modalIAEntreprise">×</button></div>
   <div style="padding:14px 16px 0;">
     <div class="alert-box alert-info"><span>ℹ</span><span>Déposez un document (BC, facture, bon de livraison…). Claude extrait les informations automatiquement.</span></div>
     <div id="iaEntDrop" style="border:2px dashed var(--ui-brd2);border-radius:9px;padding:26px 20px;text-align:center;cursor:pointer;background:var(--ui-bg2);">
@@ -653,7 +795,7 @@
       <div style="font-size:11px;color:var(--ink-muted);">Facture · BC · Bon livraison · PDF · Image</div>
     </div>
     <input type="file" id="iaEntFile" accept=".pdf,.png,.jpg,.jpeg,.xlsx,.docx,.csv" style="display:none">
-    <div id="iaEntFileInfo" style="display:none;margin-top:10px;background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:8px 12px;align-items:center;gap:9px;">
+    <div id="iaEntFileInfo" style="display:none;margin-top:10px;background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:8px;padding:8px 12px;align-items:center;gap:9px;">
       <span id="iaEntFileIcon" style="font-size:20px;"></span>
       <div id="iaEntFileName" style="flex:1;font-weight:600;font-size:12px;"></div>
     </div>
@@ -667,15 +809,15 @@
   <div class="form-actions between">
     <div style="font-size:11px;color:var(--ink-muted);">Powered by Claude AI via Netlify</div>
     <div style="display:flex;gap:7px;">
-      <button class="btn btn-ghost" id="iaEntBtnAnalyse" disabled style="opacity:.5;">🤖 Analyser</button>
-      <button class="btn btn-primary" id="iaEntBtnApply" disabled style="opacity:.5;">✅ Appliquer</button>
+      <button class="btn btn-ghost" id="iaEntBtnAnalyse" disabled style="opacity:.5;">Analyser</button>
+      <button class="btn btn-primary" id="iaEntBtnApply" disabled style="opacity:.5;">Appliquer</button>
       <button class="btn btn-ghost" data-close="modalIAEntreprise">Fermer</button>
     </div>
   </div>
 </div></div>
 
 <div class="modal-overlay" id="modalImportIA"><div class="modal modal-lg">
-  <div class="modal-hdr"><span class="modal-hdr-title">🤖 Import IA — Bon de commande</span><button class="modal-close" data-close="modalImportIA">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title">Import IA — Bon de commande</span><button class="modal-close" data-close="modalImportIA">×</button></div>
   <div id="iaStep1">
     <div style="padding:16px 16px 10px;">
       <div id="iaDropZone" style="border:2px dashed var(--ui-brd2);border-radius:9px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--ui-bg2);">
@@ -684,7 +826,7 @@
         <div style="font-size:11.5px;color:var(--ink-muted);">PDF · Excel · Word · Image</div>
       </div>
       <input type="file" id="iaFileInput" accept=".pdf,.xlsx,.xls,.docx,.doc,.csv,.txt,.png,.jpg,.jpeg" style="display:none">
-      <div id="iaFileInfo" style="display:none;margin-top:10px;background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:9px 12px;align-items:center;gap:9px;">
+      <div id="iaFileInfo" style="display:none;margin-top:10px;background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:8px;padding:9px 12px;align-items:center;gap:9px;">
         <span id="iaFileIcon" style="font-size:22px;"></span>
         <div style="flex:1;"><div id="iaFileName" style="font-weight:600;font-size:12.5px;"></div><div id="iaFileSize" style="font-size:11px;color:var(--ink-muted);"></div></div>
         <button id="iaFileClear" style="background:none;border:none;color:var(--ui-red);font-size:17px;cursor:pointer;">×</button>
@@ -696,7 +838,7 @@
     </div>
     <div class="form-actions between">
       <div style="font-size:11px;color:var(--ink-muted);">Powered by Claude AI via Netlify</div>
-      <button class="btn btn-primary" id="iaBtnAnalyse" disabled style="opacity:.5;">🤖 Analyser</button>
+      <button class="btn btn-primary" id="iaBtnAnalyse" disabled style="opacity:.5;">Analyser</button>
     </div>
   </div>
   <div id="iaStep2" style="display:none;padding:40px 20px;text-align:center;">
@@ -712,24 +854,24 @@
       <button class="btn btn-ghost" id="iaResetBtn">← Autre fichier</button>
       <div style="display:flex;gap:7px;">
         <button class="btn btn-ghost" data-close="modalImportIA">Annuler</button>
-        <button class="btn btn-primary" id="iaConfirmBtn">✅ Importer</button>
+        <button class="btn btn-primary" id="iaConfirmBtn">Importer</button>
       </div>
     </div>
   </div>
 </div></div>
 
 <div class="modal-overlay" id="modalImportMasse"><div class="modal modal-lg">
-  <div class="modal-hdr"><span class="modal-hdr-title">📥 Import masse — Migration données</span><button class="modal-close" data-close="modalImportMasse">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title">Import masse — Migration données</span><button class="modal-close" data-close="modalImportMasse">×</button></div>
   <div style="padding:14px 16px 0;">
     <div class="alert-box alert-info"><span>ℹ</span><span>Importez vos données existantes. Les données existantes sont conservées — l'import ajoute sans écraser.</span></div>
-    <div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:7px;padding:12px 14px;margin-bottom:12px;">
+    <div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:8px;padding:12px 14px;margin-bottom:12px;">
       <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Télécharger les modèles</div>
       <div style="display:flex;gap:7px;flex-wrap:wrap;">
-        <button class="btn btn-outline btn-sm" id="dlArticles">📥 Articles</button>
-        <button class="btn btn-outline btn-sm" id="dlProduits">📥 Produits</button>
-        <button class="btn btn-outline btn-sm" id="dlClients">📥 Clients</button>
-        <button class="btn btn-outline btn-sm" id="dlFournisseurs">📥 Fournisseurs</button>
-        <button class="btn btn-outline btn-sm" id="dlCommandes">📥 Commandes</button>
+        <button class="btn btn-outline btn-sm" id="dlArticles">Articles</button>
+        <button class="btn btn-outline btn-sm" id="dlProduits">Produits</button>
+        <button class="btn btn-outline btn-sm" id="dlClients">Clients</button>
+        <button class="btn btn-outline btn-sm" id="dlFournisseurs">Fournisseurs</button>
+        <button class="btn btn-outline btn-sm" id="dlCommandes">Commandes</button>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;" id="massImportZones"></div>
@@ -739,14 +881,48 @@
     <div id="massTotalCount" style="font-size:11.5px;color:var(--ink-muted);">Aucune donnée</div>
     <div style="display:flex;gap:7px;">
       <button class="btn btn-ghost" data-close="modalImportMasse">Annuler</button>
-      <button class="btn btn-primary" id="massBtnImport" disabled style="opacity:.5;">📥 Importer</button>
+      <button class="btn btn-primary" id="massBtnImport" disabled style="opacity:.5;">Importer</button>
     </div>
   </div>
 </div></div>
 
+<!-- ═══════════════════════════════════════════════
+     SCRIPT — identique à l'original
+     Seul changement : navigation mise à jour pour
+     gérer sidebar (.side-item) + bottom-nav (.bottom-nav-item)
+     via le même id="mainNav" (Règle 2 — listeners conservés)
+═══════════════════════════════════════════════ -->
 <script type="module">
 import { initAuth, signOut } from '/js/auth.js';
 import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
+
+/* Helper topbar — met à jour titre + sous-titre selon la page */
+const PAGE_META = {
+  dashboard:  { title: 'Tableau de bord',             sub: 'Vue d\'ensemble de votre activité' },
+  stock:      { title: 'Stock Articles',               sub: 'Matières premières, emballages, consommables' },
+  produits:   { title: 'Produits Finis',               sub: 'Produits assemblés, prêts à la vente' },
+  commandes:  { title: 'Commandes clients',            sub: 'Cycle complet commande → livraison' },
+  production: { title: 'Plan de production',           sub: 'Ordres de fabrication et calendrier hebdomadaire' },
+  achats:     { title: 'Bons de commande fournisseurs',sub: 'Cliquez sur une ligne pour voir / modifier le détail' },
+  livraisons: { title: 'Livraisons & Factures',        sub: 'Facturation et suivi des paiements' },
+  recettes:   { title: 'Recettes & Nomenclatures',     sub: 'Composition de chaque produit fini' },
+  admin:      { title: 'Administration',               sub: 'Référentiels complets — cliquer sur une ligne pour modifier' },
+};
+
+function updateTopbar(page) {
+  const meta = PAGE_META[page] || {};
+  const titleEl = document.getElementById('topbarTitle');
+  const subEl   = document.getElementById('topbarSub');
+  if (titleEl) titleEl.textContent = meta.title || '';
+  if (subEl)   subEl.textContent   = meta.sub   || '';
+}
+
+function setActiveNav(page) {
+  /* Sidebar + bottom-nav — même attribut data-page */
+  document.querySelectorAll('[data-page]').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === page);
+  });
+}
 
   async function demarrerApp() {
     const modules = await Promise.all([
@@ -780,11 +956,25 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
       admin:     admin.render,
     };
 
+    /* Navigation — écoute sur #mainNav (sidebar) ET .bottom-nav */
     document.getElementById('mainNav').addEventListener('click', (e) => {
       const btn = e.target.closest('[data-page]');
       if (!btn) return;
       const page = btn.dataset.page;
       showPage(page, btn);
+      setActiveNav(page);
+      updateTopbar(page);
+      if (pageMap[page]) pageMap[page]();
+    });
+
+    /* Bottom nav mobile */
+    document.querySelector('.bottom-nav')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-page]');
+      if (!btn) return;
+      const page = btn.dataset.page;
+      showPage(page, document.querySelector(`#mainNav [data-page="${page}"]`));
+      setActiveNav(page);
+      updateTopbar(page);
       if (pageMap[page]) pageMap[page]();
     });
 
@@ -796,8 +986,10 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
       const navBtn = e.target.closest('[data-page-nav]');
       if (navBtn) {
         const page = navBtn.dataset.pageNav;
-        const tab = document.querySelector(`[data-page="${page}"]`);
+        const tab = document.querySelector(`#mainNav [data-page="${page}"]`);
         showPage(page, tab);
+        setActiveNav(page);
+        updateTopbar(page);
         if (pageMap[page]) pageMap[page]();
       }
     });
@@ -888,7 +1080,7 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
       ]);
     });
 
-    /* Aperçu PDF */
+    /* Aperçu PDF — identique à l'original */
     document.addEventListener('appmee:showPdf', (e) => {
       const { title, type, data, commande } = e.detail || {};
       if (!data) return;
@@ -942,8 +1134,13 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
     document.addEventListener('appmee:navigate', (e) => {
       const { section } = e.detail || {};
       if (!section) return;
-      const tab = document.querySelector(`[data-page="${section}"]`);
-      if (tab) { showPage(section, tab); if (pageMap[section]) pageMap[section](); }
+      const tab = document.querySelector(`#mainNav [data-page="${section}"]`);
+      if (tab) {
+        showPage(section, tab);
+        setActiveNav(section);
+        updateTopbar(section);
+        if (pageMap[section]) pageMap[section]();
+      }
     });
 
     document.addEventListener('click', (e) => {
@@ -953,7 +1150,7 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
       if (achats.initAchatModal) achats.initAchatModal(null);
     }, true);
 
-/* Import IA */
+/* Import IA — identique à l'original */
     (function() {
       let _iaFile = null;
       const dropZone  = document.getElementById('iaDropZone');
@@ -1069,7 +1266,6 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
       }
 
       function _iaShowPreview(data, produits, clients) {
-        /* Toujours masquer le spinner — résultats prêts */
         document.getElementById('iaStep1').style.display = 'none';
         document.getElementById('iaStep2').style.display = 'none';
         document.getElementById('iaStep3').style.display = 'block';
@@ -1136,10 +1332,10 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
                 <td style="font-size:11.5px;color:var(--ui-red);">⚠ ${l.nomOriginal || '—'}</td>
                 <td><input type="number" value="${l.qte || 1}" min="1" step="1"
                   class="ia-nm-qte" data-idx="${i}"
-                  style="width:60px;padding:4px 6px;border:1.5px solid var(--ui-brd);border-radius:5px;font-size:12px;"></td>
+                  style="width:60px;padding:4px 6px;border:1px solid var(--ui-brd2);border-radius:6px;font-size:12px;"></td>
                 <td>
                   <select class="ia-nm-sel" data-idx="${i}" data-nom="${(l.nomOriginal || '').replace(/"/g, '')}"
-                    style="font-size:11.5px;padding:4px 6px;border:1.5px solid var(--ui-brd);border-radius:5px;">
+                    style="font-size:11.5px;padding:4px 6px;border:1px solid var(--ui-brd2);border-radius:6px;">
                     <option value="">— Ignorer cette ligne —</option>
                     ${opts}
                   </select>
@@ -1186,7 +1382,7 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
 
         window._iaData = null;
         window._iaProduits = null;
-      } /* fin _iaShowPreview */
+      }
 
       btnConfirm?.addEventListener('click', async () => {
         const sels = document.querySelectorAll('.ia-nm-sel');
@@ -1209,10 +1405,10 @@ import { renderHeaderDate, openModal, closeModal, showPage } from '/js/ui.js';
           }, 50);
         });
         closeModal('modalImportIA');
-      }); /* fin btnConfirm */
+      });
 
-    })(); /* fin IIFE Import IA */
-    
+    })();
+
     await commandes.init();
     await stock.init();
     await produits.init();
