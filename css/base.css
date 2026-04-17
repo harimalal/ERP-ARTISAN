@@ -2,6 +2,7 @@
    AppMee — base.css
    Variables CSS, reset, typographie
    Importé en premier dans app.html et index.html
+   Redesign session #9 — palette papier naturel
 ------------------------------------------------------- */
 
 /* GOOGLE FONTS */
@@ -10,45 +11,62 @@
 /* VARIABLES */
 :root {
   /* Couleurs texte */
-  --ink:        #1a1814;
-  --ink-light:  #4a4640;
-  --ink-muted:  #8a8480;
+  --ink:        #1E1A16;
+  --ink-light:  #4A3C30;
+  --ink-muted:  #8A7E74;
 
   /* Couleurs fond */
-  --cream:      #faf8f4;
-  --cream-dark: #f0ede7;
+  --cream:      #F7F3EC;
+  --cream-dark: #EDE8DF;
 
   /* Couleurs accent */
-  --accent:      #c8432b;
-  --accent-warm: #e8a44a;
-  --gold:        #b8943a;
-  --rule:        #d8d4ce;
+  --accent:      #C8432B;
+  --accent-warm: #E8923A;
+  --gold:        #C8830A;
+  --rule:        #EDE8DF;
 
   /* Couleurs sémantiques */
-  --green:  #2d6a4f;
-  --blue:   #1d4e89;
+  --green:  #3D6B52;
+  --blue:   #4A7FA5;
   --purple: #5a3e85;
+
+  /* Nouvelle variable — vert sauge (refs, logo, succès) */
+  --sage:   #3D6B52;
 
   /* UI système */
   --ui-bg:    #fff;
-  --ui-bg2:   #f7f5f1;
-  --ui-bg3:   #edeae4;
-  --ui-brd:   #d8d4ce;
-  --ui-brd2:  #c4bfb8;
+  --ui-bg2:   #FAF7F2;
+  --ui-bg3:   #F0EBE0;
+  --ui-brd:   #EDE8DF;
+  --ui-brd2:  #DDD6C8;
 
-  --ui-text:  #1a1814;
-  --ui-text2: #6a6460;
-  --ui-text3: #9a9490;
+  --ui-text:  #1E1A16;
+  --ui-text2: #6A5E54;
+  --ui-text3: #B5A99A;
 
-  --ui-green:  #2d6a4f;
-  --ui-red:    #c8432b;
-  --ui-orange: #c8830a;
-  --ui-blue:   #1d4e89;
+  --ui-green:  #3D6B52;
+  --ui-red:    #C8432B;
+  --ui-orange: #C8830A;
+  --ui-blue:   #4A7FA5;
 
   /* Effets */
-  --shadow: 0 1px 3px rgba(26,24,20,.07), 0 4px 16px rgba(26,24,20,.05);
+  --shadow: 0 1px 3px rgba(30,26,22,.06), 0 4px 16px rgba(30,26,22,.04);
   --r:  10px;
   --rl: 14px;
+
+  /* Headers pastels sémantiques — cards */
+  --hdr-alert-bg:  #FEF0ED;
+  --hdr-alert-brd: #FBDBD4;
+  --hdr-alert-txt: #7A2010;
+  --hdr-sage-bg:   #EAF3EE;
+  --hdr-sage-brd:  #C8E0D2;
+  --hdr-sage-txt:  #1E4A30;
+  --hdr-blue-bg:   #EBF2F9;
+  --hdr-blue-brd:  #C4DAE9;
+  --hdr-blue-txt:  #1A3A5A;
+  --hdr-amber-bg:  #FEF6E4;
+  --hdr-amber-brd: #F0D9A0;
+  --hdr-amber-txt: #5A3A00;
 }
 
 /* RESET */
@@ -153,7 +171,7 @@ h1, h2, h3 {
 
 /* PRINT */
 @media print {
-  header, nav,
+  header, nav, .app-side,
   main > .page:not(.active),
   .modal-overlay:not(#modalPdfPreview),
   .modal-overlay #pdfPreviewTitle,
