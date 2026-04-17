@@ -4,7 +4,7 @@
    Fix L1 — recharge caches avant traitement (Règle 11)
    Dépend de : db.js, ui.js
 ------------------------------------------------------- */
- 
+
 import {
   getFactures, createFacture, updateFactureStatut,
   createLivraison, factureExistePourCommande,
@@ -15,15 +15,15 @@ import {
   fmt, fmtQ, esc, badgeFac, showToast, today,
   openModal, closeModal, nextRef,
 } from '../ui.js';
- 
+
 /* Cache local */
 let _factures  = [];
 let _commandes = [];
 let _clients   = [];
 let _produits  = [];
- 
+
 let _nfListenersBound = false;
- 
+
 /* -------------------------------------------------------
    INIT
 ------------------------------------------------------- */
@@ -35,7 +35,7 @@ export async function init() {
   _bindNewFactureForm();
   document.getElementById('btnSaveLivraison')?.addEventListener('click', _saveLivraison);
 }
- 
+
 /* -------------------------------------------------------
    RENDER
 ------------------------------------------------------- */
@@ -44,7 +44,7 @@ export async function render() {
   _commandes = await getCommandes();
   _renderTable();
 }
- 
+
 function _renderTable() {
   document.getElementById('facturesTbody').innerHTML = _factures.map(f => `
     <tr class="clickable" data-id="${f.id}" data-action="edit">
@@ -69,29 +69,29 @@ function _renderTable() {
       </td>
     </tr>`).join('') ||
     '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucune facture.</td></tr>';
- 
+
   const tbody = document.getElementById('facturesTbody');
- 
+
   tbody.onclick = (e) => {
     const pdfBtn = e.target.closest('[data-action="pdf"]');
     if (pdfBtn) { _aperçuPdfFac(pdfBtn.dataset.id); return; }
     const row = e.target.closest('[data-action="edit"]');
     if (row) _openEditFacture(row.dataset.id);
   };
- 
+
   tbody.addEventListener('change', async (e) => {
     const sel = e.target.closest('[data-action="changer-statut"]');
     if (sel && sel.value) await _changerStatutFac(sel.dataset.id, sel.value);
   });
 }
- 
+
 /* -------------------------------------------------------
    ÉDITION FACTURE
 ------------------------------------------------------- */
 function _openEditFacture(id) {
   const f = _factures.find(x => x.id === id);
   if (!f) return;
- 
+
   let modal = document.getElementById('modalEditFacture');
   if (!modal) {
     modal = document.createElement('div');
@@ -120,21 +120,21 @@ function _openEditFacture(id) {
     modal.querySelectorAll('[data-close]').forEach(btn =>
       btn.addEventListener('click', () => closeModal('modalEditFacture')));
   }
- 
+
   document.getElementById('efRef').value     = f.ref;
   document.getElementById('efClient').value  = f.client_nom;
   document.getElementById('efDate').value    = f.date_facture;
   document.getElementById('efMontant').value = f.montant_ht;
   document.getElementById('efTva').value     = f.taux_tva || 20;
   document.getElementById('efNotes').value   = f.notes || '';
- 
+
   const btnSave = document.getElementById('btnSaveEditFacture');
   const newBtn = btnSave.cloneNode(true);
   btnSave.parentNode.replaceChild(newBtn, btnSave);
   newBtn.addEventListener('click', () => _saveEditFacture(id));
   openModal('modalEditFacture');
 }
- 
+
 async function _saveEditFacture(id) {
   const f = _factures.find(x => x.id === id);
   if (!f) return;
@@ -156,20 +156,20 @@ async function _saveEditFacture(id) {
     showToast('❌ Erreur mise à jour facture.', 'error');
   }
 }
- 
+
 /* -------------------------------------------------------
    CONFIRMATION LIVRAISON
    Fix L1 — recharge caches (Règle 11)
    Fix L2 — updateCommandeStatut('cloture') après livraison
 ------------------------------------------------------- */
 function _bindLivraisonForm() { /* listener posé dans init() */ }
- 
+
 async function _saveLivraison() {
   const commandeId = document.getElementById('livCmdId').value;
   const date       = document.getElementById('livDate').value || today();
- 
+
   if (!commandeId) { showToast('⚠ Commande introuvable.', 'error'); return; }
- 
+
   /* Fix L1 — recharger les caches avant tout traitement */
   try {
     [_commandes, _produits, _factures] = await Promise.all([
@@ -178,13 +178,13 @@ async function _saveLivraison() {
   } catch (err) {
     console.error('[livraisons] _saveLivraison — rechargement cache ERREUR:', err.message);
   }
- 
+
   const c = _commandes.find(x => x.id === commandeId);
   if (!c) { showToast('⚠ Commande introuvable après rechargement.', 'error'); return; }
- 
+
   const btn = document.getElementById('btnSaveLivraison');
   if (btn) { btn.disabled = true; btn.textContent = 'Traitement…'; }
- 
+
   try {
     /* 1. Décrémenter le stock produits finis */
     for (const l of (c.commande_lignes || [])) {
@@ -202,7 +202,7 @@ async function _saveLivraison() {
       });
       p.stock = newStock;
     }
- 
+
     /* 2. Créer la livraison — non-bloquant si table absente */
     try {
       const livRef = nextRef('LIV', []);
@@ -215,7 +215,7 @@ async function _saveLivraison() {
     } catch (livErr) {
       console.warn('[livraisons] createLivraison ignoré:', livErr.message);
     }
- 
+
     /* 3. Créer la facture si elle n'existe pas encore */
     const dejafac = await factureExistePourCommande(commandeId);
     if (!dejafac) {
@@ -234,20 +234,20 @@ async function _saveLivraison() {
       });
       _factures.unshift(fac);
     }
- 
+
     /* 4. Fix L2 — Passer la commande en "cloture" */
     await updateCommandeStatut(commandeId, 'cloture');
     const cmdIdx = _commandes.findIndex(x => x.id === commandeId);
     if (cmdIdx >= 0) _commandes[cmdIdx].statut = 'cloture';
- 
+
     closeModal('modalLivraison');
     _renderTable();
     showToast('✅ ' + c.ref + ' livrée — facture créée — commande clôturée.');
- 
+
     /* Double dispatch pour recharger commandes ET livraisons */
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'livraisons' } }));
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'commandes' } }));
- 
+
   } catch (err) {
     console.error('[livraisons] _saveLivraison ERREUR:', err.message, err);
     showToast('❌ Erreur confirmation livraison.', 'error');
@@ -255,17 +255,17 @@ async function _saveLivraison() {
     if (btn) { btn.disabled = false; btn.textContent = '✅ Confirmer livraison'; }
   }
 }
- 
+
 /* -------------------------------------------------------
    NOUVELLE FACTURE MANUELLE
 ------------------------------------------------------- */
 function _bindNewFactureForm() {
   if (_nfListenersBound) return;
   _nfListenersBound = true;
- 
+
   document.getElementById('nfMontant')?.addEventListener('input', _calcNFTtc);
   document.getElementById('nfTva')?.addEventListener('input', _calcNFTtc);
- 
+
   document.getElementById('nfRefCmd')?.addEventListener('change', (e) => {
     const ref = e.target.value;
     if (!ref) return;
@@ -279,34 +279,34 @@ function _bindNewFactureForm() {
     document.getElementById('nfMontant').value = tot.toFixed(2);
     _calcNFTtc();
   });
- 
+
   document.getElementById('btnSaveNewFacture')?.addEventListener('click', _saveNewFacture);
 }
- 
+
 export function initNewFactureModal() {
   document.getElementById('nfDate').value        = today();
   document.getElementById('nfMontant').value     = '';
   document.getElementById('nfNotes').value       = '';
   document.getElementById('nfDescription').value = '';
   document.getElementById('nfTtcPreview').textContent = '—';
- 
+
   const clientSel = document.getElementById('nfClient');
   clientSel.innerHTML =
     '<option value="">— Sélectionner un client —</option>' +
     _clients.map(c => `<option value="${esc(c.nom)}">${esc(c.nom)}</option>`).join('');
- 
+
   const cmdSel = document.getElementById('nfRefCmd');
   cmdSel.innerHTML = '<option value="">— Aucune —</option>' +
     _commandes.map(c =>
       `<option value="${esc(c.ref)}">${esc(c.ref)} — ${esc(c.client_nom)}</option>`).join('');
 }
- 
+
 function _calcNFTtc() {
   const ht  = parseFloat(document.getElementById('nfMontant').value) || 0;
   const tva = parseFloat(document.getElementById('nfTva').value) || 0;
   document.getElementById('nfTtcPreview').textContent = fmt(ht * (1 + tva / 100)) + ' €';
 }
- 
+
 async function _saveNewFacture() {
   const clientNom = document.getElementById('nfClient').value;
   const montant   = parseFloat(document.getElementById('nfMontant').value) || 0;
@@ -334,7 +334,7 @@ async function _saveNewFacture() {
     showToast('❌ Erreur création facture.', 'error');
   }
 }
- 
+
 /* -------------------------------------------------------
    CHANGEMENT STATUT FACTURE
 ------------------------------------------------------- */
@@ -348,7 +348,7 @@ async function _changerStatutFac(id, statut) {
     showToast('❌ Erreur changement statut facture.', 'error');
   }
 }
- 
+
 /* -------------------------------------------------------
    APERÇU PDF
 ------------------------------------------------------- */
@@ -360,7 +360,7 @@ function _aperçuPdfFac(id) {
     detail: { title: 'Facture ' + f.ref, type: 'facture', data: f, commande: c },
   }));
 }
- 
+
 /* -------------------------------------------------------
    GETTER public — appelé depuis app.html
 ------------------------------------------------------- */
