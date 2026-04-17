@@ -77,6 +77,7 @@ function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
 
 /* -------------------------------------------------------
    ALERTES STOCK ARTICLES
+   Colonnes : Réf | Article | Stock / Seuil (fusionné + barre) | Action
 ------------------------------------------------------- */
 function renderAlertes(articles) {
   const al = articles.filter(a => a.stock <= a.seuil);
@@ -89,15 +90,42 @@ function renderAlertes(articles) {
 
   el.innerHTML = `
     <table>
-      <thead><tr><th>Réf</th><th>Article</th><th>Stock</th><th>Seuil</th><th></th></tr></thead>
-      <tbody id="dashAlertsTbody">${al.map(a => `
+      <thead>
         <tr>
-          <td class="td-ref">${esc(a.ref)}</td>
-          <td class="td-bold">${esc(a.nom)}</td>
-          <td style="color:var(--ui-red);font-weight:600">${fmtQ(a.stock)} ${esc(a.unite)}</td>
-          <td>${fmtQ(a.seuil)}</td>
-          <td><button class="btn btn-primary btn-sm" data-ref="${esc(a.ref)}" data-action="commander">Commander</button></td>
-        </tr>`).join('')}
+          <th>Réf</th>
+          <th>Article</th>
+          <th>Stock / Seuil</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="dashAlertsTbody">
+        ${al.map(a => {
+          const pct = a.seuil > 0 ? Math.min(100, Math.round(a.stock / a.seuil * 100)) : 100;
+          const col = a.stock <= 0 ? 'var(--ui-red)'
+            : a.stock <= a.seuil ? 'var(--ui-red)'
+            : '#c8830a';
+          const stockTxt = a.stock <= a.seuil && a.stock === a.seuil
+            ? `<span style="color:#c8830a;font-weight:700">${fmtQ(a.stock)} ${esc(a.unite)}</span>`
+            : `<span style="color:var(--ui-red);font-weight:700">${fmtQ(a.stock)} ${esc(a.unite)}</span>`;
+          return `
+          <tr>
+            <td class="td-ref">${esc(a.ref)}</td>
+            <td class="td-bold">${esc(a.nom)}</td>
+            <td>
+              <span style="font-size:13px;">
+                ${a.stock === a.seuil
+                  ? `<span style="color:#c8830a;font-weight:700">${fmtQ(a.stock)} ${esc(a.unite)}</span>`
+                  : `<span style="color:var(--ui-red);font-weight:700">${fmtQ(a.stock)} ${esc(a.unite)}</span>`
+                }
+                <span style="color:var(--ui-text3);font-weight:400;font-size:11px;"> / ${fmtQ(a.seuil)}</span>
+              </span>
+              <div class="prog-wrap" style="margin-top:4px;width:80px;">
+                <div class="prog-bar" style="width:${pct}%;background:${col};"></div>
+              </div>
+            </td>
+            <td><button class="btn btn-outline btn-sm" data-ref="${esc(a.ref)}" data-action="commander">Commander</button></td>
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>`;
 
@@ -112,28 +140,37 @@ function renderAlertes(articles) {
 
 /* -------------------------------------------------------
    STOCK PRODUITS FINIS
-   Fix D5 — N'affiche que les produits en stock bas ou rupture
+   Colonnes : Produit | Stock (+ barre) | Statut
 ------------------------------------------------------- */
 function renderStockProduits(produits) {
-  const el = document.getElementById('dashProduits');
-
-  /* Filtrer : rupture (stock <= 0) ou stock bas (stock <= seuil) */
-  const alertes = produits.filter(p => p.stock <= p.seuil);
-
-  if (!alertes.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><p>Tous les produits finis sont en stock suffisant.</p></div>';
-    return;
-  }
-
-  el.innerHTML = `
+  document.getElementById('dashProduits').innerHTML = `
     <table>
-      <thead><tr><th>Produit</th><th>Stock</th><th>Statut</th></tr></thead>
-      <tbody>${alertes.map(p => `
+      <thead>
         <tr>
-          <td>${esc(p.nom)}</td>
-          <td><strong>${p.stock}</strong></td>
-          <td>${stockStatus(p.stock, p.seuil)}</td>
-        </tr>`).join('')}
+          <th>Produit</th>
+          <th>Stock</th>
+          <th>Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${produits.map(p => {
+          const pct = p.seuil > 0 ? Math.min(100, Math.round(p.stock / p.seuil * 100)) : 100;
+          const col = p.stock <= 0 ? 'var(--ui-red)'
+            : p.stock <= p.seuil ? 'var(--ui-red)'
+            : p.stock <= p.seuil * 1.5 ? '#c8830a'
+            : 'var(--ui-green)';
+          return `
+          <tr>
+            <td class="td-bold">${esc(p.nom)}</td>
+            <td>
+              <span style="font-size:13px;font-weight:700;display:block;color:var(--ink);">${fmtQ(p.stock).replace('.', '\u00a0')}</span>
+              <div class="prog-wrap" style="margin-top:4px;width:80px;">
+                <div class="prog-bar" style="width:${pct}%;background:${col};"></div>
+              </div>
+            </td>
+            <td>${stockStatus(p.stock, p.seuil)}</td>
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>`;
 }
