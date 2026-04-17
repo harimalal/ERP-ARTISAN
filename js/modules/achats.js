@@ -337,7 +337,6 @@ async function _saveAchat() {
         article_nom:   ligne.nom || (a ? a.nom : ''),
         quantite:      ligne.qte,
         prix_unitaire: prix,
-        montant_ht:    ligne.qte * prix,
         fournisseur:   fournisseur || (a ? a.fournisseur : ''),
         statut:        'brouillon',
         ref_commande:  refCommande,
@@ -551,7 +550,6 @@ async function _saveDetailBC() {
         statut:        newStatut,
         quantite:      ld.qte,
         prix_unitaire: ld.prix,
-        montant_ht:    ld.qte * ld.prix,
       });
 
       if (passeRecu) {
