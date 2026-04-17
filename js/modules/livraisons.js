@@ -1,9 +1,7 @@
 /* -------------------------------------------------------
    AppMee — modules/livraisons.js
-   Livraisons et factures : liste, confirmation,
-   changement statut, aperçu PDF.
-   Fix L1 — _saveLivraison() recharge _commandes + _produits
-   avant tout traitement (Règle 11 — cache potentiellement vide).
+   Fix L2 — après livraison, updateCommandeStatut('cloture')
+   Fix L1 — recharge caches avant traitement (Règle 11)
    Dépend de : db.js, ui.js
 ------------------------------------------------------- */
 
@@ -11,7 +9,7 @@ import {
   getFactures, createFacture, updateFactureStatut,
   createLivraison, factureExistePourCommande,
   getCommandes, getClients, getProduits,
-  updateProduitStock, addMouvement,
+  updateProduitStock, addMouvement, updateCommandeStatut,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, badgeFac, showToast, today,
@@ -24,7 +22,6 @@ let _commandes = [];
 let _clients   = [];
 let _produits  = [];
 
-/* BUG CORRIGÉ : écouteur calcNFTtc ajouté une seule fois */
 let _nfListenersBound = false;
 
 /* -------------------------------------------------------
@@ -36,7 +33,6 @@ export async function init() {
   ]);
   _bindLivraisonForm();
   _bindNewFactureForm();
-
   document.getElementById('btnSaveLivraison')?.addEventListener('click', _saveLivraison);
 }
 
@@ -79,7 +75,6 @@ function _renderTable() {
   tbody.onclick = (e) => {
     const pdfBtn = e.target.closest('[data-action="pdf"]');
     if (pdfBtn) { _aperçuPdfFac(pdfBtn.dataset.id); return; }
-
     const row = e.target.closest('[data-action="edit"]');
     if (row) _openEditFacture(row.dataset.id);
   };
@@ -91,7 +86,7 @@ function _renderTable() {
 }
 
 /* -------------------------------------------------------
-   ÉDITION FACTURE — pop-up
+   ÉDITION FACTURE
 ------------------------------------------------------- */
 function _openEditFacture(id) {
   const f = _factures.find(x => x.id === id);
@@ -105,7 +100,7 @@ function _openEditFacture(id) {
     modal.innerHTML = `
       <div class="modal-box" style="max-width:480px;">
         <div class="modal-hdr">
-          <h3>✏ Modifier la facture</h3>
+          <h3>Modifier la facture</h3>
           <button class="btn-close" data-close="modalEditFacture">✕</button>
         </div>
         <div class="modal-body" style="display:grid;gap:10px;">
@@ -122,7 +117,6 @@ function _openEditFacture(id) {
         </div>
       </div>`;
     document.body.appendChild(modal);
-
     modal.querySelectorAll('[data-close]').forEach(btn =>
       btn.addEventListener('click', () => closeModal('modalEditFacture')));
   }
@@ -138,7 +132,6 @@ function _openEditFacture(id) {
   const newBtn = btnSave.cloneNode(true);
   btnSave.parentNode.replaceChild(newBtn, btnSave);
   newBtn.addEventListener('click', () => _saveEditFacture(id));
-
   openModal('modalEditFacture');
 }
 
@@ -166,12 +159,10 @@ async function _saveEditFacture(id) {
 
 /* -------------------------------------------------------
    CONFIRMATION LIVRAISON
-   Fix L1 — Recharge _commandes + _produits avant tout traitement
-   pour éviter le cache vide si l'onglet n'a jamais été visité (Règle 11).
+   Fix L1 — recharge caches (Règle 11)
+   Fix L2 — updateCommandeStatut('cloture') après livraison
 ------------------------------------------------------- */
-function _bindLivraisonForm() {
-  /* L'écouteur est dans init() — rien ici */
-}
+function _bindLivraisonForm() { /* listener posé dans init() */ }
 
 async function _saveLivraison() {
   const commandeId = document.getElementById('livCmdId').value;
@@ -179,7 +170,7 @@ async function _saveLivraison() {
 
   if (!commandeId) { showToast('⚠ Commande introuvable.', 'error'); return; }
 
-  /* Fix L1 — Recharger les caches avant tout traitement */
+  /* Fix L1 — recharger les caches avant tout traitement */
   try {
     [_commandes, _produits, _factures] = await Promise.all([
       getCommandes(), getProduits(), getFactures(),
@@ -195,7 +186,7 @@ async function _saveLivraison() {
   if (btn) { btn.disabled = true; btn.textContent = 'Traitement…'; }
 
   try {
-    /* Décrémenter le stock produits finis */
+    /* 1. Décrémenter le stock produits finis */
     for (const l of (c.commande_lignes || [])) {
       const p = _produits.find(x => x.id === l.produit_id);
       if (!p) continue;
@@ -212,7 +203,7 @@ async function _saveLivraison() {
       p.stock = newStock;
     }
 
-    /* Créer la livraison */
+    /* 2. Créer la livraison */
     const livRef = nextRef('LIV', []);
     await createLivraison({
       commande_id:    commandeId,
@@ -221,7 +212,7 @@ async function _saveLivraison() {
       statut:         'livree',
     });
 
-    /* Créer la facture si elle n'existe pas encore */
+    /* 3. Créer la facture si elle n'existe pas encore */
     const dejafac = await factureExistePourCommande(commandeId);
     if (!dejafac) {
       const tot = (c.commande_lignes || []).reduce((s, l) =>
@@ -235,14 +226,24 @@ async function _saveLivraison() {
         taux_tva:     20,
         statut:       'facture',
         date_facture: date,
+        ref_commande: c.ref,
       });
       _factures.unshift(fac);
     }
 
+    /* 4. Fix L2 — Passer la commande en "cloture" */
+    await updateCommandeStatut(commandeId, 'cloture');
+    const cmdIdx = _commandes.findIndex(x => x.id === commandeId);
+    if (cmdIdx >= 0) _commandes[cmdIdx].statut = 'cloture';
+
     closeModal('modalLivraison');
     _renderTable();
-    showToast('✅ ' + c.ref + ' livrée — facture créée.');
+    showToast('✅ ' + c.ref + ' livrée — facture créée — commande clôturée.');
+
+    /* Double dispatch pour recharger commandes ET livraisons */
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'livraisons' } }));
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'commandes' } }));
+
   } catch (err) {
     console.error('[livraisons] _saveLivraison ERREUR:', err.message, err);
     showToast('❌ Erreur confirmation livraison.', 'error');
@@ -266,11 +267,9 @@ function _bindNewFactureForm() {
     if (!ref) return;
     const cmd = _commandes.find(c => c.ref === ref);
     if (!cmd) return;
-
     const clientSel = document.getElementById('nfClient');
     const opt = Array.from(clientSel.options).find(o => o.value === cmd.client_nom);
     if (opt) clientSel.value = cmd.client_nom;
-
     const tot = (cmd.commande_lignes || []).reduce((s, l) =>
       s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
     document.getElementById('nfMontant').value = tot.toFixed(2);
@@ -311,7 +310,6 @@ async function _saveNewFacture() {
     showToast('⚠ Client et montant requis.', 'error');
     return;
   }
-
   const ref = nextRef('FAC', _factures);
   try {
     const fac = await createFacture({
@@ -323,7 +321,6 @@ async function _saveNewFacture() {
       statut:       document.getElementById('nfStatut').value,
       notes:        document.getElementById('nfNotes').value,
     });
-
     _factures.unshift(fac);
     closeModal('modalNewFacture');
     _renderTable();
@@ -358,4 +355,16 @@ function _aperçuPdfFac(id) {
   document.dispatchEvent(new CustomEvent('appmee:showPdf', {
     detail: { title: 'Facture ' + f.ref, type: 'facture', data: f, commande: c },
   }));
+}
+
+/* -------------------------------------------------------
+   GETTER public — appelé depuis app.html
+------------------------------------------------------- */
+export async function saveEditFacture(id, updates) {
+  const f = _factures.find(x => x.id === id);
+  if (!f) return;
+  await updateFactureStatut(id, updates.statut || f.statut);
+  Object.assign(f, updates);
+  _renderTable();
+  document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'factures' } }));
 }
