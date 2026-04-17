@@ -32,7 +32,7 @@
   <aside class="app-side" id="mainNav">
 
     <!-- Logo -->
-    <div class="side-logo">
+    <div class="side-logo" style="height:56px;padding:0 18px;border-bottom:1px solid var(--ui-brd);">
       <div class="side-logo-mark">
         <svg viewBox="0 0 24 24">
           <path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zM10 5h4v2h-4V5zm9 14H5V9h14v10z"/>
@@ -122,8 +122,8 @@
         <div class="topbar-sub" id="topbarSub">Vue d'ensemble de votre activité</div>
       </div>
       <div class="topbar-right">
-        <button class="hdr-btn" id="btnNewCommande">+ Commande</button>
         <button class="hdr-btn-ghost" id="btnSignOut">Déconnexion</button>
+        <button class="hdr-btn" id="btnNewCommande">+ Commande</button>
       </div>
     </div>
 
@@ -158,12 +158,6 @@
 
 <!-- DASHBOARD -->
 <div id="page-dashboard" class="page active">
-  <div class="sec-hdr">
-    <div></div>
-    <div class="btn-row">
-      <button class="btn btn-primary" data-modal="modalCommande">+ Nouvelle commande</button>
-    </div>
-  </div>
   <div class="kpi-grid" id="kpiGrid"></div>
   <div class="dash-grid-2">
     <div class="card">
