@@ -137,7 +137,6 @@ function _renderTable() {
            <option value="">Changer…</option>
            <option value="brouillon">Brouillon</option>
            <option value="envoye">Envoyé</option>
-           <option value="en_cours">En cours</option>
            <option value="recu">Reçu ✓</option>
            <option value="annule">Annulé</option>
          </select>
@@ -493,7 +492,6 @@ function _openDetailBC(refGroupe) {
         <select id="dbcStatut">
           <option value="brouillon" ${g.statut === 'brouillon' ? 'selected' : ''}>Brouillon</option>
           <option value="envoye"    ${g.statut === 'envoye'    ? 'selected' : ''}>Envoyé</option>
-          <option value="en_cours"  ${g.statut === 'en_cours'  ? 'selected' : ''}>En cours</option>
           <option value="recu"      ${g.statut === 'recu'      ? 'selected' : ''}>Reçu ✓</option>
           <option value="annule"    ${g.statut === 'annule'    ? 'selected' : ''}>Annulé</option>
         </select>
