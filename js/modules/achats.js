@@ -6,7 +6,9 @@
    inexistants dans la table Supabase achats.
    Fix S10 — Suppression physique BC via deleteAchat
    Fix R17 — Délégation document capture (Règle 17)
-   Fix S11 — Cumul BC : mise à jour BC brouillon existant
+   Fix S12 — Groupement BC par fournisseur :
+             ajout dans BC brouillon existant si même fournisseur,
+             nouveau BC si statut envoye/recu/annule ou aucun BC existant
    Dépend de : db.js, ui.js
 ------------------------------------------------------- */
 
@@ -327,10 +329,14 @@ function _renderBCTotal() {
 }
 
 /* -------------------------------------------------------
-   SAVE NOUVEAU BC
-   Fix S11 — Cumul BC : si un brouillon ou en_cours existe
-   déjà pour cet article_id, on cumule la quantité au lieu
-   de créer un doublon.
+   SAVE NOUVEAU BC — Fix S12
+   Groupement par fournisseur :
+   - Si BC brouillon existant pour ce fournisseur → on y ajoute les lignes
+     (statut brouillon UNIQUEMENT — jamais envoye / recu / annule)
+   - Si plusieurs brouillons → prendre le plus récent (date_cmd desc)
+   - Si aucun BC brouillon → nouveau BC avec nextRef
+   Reload cache UNE SEULE FOIS avant la boucle (Règle 11)
+   nextRef appelé UNE FOIS par groupe fournisseur (Règle 21)
 ------------------------------------------------------- */
 async function _saveAchat() {
   const lignesValides = _bcLignes.filter(l => l.articleId && l.qte > 0);
@@ -338,77 +344,70 @@ async function _saveAchat() {
     showToast('⚠ Ajoutez au moins une ligne avec article et quantité.', 'error');
     return;
   }
-  const fournisseur = document.getElementById('achatFournisseur')?.value || '';
-  const refCommande = document.getElementById('achatRefCmd')?.value     || '';
-  const notes       = document.getElementById('achatRemarque')?.value   || '';
-  const date        = document.getElementById('achatDate')?.value        || today();
+  const fournisseurGlobal = document.getElementById('achatFournisseur')?.value || '';
+  const refCommande = document.getElementById('achatRefCmd')?.value            || '';
+  const notes       = document.getElementById('achatRemarque')?.value          || '';
+  const date        = document.getElementById('achatDate')?.value               || today();
 
   const btn = document.getElementById('btnSaveAchat');
   if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
 
   try {
-    /* Règle 11 — recharger les caches avant nextRef */
+    /* Règle 11 — recharger les caches UNE FOIS avant toute la boucle */
     try { [_achats, _articles] = await Promise.all([getAchats(), getArticles()]); } catch (_) {}
-    let nbCrees = 0;
-    let nbCumules = 0;
 
+    /* Grouper les lignes par fournisseur */
+    const parFournisseur = new Map();
     for (const ligne of lignesValides) {
-      const a    = _articles.find(x => x.id === ligne.articleId);
-      const prix = ligne.prix > 0 ? ligne.prix : (a ? a.prix : 0);
+      const a     = _articles.find(x => x.id === ligne.articleId);
+      const fourn = fournisseurGlobal || (a ? (a.fournisseur || '') : '');
+      if (!parFournisseur.has(fourn)) parFournisseur.set(fourn, []);
+      parFournisseur.get(fourn).push({ ligne, a });
+    }
 
-      /* Fix S11 — Chercher un BC brouillon/en_cours existant pour cet article */
-      const bcExistant = _achats.find(bc =>
-        bc.article_id === ligne.articleId &&
-        ['brouillon', 'en_cours'].includes(bc.statut)
-      );
+    const toasts = [];
 
-      if (bcExistant) {
-        /* Cumuler la quantité sur le BC existant */
-        const newQte = bcExistant.quantite + ligne.qte;
-        const newMontant = newQte * (bcExistant.prix_unitaire || prix);
-        const updated = await updateAchat(bcExistant.id, {
-          quantite:   newQte,
-          montant_ht: newMontant,
-        });
-        const idx = _achats.findIndex(x => x.id === bcExistant.id);
-        if (idx >= 0) _achats[idx] = { ..._achats[idx], ...updated };
-        nbCumules++;
-        showToast(`⚠ ${a ? a.nom : 'Article'} déjà en commande — quantité cumulée (${fmtQ(newQte)}).`);
-      } else {
-        /* Créer un nouveau BC — Règle 21 : ref générée dans la boucle, jamais avant */
-        /* pour éviter la violation de contrainte unique sur bcRef si N articles nouveaux */
-        try { [_achats] = await Promise.all([getAchats()]); } catch (_) {}
-        const bcRef = nextRef('BC', _achats);
-        const bc = await createAchat({
+    for (const [fourn, items] of parFournisseur) {
+      /* Chercher UN BC brouillon existant pour ce fournisseur
+         Statut brouillon UNIQUEMENT — jamais envoye / recu / annule
+         Si plusieurs brouillons → prendre le plus récent */
+      const bcExistant = _achats
+        .filter(bc => bc.fournisseur === fourn && bc.statut === 'brouillon')
+        .sort((a, b) => (b.date_cmd || '').localeCompare(a.date_cmd || ''))[0] || null;
+
+      /* Règle 21 — nextRef appelé UNE FOIS par groupe, jamais dans la boucle article */
+      const bcRef = bcExistant ? bcExistant.ref : nextRef('BC', _achats);
+
+      for (const { ligne, a } of items) {
+        const prix = ligne.prix > 0 ? ligne.prix : (a ? a.prix : 0);
+        const bc   = await createAchat({
           ref:           bcRef,
           article_id:    ligne.articleId,
           article_nom:   ligne.nom || (a ? a.nom : ''),
           quantite:      ligne.qte,
           prix_unitaire: prix,
           montant_ht:    ligne.qte * prix,
-          fournisseur:   fournisseur || (a ? a.fournisseur : ''),
+          fournisseur:   fourn,
           statut:        'brouillon',
           ref_commande:  refCommande,
           notes,
           date_cmd:      date,
         });
         _achats.unshift(bc);
-        nbCrees++;
+      }
+
+      if (bcExistant) {
+        toasts.push(`✅ ${items.length} article(s) ajouté(s) au ${bcRef} (${fourn || 'fournisseur non défini'}).`);
+      } else {
+        toasts.push(`✅ BC ${bcRef} créé — ${items.length} ligne(s).`);
       }
     }
 
     closeModal('modalAchat');
     _renderTable();
-
-    if (nbCrees > 0 && nbCumules > 0) {
-      showToast(`✅ ${nbCrees} BC créé(s) + ${nbCumules} BC mis à jour.`);
-    } else if (nbCrees > 0) {
-      showToast(`✅ BC ${bcRef} créé (${nbCrees} ligne${nbCrees > 1 ? 's' : ''}).`);
-    } else {
-      showToast(`✅ ${nbCumules} BC existant(s) mis à jour — quantités cumulées.`);
-    }
-
+    toasts.forEach((t, i) => setTimeout(() => showToast(t), i * 600));
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'achats' } }));
+
   } catch (err) {
     showToast('❌ Erreur création BC.', 'error');
     console.error('[achats] _saveAchat ERREUR:', err.message, err);
