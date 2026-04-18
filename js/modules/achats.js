@@ -381,28 +381,64 @@ async function _saveAchat() {
       /* Règle 21 — nextRef appelé UNE FOIS par groupe, jamais dans la boucle article */
       const bcRef = bcExistant ? bcExistant.ref : nextRef('BC', _achats);
 
+      let nbCrees   = 0;
+      let nbCumules = 0;
+
       for (const { ligne, a } of items) {
         const prix = ligne.prix > 0 ? ligne.prix : (a ? a.prix : 0);
-        const bc   = await createAchat({
-          ref:           bcRef,
-          article_id:    ligne.articleId,
-          article_nom:   ligne.nom || (a ? a.nom : ''),
-          quantite:      ligne.qte,
-          prix_unitaire: prix,
-          montant_ht:    ligne.qte * prix,
-          fournisseur:   fourn,
-          statut:        'brouillon',
-          ref_commande:  refCommande,
-          notes,
-          date_cmd:      date,
-        });
-        _achats.unshift(bc);
+
+        /* Règle 21B — cas doublon :
+           Si BC existant, chercher si cet article_id est déjà dans ses lignes
+           → OUI : updateAchat (cumul quantité) — jamais de doublon
+           → NON : createAchat (nouvelle ligne dans le BC) */
+        const ligneExistante = bcExistant
+          ? bcExistant.lignes.find(l => l.article_id === ligne.articleId)
+          : null;
+
+        if (ligneExistante) {
+          /* Cumul quantité sur la ligne existante */
+          const newQte     = ligneExistante.quantite + ligne.qte;
+          const newMontant = newQte * (ligneExistante.prix_unitaire || prix);
+          await updateAchat(ligneExistante.id, {
+            quantite:   newQte,
+            montant_ht: newMontant,
+          });
+          /* Mise à jour cache local */
+          const idx = _achats.findIndex(x => x.id === ligneExistante.id);
+          if (idx >= 0) {
+            _achats[idx].quantite   = newQte;
+            _achats[idx].montant_ht = newMontant;
+          }
+          nbCumules++;
+        } else {
+          /* Nouvelle ligne — article absent du BC ou nouveau BC */
+          const bc = await createAchat({
+            ref:           bcRef,
+            article_id:    ligne.articleId,
+            article_nom:   ligne.nom || (a ? a.nom : ''),
+            quantite:      ligne.qte,
+            prix_unitaire: prix,
+            montant_ht:    ligne.qte * prix,
+            fournisseur:   fourn,
+            statut:        'brouillon',
+            ref_commande:  refCommande,
+            notes,
+            date_cmd:      date,
+          });
+          _achats.unshift(bc);
+          nbCrees++;
+        }
       }
 
-      if (bcExistant) {
-        toasts.push(`✅ ${items.length} article(s) ajouté(s) au ${bcRef} (${fourn || 'fournisseur non défini'}).`);
+      /* Toast différencié selon ce qui s'est passé */
+      if (bcExistant && nbCumules > 0 && nbCrees > 0) {
+        toasts.push(`✅ ${bcRef} — ${nbCumules} quantité(s) cumulée(s), ${nbCrees} nouvel(s) article(s) ajouté(s).`);
+      } else if (bcExistant && nbCumules > 0) {
+        toasts.push(`✅ ${bcRef} — quantité(s) mise(s) à jour (${fourn || 'fournisseur non défini'}).`);
+      } else if (bcExistant) {
+        toasts.push(`✅ ${nbCrees} article(s) ajouté(s) au ${bcRef} (${fourn || 'fournisseur non défini'}).`);
       } else {
-        toasts.push(`✅ BC ${bcRef} créé — ${items.length} ligne(s).`);
+        toasts.push(`✅ BC ${bcRef} créé — ${nbCrees} ligne(s).`);
       }
     }
 
