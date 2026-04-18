@@ -6,6 +6,8 @@
 
    Dépend de : config.js (supabase, constantes)
                auth.js   (getTenantId)
+
+   Fix S10 — Ajout deleteAchat (suppression physique BC)
 ------------------------------------------------------- */
 
 import { supabase, STATUTS_COMMANDE } from './config.js';
@@ -462,7 +464,6 @@ export async function updateOFDate(id, datePrevue) {
   return data;
 }
 
-/* Fix OF — Suppression physique d'un OF */
 export async function deleteOF(id) {
   const { error } = await supabase
     .from('production_of')
@@ -506,6 +507,16 @@ export async function updateAchat(id, changes) {
     .single();
   if (error) handleError('updateAchat', error);
   return data;
+}
+
+/* Fix S10 — Suppression physique d'un BC */
+export async function deleteAchat(id) {
+  const { error } = await supabase
+    .from('achats')
+    .delete()
+    .eq('id', id)
+    .eq('tenant_id', tid());
+  if (error) handleError('deleteAchat', error);
 }
 
 export async function achatDoublonExiste(articleRef, refCommande) {
