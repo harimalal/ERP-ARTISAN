@@ -907,7 +907,6 @@ function updateTopbar(page) {
   const meta = PAGE_META[page] || {};
   const titleEl = document.getElementById('topbarTitle');
   const subEl   = document.getElementById('topbarSub');
-  document.getElementById('btnSaveLivraison')?.addEventListener('click', () => livraisons.saveLivraison());
   if (titleEl) titleEl.textContent = meta.title || '';
   if (subEl)   subEl.textContent   = meta.sub   || '';
 }
@@ -995,7 +994,7 @@ function setActiveNav(page) {
     });
     document.getElementById('btnSignOut').addEventListener('click', () => signOut());
     document.getElementById('btnPrintPdf').addEventListener('click', () => window.print());
-
+    document.getElementById('btnSaveLivraison')?.addEventListener('click', () => livraisons.saveLivraison());
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-modal="modalCommande"]');
       if (btn && commandes.initCommandeModal) commandes.initCommandeModal();
