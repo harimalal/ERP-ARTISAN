@@ -193,6 +193,7 @@
 
 <!-- STOCK ARTICLES -->
 <div id="page-stock" class="page">
+  <div id="stockIndicateurs"></div>
   <div class="sec-hdr">
     <div></div>
     <div class="btn-row">
@@ -238,8 +239,16 @@
     </div>
     <table>
       <thead><tr>
-  <th>Référence</th><th>Produit</th><th>Stock</th><th>Seuil</th>
-  <th>Statut</th><th>Prix Vente HT</th><th>Coût Revient</th><th>Marge</th><th>Action</th>
+<table id="produitsTable">
+      <thead><tr>
+  <th class="sortable" data-sort-col="0">Référence <span class="sort-ico"></span></th>
+  <th class="sortable" data-sort-col="1">Produit <span class="sort-ico"></span></th>
+  <th class="sortable" data-sort-col="2">Stock <span class="sort-ico"></span></th>
+  <th class="sortable" data-sort-col="3">Seuil <span class="sort-ico"></span></th>
+  <th>Statut</th>
+  <th class="sortable" data-sort-col="5">Prix Vente HT <span class="sort-ico"></span></th>
+  <th class="sortable" data-sort-col="6">Coût Revient <span class="sort-ico"></span></th>
+  <th>Marge</th><th>Action</th>
 </tr></thead>
       <tbody id="produitsTbody"></tbody>
     </table>
@@ -267,6 +276,7 @@
 
 <!-- PRODUCTION -->
 <div id="page-production" class="page">
+  <div id="productionBadges"></div>
   <div class="sec-hdr">
     <div></div>
     <div class="btn-row">
@@ -347,6 +357,8 @@
 
 <!-- RECETTES -->
 <div id="page-recettes" class="page">
+  <div id="recettesBadges"></div>
+  <div id="recettesSearch"></div>
   <div class="sec-hdr">
     <div></div>
     <div class="btn-row"><button class="btn btn-outline" data-modal="modalNewProduit">+ Nouveau produit</button></div>
@@ -1110,8 +1122,11 @@ function setActiveNav(page) {
       const { produitId } = e.detail || {};
       if (!produitId) return;
       const editProduit = produits.getProduitsCache ? produits.getProduitsCache().find(p => p.id === produitId) : null;
-      if (editProduit && produits.initNewProduitModal) produits.initNewProduitModal(editProduit);
-    });
+      if (editProduit && produits.initNewProduitModal) {
+    produits.initNewProduitModal(editProduit);
+    openModal('modalNewProduit');
+  }
+});
 
     document.addEventListener('appmee:planifierOF', (e) => {
       const { ref } = e.detail || {};
