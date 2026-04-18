@@ -1,14 +1,7 @@
 /* -------------------------------------------------------
    AppMee — modules/achats.js
-   Bons de commande fournisseurs : liste, création,
-   détail/édition, réception (mise à jour stock).
-   Fix BC — suppression champs ref_article et unite
-   inexistants dans la table Supabase achats.
-   Fix S10 — Suppression physique BC via deleteAchat
-   Fix R17 — Délégation document capture (Règle 17)
-   Fix S12 — Groupement BC par fournisseur :
-             ajout dans BC brouillon existant si même fournisseur,
-             nouveau BC si statut envoye/recu/annule ou aucun BC existant
+   Fix S12 — modal détail : ref article + bouton ✕ par ligne
+             PDF BC : ref article + format A4 abouti
    Dépend de : db.js, ui.js
 ------------------------------------------------------- */
 
@@ -28,12 +21,10 @@ let _fournisseurs = [];
 let _tenant       = {};
 let _currentBCRef = null;
 let _bcLignes     = [];
-
-/* Guard Règle 17 — listener posé une seule fois dans init() */
 let _delegationBound = false;
 
 /* -------------------------------------------------------
-   HELPERS — groupement par ref BC
+   HELPERS
 ------------------------------------------------------- */
 function _refRacine(ref) {
   if (!ref) return ref;
@@ -70,25 +61,16 @@ export async function init() {
   _bindAchatForm();
   _bindDetailBCForm();
 
-  /* Règle 17 — délégation sur document, posée une seule fois */
   if (!_delegationBound) {
     _delegationBound = true;
 
     document.addEventListener('click', async (e) => {
       const tbody = document.getElementById('achatsTbody');
       if (!tbody) return;
-
       const delBtn = e.target.closest('#achatsTbody [data-action="supprimer"]');
-      if (delBtn) {
-        e.stopPropagation();
-        await _supprimerBC(delBtn.dataset.ref);
-        return;
-      }
-
+      if (delBtn) { e.stopPropagation(); await _supprimerBC(delBtn.dataset.ref); return; }
       const tr = e.target.closest('#achatsTbody tr[data-ref]');
-      if (tr && !e.target.closest('[data-action]')) {
-        _openDetailBC(tr.dataset.ref);
-      }
+      if (tr && !e.target.closest('[data-action]')) _openDetailBC(tr.dataset.ref);
     }, true);
 
     document.addEventListener('change', async (e) => {
@@ -98,31 +80,23 @@ export async function init() {
   }
 }
 
-/* -------------------------------------------------------
-   RENDER
-------------------------------------------------------- */
 export async function render() {
   _achats = await getAchats();
   _renderTable();
 }
 
 /* -------------------------------------------------------
-   TABLEAU — affichage groupé
-   Fix R17 : plus de tbody.onclick ici — délégation dans init()
+   TABLEAU
 ------------------------------------------------------- */
 function _renderTable() {
   const groupes = _grouperAchats(_achats);
   const tbody = document.getElementById('achatsTbody');
   if (!tbody) return;
-
   tbody.innerHTML = groupes.map(g => {
     const articlesLabel = g.lignes.length === 1
       ? esc(g.lignes[0].article_nom || g.lignes[0].ref)
       : `${g.lignes.length} articles — ${g.lignes.map(l => esc(l.article_nom || '')).join(', ')}`;
-    const qteTotale = g.lignes.length === 1
-      ? `${fmtQ(g.lignes[0].quantite)}`
-      : `${g.lignes.length} lignes`;
-
+    const qteTotale = g.lignes.length === 1 ? `${fmtQ(g.lignes[0].quantite)}` : `${g.lignes.length} lignes`;
     return `
     <tr class="clickable" data-ref="${esc(g.ref)}">
       <td class="td-ref">${esc(g.ref)}</td>
@@ -147,12 +121,11 @@ function _renderTable() {
         <button class="btn btn-danger btn-xs" data-ref="${esc(g.ref)}" data-action="supprimer" title="Supprimer">✕</button>
       </td>
     </tr>`;
-  }).join('') ||
-    '<tr><td colspan="9" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun bon de commande.</td></tr>';
+  }).join('') || '<tr><td colspan="9" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun bon de commande.</td></tr>';
 }
 
 /* -------------------------------------------------------
-   SUPPRESSION BC — Fix S10 : suppression physique
+   SUPPRESSION BC
 ------------------------------------------------------- */
 async function _supprimerBC(refGroupe) {
   const ok = await confirmDialog('Supprimer définitivement le BC ' + refGroupe + ' ?');
@@ -161,9 +134,7 @@ async function _supprimerBC(refGroupe) {
   const g = groupes.find(x => x.ref === refGroupe);
   if (!g) return;
   try {
-    for (const l of g.lignes) {
-      await deleteAchat(l.id);
-    }
+    for (const l of g.lignes) await deleteAchat(l.id);
     _achats = _achats.filter(a => !g.ids.includes(a.id));
     _renderTable();
     showToast('✅ BC ' + refGroupe + ' supprimé.');
@@ -182,22 +153,16 @@ export function initAchatModal(preselectArticleRef = null) {
   document.getElementById('achatRemarque').value = '';
   document.getElementById('achatRefCmd').value   = '';
   document.getElementById('achatMontant').style.display = 'none';
-
   const fSel = document.getElementById('achatFournisseur');
   fSel.innerHTML = '<option value="">— Tous fournisseurs —</option>' +
     _fournisseurs.map(f => `<option value="${esc(f.nom)}">${esc(f.nom)}</option>`).join('');
-
   _renderBlocEmetteur();
   _bcLignes = [];
   _renderBCLignes();
   _addBCLigne(preselectArticleRef);
-
   if (preselectArticleRef) {
     const art = _articles.find(a => a.ref === preselectArticleRef);
-    if (art && art.fournisseur) {
-      fSel.value = art.fournisseur;
-      _renderBlocFournisseur(art.fournisseur);
-    }
+    if (art && art.fournisseur) { fSel.value = art.fournisseur; _renderBlocFournisseur(art.fournisseur); }
   }
 }
 
@@ -216,8 +181,8 @@ function _renderBlocEmetteur() {
       <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-muted);margin-bottom:4px;">Émetteur</div>
       <div style="font-weight:700;">${esc(t.nom || '(raison sociale non configurée)')}</div>
       ${t.adresse ? '<div style="color:var(--ink-muted);">' + esc(t.adresse) + '</div>' : ''}
-      ${t.tel    ? '<div>Tél : ' + esc(t.tel)   + '</div>' : ''}
-      ${t.email  ? '<div>'     + esc(t.email) + '</div>' : ''}
+      ${t.tel    ? '<div>Tél : ' + esc(t.tel) + '</div>' : ''}
+      ${t.email  ? '<div>' + esc(t.email) + '</div>' : ''}
       ${t.siret  ? '<div style="font-size:10px;color:var(--ink-muted);">SIRET : ' + esc(t.siret) + '</div>' : ''}
     </div>
     <div id="bcBlocFournisseurInfo">
@@ -238,18 +203,16 @@ function _renderBlocFournisseur(nomFournisseur) {
   el.innerHTML = `
     <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-muted);margin-bottom:4px;">Fournisseur</div>
     <div style="font-weight:700;">${esc(f.nom)}</div>
-    ${f.contact ? '<div>' + esc(f.contact) + '</div>'                               : ''}
+    ${f.contact ? '<div>' + esc(f.contact) + '</div>' : ''}
     ${f.adresse ? '<div style="color:var(--ink-muted);">' + esc(f.adresse) + '</div>' : ''}
-    ${f.tel     ? '<div>Tél : ' + esc(f.tel)   + '</div>'                            : ''}
-    ${f.email   ? '<div>' + esc(f.email) + '</div>'                                   : ''}
+    ${f.tel     ? '<div>Tél : ' + esc(f.tel) + '</div>' : ''}
+    ${f.email   ? '<div>' + esc(f.email) + '</div>' : ''}
     ${f.delai   ? '<div style="font-size:10px;color:var(--ink-muted);">Délai : ' + esc(f.delai) + '</div>' : ''}`;
 }
 
 function _bindAchatForm() {
   document.getElementById('achatFournisseur')?.addEventListener('change', (e) => {
-    _renderBCLignes();
-    _renderBCTotal();
-    _renderBlocFournisseur(e.target.value);
+    _renderBCLignes(); _renderBCTotal(); _renderBlocFournisseur(e.target.value);
   });
   document.getElementById('btnAddBCLigne')?.addEventListener('click', () => _addBCLigne());
   document.getElementById('btnSaveAchat')?.addEventListener('click', _saveAchat);
@@ -265,8 +228,7 @@ function _renderBCLignes() {
     div.style.cssText = 'display:grid;grid-template-columns:80px 1fr 90px 90px 80px auto;gap:7px;margin-bottom:7px;align-items:center;';
     const fournisseur = document.getElementById('achatFournisseur')?.value || '';
     const list = fournisseur ? _articles.filter(a => a.fournisseur === fournisseur) : _articles;
-    const opts = list.map(a => `<option value="${esc(a.id)}" ${a.id === ligne.articleId ? 'selected' : ''}>` +
-      `${esc(a.ref)} — ${esc(a.nom)}</option>`).join('');
+    const opts = list.map(a => `<option value="${esc(a.id)}" ${a.id === ligne.articleId ? 'selected' : ''}>${esc(a.ref)} — ${esc(a.nom)}</option>`).join('');
     const artCourant = _articles.find(x => x.id === ligne.articleId);
     const refCourante = artCourant ? artCourant.ref : '';
     div.innerHTML = `
@@ -279,10 +241,9 @@ function _renderBCLignes() {
     div.querySelector('.bc-art').addEventListener('change', (e) => {
       const a = _articles.find(x => x.id === e.target.value);
       _bcLignes[i].articleId = e.target.value;
-      _bcLignes[i].nom       = a ? a.nom   : '';
-      _bcLignes[i].unite     = a ? a.unite : '';
+      _bcLignes[i].nom   = a ? a.nom : '';
+      _bcLignes[i].unite = a ? a.unite : '';
       if (a) { _bcLignes[i].prix = a.prix; div.querySelector('.bc-px').value = a.prix; }
-      /* Mettre à jour l'affichage de la ref */
       const refEl = div.querySelector('.bc-ref-display');
       if (refEl) refEl.textContent = a ? a.ref : '';
       if (a && a.fournisseur) {
@@ -293,7 +254,6 @@ function _renderBCLignes() {
     });
     div.querySelector('.bc-qte').addEventListener('input', (e) => {
       _bcLignes[i].qte = parseFloat(e.target.value) || 0;
-      /* Recalculer total ligne */
       const totEl = div.querySelector('.bc-total-display');
       if (totEl) { const t = _bcLignes[i].qte * _bcLignes[i].prix; totEl.textContent = t > 0 ? t.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €' : '—'; }
       _renderBCTotal();
@@ -314,9 +274,7 @@ function _renderBCLignes() {
 function _addBCLigne(preselectRef = null) {
   const fournisseur = document.getElementById('achatFournisseur')?.value || '';
   const list = fournisseur ? _articles.filter(a => a.fournisseur === fournisseur) : _articles;
-  const defArt = preselectRef
-    ? _articles.find(a => a.ref === preselectRef)
-    : (list[0] || null);
+  const defArt = preselectRef ? _articles.find(a => a.ref === preselectRef) : (list[0] || null);
   _bcLignes.push({
     articleId: defArt ? defArt.id    : (list[0]?.id || ''),
     nom:       defArt ? defArt.nom   : '',
@@ -336,131 +294,64 @@ function _renderBCTotal() {
   const total = _bcLignes.reduce((s, l) => s + (l.qte * l.prix), 0);
   const el    = document.getElementById('achatMontant');
   const valEl = document.getElementById('achatMontantVal');
-  if (el && valEl) {
-    el.style.display = total > 0 ? 'block' : 'none';
-    valEl.textContent = fmt(total) + ' €';
-  }
+  if (el && valEl) { el.style.display = total > 0 ? 'block' : 'none'; valEl.textContent = fmt(total) + ' €'; }
 }
 
+
 /* -------------------------------------------------------
-   SAVE NOUVEAU BC — Fix S12
-   Groupement par fournisseur :
-   - Si BC brouillon existant pour ce fournisseur → on y ajoute les lignes
-     (statut brouillon UNIQUEMENT — jamais envoye / recu / annule)
-   - Si plusieurs brouillons → prendre le plus récent (date_cmd desc)
-   - Si aucun BC brouillon → nouveau BC avec nextRef
-   Reload cache UNE SEULE FOIS avant la boucle (Règle 11)
-   nextRef appelé UNE FOIS par groupe fournisseur (Règle 21)
+   SAVE NOUVEAU BC — Fix S12 groupement fournisseur + cumul
 ------------------------------------------------------- */
 async function _saveAchat() {
   const lignesValides = _bcLignes.filter(l => l.articleId && l.qte > 0);
-  if (!lignesValides.length) {
-    showToast('⚠ Ajoutez au moins une ligne avec article et quantité.', 'error');
-    return;
-  }
+  if (!lignesValides.length) { showToast('⚠ Ajoutez au moins une ligne avec article et quantité.', 'error'); return; }
   const fournisseurGlobal = document.getElementById('achatFournisseur')?.value || '';
-  const refCommande = document.getElementById('achatRefCmd')?.value            || '';
-  const notes       = document.getElementById('achatRemarque')?.value          || '';
-  const date        = document.getElementById('achatDate')?.value               || today();
-
+  const refCommande = document.getElementById('achatRefCmd')?.value || '';
+  const notes       = document.getElementById('achatRemarque')?.value || '';
+  const date        = document.getElementById('achatDate')?.value || today();
   const btn = document.getElementById('btnSaveAchat');
   if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
-
   try {
-    /* Règle 11 — recharger les caches UNE FOIS avant toute la boucle */
     try { [_achats, _articles] = await Promise.all([getAchats(), getArticles()]); } catch (_) {}
-
-    /* Grouper les lignes par fournisseur */
     const parFournisseur = new Map();
     for (const ligne of lignesValides) {
-      const a     = _articles.find(x => x.id === ligne.articleId);
+      const a = _articles.find(x => x.id === ligne.articleId);
       const fourn = fournisseurGlobal || (a ? (a.fournisseur || '') : '');
       if (!parFournisseur.has(fourn)) parFournisseur.set(fourn, []);
       parFournisseur.get(fourn).push({ ligne, a });
     }
-
     const toasts = [];
-
     for (const [fourn, items] of parFournisseur) {
-      /* Chercher UN BC brouillon existant pour ce fournisseur
-         Statut brouillon UNIQUEMENT — jamais envoye / recu / annule
-         On cherche dans les GROUPES reconstruits (pas les lignes brutes)
-         pour avoir le statut réel du BC complet, pas d'une ligne isolée
-         Si plusieurs brouillons → prendre le plus récent */
       const groupes = _grouperAchats(_achats);
       const bcExistant = groupes
         .filter(g => g.fournisseur === fourn && g.statut === 'brouillon')
         .sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] || null;
-
-      /* Règle 21 — nextRef appelé UNE FOIS par groupe, jamais dans la boucle article */
       const bcRef = bcExistant ? bcExistant.ref : nextRef('BC', _achats);
-
-      let nbCrees   = 0;
-      let nbCumules = 0;
-
+      let nbCrees = 0, nbCumules = 0;
       for (const { ligne, a } of items) {
         const prix = ligne.prix > 0 ? ligne.prix : (a ? a.prix : 0);
-
-        /* Règle 21B — cas doublon :
-           Si BC existant, chercher si cet article_id est déjà dans ses lignes
-           → OUI : updateAchat (cumul quantité) — jamais de doublon
-           → NON : createAchat (nouvelle ligne dans le BC) */
-        const ligneExistante = bcExistant
-          ? bcExistant.lignes.find(l => l.article_id === ligne.articleId)
-          : null;
-
+        const ligneExistante = bcExistant ? bcExistant.lignes.find(l => l.article_id === ligne.articleId) : null;
         if (ligneExistante) {
-          /* Cumul quantité sur la ligne existante */
-          const newQte     = ligneExistante.quantite + ligne.qte;
+          const newQte = ligneExistante.quantite + ligne.qte;
           const newMontant = newQte * (ligneExistante.prix_unitaire || prix);
-          await updateAchat(ligneExistante.id, {
-            quantite:   newQte,
-            montant_ht: newMontant,
-          });
-          /* Mise à jour cache local */
+          await updateAchat(ligneExistante.id, { quantite: newQte, montant_ht: newMontant });
           const idx = _achats.findIndex(x => x.id === ligneExistante.id);
-          if (idx >= 0) {
-            _achats[idx].quantite   = newQte;
-            _achats[idx].montant_ht = newMontant;
-          }
+          if (idx >= 0) { _achats[idx].quantite = newQte; _achats[idx].montant_ht = newMontant; }
           nbCumules++;
         } else {
-          /* Nouvelle ligne — article absent du BC ou nouveau BC */
-          const bc = await createAchat({
-            ref:           bcRef,
-            article_id:    ligne.articleId,
-            article_nom:   ligne.nom || (a ? a.nom : ''),
-            quantite:      ligne.qte,
-            prix_unitaire: prix,
-            montant_ht:    ligne.qte * prix,
-            fournisseur:   fourn,
-            statut:        'brouillon',
-            ref_commande:  refCommande,
-            notes,
-            date_cmd:      date,
-          });
+          const bc = await createAchat({ ref: bcRef, article_id: ligne.articleId, article_nom: ligne.nom || (a ? a.nom : ''), quantite: ligne.qte, prix_unitaire: prix, montant_ht: ligne.qte * prix, fournisseur: fourn, statut: 'brouillon', ref_commande: refCommande, notes, date_cmd: date });
           _achats.unshift(bc);
           nbCrees++;
         }
       }
-
-      /* Toast différencié selon ce qui s'est passé */
-      if (bcExistant && nbCumules > 0 && nbCrees > 0) {
-        toasts.push(`✅ ${bcRef} — ${nbCumules} quantité(s) cumulée(s), ${nbCrees} nouvel(s) article(s) ajouté(s).`);
-      } else if (bcExistant && nbCumules > 0) {
-        toasts.push(`✅ ${bcRef} — quantité(s) mise(s) à jour (${fourn || 'fournisseur non défini'}).`);
-      } else if (bcExistant) {
-        toasts.push(`✅ ${nbCrees} article(s) ajouté(s) au ${bcRef} (${fourn || 'fournisseur non défini'}).`);
-      } else {
-        toasts.push(`✅ BC ${bcRef} créé — ${nbCrees} ligne(s).`);
-      }
+      if (bcExistant && nbCumules > 0 && nbCrees > 0) toasts.push(`✅ ${bcRef} — ${nbCumules} quantité(s) cumulée(s), ${nbCrees} article(s) ajouté(s).`);
+      else if (bcExistant && nbCumules > 0) toasts.push(`✅ ${bcRef} — quantité(s) mise(s) à jour.`);
+      else if (bcExistant) toasts.push(`✅ ${nbCrees} article(s) ajouté(s) au ${bcRef}.`);
+      else toasts.push(`✅ BC ${bcRef} créé — ${nbCrees} ligne(s).`);
     }
-
     closeModal('modalAchat');
     _renderTable();
     toasts.forEach((t, i) => setTimeout(() => showToast(t), i * 600));
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'achats' } }));
-
   } catch (err) {
     showToast('❌ Erreur création BC.', 'error');
     console.error('[achats] _saveAchat ERREUR:', err.message, err);
@@ -470,34 +361,42 @@ async function _saveAchat() {
 }
 
 /* -------------------------------------------------------
-   DÉTAIL / ÉDITION BC (groupe entier)
+   DÉTAIL / ÉDITION BC — Fix S12 : ref article + bouton ✕
 ------------------------------------------------------- */
 function _openDetailBC(refGroupe) {
   _currentBCRef = refGroupe;
-  const groupes  = _grouperAchats(_achats);
-  const g        = groupes.find(x => x.ref === refGroupe);
+  const groupes = _grouperAchats(_achats);
+  const g       = groupes.find(x => x.ref === refGroupe);
   if (!g) return;
-
   const t = _tenant || {};
   const f = _fournisseurs.find(x => x.nom === g.fournisseur) || {};
 
-  const lignesHTML = g.lignes.map(l => `
+  /* Fix S12 — ref article depuis cache _articles */
+  const lignesHTML = g.lignes.map(l => {
+    const artRef = (_articles.find(x => x.id === l.article_id) || {}).ref || '—';
+    return `
     <tr>
-      <td style="font-size:11.5px;font-weight:600">${esc(l.article_nom || '—')}</td>
-      <td>
+      <td style="font-size:10px;font-weight:700;color:var(--accent);white-space:nowrap;padding:4px 6px;">${esc(artRef)}</td>
+      <td style="font-size:11.5px;font-weight:600;padding:4px 6px;">${esc(l.article_nom || '—')}</td>
+      <td style="padding:4px 6px;">
         <input type="number" class="dbc-qte" data-id="${l.id}" value="${l.quantite || 0}"
           step="0.01" style="width:70px;padding:3px 6px;border:1px solid var(--ui-brd);border-radius:5px;font-size:11.5px;"
           oninput="_dbcRecalcLigne(this)">
       </td>
-      <td>
+      <td style="padding:4px 6px;">
         <input type="number" class="dbc-prix" data-id="${l.id}" value="${l.prix_unitaire || 0}"
           step="0.001" style="width:80px;padding:3px 6px;border:1px solid var(--ui-brd);border-radius:5px;font-size:11.5px;"
           oninput="_dbcRecalcLigne(this)">
       </td>
-      <td class="dbc-total-${esc(l.id)}" style="font-weight:600;font-size:11.5px;text-align:right">
+      <td class="dbc-total-${esc(l.id)}" style="font-weight:600;font-size:11.5px;text-align:right;padding:4px 6px;">
         ${fmt(l.montant_ht || (l.quantite * (l.prix_unitaire || 0)))} €
       </td>
-    </tr>`).join('');
+      <td style="padding:4px 6px;text-align:center;">
+        <button onclick="this.closest('tr').remove(); window._dbcRecalcAll();"
+          style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;opacity:0.7;padding:0 4px;">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
 
   document.getElementById('detailBCTitle').textContent = 'BC ' + g.ref + ' — ' + (g.fournisseur || '—');
   document.getElementById('detailBCContent').innerHTML = `
@@ -506,42 +405,31 @@ function _openDetailBC(refGroupe) {
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-muted);margin-bottom:4px;">Émetteur</div>
         <div style="font-weight:700;">${esc(t.nom || '(non configuré)')}</div>
         ${t.adresse ? '<div style="color:var(--ink-muted);">' + esc(t.adresse) + '</div>' : ''}
-        ${t.tel     ? '<div>Tél : ' + esc(t.tel)   + '</div>' : ''}
-        ${t.email   ? '<div>' + esc(t.email)   + '</div>' : ''}
+        ${t.tel     ? '<div>Tél : ' + esc(t.tel) + '</div>' : ''}
+        ${t.email   ? '<div>' + esc(t.email) + '</div>' : ''}
         ${t.siret   ? '<div style="font-size:10px;color:var(--ink-muted);">SIRET : ' + esc(t.siret) + '</div>' : ''}
       </div>
       <div>
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-muted);margin-bottom:4px;">Fournisseur</div>
         <div style="font-weight:700;">${esc(g.fournisseur || '—')}</div>
-        ${f.contact ? '<div>' + esc(f.contact) + '</div>'                                   : ''}
-        ${f.adresse ? '<div style="color:var(--ink-muted);">' + esc(f.adresse) + '</div>'   : ''}
-        ${f.tel     ? '<div>Tél : ' + esc(f.tel)   + '</div>'                               : ''}
-        ${f.email   ? '<div>' + esc(f.email)   + '</div>'                                   : ''}
+        ${f.contact ? '<div>' + esc(f.contact) + '</div>' : ''}
+        ${f.adresse ? '<div style="color:var(--ink-muted);">' + esc(f.adresse) + '</div>' : ''}
+        ${f.tel     ? '<div>Tél : ' + esc(f.tel) + '</div>' : ''}
+        ${f.email   ? '<div>' + esc(f.email) + '</div>' : ''}
         ${f.delai   ? '<div style="font-size:10px;color:var(--ink-muted);">Délai : ' + esc(f.delai) + '</div>' : ''}
       </div>
     </div>
     <div class="form-grid" style="padding:0 0 10px;">
-      <div class="form-group">
-        <label>N° BC</label>
-        <input type="text" id="dbcRef" value="${esc(g.ref)}" readonly style="background:var(--ui-bg2);color:var(--ink-muted);">
-      </div>
-      <div class="form-group">
-        <label>Date</label>
-        <input type="date" id="dbcDate" value="${esc(g.date || '')}">
-      </div>
-      <div class="form-group">
-        <label>Fournisseur</label>
+      <div class="form-group"><label>N° BC</label><input type="text" id="dbcRef" value="${esc(g.ref)}" readonly style="background:var(--ui-bg2);color:var(--ink-muted);"></div>
+      <div class="form-group"><label>Date</label><input type="date" id="dbcDate" value="${esc(g.date || '')}"></div>
+      <div class="form-group"><label>Fournisseur</label>
         <select id="dbcFournisseur">
           <option value="${esc(g.fournisseur || '')}">${esc(g.fournisseur || '— aucun —')}</option>
           ${_fournisseurs.filter(f2 => f2.nom !== g.fournisseur).map(f2 => `<option value="${esc(f2.nom)}">${esc(f2.nom)}</option>`).join('')}
         </select>
       </div>
-      <div class="form-group">
-        <label>Réf commande</label>
-        <input type="text" id="dbcRefCmd" value="${esc(g.refCommande || '')}">
-      </div>
-      <div class="form-group">
-        <label>Statut</label>
+      <div class="form-group"><label>Réf commande</label><input type="text" id="dbcRefCmd" value="${esc(g.refCommande || '')}"></div>
+      <div class="form-group"><label>Statut</label>
         <select id="dbcStatut">
           <option value="brouillon" ${g.statut === 'brouillon' ? 'selected' : ''}>Brouillon</option>
           <option value="envoye"    ${g.statut === 'envoye'    ? 'selected' : ''}>Envoyé</option>
@@ -549,39 +437,42 @@ function _openDetailBC(refGroupe) {
           <option value="annule"    ${g.statut === 'annule'    ? 'selected' : ''}>Annulé</option>
         </select>
       </div>
-      <div class="form-group full">
-        <label>Remarque</label>
-        <input type="text" id="dbcRemarque" value="${esc(g.notes || '')}">
-      </div>
+      <div class="form-group full"><label>Remarque</label><input type="text" id="dbcRemarque" value="${esc(g.notes || '')}"></div>
     </div>
     <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-muted);margin-bottom:6px;">Articles commandés</div>
     <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;">
       <thead>
         <tr style="background:var(--ui-bg2);font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-muted);">
+          <th style="padding:6px 8px;text-align:left;">Réf</th>
           <th style="padding:6px 8px;text-align:left;">Article</th>
           <th style="padding:6px 8px;text-align:left;">Qté</th>
           <th style="padding:6px 8px;text-align:left;">Prix HT</th>
           <th style="padding:6px 8px;text-align:right;">Total HT</th>
+          <th style="padding:6px 8px;"></th>
         </tr>
       </thead>
       <tbody id="dbcLignesTbody">${lignesHTML}</tbody>
       <tfoot>
         <tr style="background:var(--ui-bg2);">
-          <td colspan="3" style="text-align:right;font-weight:700;padding:7px 8px;">Total HT</td>
+          <td colspan="4" style="text-align:right;font-weight:700;padding:7px 8px;">Total HT</td>
           <td id="dbcTotalHT" style="font-weight:700;padding:7px 8px;text-align:right;">${fmt(g.totalHT)} €</td>
+          <td></td>
         </tr>
         <tr>
-          <td colspan="3" style="text-align:right;padding:4px 8px;font-size:10.5px;color:var(--ink-muted);">TVA 20%</td>
+          <td colspan="4" style="text-align:right;padding:4px 8px;font-size:10.5px;color:var(--ink-muted);">TVA 20%</td>
           <td id="dbcTVA" style="padding:4px 8px;font-size:10.5px;color:var(--ink-muted);text-align:right;">${fmt(g.totalHT * 0.2)} €</td>
+          <td></td>
         </tr>
         <tr style="background:var(--ui-bg2);">
-          <td colspan="3" style="text-align:right;font-weight:700;padding:7px 8px;">Total TTC</td>
+          <td colspan="4" style="text-align:right;font-weight:700;padding:7px 8px;">Total TTC</td>
           <td id="dbcTotalTTC" style="font-weight:700;padding:7px 8px;text-align:right;">${fmt(g.totalHT * 1.2)} €</td>
+          <td></td>
         </tr>
       </tfoot>
     </table>`;
 
   window._dbcRecalcLigne = _dbcRecalcLigne;
+  window._dbcRecalcAll   = _dbcRecalcAll;
   openModal('modalDetailBC');
 }
 
@@ -591,9 +482,12 @@ function _dbcRecalcLigne(input) {
   if (!tr) return;
   const qte  = parseFloat(tr.querySelector('.dbc-qte')?.value) || 0;
   const prix = parseFloat(tr.querySelector('.dbc-prix')?.value) || 0;
-  const tot  = qte * prix;
   const cellTot = document.querySelector(`.dbc-total-${id}`);
-  if (cellTot) cellTot.textContent = fmt(tot) + ' €';
+  if (cellTot) cellTot.textContent = fmt(qte * prix) + ' €';
+  _dbcRecalcAll();
+}
+
+function _dbcRecalcAll() {
   let totalHT = 0;
   document.querySelectorAll('#dbcLignesTbody tr').forEach(r => {
     const q = parseFloat(r.querySelector('.dbc-qte')?.value) || 0;
@@ -615,15 +509,15 @@ function _bindDetailBCForm() {
   });
 }
 
+
 /* -------------------------------------------------------
    SAVE DÉTAIL BC
 ------------------------------------------------------- */
 async function _saveDetailBC() {
   if (!_currentBCRef) return;
-  const groupes  = _grouperAchats(_achats);
-  const g        = groupes.find(x => x.ref === _currentBCRef);
+  const groupes = _grouperAchats(_achats);
+  const g       = groupes.find(x => x.ref === _currentBCRef);
   if (!g) return;
-
   const newStatut = document.getElementById('dbcStatut').value;
   const newDate   = document.getElementById('dbcDate').value;
   const newFourn  = document.getElementById('dbcFournisseur').value;
@@ -631,10 +525,8 @@ async function _saveDetailBC() {
   const newNotes  = document.getElementById('dbcRemarque').value;
   const oldStatut = g.statut;
   const passeRecu = newStatut === 'recu' && oldStatut !== 'recu';
-
   const btn = document.getElementById('btnSaveDetailBC');
   if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
-
   try {
     const lignesData = {};
     document.querySelectorAll('#dbcLignesTbody tr').forEach(tr => {
@@ -647,38 +539,22 @@ async function _saveDetailBC() {
         lignesData[id] = { qte, prix };
       }
     });
-
     for (const l of g.lignes) {
       const ld = lignesData[l.id] || { qte: l.quantite, prix: l.prix_unitaire };
-      const updated = await updateAchat(l.id, {
-        date_cmd:      newDate,
-        fournisseur:   newFourn,
-        ref_commande:  newRefCmd,
-        notes:         newNotes,
-        statut:        newStatut,
-        quantite:      ld.qte,
-        prix_unitaire: ld.prix,
-      });
-
+      const updated = await updateAchat(l.id, { date_cmd: newDate, fournisseur: newFourn, ref_commande: newRefCmd, notes: newNotes, statut: newStatut, quantite: ld.qte, prix_unitaire: ld.prix });
       if (passeRecu) {
         const art = _articles.find(x => x.id === l.article_id);
         if (art) {
           await updateArticleStock(art.id, art.stock + ld.qte);
-          await addMouvement({
-            type: 'entree', ref: art.ref, nom: art.nom,
-            qte: ld.qte, motif: 'Réception ' + g.ref, ref_doc: g.ref,
-          });
+          await addMouvement({ type: 'entree', ref: art.ref, nom: art.nom, qte: ld.qte, motif: 'Réception ' + g.ref, ref_doc: g.ref });
           art.stock += ld.qte;
         }
       }
-
       const idx = _achats.findIndex(x => x.id === l.id);
       if (idx >= 0) _achats[idx] = { ..._achats[idx], ...updated };
     }
-
     if (passeRecu) showToast(`✅ ${g.ref} reçu — stock mis à jour.`);
     else           showToast(`✅ ${g.ref} enregistré.`);
-
     closeModal('modalDetailBC');
     _renderTable();
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'achats' } }));
@@ -723,7 +599,7 @@ async function _changerStatutGroupe(refGroupe, statut) {
 }
 
 /* -------------------------------------------------------
-   APERÇU PDF
+   APERÇU PDF — Fix S12 : ref article dans tableau, format A4
 ------------------------------------------------------- */
 function _aperçuPdfBC(refGroupe) {
   const groupes = _grouperAchats(_achats);
@@ -747,7 +623,7 @@ function _aperçuBCFormulaire() {
     totalHT: lignesValides.reduce((s, l) => s + l.qte * l.prix, 0),
     lignes: lignesValides.map(l => {
       const a = _articles.find(x => x.id === l.articleId);
-      return { article_nom: l.nom || (a ? a.nom : ''), quantite: l.qte, prix_unitaire: l.prix, montant_ht: l.qte * l.prix };
+      return { article_id: l.articleId, article_nom: l.nom || (a ? a.nom : ''), ref_article: a ? a.ref : '', quantite: l.qte, prix_unitaire: l.prix, montant_ht: l.qte * l.prix };
     }),
   };
   _ouvrirFenetrePDF(_buildPdfData(fakeGroupe, t, f));
@@ -759,13 +635,18 @@ function _buildPdfData(g, t, f) {
 }
 
 function _ouvrirFenetrePDF({ g, t, f, totalHT, tva, ttc }) {
-  const lignesHTML = (g.lignes || []).map(l => `
+  /* Fix S12 — ref article depuis cache ou propriété directe */
+  const lignesHTML = (g.lignes || []).map(l => {
+    const artRef = l.ref_article || (_articles.find(x => x.id === l.article_id) || {}).ref || '—';
+    return `
     <tr>
+      <td style="font-weight:700;color:#2563eb;font-size:10px;white-space:nowrap;">${_esc(artRef)}</td>
       <td>${_esc(l.article_nom || '—')}</td>
-      <td style="text-align:right;">${_fmtQ(l.quantite || 0)}</td>
-      <td style="text-align:right;">${_fmtPrix(l.prix_unitaire || 0)}</td>
-      <td style="text-align:right;font-weight:600;">${_fmtPrix(l.montant_ht || ((l.quantite || 0) * (l.prix_unitaire || 0)))}</td>
-    </tr>`).join('');
+      <td class="r">${_fmtQ(l.quantite || 0)}</td>
+      <td class="r">${_fmtPrix(l.prix_unitaire || 0)}</td>
+      <td class="r" style="font-weight:600;">${_fmtPrix(l.montant_ht || ((l.quantite || 0) * (l.prix_unitaire || 0)))}</td>
+    </tr>`;
+  }).join('');
 
   const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
     <title>BC ${_esc(g.ref)}</title>
@@ -790,12 +671,10 @@ function _ouvrirFenetrePDF({ g, t, f, totalHT, tva, ttc }) {
     .totaux{width:240px;margin-left:auto;margin-top:8px;border-collapse:collapse;}
     .totaux td{padding:4px 8px;font-size:11px;}
     .totaux .lbl{text-align:right;color:#555;}.totaux .val{text-align:right;font-weight:600;}
-    .totaux tr.ttc td{background:#1a1a1a;color:#fff;font-weight:700;font-size:12px;}
-    .mentions{margin-top:16px;padding:10px 12px;background:#f9fafb;border-radius:6px;font-size:9.5px;color:#555;line-height:1.6;}
-    .mentions strong{color:#1a1a1a;}
+    .totaux tr.ttc td{background:#1a1a1a;color:#fff;font-weight:700;font-size:12px;padding:6px 8px;}
+    .mentions{margin-top:16px;padding:10px 12px;background:#f9fafb;border-radius:6px;font-size:9.5px;color:#555;line-height:1.6;border-left:3px solid #2563eb;}
     .footer{margin-top:12px;border-top:1px solid #e5e7eb;padding-top:8px;display:flex;justify-content:space-between;font-size:9px;color:#aaa;}
-    </style>
-    </head><body>
+    </style></head><body>
     <button class="btn-print" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF (A4)</button>
     <div class="hdr">
       <div>
@@ -833,6 +712,7 @@ function _ouvrirFenetrePDF({ g, t, f, totalHT, tva, ttc }) {
     </div>
     <table>
       <thead><tr>
+        <th>Réf</th>
         <th>Désignation</th>
         <th class="r">Qté</th>
         <th class="r">PU HT</th>
@@ -850,8 +730,8 @@ function _ouvrirFenetrePDF({ g, t, f, totalHT, tva, ttc }) {
       <strong>Conditions de règlement :</strong> ${_esc(t.cpt || '30 jours fin de mois')}
       ${t.iban ? ' — <strong>IBAN :</strong> ' + _esc(t.iban) : ''}
       <br>
-      ${t.siret  ? '<strong>SIRET :</strong> ' + _esc(t.siret) + ' — ' : ''}
-      ${t.tva    ? '<strong>N° TVA intracommunautaire :</strong> ' + _esc(t.tva) + ' — ' : ''}
+      ${t.siret  ? '<strong>SIRET :</strong> ' + _esc(t.siret) + (t.tva ? ' — ' : '') : ''}
+      ${t.tva    ? '<strong>N° TVA :</strong> ' + _esc(t.tva) + (t.forme ? ' — ' : '') : ''}
       ${t.forme  ? '<strong>Forme juridique :</strong> ' + _esc(t.forme) : ''}
     </div>
     <div class="footer">
