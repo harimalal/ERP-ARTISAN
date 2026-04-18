@@ -43,8 +43,16 @@ export async function init() {
   if (!_delegationBound) {
     _delegationBound = true;
 
-    /* Clic ligne → ouvre modal édition */
+    /* Clic ligne → ouvre modal édition OU aperçu PDF */
     document.addEventListener('click', (e) => {
+      /* Bouton PDF */
+      const btnPdf = e.target.closest('#facturesTbody [data-action="pdf"]');
+      if (btnPdf) {
+        e.stopPropagation();
+        _aperçuPdfFac(btnPdf.dataset.id);
+        return;
+      }
+      /* Clic ligne → édition */
       const row = e.target.closest('#facturesTbody tr[data-id]');
       if (!row) return;
       if (e.target.closest('[data-action]') || e.target.closest('select')) return;
@@ -96,8 +104,7 @@ function _renderTable() {
         </select>
       </td>
       <td onclick="event.stopPropagation()">
-        <button class="btn-icon" title="Aperçu PDF"
-          onclick="(function(){const f=${JSON.stringify(f).replace(/</g,'\\u003c')};document.dispatchEvent(new CustomEvent('appmee:showPdf',{detail:{title:'Facture ${esc(f.ref)}',type:'facture',data:f}}));})()">👁</button>
+        <button class="btn-icon" data-id="${f.id}" data-action="pdf" title="Aperçu PDF">👁</button>
       </td>
     </tr>`).join('') ||
     '<tr><td colspan="8" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucune facture.</td></tr>';
@@ -272,4 +279,16 @@ async function _saveNewFacture() {
   } catch (err) {
     showToast('❌ Erreur création facture.', 'error');
   }
+}
+
+/* -------------------------------------------------------
+   APERÇU PDF
+------------------------------------------------------- */
+function _aperçuPdfFac(id) {
+  const f = _factures.find(x => x.id === id);
+  if (!f) return;
+  const c = _commandes.find(x => x.id === f.commande_id);
+  document.dispatchEvent(new CustomEvent('appmee:showPdf', {
+    detail: { title: 'Facture ' + f.ref, type: 'facture', data: f, commande: c },
+  }));
 }
