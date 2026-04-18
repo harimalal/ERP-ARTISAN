@@ -2,6 +2,7 @@
    AppMee — modules/livraisons.js
    Fix L2 — après livraison, updateCommandeStatut('cloture')
    Fix L1 — recharge caches avant traitement (Règle 11)
+   Fix R17 — Délégation document capture sur facturesTbody
    Dépend de : db.js, ui.js
 ------------------------------------------------------- */
 
@@ -22,7 +23,9 @@ let _commandes = [];
 let _clients   = [];
 let _produits  = [];
 
-let _nfListenersBound = false;
+/* Guards — listeners posés une seule fois */
+let _nfListenersBound      = false;
+let _delegationBound       = false;
 
 /* -------------------------------------------------------
    INIT
@@ -34,6 +37,29 @@ export async function init() {
   _bindLivraisonForm();
   _bindNewFactureForm();
   document.getElementById('btnSaveLivraison')?.addEventListener('click', _saveLivraison);
+
+  /* Règle 17 — délégation sur document, posée une seule fois */
+  if (!_delegationBound) {
+    _delegationBound = true;
+
+    document.addEventListener('click', (e) => {
+      const tbody = document.getElementById('facturesTbody');
+      if (!tbody) return;
+
+      const pdfBtn = e.target.closest('#facturesTbody [data-action="pdf"]');
+      if (pdfBtn) { _aperçuPdfFac(pdfBtn.dataset.id); return; }
+
+      const row = e.target.closest('#facturesTbody [data-action="edit"]');
+      if (row && !e.target.closest('[data-action="changer-statut"]')) {
+        _openEditFacture(row.dataset.id);
+      }
+    }, true);
+
+    document.addEventListener('change', async (e) => {
+      const sel = e.target.closest('#facturesTbody [data-action="changer-statut"]');
+      if (sel && sel.value) await _changerStatutFac(sel.dataset.id, sel.value);
+    }, true);
+  }
 }
 
 /* -------------------------------------------------------
@@ -45,6 +71,10 @@ export async function render() {
   _renderTable();
 }
 
+/* -------------------------------------------------------
+   TABLEAU FACTURES
+   Fix R17 : plus de tbody.onclick ni tbody.addEventListener ici
+------------------------------------------------------- */
 function _renderTable() {
   document.getElementById('facturesTbody').innerHTML = _factures.map(f => `
     <tr class="clickable" data-id="${f.id}" data-action="edit">
@@ -69,20 +99,6 @@ function _renderTable() {
       </td>
     </tr>`).join('') ||
     '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucune facture.</td></tr>';
-
-  const tbody = document.getElementById('facturesTbody');
-
-  tbody.onclick = (e) => {
-    const pdfBtn = e.target.closest('[data-action="pdf"]');
-    if (pdfBtn) { _aperçuPdfFac(pdfBtn.dataset.id); return; }
-    const row = e.target.closest('[data-action="edit"]');
-    if (row) _openEditFacture(row.dataset.id);
-  };
-
-  tbody.addEventListener('change', async (e) => {
-    const sel = e.target.closest('[data-action="changer-statut"]');
-    if (sel && sel.value) await _changerStatutFac(sel.dataset.id, sel.value);
-  });
 }
 
 /* -------------------------------------------------------
@@ -236,9 +252,13 @@ async function _saveLivraison() {
     }
 
     /* 4. Fix L2 — Passer la commande en "cloture" */
-    await updateCommandeStatut(commandeId, 'cloture');
-    const cmdIdx = _commandes.findIndex(x => x.id === commandeId);
-    if (cmdIdx >= 0) _commandes[cmdIdx].statut = 'cloture';
+    try {
+      await updateCommandeStatut(commandeId, 'cloture');
+      const cmdIdx = _commandes.findIndex(x => x.id === commandeId);
+      if (cmdIdx >= 0) _commandes[cmdIdx].statut = 'cloture';
+    } catch (clotErr) {
+      console.error('[livraisons] updateCommandeStatut cloture ERREUR:', clotErr.message);
+    }
 
     closeModal('modalLivraison');
     _renderTable();

@@ -4,11 +4,13 @@
    détail/édition, réception (mise à jour stock).
    Fix BC — suppression champs ref_article et unite
    inexistants dans la table Supabase achats.
+   Fix S10 — Suppression physique BC via deleteAchat
+   Fix R17 — Délégation document capture (Règle 17)
    Dépend de : db.js, ui.js
 ------------------------------------------------------- */
 
 import {
-  getAchats, createAchat, updateAchat,
+  getAchats, createAchat, updateAchat, deleteAchat,
   getArticles, getFournisseurs, getTenant,
   updateArticleStock, addMouvement,
 } from '../db.js';
@@ -23,6 +25,9 @@ let _fournisseurs = [];
 let _tenant       = {};
 let _currentBCRef = null;
 let _bcLignes     = [];
+
+/* Guard Règle 17 — listener posé une seule fois dans init() */
+let _delegationBound = false;
 
 /* -------------------------------------------------------
    HELPERS — groupement par ref BC
@@ -61,6 +66,33 @@ export async function init() {
   ]);
   _bindAchatForm();
   _bindDetailBCForm();
+
+  /* Règle 17 — délégation sur document, posée une seule fois */
+  if (!_delegationBound) {
+    _delegationBound = true;
+
+    document.addEventListener('click', async (e) => {
+      const tbody = document.getElementById('achatsTbody');
+      if (!tbody) return;
+
+      const delBtn = e.target.closest('#achatsTbody [data-action="supprimer"]');
+      if (delBtn) {
+        e.stopPropagation();
+        await _supprimerBC(delBtn.dataset.ref);
+        return;
+      }
+
+      const tr = e.target.closest('#achatsTbody tr[data-ref]');
+      if (tr && !e.target.closest('[data-action]')) {
+        _openDetailBC(tr.dataset.ref);
+      }
+    }, true);
+
+    document.addEventListener('change', async (e) => {
+      const sel = e.target.closest('#achatsTbody [data-action="changer-statut"]');
+      if (sel && sel.value) await _changerStatutGroupe(sel.dataset.ref, sel.value);
+    }, true);
+  }
 }
 
 /* -------------------------------------------------------
@@ -73,6 +105,7 @@ export async function render() {
 
 /* -------------------------------------------------------
    TABLEAU — affichage groupé
+   Fix R17 : plus de tbody.onclick ici — délégation dans init()
 ------------------------------------------------------- */
 function _renderTable() {
   const groupes = _grouperAchats(_achats);
@@ -114,38 +147,29 @@ function _renderTable() {
     </tr>`;
   }).join('') ||
     '<tr><td colspan="9" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun bon de commande.</td></tr>';
-
-  tbody.onclick = (e) => {
-    const delBtn = e.target.closest('[data-action="supprimer"]');
-    if (delBtn) { e.stopPropagation(); _supprimerBC(delBtn.dataset.ref); return; }
-    if (e.target.closest('[data-action="changer-statut"]')) return;
-    const tr = e.target.closest('tr[data-ref]');
-    if (tr) _openDetailBC(tr.dataset.ref);
-  };
-
-  tbody.addEventListener('change', async (e) => {
-    const sel = e.target.closest('[data-action="changer-statut"]');
-    if (sel && sel.value) await _changerStatutGroupe(sel.dataset.ref, sel.value);
-  });
 }
 
+/* -------------------------------------------------------
+   SUPPRESSION BC — Fix S10 : suppression physique
+   (avant : passage en statut 'annule' uniquement)
+------------------------------------------------------- */
 async function _supprimerBC(refGroupe) {
-  const ok = await confirmDialog('Supprimer le BC ' + refGroupe + ' ?');
+  const ok = await confirmDialog('Supprimer définitivement le BC ' + refGroupe + ' ?');
   if (!ok) return;
   const groupes = _grouperAchats(_achats);
   const g = groupes.find(x => x.ref === refGroupe);
   if (!g) return;
   try {
     for (const l of g.lignes) {
-      await updateAchat(l.id, { statut: 'annule' });
-      const bc = _achats.find(x => x.id === l.id);
-      if (bc) bc.statut = 'annule';
+      await deleteAchat(l.id);
     }
+    _achats = _achats.filter(a => !g.ids.includes(a.id));
     _renderTable();
     showToast('✅ BC ' + refGroupe + ' supprimé.');
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'achats' } }));
   } catch (err) {
     showToast('❌ Erreur suppression BC.', 'error');
+    console.error('[achats] _supprimerBC ERREUR:', err.message, err);
   }
 }
 
@@ -306,7 +330,6 @@ function _renderBCTotal() {
 /* -------------------------------------------------------
    SAVE NOUVEAU BC
    Fix : ref_article et unite supprimés — n'existent pas en base
-   Toutes les lignes reçoivent le MÊME ref → groupement natif
 ------------------------------------------------------- */
 async function _saveAchat() {
   const lignesValides = _bcLignes.filter(l => l.articleId && l.qte > 0);
@@ -330,7 +353,6 @@ async function _saveAchat() {
       const a    = _articles.find(x => x.id === ligne.articleId);
       const prix = ligne.prix > 0 ? ligne.prix : (a ? a.prix : 0);
 
-      /* Fix BC — seuls les champs existants en base Supabase */
       const bc = await createAchat({
         ref:           bcRef,
         article_id:    ligne.articleId,
@@ -508,7 +530,6 @@ function _bindDetailBCForm() {
 
 /* -------------------------------------------------------
    SAVE DÉTAIL BC
-   Fix : ref_article et unite supprimés du updateAchat
 ------------------------------------------------------- */
 async function _saveDetailBC() {
   if (!_currentBCRef) return;

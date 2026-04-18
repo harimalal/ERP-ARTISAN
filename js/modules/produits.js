@@ -6,6 +6,8 @@
    Fix B5 — Séparation claire création / édition
    Fix B1 — Coût revient calculé au render() depuis recettes + prix articles
    Fix S3 — Recherche texte ajoutée (champ dans app.html + filtre ici)
+   Fix R17 — Délégation document capture (Règle 17)
+   Fix P1 — Bouton ✕ Supprimer + ✏ Éditer dans colonne Action
 ------------------------------------------------------- */
 
 import {
@@ -26,6 +28,9 @@ let _recN      = 0;
 /* UUID du produit en cours d'édition (null = création) */
 let _editProduitId = null;
 
+/* Guard Règle 17 */
+let _delegationBound = false;
+
 /* -------------------------------------------------------
    INIT
 ------------------------------------------------------- */
@@ -33,6 +38,38 @@ export async function init() {
   [_produits, _articles] = await Promise.all([getProduits(), getArticles()]);
   _bindNewProduitForm();
   _bindSearchInput();
+
+  /* Règle 17 — délégation sur document, posée une seule fois */
+  if (!_delegationBound) {
+    _delegationBound = true;
+
+    document.addEventListener('click', async (e) => {
+      const suppBtn = e.target.closest('#produitsTbody [data-action="supprimer"]');
+      if (suppBtn) {
+        e.stopPropagation();
+        await _supprimerProduit(suppBtn.dataset.id);
+        return;
+      }
+
+      const editBtn = e.target.closest('#produitsTbody [data-action="editer"]');
+      if (editBtn) {
+        e.stopPropagation();
+        const p = _produits.find(x => x.id === editBtn.dataset.id);
+        if (p) {
+          await initNewProduitModal(p);
+          openModal('modalNewProduit');
+        }
+        return;
+      }
+
+      const prodBtn = e.target.closest('#produitsTbody [data-action="produire"]');
+      if (prodBtn) {
+        e.stopPropagation();
+        document.dispatchEvent(new CustomEvent('appmee:planifierOF', { detail: { ref: prodBtn.dataset.ref } }));
+        openModal('modalPlanifier');
+      }
+    }, true);
+  }
 }
 
 /* -------------------------------------------------------
@@ -70,6 +107,13 @@ function _bindSearchInput() {
   });
 }
 
+/* -------------------------------------------------------
+   RENDER TABLE
+   Fix R17 : listener retiré d'ici — délégation dans init()
+   Fix P1 : colonne Action = Produire + Éditer + Supprimer
+   Thead : Référence | Produit | Stock | Seuil | Statut |
+           Prix vente HT | Coût revient | Marge | Action
+------------------------------------------------------- */
 function _renderTable() {
   document.getElementById('produitsTbody').innerHTML = _produits.map(p => {
     const cout  = p.cout || 0;
@@ -87,24 +131,39 @@ function _renderTable() {
       <td style="color:var(--ui-green);font-weight:600">
         ${fmt(marge)} € <span style="color:var(--ink-muted);font-weight:400;font-size:10px;">(${tx}%)</span>
       </td>
-      <td>
-        <button class="btn btn-outline btn-sm" data-ref="${esc(p.ref)}" data-action="produire">▶ Produire</button>
+      <td style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-xs" data-ref="${esc(p.ref)}" data-action="produire" title="Planifier OF">▶</button>
+        <button class="btn btn-ghost btn-xs"   data-id="${esc(p.id)}"  data-action="editer"   title="Modifier">✏</button>
+        <button class="btn btn-danger btn-xs"  data-id="${esc(p.id)}"  data-action="supprimer" title="Supprimer">✕</button>
       </td>
     </tr>`;
-  }).join('');
-
-  document.getElementById('produitsTbody').onclick = (e) => {
-    const btn = e.target.closest('[data-action="produire"]');
-    if (btn) {
-      document.dispatchEvent(new CustomEvent('appmee:planifierOF', { detail: { ref: btn.dataset.ref } }));
-      openModal('modalPlanifier');
-    }
-  };
+  }).join('') ||
+    '<tr><td colspan="9" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun produit fini.</td></tr>';
 
   /* Réinitialiser le filtre recherche au render */
   const inp = document.getElementById('produitsSearchInput');
   if (inp && inp.value) {
     inp.dispatchEvent(new Event('input'));
+  }
+}
+
+/* -------------------------------------------------------
+   SUPPRESSION PRODUIT
+------------------------------------------------------- */
+async function _supprimerProduit(id) {
+  const p = _produits.find(x => x.id === id);
+  if (!p) return;
+  const ok = await confirmDialog('Supprimer le produit ' + p.nom + ' ?');
+  if (!ok) return;
+  try {
+    await deleteProduit(id);
+    _produits = _produits.filter(x => x.id !== id);
+    _renderTable();
+    showToast('✅ Produit supprimé.');
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'produits' } }));
+  } catch (err) {
+    console.error('[produits] _supprimerProduit ERREUR:', err.message, err);
+    showToast('❌ Erreur suppression produit.', 'error');
   }
 }
 
@@ -307,7 +366,7 @@ async function _saveEditProduit() {
   if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
 
   try {
-    const updated = await updateProduit(_editProduitId, { nom, prix_vente: prix, seuil });
+    await updateProduit(_editProduitId, { nom, prix_vente: prix, seuil });
     await saveRecette(_editProduitId, lignes);
 
     const idx = _produits.findIndex(p => p.id === _editProduitId);
