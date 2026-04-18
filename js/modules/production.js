@@ -2,6 +2,8 @@
    AppMee — modules/production.js
    Ordres de fabrication, calendrier, besoins, manques.
    Fix OF-SUPP — Bouton ✕ suppression OF ajouté dans _renderOFs().
+   Fix S11 — Calendrier : couleur OF = couleur du statut
+   Fix S11 — Besoins : afficher uniquement les alertes stock
    deleteOF importé depuis db.js.
    Dépend de : db.js, ui.js
 ------------------------------------------------------- */
@@ -65,6 +67,7 @@ async function _chargerRecettes() {
 
 /* -------------------------------------------------------
    CALENDRIER
+   Fix S11 — couleur de chaque OF = couleur de son statut
 ------------------------------------------------------- */
 function _bindCalNav() {
   document.getElementById('calPrev')?.addEventListener('click', () => { _calOffset--; _renderCalendrier(); });
@@ -78,6 +81,16 @@ function _renderCalendrier() {
   monday.setDate(base.getDate() - base.getDay() + 1 + _calOffset * 7);
   const jours    = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
+  /* Palette couleurs statuts — même que STATUT_STYLE dans _renderOFs */
+  const CAL_COLORS = {
+    'a_planifier': { bg: 'rgba(108,117,125,0.12)', brd: '#868e96', txt: '#495057' },
+    'planifie':    { bg: 'rgba(76,110,245,0.12)',  brd: '#4c6ef5', txt: '#364fc7' },
+    'en_cours':    { bg: 'rgba(255,146,43,0.15)',  brd: '#f59f00', txt: '#7c5200' },
+    'fabrique':    { bg: 'rgba(32,201,151,0.12)',  brd: '#20c997', txt: '#087f5b' },
+    'clos':        { bg: 'rgba(32,201,151,0.08)',  brd: '#20c997', txt: '#0b7a5a' },
+    'annule':      { bg: 'rgba(250,82,82,0.10)',   brd: '#fa5252', txt: '#c92a2a' },
+  };
+
   let html = '';
   for (let d = 0; d < 7; d++) {
     const day = new Date(monday);
@@ -90,8 +103,13 @@ function _renderCalendrier() {
 
     html += `<div class="cal-day">
       <div class="cal-day-hdr ${isToday ? 'today' : ''}">${jours[d]} ${day.getDate()}/${day.getMonth() + 1}</div>
-      <div class="cal-day-body">
-        ${ofDay.map(o => `<div class="cal-item off" title="${esc(o.produit_nom)} ×${o.quantite}">🍳 ${esc((o.produit_nom || '').split(' ').slice(0, 2).join(' '))} ×${o.quantite}</div>`).join('')}
+      <div class="cal-day-body" style="min-height:60px;">
+        ${ofDay.map(o => {
+          const col = CAL_COLORS[o.statut] || CAL_COLORS['planifie'];
+          return `<div class="cal-item" style="background:${col.bg};border-left:3px solid ${col.brd};color:${col.txt};border-radius:4px;padding:3px 6px;margin-bottom:3px;font-size:10.5px;line-height:1.3;" title="${esc(o.produit_nom)} ×${o.quantite} — ${esc(o.statut)}">
+            🍳 ${esc((o.produit_nom || '').split(' ').slice(0, 2).join(' '))} ×${o.quantite}
+          </div>`;
+        }).join('')}
         ${cmdDay.map(c => `<div class="cal-item cmd" title="Livraison ${esc(c.client_nom)}">📦 ${esc((c.client_nom || '').split(' ')[0])}</div>`).join('')}
       </div>
     </div>`;
@@ -238,6 +256,8 @@ function _renderFabPlan() {
 
 /* -------------------------------------------------------
    BESOINS DEPUIS COMMANDES
+   Fix S11 — n'afficher que les produits avec alerte stock
+   (manques.length > 0), pas les produits faisables
 ------------------------------------------------------- */
 function _renderBesoins() {
   const besoins = {};
@@ -253,20 +273,21 @@ function _renderBesoins() {
     if (!p) return;
     const manques = _calcManquesRecette(produitId, qteCmd);
     const ok = !manques.length;
-    bHtml += `<tr class="${ok ? 'prod-ok' : 'prod-fail'}">
+
+    /* Fix S11 — ignorer les produits faisables, n'afficher que les alertes */
+    if (ok) return;
+
+    bHtml += `<tr class="prod-fail">
       <td class="td-bold">${esc(p.nom)}</td>
       <td><strong>${qteCmd}</strong></td>
-      <td>${ok ? '<span class="badge badge-ok">✓ Faisable</span>' : `<span class="badge badge-alert">${manques.length} manque(s)</span>`}</td>
+      <td><span class="badge badge-alert">${manques.length} manque(s)</span></td>
       <td style="font-size:10.5px;color:var(--ui-red)">${manques.join('<br>') || '—'}</td>
-      <td>${ok
-        ? `<button class="btn btn-primary btn-xs" data-produit-id="${produitId}" data-qte="${qteCmd}" data-action="creer-of">+ OF</button>`
-        : '<span style="font-size:10.5px;color:var(--ink-muted)">Acheter d\'abord</span>'}
-      </td>
+      <td><span style="font-size:10.5px;color:var(--ink-muted)">Acheter d'abord</span></td>
     </tr>`;
   });
 
   document.getElementById('besoinsTbody').innerHTML = bHtml ||
-    '<tr><td colspan="5" style="text-align:center;padding:14px;color:var(--ui-green)">✅ Aucune commande en attente.</td></tr>';
+    '<tr><td colspan="5" style="text-align:center;padding:14px;color:var(--ui-green)">✅ Aucune alerte — tous les besoins sont couverts.</td></tr>';
 
   const mg = {};
   Object.entries(besoins).forEach(([produitId, q]) => {

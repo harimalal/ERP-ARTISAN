@@ -2,6 +2,9 @@
    AppMee — modules/dashboard.js
    Tableau de bord : KPIs, alertes stock, dernières
    commandes, stock produits finis.
+   Fix S11 — Suppression barres de progression (scroll)
+   dans Alertes stock et Stock produits finis.
+   Tout le contenu visible sans scroll.
    Dépend de : db.js, ui.js
 ------------------------------------------------------- */
 
@@ -73,12 +76,16 @@ function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
 
 /* -------------------------------------------------------
    ALERTES STOCK ARTICLES
-   Réf | Article | Stock / Seuil | Commander
-   Pas de barre de progression — chiffres seuls
+   Fix S11 — Pas de barre de scroll : overflow visible,
+   tout le tableau affiché dans l'encart.
 ------------------------------------------------------- */
 function renderAlertes(articles) {
   const al = articles.filter(a => a.stock <= a.seuil);
   const el = document.getElementById('dashAlerts');
+
+  /* Fix S11 — forcer l'affichage complet sans scroll */
+  el.style.overflow = 'visible';
+  el.style.maxHeight = 'none';
 
   if (!al.length) {
     el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><p>Aucune alerte !</p></div>';
@@ -116,12 +123,18 @@ function renderAlertes(articles) {
 
 /* -------------------------------------------------------
    STOCK PRODUITS FINIS
-   Uniquement les produits en alerte (stock <= seuil)
-   Stock + barre de progression + statut
+   Fix S11 — Suppression des barres de progression.
+   Affichage : Produit | Stock (chiffre) | Statut badge.
+   Uniquement les produits en alerte (stock <= seuil).
+   Overflow visible — tout le tableau dans l'encart.
 ------------------------------------------------------- */
 function renderStockProduits(produits) {
   const alertes = produits.filter(p => p.stock <= p.seuil);
   const el = document.getElementById('dashProduits');
+
+  /* Fix S11 — forcer l'affichage complet sans scroll */
+  el.style.overflow = 'visible';
+  el.style.maxHeight = 'none';
 
   if (!alertes.length) {
     el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><p>Tous les produits sont en stock.</p></div>';
@@ -129,17 +142,12 @@ function renderStockProduits(produits) {
   }
 
   const rows = alertes.map(p => {
-    const pct = p.seuil > 0 ? Math.min(100, Math.round(p.stock / p.seuil * 100)) : 100;
-    const col = p.stock <= 0 ? 'var(--ui-red)'
-      : p.stock <= p.seuil ? 'var(--ui-red)'
-      : '#c8830a';
+    const stockColor = p.stock <= 0 ? 'var(--ui-red)' : '#c8830a';
     return `<tr>
       <td class="td-bold">${esc(p.nom)}</td>
       <td>
-        <span style="font-size:13px;font-weight:700;display:block;color:var(--ink);">${fmtQ(p.stock)}</span>
-        <div class="prog-wrap" style="margin-top:4px;width:80px;">
-          <div class="prog-bar" style="width:${pct}%;background:${col};"></div>
-        </div>
+        <span style="font-size:13px;font-weight:700;color:${stockColor};">${fmtQ(p.stock)}</span>
+        <span style="color:var(--ink-muted);font-size:11px;"> / ${fmtQ(p.seuil)}</span>
       </td>
       <td>${stockStatus(p.stock, p.seuil)}</td>
     </tr>`;
@@ -147,7 +155,7 @@ function renderStockProduits(produits) {
 
   el.innerHTML = `
     <table>
-      <thead><tr><th>Produit</th><th>Stock</th><th>Statut</th></tr></thead>
+      <thead><tr><th>Produit</th><th>Stock / Seuil</th><th>Statut</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }

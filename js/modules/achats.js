@@ -6,6 +6,7 @@
    inexistants dans la table Supabase achats.
    Fix S10 — Suppression physique BC via deleteAchat
    Fix R17 — Délégation document capture (Règle 17)
+   Fix S11 — Cumul BC : mise à jour BC brouillon existant
    Dépend de : db.js, ui.js
 ------------------------------------------------------- */
 
@@ -151,7 +152,6 @@ function _renderTable() {
 
 /* -------------------------------------------------------
    SUPPRESSION BC — Fix S10 : suppression physique
-   (avant : passage en statut 'annule' uniquement)
 ------------------------------------------------------- */
 async function _supprimerBC(refGroupe) {
   const ok = await confirmDialog('Supprimer définitivement le BC ' + refGroupe + ' ?');
@@ -329,7 +329,9 @@ function _renderBCTotal() {
 
 /* -------------------------------------------------------
    SAVE NOUVEAU BC
-   Fix : ref_article et unite supprimés — n'existent pas en base
+   Fix S11 — Cumul BC : si un brouillon ou en_cours existe
+   déjà pour cet article_id, on cumule la quantité au lieu
+   de créer un doublon.
 ------------------------------------------------------- */
 async function _saveAchat() {
   const lignesValides = _bcLignes.filter(l => l.articleId && l.qte > 0);
@@ -346,32 +348,66 @@ async function _saveAchat() {
   if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
 
   try {
+    /* Règle 11 — recharger les caches avant nextRef */
     try { [_achats, _articles] = await Promise.all([getAchats(), getArticles()]); } catch (_) {}
     const bcRef = nextRef('BC', _achats);
+
+    let nbCrees = 0;
+    let nbCumules = 0;
 
     for (const ligne of lignesValides) {
       const a    = _articles.find(x => x.id === ligne.articleId);
       const prix = ligne.prix > 0 ? ligne.prix : (a ? a.prix : 0);
 
-      const bc = await createAchat({
-        ref:           bcRef,
-        article_id:    ligne.articleId,
-        article_nom:   ligne.nom || (a ? a.nom : ''),
-        quantite:      ligne.qte,
-        prix_unitaire: prix,
-        fournisseur:   fournisseur || (a ? a.fournisseur : ''),
-        statut:        'brouillon',
-        ref_commande:  refCommande,
-        notes,
-        date_cmd:      date,
-      });
+      /* Fix S11 — Chercher un BC brouillon/en_cours existant pour cet article */
+      const bcExistant = _achats.find(bc =>
+        bc.article_id === ligne.articleId &&
+        ['brouillon', 'en_cours'].includes(bc.statut)
+      );
 
-      _achats.unshift(bc);
+      if (bcExistant) {
+        /* Cumuler la quantité sur le BC existant */
+        const newQte = bcExistant.quantite + ligne.qte;
+        const newMontant = newQte * (bcExistant.prix_unitaire || prix);
+        const updated = await updateAchat(bcExistant.id, {
+          quantite:   newQte,
+          montant_ht: newMontant,
+        });
+        const idx = _achats.findIndex(x => x.id === bcExistant.id);
+        if (idx >= 0) _achats[idx] = { ..._achats[idx], ...updated };
+        nbCumules++;
+        showToast(`⚠ ${a ? a.nom : 'Article'} déjà en commande — quantité cumulée (${fmtQ(newQte)}).`);
+      } else {
+        /* Créer un nouveau BC */
+        const bc = await createAchat({
+          ref:           bcRef,
+          article_id:    ligne.articleId,
+          article_nom:   ligne.nom || (a ? a.nom : ''),
+          quantite:      ligne.qte,
+          prix_unitaire: prix,
+          montant_ht:    ligne.qte * prix,
+          fournisseur:   fournisseur || (a ? a.fournisseur : ''),
+          statut:        'brouillon',
+          ref_commande:  refCommande,
+          notes,
+          date_cmd:      date,
+        });
+        _achats.unshift(bc);
+        nbCrees++;
+      }
     }
 
     closeModal('modalAchat');
     _renderTable();
-    showToast(`✅ BC ${bcRef} créé (${lignesValides.length} ligne${lignesValides.length > 1 ? 's' : ''}).`);
+
+    if (nbCrees > 0 && nbCumules > 0) {
+      showToast(`✅ ${nbCrees} BC créé(s) + ${nbCumules} BC mis à jour.`);
+    } else if (nbCrees > 0) {
+      showToast(`✅ BC ${bcRef} créé (${nbCrees} ligne${nbCrees > 1 ? 's' : ''}).`);
+    } else {
+      showToast(`✅ ${nbCumules} BC existant(s) mis à jour — quantités cumulées.`);
+    }
+
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'achats' } }));
   } catch (err) {
     showToast('❌ Erreur création BC.', 'error');

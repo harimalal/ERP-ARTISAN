@@ -1,8 +1,10 @@
 /* -------------------------------------------------------
    AppMee — modules/livraisons.js
-   Fix L2 — après livraison, updateCommandeStatut('cloture')
-   Fix L1 — recharge caches avant traitement (Règle 11)
-   Fix R17 — Délégation document capture sur facturesTbody
+   Livraisons et factures : liste, confirmation,
+   changement statut, aperçu PDF.
+   Fix S11 — saveLivraison exportée + listener dans app.html
+   Fix S11 — Règle 11 : recharge cache avant _saveLivraison
+   Fix S11 — updateCommandeStatut cloture dans try/catch isolé
    Dépend de : db.js, ui.js
 ------------------------------------------------------- */
 
@@ -10,7 +12,8 @@ import {
   getFactures, createFacture, updateFactureStatut,
   createLivraison, factureExistePourCommande,
   getCommandes, getClients, getProduits,
-  updateProduitStock, addMouvement, updateCommandeStatut,
+  updateProduitStock, addMouvement,
+  updateCommandeStatut,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, badgeFac, showToast, today,
@@ -23,9 +26,11 @@ let _commandes = [];
 let _clients   = [];
 let _produits  = [];
 
-/* Guards — listeners posés une seule fois */
-let _nfListenersBound      = false;
-let _delegationBound       = false;
+/* BUG CORRIGÉ : écouteur calcNFTtc ajouté une seule fois */
+let _nfListenersBound = false;
+
+/* Règle 17 — délégation posée une seule fois */
+let _delegationBound = false;
 
 /* -------------------------------------------------------
    INIT
@@ -36,23 +41,19 @@ export async function init() {
   ]);
   _bindLivraisonForm();
   _bindNewFactureForm();
-  document.getElementById('btnSaveLivraison')?.addEventListener('click', _saveLivraison);
 
   /* Règle 17 — délégation sur document, posée une seule fois */
   if (!_delegationBound) {
     _delegationBound = true;
 
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', async (e) => {
       const tbody = document.getElementById('facturesTbody');
       if (!tbody) return;
-
-      const pdfBtn = e.target.closest('#facturesTbody [data-action="pdf"]');
-      if (pdfBtn) { _aperçuPdfFac(pdfBtn.dataset.id); return; }
-
-      const row = e.target.closest('#facturesTbody [data-action="edit"]');
-      if (row && !e.target.closest('[data-action="changer-statut"]')) {
-        _openEditFacture(row.dataset.id);
-      }
+      const row = e.target.closest('#facturesTbody tr[data-id]');
+      if (!row) return;
+      const action = row.dataset.action;
+      const id     = row.dataset.id;
+      if (action === 'edit') _ouvrirEditFacture(id);
     }, true);
 
     document.addEventListener('change', async (e) => {
@@ -71,138 +72,59 @@ export async function render() {
   _renderTable();
 }
 
-/* -------------------------------------------------------
-   TABLEAU FACTURES
-   Fix R17 : plus de tbody.onclick ni tbody.addEventListener ici
-------------------------------------------------------- */
 function _renderTable() {
   document.getElementById('facturesTbody').innerHTML = _factures.map(f => `
     <tr class="clickable" data-id="${f.id}" data-action="edit">
       <td class="td-ref">${esc(f.ref)}</td>
       <td>${esc(f.date_facture)}</td>
-      <td class="td-ref">${esc(f.ref_commande || '—')}</td>
       <td class="td-bold">${esc(f.client_nom)}</td>
-      <td style="font-weight:700">${fmt(f.montant_ht)} €</td>
+      <td style="font-weight:600">${fmt(f.montant_ht)} €</td>
+      <td>${fmt((f.montant_ht || 0) * (1 + (f.taux_tva || 20) / 100))} €</td>
+      <td>${badgeFac(f.statut)}</td>
       <td onclick="event.stopPropagation()">
-        ${badgeFac(f.statut || 'facture')}
-        <select style="font-size:10.5px;padding:2px 6px;border:1px solid var(--ui-brd);border-radius:5px;margin-left:5px;"
-          data-id="${f.id}" data-action="changer-statut">
+        <select data-id="${f.id}" data-action="changer-statut"
+          style="font-size:10.5px;padding:2px 6px;border:1px solid var(--ui-brd);border-radius:5px;">
           <option value="">Changer…</option>
           <option value="a_lancer">À lancer</option>
-          <option value="facture">Facturée</option>
+          <option value="facturee">Facturée</option>
           <option value="a_relancer">À relancer</option>
-          <option value="paye">Payée ✓</option>
+          <option value="regle">Réglée ✓</option>
         </select>
       </td>
       <td onclick="event.stopPropagation()">
-        <button class="btn-icon" data-id="${f.id}" data-action="pdf" title="Aperçu PDF">👁</button>
+        <button class="btn-icon" data-id="${f.id}" data-action="pdf" title="Aperçu PDF"
+          onclick="event.stopPropagation();document.dispatchEvent(new CustomEvent('appmee:showPdf',{detail:{title:'Facture ${esc(f.ref)}',type:'facture',data:${JSON.stringify(f)}}}))">👁</button>
       </td>
     </tr>`).join('') ||
-    '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucune facture.</td></tr>';
+    '<tr><td colspan="8" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucune facture.</td></tr>';
 }
 
 /* -------------------------------------------------------
-   ÉDITION FACTURE
+   CONFIRMATION LIVRAISON — exportée pour app.html
+   Fix S11 — Règle 11 : recharge cache avant opération critique
+   Fix S11 — updateCommandeStatut dans try/catch isolé
 ------------------------------------------------------- */
-function _openEditFacture(id) {
-  const f = _factures.find(x => x.id === id);
-  if (!f) return;
-
-  let modal = document.getElementById('modalEditFacture');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'modalEditFacture';
-    modal.className = 'modal';
-    modal.innerHTML = `
-      <div class="modal-box" style="max-width:480px;">
-        <div class="modal-hdr">
-          <h3>Modifier la facture</h3>
-          <button class="btn-close" data-close="modalEditFacture">✕</button>
-        </div>
-        <div class="modal-body" style="display:grid;gap:10px;">
-          <label>Référence<input id="efRef" class="inp" readonly style="opacity:.6;"></label>
-          <label>Client<input id="efClient" class="inp"></label>
-          <label>Date<input id="efDate" type="date" class="inp"></label>
-          <label>Montant HT (€)<input id="efMontant" type="number" step="0.01" class="inp"></label>
-          <label>TVA (%)<input id="efTva" type="number" class="inp"></label>
-          <label>Notes<textarea id="efNotes" class="inp" rows="2"></textarea></label>
-        </div>
-        <div class="modal-ftr">
-          <button class="btn btn-ghost" data-close="modalEditFacture">Annuler</button>
-          <button class="btn btn-primary" id="btnSaveEditFacture">Enregistrer</button>
-        </div>
-      </div>`;
-    document.body.appendChild(modal);
-    modal.querySelectorAll('[data-close]').forEach(btn =>
-      btn.addEventListener('click', () => closeModal('modalEditFacture')));
-  }
-
-  document.getElementById('efRef').value     = f.ref;
-  document.getElementById('efClient').value  = f.client_nom;
-  document.getElementById('efDate').value    = f.date_facture;
-  document.getElementById('efMontant').value = f.montant_ht;
-  document.getElementById('efTva').value     = f.taux_tva || 20;
-  document.getElementById('efNotes').value   = f.notes || '';
-
-  const btnSave = document.getElementById('btnSaveEditFacture');
-  const newBtn = btnSave.cloneNode(true);
-  btnSave.parentNode.replaceChild(newBtn, btnSave);
-  newBtn.addEventListener('click', () => _saveEditFacture(id));
-  openModal('modalEditFacture');
-}
-
-async function _saveEditFacture(id) {
-  const f = _factures.find(x => x.id === id);
-  if (!f) return;
-  const updates = {
-    client_nom:   document.getElementById('efClient').value,
-    date_facture: document.getElementById('efDate').value,
-    montant_ht:   parseFloat(document.getElementById('efMontant').value) || f.montant_ht,
-    taux_tva:     parseFloat(document.getElementById('efTva').value) || 20,
-    notes:        document.getElementById('efNotes').value,
-  };
-  try {
-    await updateFactureStatut(id, f.statut);
-    Object.assign(f, updates);
-    closeModal('modalEditFacture');
-    _renderTable();
-    showToast('✅ Facture mise à jour.');
-    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'factures' } }));
-  } catch (err) {
-    showToast('❌ Erreur mise à jour facture.', 'error');
-  }
-}
-
-/* -------------------------------------------------------
-   CONFIRMATION LIVRAISON
-   Fix L1 — recharge caches (Règle 11)
-   Fix L2 — updateCommandeStatut('cloture') après livraison
-------------------------------------------------------- */
-function _bindLivraisonForm() { /* listener posé dans init() */ }
-
-async function _saveLivraison() {
+export async function saveLivraison() {
   const commandeId = document.getElementById('livCmdId').value;
   const date       = document.getElementById('livDate').value || today();
 
   if (!commandeId) { showToast('⚠ Commande introuvable.', 'error'); return; }
 
-  /* Fix L1 — recharger les caches avant tout traitement */
+  /* Règle 11 — recharger les caches avant toute opération critique */
   try {
-    [_commandes, _produits, _factures] = await Promise.all([
-      getCommandes(), getProduits(), getFactures(),
+    [_factures, _commandes, _clients, _produits] = await Promise.all([
+      getFactures(), getCommandes(), getClients(), getProduits(),
     ]);
-  } catch (err) {
-    console.error('[livraisons] _saveLivraison — rechargement cache ERREUR:', err.message);
-  }
+  } catch (_) {}
 
   const c = _commandes.find(x => x.id === commandeId);
-  if (!c) { showToast('⚠ Commande introuvable après rechargement.', 'error'); return; }
+  if (!c) { showToast('⚠ Commande introuvable.', 'error'); return; }
 
   const btn = document.getElementById('btnSaveLivraison');
   if (btn) { btn.disabled = true; btn.textContent = 'Traitement…'; }
 
   try {
-    /* 1. Décrémenter le stock produits finis */
+    /* Décrémenter le stock produits finis */
     for (const l of (c.commande_lignes || [])) {
       const p = _produits.find(x => x.id === l.produit_id);
       if (!p) continue;
@@ -219,20 +141,16 @@ async function _saveLivraison() {
       p.stock = newStock;
     }
 
-    /* 2. Créer la livraison — non-bloquant si table absente */
-    try {
-      const livRef = nextRef('LIV', []);
-      await createLivraison({
-        commande_id:    commandeId,
-        ref:            livRef,
-        date_livraison: date,
-        statut:         'livree',
-      });
-    } catch (livErr) {
-      console.warn('[livraisons] createLivraison ignoré:', livErr.message);
-    }
+    /* Créer la livraison */
+    const livRef = nextRef('LIV', []);
+    await createLivraison({
+      commande_id:    commandeId,
+      ref:            livRef,
+      date_livraison: date,
+      statut:         'livree',
+    });
 
-    /* 3. Créer la facture si elle n'existe pas encore */
+    /* Créer la facture si elle n'existe pas encore */
     const dejafac = await factureExistePourCommande(commandeId);
     if (!dejafac) {
       const tot = (c.commande_lignes || []).reduce((s, l) =>
@@ -246,34 +164,36 @@ async function _saveLivraison() {
         taux_tva:     20,
         statut:       'facture',
         date_facture: date,
-        ref_commande: c.ref,
       });
       _factures.unshift(fac);
     }
 
-    /* 4. Fix L2 — Passer la commande en "cloture" */
+    /* Clôturer la commande — try/catch isolé pour ne pas bloquer la facture */
     try {
       await updateCommandeStatut(commandeId, 'cloture');
-      const cmdIdx = _commandes.findIndex(x => x.id === commandeId);
-      if (cmdIdx >= 0) _commandes[cmdIdx].statut = 'cloture';
-    } catch (clotErr) {
-      console.error('[livraisons] updateCommandeStatut cloture ERREUR:', clotErr.message);
+    } catch (errCloture) {
+      console.error('[livraisons] updateCommandeStatut cloture ERREUR (non bloquant):', errCloture.message);
     }
 
     closeModal('modalLivraison');
     _renderTable();
-    showToast('✅ ' + c.ref + ' livrée — facture créée — commande clôturée.');
-
-    /* Double dispatch pour recharger commandes ET livraisons */
+    showToast('✅ ' + c.ref + ' livrée — facture créée.');
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'livraisons' } }));
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'commandes' } }));
 
   } catch (err) {
-    console.error('[livraisons] _saveLivraison ERREUR:', err.message, err);
+    console.error('[livraisons] saveLivraison ERREUR:', err.message, err);
     showToast('❌ Erreur confirmation livraison.', 'error');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '✅ Confirmer livraison'; }
   }
+}
+
+/* -------------------------------------------------------
+   FORMULAIRE LIVRAISON
+------------------------------------------------------- */
+function _bindLivraisonForm() {
+  /* Listener déplacé dans app.html — saveLivraison exportée */
 }
 
 /* -------------------------------------------------------
@@ -291,9 +211,11 @@ function _bindNewFactureForm() {
     if (!ref) return;
     const cmd = _commandes.find(c => c.ref === ref);
     if (!cmd) return;
+
     const clientSel = document.getElementById('nfClient');
     const opt = Array.from(clientSel.options).find(o => o.value === cmd.client_nom);
     if (opt) clientSel.value = cmd.client_nom;
+
     const tot = (cmd.commande_lignes || []).reduce((s, l) =>
       s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
     document.getElementById('nfMontant').value = tot.toFixed(2);
@@ -334,6 +256,7 @@ async function _saveNewFacture() {
     showToast('⚠ Client et montant requis.', 'error');
     return;
   }
+
   const ref = nextRef('FAC', _factures);
   try {
     const fac = await createFacture({
@@ -345,6 +268,7 @@ async function _saveNewFacture() {
       statut:       document.getElementById('nfStatut').value,
       notes:        document.getElementById('nfNotes').value,
     });
+
     _factures.unshift(fac);
     closeModal('modalNewFacture');
     _renderTable();
@@ -364,9 +288,20 @@ async function _changerStatutFac(id, statut) {
     const fac = _factures.find(x => x.id === id);
     if (fac) fac.statut = statut;
     _renderTable();
+    showToast('✅ Statut facture mis à jour.');
   } catch (err) {
     showToast('❌ Erreur changement statut facture.', 'error');
+    console.error('[livraisons] _changerStatutFac ERREUR:', err.message, err);
   }
+}
+
+/* -------------------------------------------------------
+   ÉDITION FACTURE
+------------------------------------------------------- */
+function _ouvrirEditFacture(id) {
+  const f = _factures.find(x => x.id === id);
+  if (!f) return;
+  document.dispatchEvent(new CustomEvent('appmee:editFacture', { detail: f }));
 }
 
 /* -------------------------------------------------------
@@ -379,16 +314,4 @@ function _aperçuPdfFac(id) {
   document.dispatchEvent(new CustomEvent('appmee:showPdf', {
     detail: { title: 'Facture ' + f.ref, type: 'facture', data: f, commande: c },
   }));
-}
-
-/* -------------------------------------------------------
-   GETTER public — appelé depuis app.html
-------------------------------------------------------- */
-export async function saveEditFacture(id, updates) {
-  const f = _factures.find(x => x.id === id);
-  if (!f) return;
-  await updateFactureStatut(id, updates.statut || f.statut);
-  Object.assign(f, updates);
-  _renderTable();
-  document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'factures' } }));
 }
