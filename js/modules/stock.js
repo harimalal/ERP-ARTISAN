@@ -63,12 +63,12 @@ function _badgeStatut(stock, seuil) {
 ------------------------------------------------------- */
 function _progBar(stock, seuil) {
   const pct = seuil > 0 ? Math.min(100, Math.round(stock / seuil * 100)) : 100;
-  const col = stock <= 0          ? '#ef4444'
-    : stock <= seuil * 0.5 ? '#ef4444'
-    : stock <= seuil        ? '#f59f00'
-    : stock <= seuil * 1.5  ? '#22c55e'
-    : '#22c55e';
-  const stockCol = stock <= 0 ? '#ef4444' : stock <= seuil ? '#ef4444' : stock <= seuil * 1.5 ? '#f59f00' : '#16a34a';
+  const col = stock <= 0          ? 'rgba(239,68,68,0.5)'
+    : stock <= seuil * 0.5 ? 'rgba(239,68,68,0.5)'
+    : stock <= seuil        ? 'rgba(245,158,11,0.5)'
+    : stock <= seuil * 1.5  ? 'rgba(34,197,94,0.5)'
+    : 'rgba(34,197,94,0.5)';
+  const stockCol = stock <= 0 ? '#ef4444' : stock <= seuil ? '#dc2626' : stock <= seuil * 1.5 ? '#b45309' : '#15803d';
   return `
     <div>
       <strong style="font-size:13px;font-weight:800;color:${stockCol};">${fmtQ(stock)}</strong>

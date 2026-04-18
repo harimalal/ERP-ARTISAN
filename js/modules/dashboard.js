@@ -83,12 +83,12 @@ function _progBar(stock, seuil, unite = '') {
   const isBas   = stock <= seuil;
   const isFaible = stock <= seuil * 1.5 && stock > seuil;
 
-  const col = isZero   ? '#ef4444'
-    : isBas    ? '#ef4444'
-    : isFaible ? '#f59f00'
-    : '#22c55e';
+  const col = isZero   ? 'rgba(239,68,68,0.5)'
+    : isBas    ? 'rgba(239,68,68,0.5)'
+    : isFaible ? 'rgba(245,158,11,0.5)'
+    : 'rgba(34,197,94,0.5)';
 
-  const stockCol = isZero ? '#ef4444' : isBas ? '#ef4444' : isFaible ? '#f59f00' : '#16a34a';
+  const stockCol = isZero ? '#ef4444' : isBas ? '#dc2626' : isFaible ? '#b45309' : '#15803d';
 
   return `
     <div style="display:flex;align-items:center;gap:8px;">
