@@ -2,9 +2,9 @@
    AppMee — modules/dashboard.js
    Tableau de bord : KPIs, alertes stock, dernières
    commandes, stock produits finis.
-   Fix S11 — Suppression barres de progression (scroll)
-   dans Alertes stock et Stock produits finis.
-   Tout le contenu visible sans scroll.
+   Fix S11 — Suppression barres de scroll dashboard :
+   la .card parente a overflow:hidden dans components.css
+   → on force overflow:visible sur les .card des encarts.
    Dépend de : db.js, ui.js
 ------------------------------------------------------- */
 
@@ -75,17 +75,33 @@ function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
 }
 
 /* -------------------------------------------------------
+   HELPER — forcer la .card parente en overflow visible
+   Fix S11 : components.css impose overflow:hidden sur .card
+   ce qui génère une scrollbar horizontale sur les encarts
+------------------------------------------------------- */
+function _fixCardOverflow(elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  /* Cibler la .card parente directe */
+  const card = el.closest('.card');
+  if (card) {
+    card.style.overflow = 'visible';
+    card.style.overflowX = 'visible';
+    card.style.overflowY = 'visible';
+  }
+  /* Cibler aussi l'élément lui-même */
+  el.style.overflow = 'visible';
+  el.style.maxHeight = 'none';
+}
+
+/* -------------------------------------------------------
    ALERTES STOCK ARTICLES
-   Fix S11 — Pas de barre de scroll : overflow visible,
-   tout le tableau affiché dans l'encart.
 ------------------------------------------------------- */
 function renderAlertes(articles) {
   const al = articles.filter(a => a.stock <= a.seuil);
   const el = document.getElementById('dashAlerts');
 
-  /* Fix S11 — forcer l'affichage complet sans scroll */
-  el.style.overflow = 'visible';
-  el.style.maxHeight = 'none';
+  _fixCardOverflow('dashAlerts');
 
   if (!al.length) {
     el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><p>Aucune alerte !</p></div>';
@@ -123,18 +139,14 @@ function renderAlertes(articles) {
 
 /* -------------------------------------------------------
    STOCK PRODUITS FINIS
-   Fix S11 — Suppression des barres de progression.
-   Affichage : Produit | Stock (chiffre) | Statut badge.
-   Uniquement les produits en alerte (stock <= seuil).
-   Overflow visible — tout le tableau dans l'encart.
+   Uniquement les produits en alerte (stock <= seuil)
+   Pas de barre de progression — chiffres Stock / Seuil
 ------------------------------------------------------- */
 function renderStockProduits(produits) {
   const alertes = produits.filter(p => p.stock <= p.seuil);
   const el = document.getElementById('dashProduits');
 
-  /* Fix S11 — forcer l'affichage complet sans scroll */
-  el.style.overflow = 'visible';
-  el.style.maxHeight = 'none';
+  _fixCardOverflow('dashProduits');
 
   if (!alertes.length) {
     el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><p>Tous les produits sont en stock.</p></div>';
