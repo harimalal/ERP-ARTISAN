@@ -907,6 +907,7 @@ function updateTopbar(page) {
   const meta = PAGE_META[page] || {};
   const titleEl = document.getElementById('topbarTitle');
   const subEl   = document.getElementById('topbarSub');
+  document.getElementById('btnSaveLivraison')?.addEventListener('click', () => livraisons.saveLivraison());
   if (titleEl) titleEl.textContent = meta.title || '';
   if (subEl)   subEl.textContent   = meta.sub   || '';
 }
