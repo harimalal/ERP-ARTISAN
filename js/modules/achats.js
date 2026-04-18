@@ -127,10 +127,10 @@ function _renderTable() {
     <tr class="clickable" data-ref="${esc(g.ref)}">
       <td class="td-ref">${esc(g.ref)}</td>
       <td>${esc(g.date || '—')}</td>
+      <td style="font-size:11px;font-weight:600">${esc(g.fournisseur || '—')}</td>
       <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600" title="${articlesLabel}">${articlesLabel}</td>
       <td>${qteTotale}</td>
       <td style="font-weight:600">${fmt(g.totalHT)} €</td>
-      <td style="font-size:11px">${esc(g.fournisseur || '—')}</td>
       <td style="font-size:11px;color:var(--ink-muted)">${esc(g.refCommande || '—')}</td>
       <td onclick="event.stopPropagation()">
         ${badgeAchat(g.statut)}
@@ -262,22 +262,29 @@ function _renderBCLignes() {
   container.innerHTML = '';
   _bcLignes.forEach((ligne, i) => {
     const div = document.createElement('div');
-    div.style.cssText = 'display:grid;grid-template-columns:1fr 90px 90px auto;gap:7px;margin-bottom:7px;align-items:center;';
+    div.style.cssText = 'display:grid;grid-template-columns:80px 1fr 90px 90px 80px auto;gap:7px;margin-bottom:7px;align-items:center;';
     const fournisseur = document.getElementById('achatFournisseur')?.value || '';
     const list = fournisseur ? _articles.filter(a => a.fournisseur === fournisseur) : _articles;
     const opts = list.map(a => `<option value="${esc(a.id)}" ${a.id === ligne.articleId ? 'selected' : ''}>` +
       `${esc(a.ref)} — ${esc(a.nom)}</option>`).join('');
+    const artCourant = _articles.find(x => x.id === ligne.articleId);
+    const refCourante = artCourant ? artCourant.ref : '';
     div.innerHTML = `
+      <div class="bc-ref-display" data-idx="${i}" style="font-size:10px;font-weight:700;color:var(--accent);padding:2px 4px;background:var(--ui-bg2);border-radius:4px;text-align:center;min-width:60px;">${esc(refCourante)}</div>
       <select class="bc-art" data-idx="${i}">${opts}</select>
       <input type="number" class="bc-qte" data-idx="${i}" value="${ligne.qte || ''}" placeholder="Qté" min="0.001" step="0.001">
       <input type="number" class="bc-px"  data-idx="${i}" value="${ligne.prix || ''}" placeholder="Prix HT" step="0.001">
-      <button class="bc-del" data-idx="${i}" style="background:none;border:none;color:var(--ui-red);font-size:18px;cursor:pointer;">×</button>`;
+      <div class="bc-total-display" data-idx="${i}" style="font-size:11px;font-weight:600;color:var(--ink);text-align:right;padding:2px 4px;">${ligne.qte && ligne.prix ? (ligne.qte * ligne.prix).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €' : '—'}</div>
+      <button class="bc-del" data-idx="${i}" style="background:none;border:none;color:var(--ui-red);font-size:18px;cursor:pointer;line-height:1;">✕</button>`;
     div.querySelector('.bc-art').addEventListener('change', (e) => {
       const a = _articles.find(x => x.id === e.target.value);
       _bcLignes[i].articleId = e.target.value;
       _bcLignes[i].nom       = a ? a.nom   : '';
       _bcLignes[i].unite     = a ? a.unite : '';
       if (a) { _bcLignes[i].prix = a.prix; div.querySelector('.bc-px').value = a.prix; }
+      /* Mettre à jour l'affichage de la ref */
+      const refEl = div.querySelector('.bc-ref-display');
+      if (refEl) refEl.textContent = a ? a.ref : '';
       if (a && a.fournisseur) {
         const fSel = document.getElementById('achatFournisseur');
         if (fSel && !fSel.value) { fSel.value = a.fournisseur; _renderBlocFournisseur(a.fournisseur); }
@@ -285,10 +292,17 @@ function _renderBCLignes() {
       _renderBCTotal();
     });
     div.querySelector('.bc-qte').addEventListener('input', (e) => {
-      _bcLignes[i].qte = parseFloat(e.target.value) || 0; _renderBCTotal();
+      _bcLignes[i].qte = parseFloat(e.target.value) || 0;
+      /* Recalculer total ligne */
+      const totEl = div.querySelector('.bc-total-display');
+      if (totEl) { const t = _bcLignes[i].qte * _bcLignes[i].prix; totEl.textContent = t > 0 ? t.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €' : '—'; }
+      _renderBCTotal();
     });
     div.querySelector('.bc-px').addEventListener('input', (e) => {
-      _bcLignes[i].prix = parseFloat(e.target.value) || 0; _renderBCTotal();
+      _bcLignes[i].prix = parseFloat(e.target.value) || 0;
+      const totEl = div.querySelector('.bc-total-display');
+      if (totEl) { const t = _bcLignes[i].qte * _bcLignes[i].prix; totEl.textContent = t > 0 ? t.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €' : '—'; }
+      _renderBCTotal();
     });
     div.querySelector('.bc-del').addEventListener('click', () => {
       _bcLignes.splice(i, 1); _renderBCLignes(); _renderBCTotal();
@@ -755,48 +769,95 @@ function _ouvrirFenetrePDF({ g, t, f, totalHT, tva, ttc }) {
 
   const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
     <title>BC ${_esc(g.ref)}</title>
-    <style>body{font-family:Arial,sans-serif;font-size:11px;padding:28px 32px;}
-    .btn-print{display:block;margin:0 auto 24px;padding:9px 28px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;}
-    @media print{.btn-print{display:none;}}
-    h1{font-size:19px;text-transform:uppercase;}
-    .hdr{display:flex;justify-content:space-between;border-bottom:2px solid #1a1a1a;padding-bottom:14px;margin-bottom:18px;}
-    .parties{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:18px;}
-    .plbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:5px;}
-    .pnom{font-size:12px;font-weight:700;margin-bottom:3px;}
+    <style>
+    @page { size: A4; margin: 18mm 15mm 18mm 15mm; }
+    *{box-sizing:border-box;}
+    body{font-family:Arial,sans-serif;font-size:11px;margin:0;padding:20px 28px;color:#1a1a1a;}
+    .btn-print{display:block;margin:0 auto 20px;padding:9px 28px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;}
+    @media print{.btn-print{display:none;}body{padding:0;}}
+    h1{font-size:17px;text-transform:uppercase;margin:0 0 2px;}
+    .hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1a1a1a;padding-bottom:12px;margin-bottom:16px;}
+    .parties{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:16px;padding:10px 12px;background:#f9fafb;border-radius:6px;}
+    .plbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:4px;}
+    .pnom{font-size:12px;font-weight:700;margin-bottom:2px;}
+    .pinfo{font-size:10px;color:#555;line-height:1.5;}
     table{width:100%;border-collapse:collapse;margin-bottom:0;}
     thead tr{background:#1a1a1a;color:#fff;}
     thead th{padding:7px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;}
+    thead th.r{text-align:right;}
     tbody tr{border-bottom:1px solid #eee;}tbody tr:nth-child(even){background:#f9fafb;}
-    tbody td{padding:6px 8px;font-size:11px;}
-    .totaux{width:220px;margin-left:auto;margin-top:0;border-collapse:collapse;}
-    .totaux td{padding:5px 8px;font-size:11.5px;}
+    tbody td{padding:5px 8px;font-size:10.5px;}tbody td.r{text-align:right;}
+    .totaux{width:240px;margin-left:auto;margin-top:8px;border-collapse:collapse;}
+    .totaux td{padding:4px 8px;font-size:11px;}
     .totaux .lbl{text-align:right;color:#555;}.totaux .val{text-align:right;font-weight:600;}
-    .totaux tr.ttc td{background:#1a1a1a;color:#fff;font-weight:700;font-size:12.5px;}
-    .footer{margin-top:22px;border-top:1px solid #e5e7eb;padding-top:8px;text-align:center;font-size:9.5px;color:#aaa;}</style>
+    .totaux tr.ttc td{background:#1a1a1a;color:#fff;font-weight:700;font-size:12px;}
+    .mentions{margin-top:16px;padding:10px 12px;background:#f9fafb;border-radius:6px;font-size:9.5px;color:#555;line-height:1.6;}
+    .mentions strong{color:#1a1a1a;}
+    .footer{margin-top:12px;border-top:1px solid #e5e7eb;padding-top:8px;display:flex;justify-content:space-between;font-size:9px;color:#aaa;}
+    </style>
     </head><body>
-    <button class="btn-print" onclick="window.print()">Imprimer / Enregistrer en PDF</button>
+    <button class="btn-print" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF (A4)</button>
     <div class="hdr">
-      <div><h1>Bon de commande fournisseur</h1><div style="font-size:10.5px;color:#666">${_esc(t.nom || 'AppMee')}</div></div>
-      <div style="text-align:right;font-size:11px;"><div style="font-size:15px;font-weight:700;color:#2563eb">Réf : ${_esc(g.ref)}</div>
-      <div style="color:#555">Date : ${_esc(g.date || '—')}</div>
-      ${g.refCommande ? `<div style="color:#555">Réf commande : ${_esc(g.refCommande)}</div>` : ''}</div>
+      <div>
+        <h1>Bon de commande fournisseur</h1>
+        <div style="font-size:10px;color:#666;margin-top:2px;">${_esc(t.nom || '')}</div>
+      </div>
+      <div style="text-align:right;font-size:10.5px;">
+        <div style="font-size:14px;font-weight:700;color:#2563eb;margin-bottom:2px;">N° ${_esc(g.ref)}</div>
+        <div style="color:#555;">Date : ${_esc(g.date || '—')}</div>
+        ${g.refCommande ? `<div style="color:#555;">Réf commande : ${_esc(g.refCommande)}</div>` : ''}
+      </div>
     </div>
     <div class="parties">
-      <div><div class="plbl">Émetteur</div><div class="pnom">${_esc(t.nom || '—')}</div>
-      ${t.adresse ? `<div>${_esc(t.adresse)}</div>` : ''}${t.tel ? `<div>Tél : ${_esc(t.tel)}</div>` : ''}
-      ${t.siret ? `<div>SIRET : ${_esc(t.siret)}</div>` : ''}</div>
-      <div><div class="plbl">Fournisseur</div><div class="pnom">${_esc(g.fournisseur || '—')}</div>
-      ${f.tel ? `<div>Tél : ${_esc(f.tel)}</div>` : ''}${f.email ? `<div>${_esc(f.email)}</div>` : ''}</div>
+      <div>
+        <div class="plbl">Émetteur</div>
+        <div class="pnom">${_esc(t.nom || '—')}</div>
+        <div class="pinfo">
+          ${t.adresse ? _esc(t.adresse) + '<br>' : ''}
+          ${t.tel     ? 'Tél : ' + _esc(t.tel) + '<br>' : ''}
+          ${t.email   ? _esc(t.email) + '<br>' : ''}
+          ${t.siret   ? '<strong>SIRET : ' + _esc(t.siret) + '</strong><br>' : ''}
+          ${t.tva     ? 'N° TVA : ' + _esc(t.tva) + '<br>' : ''}
+        </div>
+      </div>
+      <div>
+        <div class="plbl">Fournisseur</div>
+        <div class="pnom">${_esc(g.fournisseur || '—')}</div>
+        <div class="pinfo">
+          ${f.contact ? _esc(f.contact) + '<br>' : ''}
+          ${f.adresse ? _esc(f.adresse) + '<br>' : ''}
+          ${f.tel     ? 'Tél : ' + _esc(f.tel) + '<br>' : ''}
+          ${f.email   ? _esc(f.email) + '<br>' : ''}
+        </div>
+      </div>
     </div>
-    <table><thead><tr><th>Désignation</th><th style="text-align:right">Qté</th><th style="text-align:right">PU HT</th><th style="text-align:right">Total HT</th></tr></thead>
-    <tbody>${lignesHTML}</tbody></table>
+    <table>
+      <thead><tr>
+        <th>Désignation</th>
+        <th class="r">Qté</th>
+        <th class="r">PU HT</th>
+        <th class="r">Total HT</th>
+      </tr></thead>
+      <tbody>${lignesHTML}</tbody>
+    </table>
     <table class="totaux">
       <tr><td class="lbl">Total HT</td><td class="val">${_fmtPrix(totalHT)}</td></tr>
-      <tr><td class="lbl">TVA 20%</td><td class="val">${_fmtPrix(tva)}</td></tr>
-      <tr class="ttc"><td class="lbl" style="color:#fff;font-weight:700">TOTAL TTC</td><td class="val">${_fmtPrix(ttc)}</td></tr>
+      <tr><td class="lbl">TVA 20 %</td><td class="val">${_fmtPrix(tva)}</td></tr>
+      <tr class="ttc"><td class="lbl" style="color:#fff;font-weight:700;">TOTAL TTC</td><td class="val">${_fmtPrix(ttc)}</td></tr>
     </table>
-    ${g.notes ? `<div style="margin-top:14px;padding:8px 10px;background:#f9fafb;border-left:3px solid #2563eb;font-size:10.5px;"><strong>Note :</strong> ${_esc(g.notes)}</div>` : ''}
-    <div class="footer">AppMee — appmee.fr</div>
+    ${g.notes ? `<div style="margin-top:12px;padding:8px 10px;background:#eff6ff;border-left:3px solid #2563eb;font-size:10px;"><strong>Note :</strong> ${_esc(g.notes)}</div>` : ''}
+    <div class="mentions">
+      <strong>Conditions de règlement :</strong> ${_esc(t.cpt || '30 jours fin de mois')}
+      ${t.iban ? ' — <strong>IBAN :</strong> ' + _esc(t.iban) : ''}
+      <br>
+      ${t.siret  ? '<strong>SIRET :</strong> ' + _esc(t.siret) + ' — ' : ''}
+      ${t.tva    ? '<strong>N° TVA intracommunautaire :</strong> ' + _esc(t.tva) + ' — ' : ''}
+      ${t.forme  ? '<strong>Forme juridique :</strong> ' + _esc(t.forme) : ''}
+    </div>
+    <div class="footer">
+      <span>${_esc(t.nom || 'AppMee')} — Document généré le ${new Date().toLocaleDateString('fr-FR')}</span>
+      <span>Page 1/1</span>
+    </div>
     </body></html>`;
 
   const w = window.open('', '_blank');

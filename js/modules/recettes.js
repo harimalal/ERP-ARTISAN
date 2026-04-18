@@ -40,7 +40,12 @@ function _colorFromNom(nom) {
 
 function _avatarLetter(nom) {
   const c = _colorFromNom(nom);
-  const letter = (nom || '?')[0].toUpperCase();
+  /* Ignorer les mots courts (≤ 2 lettres : de, à, au, aux, la, le, les, du…)
+     Prendre l'initiale du premier mot significatif après le premier mot */
+  const MOTS_COURTS = new Set(['de','du','des','à','a','au','aux','la','le','les','en','et','ou','sur','par']);
+  const mots = (nom || '').trim().split(/\s+/);
+  const motCle = mots.slice(1).find(m => m.length > 2 && !MOTS_COURTS.has(m.toLowerCase())) || mots[0] || '?';
+  const letter = motCle[0].toUpperCase();
   return `<div style="width:36px;height:36px;border-radius:8px;background:${c.bg};color:${c.txt};
     font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;
     flex-shrink:0;">${letter}</div>`;
