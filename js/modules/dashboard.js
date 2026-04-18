@@ -2,9 +2,8 @@
    AppMee — modules/dashboard.js
    Tableau de bord : KPIs, alertes stock, dernières
    commandes, stock produits finis.
-   Fix S11 — Suppression barres de scroll dashboard :
-   la .card parente a overflow:hidden dans components.css
-   → on force overflow:visible sur les .card des encarts.
+   Fix S11 — Suppression barres de scroll dashboard
+   Fix S12 — Redesign barres progression + chiffres stock
    Dépend de : db.js, ui.js
 ------------------------------------------------------- */
 
@@ -75,27 +74,52 @@ function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
 }
 
 /* -------------------------------------------------------
-   HELPER — forcer la .card parente en overflow visible
-   Fix S11 : components.css impose overflow:hidden sur .card
-   ce qui génère une scrollbar horizontale sur les encarts
+   HELPER — barre de progression redesignée
+   Même logique que stock.js : couleur selon ratio stock/seuil
+------------------------------------------------------- */
+function _progBar(stock, seuil, unite = '') {
+  const pct   = seuil > 0 ? Math.min(100, Math.round(stock / seuil * 100)) : 100;
+  const isZero  = stock <= 0;
+  const isBas   = stock <= seuil;
+  const isFaible = stock <= seuil * 1.5 && stock > seuil;
+
+  const col = isZero   ? '#ef4444'
+    : isBas    ? '#ef4444'
+    : isFaible ? '#f59f00'
+    : '#22c55e';
+
+  const stockCol = isZero ? '#ef4444' : isBas ? '#ef4444' : isFaible ? '#f59f00' : '#16a34a';
+
+  return `
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:13px;font-weight:800;color:${stockCol};min-width:40px;">${fmtQ(stock)}</span>
+      <div style="flex:1;min-width:60px;">
+        <div style="height:5px;background:var(--ui-bg2);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${col};border-radius:3px;transition:width .3s;"></div>
+        </div>
+      </div>
+      <span style="font-size:10px;color:var(--ink-muted);white-space:nowrap;">/ ${fmtQ(seuil)} ${esc(unite)}</span>
+    </div>`;
+}
+
+/* -------------------------------------------------------
+   HELPER — overflow fix
 ------------------------------------------------------- */
 function _fixCardOverflow(elId) {
   const el = document.getElementById(elId);
   if (!el) return;
-  /* Cibler la .card parente directe */
   const card = el.closest('.card');
   if (card) {
     card.style.overflow = 'visible';
     card.style.overflowX = 'visible';
     card.style.overflowY = 'visible';
   }
-  /* Cibler aussi l'élément lui-même */
   el.style.overflow = 'visible';
   el.style.maxHeight = 'none';
 }
 
 /* -------------------------------------------------------
-   ALERTES STOCK ARTICLES
+   ALERTES STOCK ARTICLES — Fix S12 redesign barres
 ------------------------------------------------------- */
 function renderAlertes(articles) {
   const al = articles.filter(a => a.stock <= a.seuil);
@@ -108,19 +132,13 @@ function renderAlertes(articles) {
     return;
   }
 
-  const rows = al.map(a => {
-    const isEqual = a.stock === a.seuil;
-    const stockColor = isEqual ? '#c8830a' : 'var(--ui-red)';
-    return `<tr>
+  const rows = al.map(a => `
+    <tr>
       <td class="td-ref">${esc(a.ref)}</td>
       <td class="td-bold">${esc(a.nom)}</td>
-      <td>
-        <span style="color:${stockColor};font-weight:700;">${fmtQ(a.stock)} ${esc(a.unite)}</span>
-        <span style="color:var(--ui-text3);font-size:11px;"> / ${fmtQ(a.seuil)}</span>
-      </td>
+      <td style="min-width:160px;">${_progBar(a.stock, a.seuil, a.unite)}</td>
       <td><button class="btn btn-outline btn-sm" data-ref="${esc(a.ref)}" data-action="commander">Commander</button></td>
-    </tr>`;
-  }).join('');
+    </tr>`).join('');
 
   el.innerHTML = `
     <table>
@@ -138,9 +156,7 @@ function renderAlertes(articles) {
 }
 
 /* -------------------------------------------------------
-   STOCK PRODUITS FINIS
-   Uniquement les produits en alerte (stock <= seuil)
-   Pas de barre de progression — chiffres Stock / Seuil
+   STOCK PRODUITS FINIS — Fix S12 redesign barres
 ------------------------------------------------------- */
 function renderStockProduits(produits) {
   const alertes = produits.filter(p => p.stock <= p.seuil);
@@ -153,17 +169,12 @@ function renderStockProduits(produits) {
     return;
   }
 
-  const rows = alertes.map(p => {
-    const stockColor = p.stock <= 0 ? 'var(--ui-red)' : '#c8830a';
-    return `<tr>
+  const rows = alertes.map(p => `
+    <tr>
       <td class="td-bold">${esc(p.nom)}</td>
-      <td>
-        <span style="font-size:13px;font-weight:700;color:${stockColor};">${fmtQ(p.stock)}</span>
-        <span style="color:var(--ink-muted);font-size:11px;"> / ${fmtQ(p.seuil)}</span>
-      </td>
+      <td style="min-width:160px;">${_progBar(p.stock, p.seuil)}</td>
       <td>${stockStatus(p.stock, p.seuil)}</td>
-    </tr>`;
-  }).join('');
+    </tr>`).join('');
 
   el.innerHTML = `
     <table>

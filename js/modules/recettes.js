@@ -1,11 +1,9 @@
 /* -------------------------------------------------------
    AppMee — modules/recettes.js
    Nomenclatures : affichage, coût revient, faisabilité.
+   Fix S12 — Redesign : fond blanc, lettre initiale colorée,
+              badges indicateurs, recherche texte live
    Dépend de : db.js, ui.js
-
-   Fix R1 — Suppression badges header (Coût, Vente, Marge, Fabricable)
-            Suppression footer résumé
-            Suppression colonne Stock dispo du tableau
 ------------------------------------------------------- */
 
 import {
@@ -14,11 +12,39 @@ import {
 } from '../db.js';
 import { fmt, fmtQ, esc, showToast, openModal, closeModal } from '../ui.js';
 
-/* Cache local */
 let _produits    = [];
 let _articles    = [];
 let _recetteData = {};
 let _toggleState = {};
+let _searchQuery = '';
+
+/* -------------------------------------------------------
+   COULEUR depuis le nom — hash déterministe
+------------------------------------------------------- */
+const PALETTE = [
+  { bg: '#fee2e2', txt: '#dc2626' }, // rouge
+  { bg: '#fef3c7', txt: '#d97706' }, // jaune
+  { bg: '#d1fae5', txt: '#059669' }, // vert
+  { bg: '#dbeafe', txt: '#2563eb' }, // bleu
+  { bg: '#ede9fe', txt: '#7c3aed' }, // violet
+  { bg: '#fce7f3', txt: '#db2777' }, // rose
+  { bg: '#e0f2fe', txt: '#0284c7' }, // cyan
+  { bg: '#f0fdf4', txt: '#16a34a' }, // vert clair
+];
+
+function _colorFromNom(nom) {
+  let hash = 0;
+  for (let i = 0; i < nom.length; i++) hash = nom.charCodeAt(i) + ((hash << 5) - hash);
+  return PALETTE[Math.abs(hash) % PALETTE.length];
+}
+
+function _avatarLetter(nom) {
+  const c = _colorFromNom(nom);
+  const letter = (nom || '?')[0].toUpperCase();
+  return `<div style="width:36px;height:36px;border-radius:8px;background:${c.bg};color:${c.txt};
+    font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;">${letter}</div>`;
+}
 
 /* -------------------------------------------------------
    INIT
@@ -34,40 +60,119 @@ export async function render() {
   [_produits, _articles] = await Promise.all([getProduits(), getArticles()]);
   const recettesRaw = await Promise.all(_produits.map(p => getRecettesByProduit(p.id)));
   _produits.forEach((p, i) => { _recetteData[p.id] = recettesRaw[i]; });
+  _renderBadges();
+  _renderSearchBar();
   _renderListe();
 }
 
 /* -------------------------------------------------------
-   LISTE DES RECETTES
-   Fix R1 — Header simplifié : nom + ref + boutons seulement
-            Pas de footer résumé
-            Tableau sans colonne Stock dispo
+   BADGES INDICATEURS — Fix S12
+------------------------------------------------------- */
+function _renderBadges() {
+  const avecRecette = _produits.filter(p => (_recetteData[p.id] || []).length > 0).length;
+  const articlesRef = new Set();
+  _produits.forEach(p => (_recetteData[p.id] || []).forEach(l => { if (l.article_id) articlesRef.add(l.article_id); }));
+
+  const couts = _produits.map(p => _calcCout(_recetteData[p.id] || [])).filter(c => c > 0);
+  const coutMoyen = couts.length ? couts.reduce((a, b) => a + b, 0) / couts.length : 0;
+
+  const marges = _produits.filter(p => p.prix_vente > 0).map(p => {
+    const cout = _calcCout(_recetteData[p.id] || []);
+    return cout > 0 ? Math.round((1 - cout / p.prix_vente) * 100) : null;
+  }).filter(m => m !== null);
+  const margeMoyenne = marges.length ? Math.round(marges.reduce((a, b) => a + b, 0) / marges.length) : 0;
+
+  const el = document.getElementById('recettesBadges');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:20px;font-size:12.5px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;"></span>
+        <span style="font-weight:600;">Produits avec recette</span>
+        <span style="font-weight:800;color:#16a34a;">${avecRecette}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:20px;font-size:12.5px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#4c6ef5;display:inline-block;"></span>
+        <span style="font-weight:600;">Articles référencés</span>
+        <span style="font-weight:800;color:#364fc7;">${articlesRef.size}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:20px;font-size:12.5px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#f59f00;display:inline-block;"></span>
+        <span style="font-weight:600;">Coût moyen / u.</span>
+        <span style="font-weight:800;color:#b45309;">${fmt(coutMoyen)} €</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:20px;font-size:12.5px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;"></span>
+        <span style="font-weight:600;">Marge moyenne</span>
+        <span style="font-weight:800;color:#16a34a;">${margeMoyenne} %</span>
+      </div>
+    </div>`;
+}
+
+/* -------------------------------------------------------
+   BARRE DE RECHERCHE — Fix S12
+------------------------------------------------------- */
+function _renderSearchBar() {
+  const el = document.getElementById('recettesSearch');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="margin-bottom:14px;position:relative;max-width:320px;">
+      <input id="recettesSearchInput" type="text" placeholder="Rechercher une recette…"
+        value="${esc(_searchQuery)}"
+        style="width:100%;padding:7px 12px 7px 34px;border:1.5px solid var(--ui-brd);border-radius:20px;
+               font-size:12.5px;background:#fff;outline:none;">
+      <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--ink-muted);font-size:13px;">🔍</span>
+    </div>`;
+
+  document.getElementById('recettesSearchInput')?.addEventListener('input', (e) => {
+    _searchQuery = e.target.value.toLowerCase().trim();
+    _renderListe();
+  });
+}
+
+/* -------------------------------------------------------
+   LISTE DES RECETTES — Fix S12
+   Fond blanc, lettre colorée, recherche appliquée
 ------------------------------------------------------- */
 function _renderListe() {
   const el = document.getElementById('recettesList');
   el.innerHTML = '';
 
-  _produits.forEach(p => {
+  const produitsFiltres = _searchQuery
+    ? _produits.filter(p => p.nom.toLowerCase().includes(_searchQuery) || (p.ref || '').toLowerCase().includes(_searchQuery))
+    : _produits;
+
+  if (!produitsFiltres.length) {
+    el.innerHTML = `<div style="text-align:center;padding:32px;color:var(--ink-muted);font-size:13px;">
+      Aucune recette ne correspond à la recherche.</div>`;
+    return;
+  }
+
+  produitsFiltres.forEach(p => {
     const lignes = _recetteData[p.id] || [];
     const cout   = _calcCout(lignes);
 
     const card = document.createElement('div');
     card.className = 'card';
-    card.style.marginBottom = '16px';
+    card.style.cssText = 'margin-bottom:12px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:10px;overflow:hidden;';
 
-    /* Header — nom + ref + boutons uniquement */
+    /* Header — lettre colorée + nom + ref + boutons */
     const hdr = document.createElement('div');
-    hdr.className = 'card-hdr';
-    hdr.style.cursor = 'pointer';
+    hdr.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;background:#fff;';
     hdr.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;flex:1;flex-wrap:wrap;">
-        <span class="card-hdr-title">${esc(p.nom)}</span>
-        <span class="td-ref">${esc(p.ref)}</span>
+      ${_avatarLetter(p.nom)}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13.5px;font-weight:700;color:var(--ink);">${esc(p.nom)}</div>
+        <div style="font-size:10.5px;color:var(--ink-muted);margin-top:1px;">
+          ${esc(p.ref || '')}
+          ${cout > 0 ? `<span style="margin-left:8px;color:var(--accent);font-weight:600;">Coût : ${fmt(cout)} €/u.</span>` : ''}
+          ${p.prix_vente > 0 && cout > 0 ? `<span style="margin-left:8px;color:#16a34a;font-weight:600;">Marge : ${Math.round((1 - cout / p.prix_vente) * 100)} %</span>` : ''}
+        </div>
       </div>
-      <div style="display:flex;gap:7px;">
+      <div style="display:flex;gap:7px;flex-shrink:0;">
         <button class="btn btn-outline btn-sm" data-produit-id="${p.id}" data-action="modifier">✏ Modifier</button>
         <button class="btn btn-primary btn-sm" data-produit-ref="${esc(p.ref)}" data-action="produire">▶ Produire</button>
-        <span id="rec-toggle-${p.id}" style="color:var(--ink-muted);font-size:13px;align-self:center;">▼</span>
+        <span id="rec-toggle-${p.id}" style="color:var(--ink-muted);font-size:13px;align-self:center;padding:0 4px;">▼</span>
       </div>`;
 
     hdr.addEventListener('click', (e) => {
@@ -86,17 +191,18 @@ function _renderListe() {
       openModal('modalPlanifier');
     });
 
-    /* Body — tableau sans colonne Stock dispo */
+    /* Body */
     const body = document.createElement('div');
     body.id = 'rec-body-' + p.id;
+    body.style.borderTop = '1px solid var(--ui-brd)';
 
     const subHdr = document.createElement('div');
-    subHdr.style.cssText = 'padding:7px 16px 4px;font-size:9.5px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.6px;';
+    subHdr.style.cssText = 'padding:7px 16px 4px;font-size:9.5px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.6px;background:#fafafa;';
     subHdr.textContent = 'Articles nécessaires par unité produite';
     body.appendChild(subHdr);
 
     const tbl = document.createElement('table');
-    tbl.style.margin = '0';
+    tbl.style.cssText = 'margin:0;background:#fff;';
     tbl.innerHTML = `<thead><tr>
       <th>Réf</th><th>Désignation</th><th>Catégorie</th>
       <th>Qté / u.</th><th>Unité</th><th>Prix achat HT</th><th>Coût / produit</th>
@@ -132,8 +238,6 @@ function _renderListe() {
     tbl.appendChild(tfoot);
     body.appendChild(tbl);
 
-    /* Pas de footer résumé (supprimé Fix R1) */
-
     card.appendChild(hdr);
     card.appendChild(body);
     el.appendChild(card);
@@ -141,7 +245,7 @@ function _renderListe() {
 }
 
 /* -------------------------------------------------------
-   TOGGLE AFFICHAGE RECETTE
+   TOGGLE
 ------------------------------------------------------- */
 function _toggleRecette(produitId) {
   const body = document.getElementById('rec-body-' + produitId);
@@ -281,6 +385,7 @@ async function _saveEditRecette(produitId, modal) {
       return { article_id: n.article_id, quantite: n.quantite, articles: a };
     });
     modal.remove();
+    _renderBadges();
     _renderListe();
     showToast('✅ Recette mise à jour.');
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'recettes' } }));

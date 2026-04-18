@@ -1,9 +1,9 @@
 /* -------------------------------------------------------
    AppMee — modules/produits.js
    Produits finis : affichage, création, recettes.
-   Fix S11 — Colonnes : Référence | Produit | Stock | Seuil |
-   Statut | Prix vente HT | Coût revient | Marge | Action
-   Fix S11 — Boutons Éditer + Supprimer + Règle 17
+   Fix S11 — Colonnes + Boutons + Règle 17
+   Fix S12 — Recherche branchée dans init()
+              Tri en-têtes colonnes
    Dépend de : db.js, ui.js
 ------------------------------------------------------- */
 
@@ -14,7 +14,7 @@ import {
 } from '../db.js';
 import {
   fmt, fmtQ, esc, stockStatus, showToast,
-  openModal, closeModal, nextRef, confirmDialog,
+  openModal, closeModal, nextRef, confirmDialog, sortTable,
 } from '../ui.js';
 
 let _produits  = [];
@@ -31,6 +31,8 @@ let _delegationBound = false;
 export async function init() {
   [_produits, _articles] = await Promise.all([getProduits(), getArticles()]);
   _bindNewProduitForm();
+  _bindSearchInput();   /* Fix S12 — branché ici, pas juste exporté */
+  _bindSortHeaders();   /* Fix S12 — tri en-têtes */
 
   /* Règle 17 — délégation document, posée une seule fois */
   if (!_delegationBound) {
@@ -39,7 +41,6 @@ export async function init() {
       const tbody = document.getElementById('produitsTbody');
       if (!tbody) return;
 
-      /* Bouton Éditer */
       const btnEdit = e.target.closest('#produitsTbody [data-action="editer"]');
       if (btnEdit) {
         e.stopPropagation();
@@ -51,7 +52,6 @@ export async function init() {
         return;
       }
 
-      /* Bouton Supprimer */
       const btnDel = e.target.closest('#produitsTbody [data-action="supprimer"]');
       if (btnDel) {
         e.stopPropagation();
@@ -59,7 +59,6 @@ export async function init() {
         return;
       }
 
-      /* Bouton Produire */
       const btnProd = e.target.closest('#produitsTbody [data-action="produire"]');
       if (btnProd) {
         e.stopPropagation();
@@ -80,14 +79,12 @@ export async function render() {
 }
 
 /* -------------------------------------------------------
-   TABLE — colonnes :
-   Référence | Produit | Stock | Seuil | Statut |
-   Prix vente HT | Coût revient | Marge | Action
+   TABLE
 ------------------------------------------------------- */
 function _renderTable() {
   const filtre = document.getElementById('produitsSearchInput')?.value?.toLowerCase() || '';
   const liste  = filtre
-    ? _produits.filter(p => p.nom.toLowerCase().includes(filtre) || p.ref.toLowerCase().includes(filtre))
+    ? _produits.filter(p => p.nom.toLowerCase().includes(filtre) || (p.ref || '').toLowerCase().includes(filtre))
     : _produits;
 
   document.getElementById('produitsTbody').innerHTML = liste.map(p => {
@@ -116,6 +113,53 @@ function _renderTable() {
 }
 
 /* -------------------------------------------------------
+   RECHERCHE — Fix S12 : appelée dans init()
+------------------------------------------------------- */
+function _bindSearchInput() {
+  document.getElementById('produitsSearchInput')?.addEventListener('input', () => _renderTable());
+}
+
+/* -------------------------------------------------------
+   TRI EN-TÊTES — Fix S12
+   Col 2 (Stock) et Col 3 (Seuil) : tri numérique
+   Autres colonnes : tri alphanumérique via sortTable()
+------------------------------------------------------- */
+function _bindSortHeaders() {
+  document.querySelectorAll('#produitsTable th[data-sort-col]').forEach(th => {
+    th.style.cursor = 'pointer';
+    th.addEventListener('click', () => {
+      const col = parseInt(th.dataset.sortCol);
+      /* Colonnes numériques : Stock (2), Seuil (3), Prix (5), Coût (6) */
+      const isNumeric = [2, 3, 5, 6].includes(col);
+      if (isNumeric) {
+        _sortNumeric(col, th);
+      } else {
+        sortTable('produitsTable', col);
+      }
+      /* Indicateur visuel */
+      document.querySelectorAll('#produitsTable th .sort-ico').forEach(ico => ico.textContent = '');
+      const ico = th.querySelector('.sort-ico');
+      if (ico) ico.textContent = ' ↕';
+    });
+  });
+}
+
+let _sortDir = {};
+function _sortNumeric(col, th) {
+  _sortDir[col] = !_sortDir[col];
+  const asc = _sortDir[col];
+  const tbody = document.getElementById('produitsTbody');
+  if (!tbody) return;
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  rows.sort((a, b) => {
+    const va = parseFloat(a.cells[col]?.textContent?.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+    const vb = parseFloat(b.cells[col]?.textContent?.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+    return asc ? va - vb : vb - va;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+/* -------------------------------------------------------
    SUPPRESSION
 ------------------------------------------------------- */
 async function _supprimerProduit(id) {
@@ -134,7 +178,7 @@ async function _supprimerProduit(id) {
 }
 
 /* -------------------------------------------------------
-   FORMULAIRE NOUVEAU PRODUIT + RECETTE
+   FORMULAIRE NOUVEAU / ÉDITION PRODUIT
 ------------------------------------------------------- */
 function _bindNewProduitForm() {
   document.getElementById('btnAddRecetteLigne')?.addEventListener('click', _addRecetteLigne);
@@ -166,16 +210,13 @@ export async function initNewProduitModal(editProduit = null) {
   document.getElementById('npPrix').value  = editProduit ? (editProduit.prix_vente || editProduit.prix || '') : '';
   document.getElementById('npSeuil').value = editProduit ? editProduit.seuil : '';
 
-  /* Recette */
   document.getElementById('recetteLignes').innerHTML = '';
   document.getElementById('npCoutPreview').style.display = 'none';
 
   if (editProduit) {
     try {
       const lignes = await getRecettesByProduit(editProduit.id);
-      for (const l of lignes) {
-        _addRecetteLigne(l);
-      }
+      for (const l of lignes) { _addRecetteLigne(l); }
     } catch (_) {}
   } else {
     _addRecetteLigne();
@@ -183,11 +224,7 @@ export async function initNewProduitModal(editProduit = null) {
 }
 
 function _handleSave() {
-  if (_editProduitId) {
-    _saveEditProduit();
-  } else {
-    _saveNewProduit();
-  }
+  if (_editProduitId) { _saveEditProduit(); } else { _saveNewProduit(); }
 }
 
 function _addRecetteLigne(prefill = null) {
@@ -302,13 +339,6 @@ function _collectLignesRecette() {
     if (articleId && q > 0) lignes.push({ article_id: articleId, quantite: q, unite: null });
   });
   return lignes;
-}
-
-/* -------------------------------------------------------
-   RECHERCHE
-------------------------------------------------------- */
-export function bindSearchInput() {
-  document.getElementById('produitsSearchInput')?.addEventListener('input', () => _renderTable());
 }
 
 /* -------------------------------------------------------

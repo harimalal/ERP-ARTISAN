@@ -1,10 +1,10 @@
 /* -------------------------------------------------------
    AppMee — modules/production.js
    Ordres de fabrication, calendrier, besoins, manques.
-   Fix OF-SUPP — Bouton ✕ suppression OF ajouté dans _renderOFs().
-   Fix S11 — Calendrier : couleur OF = couleur du statut
-   Fix S11 — Besoins : afficher uniquement les alertes stock
-   deleteOF importé depuis db.js.
+   Fix S12 — Badges indicateurs Total OF / En cours / Planifiés
+             Lignes tableau blanc (pas de coloration)
+             Croix suppression discrète
+             Statuts select sans bordure colorée
    Dépend de : db.js, ui.js
 ------------------------------------------------------- */
 
@@ -20,7 +20,6 @@ import {
   openModal, closeModal, nextRef, confirmDialog,
 } from '../ui.js';
 
-/* Cache local */
 let _ofs       = [];
 let _commandes = [];
 let _produits  = [];
@@ -48,6 +47,7 @@ export async function render() {
     getAllOFs(), getCommandes(), getProduits(), getArticles(),
   ]);
   await _chargerRecettes();
+  _renderBadges();
   _renderCalendrier();
   _renderOFs();
   _renderFabPlan();
@@ -55,19 +55,37 @@ export async function render() {
 }
 
 /* -------------------------------------------------------
-   Charger toutes les recettes en parallèle
+   BADGES INDICATEURS — Fix S12
 ------------------------------------------------------- */
-async function _chargerRecettes() {
-  const recettesRaw = await Promise.all(_produits.map(p => getRecettesByProduit(p.id)));
-  _recettes = {};
-  _produits.forEach((p, i) => {
-    _recettes[p.id] = recettesRaw[i] || [];
-  });
+function _renderBadges() {
+  const total    = _ofs.filter(o => !['clos', 'annule'].includes(o.statut)).length;
+  const enCours  = _ofs.filter(o => o.statut === 'en_cours').length;
+  const planifies = _ofs.filter(o => o.statut === 'planifie').length;
+
+  const el = document.getElementById('productionBadges');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:20px;font-size:12.5px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;"></span>
+        <span style="font-weight:600;">Total OF actifs</span>
+        <span style="font-weight:800;color:#16a34a;">${total}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:20px;font-size:12.5px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#f59f00;display:inline-block;"></span>
+        <span style="font-weight:600;">En cours</span>
+        <span style="font-weight:800;color:#b45309;">${enCours}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:20px;font-size:12.5px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#4c6ef5;display:inline-block;"></span>
+        <span style="font-weight:600;">Planifiés</span>
+        <span style="font-weight:800;color:#364fc7;">${planifies}</span>
+      </div>
+    </div>`;
 }
 
 /* -------------------------------------------------------
    CALENDRIER
-   Fix S11 — couleur de chaque OF = couleur de son statut
 ------------------------------------------------------- */
 function _bindCalNav() {
   document.getElementById('calPrev')?.addEventListener('click', () => { _calOffset--; _renderCalendrier(); });
@@ -81,7 +99,6 @@ function _renderCalendrier() {
   monday.setDate(base.getDate() - base.getDay() + 1 + _calOffset * 7);
   const jours    = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
-  /* Palette couleurs statuts — même que STATUT_STYLE dans _renderOFs */
   const CAL_COLORS = {
     'a_planifier': { bg: 'rgba(108,117,125,0.12)', brd: '#868e96', txt: '#495057' },
     'planifie':    { bg: 'rgba(76,110,245,0.12)',  brd: '#4c6ef5', txt: '#364fc7' },
@@ -119,8 +136,11 @@ function _renderCalendrier() {
 }
 
 /* -------------------------------------------------------
-   TABLE DES OFs
-   Fix OF-SUPP — Ajout colonne Actions avec bouton ✕ suppression
+   TABLE DES OFs — Fix S12
+   - Lignes fond blanc (pas de bg coloré)
+   - Pas de border-left colorée
+   - Croix suppression discrète (gris, petite)
+   - Select statut sans border colorée
 ------------------------------------------------------- */
 function _renderOFs() {
   const tbody = document.getElementById('planningTbody');
@@ -129,15 +149,6 @@ function _renderOFs() {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun ordre de fabrication.</td></tr>';
     return;
   }
-
-  const STATUT_STYLE = {
-    'a_planifier': { bg: 'rgba(108,117,125,0.06)', acc: '#868e96', txt: '#495057', sel: 'rgba(108,117,125,0.10)' },
-    'planifie':    { bg: 'rgba(76,110,245,0.06)',  acc: '#4c6ef5', txt: '#364fc7', sel: 'rgba(76,110,245,0.10)'  },
-    'en_cours':    { bg: 'rgba(255,146,43,0.07)',  acc: '#f59f00', txt: '#7c5200', sel: 'rgba(255,146,43,0.12)'  },
-    'fabrique':    { bg: 'rgba(32,201,151,0.07)',  acc: '#20c997', txt: '#087f5b', sel: 'rgba(32,201,151,0.12)'  },
-    'clos':        { bg: 'rgba(32,201,151,0.05)',  acc: '#20c997', txt: '#0b7a5a', sel: 'rgba(32,201,151,0.08)'  },
-    'annule':      { bg: 'rgba(250,82,82,0.06)',   acc: '#fa5252', txt: '#c92a2a', sel: 'rgba(250,82,82,0.10)'   },
-  };
 
   const STATUT_LABELS = {
     'a_planifier':  'À planifier',
@@ -148,6 +159,16 @@ function _renderOFs() {
     'annule':       'Annulé',
   };
 
+  /* Badge statut coloré — sans bordure sur le select */
+  const STATUT_BADGE = {
+    'a_planifier': { bg: 'rgba(108,117,125,0.10)', txt: '#495057' },
+    'planifie':    { bg: 'rgba(76,110,245,0.10)',  txt: '#364fc7' },
+    'en_cours':    { bg: 'rgba(255,146,43,0.12)',  txt: '#7c5200' },
+    'fabrique':    { bg: 'rgba(32,201,151,0.12)',  txt: '#087f5b' },
+    'clos':        { bg: 'rgba(32,201,151,0.08)',  txt: '#0b7a5a' },
+    'annule':      { bg: 'rgba(250,82,82,0.10)',   txt: '#c92a2a' },
+  };
+
   const fmtDateFR = (d) => {
     if (!d) return '—';
     const p = d.split('-');
@@ -155,16 +176,14 @@ function _renderOFs() {
   };
 
   tbody.innerHTML = _ofs.map(of => {
-    const st = STATUT_STYLE[of.statut] || STATUT_STYLE['a_planifier'];
-    return `<tr style="background:${st.bg};border-left:3px solid ${st.acc};">
+    const sb = STATUT_BADGE[of.statut] || STATUT_BADGE['a_planifier'];
+    return `<tr>
       <td class="td-ref">${esc(of.ref)}</td>
       <td class="td-bold">${esc(of.produit_nom)}</td>
       <td><strong>${of.quantite}</strong></td>
       <td style="font-size:10.5px;color:var(--ink-muted)">${esc(of.notes || '')}</td>
-      <td style="font-size:11.5px;color:var(--ink);">
-        <span
-          style="cursor:pointer;text-decoration:underline dotted;color:var(--ink);"
-          title="Cliquer pour modifier la date"
+      <td style="font-size:11.5px;">
+        <span style="cursor:pointer;" title="Cliquer pour modifier"
           onclick="document.getElementById('dp-${of.id}').showPicker?.()">
           ${fmtDateFR(of.date_prevue)}
         </span>
@@ -176,21 +195,21 @@ function _renderOFs() {
       </td>
       <td>
         <select data-id="${of.id}" data-action="changer-statut"
-          style="font-size:11px;padding:4px 9px;border:1.5px solid ${st.acc};border-radius:20px;
-                 background:${st.sel};color:${st.txt};font-weight:600;cursor:pointer;">
+          style="font-size:11px;padding:4px 9px;border:1px solid var(--ui-brd);border-radius:6px;
+                 background:${sb.bg};color:${sb.txt};font-weight:600;cursor:pointer;">
           ${Object.entries(STATUT_LABELS).map(([val, label]) =>
             `<option value="${val}" ${of.statut === val ? 'selected' : ''}>${label}</option>`
           ).join('')}
         </select>
       </td>
       <td>
-        <button class="btn btn-danger btn-xs" data-id="${of.id}" data-action="supprimer-of"
-          title="Supprimer cet OF">✕</button>
+        <button class="btn btn-ghost btn-xs" data-id="${of.id}" data-action="supprimer-of"
+          title="Supprimer cet OF"
+          style="color:var(--ink-muted);font-size:10px;padding:2px 6px;opacity:0.6;">✕</button>
       </td>
     </tr>`;
   }).join('');
 
-  /* Délégation — change (date + statut) ET click (suppression) */
   tbody.onchange = async (e) => {
     const el = e.target.closest('[data-action]');
     if (!el) return;
@@ -255,9 +274,7 @@ function _renderFabPlan() {
 }
 
 /* -------------------------------------------------------
-   BESOINS DEPUIS COMMANDES
-   Fix S11 — n'afficher que les produits avec alerte stock
-   (manques.length > 0), pas les produits faisables
+   BESOINS
 ------------------------------------------------------- */
 function _renderBesoins() {
   const besoins = {};
@@ -272,10 +289,7 @@ function _renderBesoins() {
     const p = _produits.find(x => x.id === produitId);
     if (!p) return;
     const manques = _calcManquesRecette(produitId, qteCmd);
-    const ok = !manques.length;
-
-    /* Fix S11 — ignorer les produits faisables, n'afficher que les alertes */
-    if (ok) return;
+    if (!manques.length) return;
 
     bHtml += `<tr class="prod-fail">
       <td class="td-bold">${esc(p.nom)}</td>
@@ -352,6 +366,12 @@ function _calcManquesRecette(produitId, qte) {
   return manques;
 }
 
+async function _chargerRecettes() {
+  const recettesRaw = await Promise.all(_produits.map(p => getRecettesByProduit(p.id)));
+  _recettes = {};
+  _produits.forEach((p, i) => { _recettes[p.id] = recettesRaw[i] || []; });
+}
+
 /* -------------------------------------------------------
    ACTIONS OFs
 ------------------------------------------------------- */
@@ -360,6 +380,7 @@ async function _setOFStatut(id, statut) {
     await updateOFStatut(id, statut);
     const of = _ofs.find(o => o.id === id);
     if (of) of.statut = statut;
+    _renderBadges();
     _renderOFs();
     _renderCalendrier();
   } catch (err) {
@@ -367,7 +388,6 @@ async function _setOFStatut(id, statut) {
   }
 }
 
-/* Fix OF-SUPP — Suppression physique d'un OF */
 async function _supprimerOF(id) {
   const of = _ofs.find(o => o.id === id);
   if (!of) return;
@@ -376,6 +396,7 @@ async function _supprimerOF(id) {
   try {
     await deleteOF(id);
     _ofs = _ofs.filter(o => o.id !== id);
+    _renderBadges();
     _renderOFs();
     _renderCalendrier();
     _renderFabPlan();
@@ -407,27 +428,13 @@ async function _terminerFab(id) {
       if (!a) continue;
       const newStock = Math.max(0, a.stock - qp * of.quantite);
       await updateArticleStock(a.id, newStock);
-      await addMouvement({
-        type:    'sortie',
-        ref:     aref,
-        nom:     a.nom,
-        qte:     qp * of.quantite,
-        motif:   'Production ' + of.ref,
-        ref_doc: of.ref,
-      });
+      await addMouvement({ type: 'sortie', ref: aref, nom: a.nom, qte: qp * of.quantite, motif: 'Production ' + of.ref, ref_doc: of.ref });
       a.stock = newStock;
     }
 
     const newPFStock = (p.stock || 0) + of.quantite;
     await updateProduitStock(p.id, newPFStock);
-    await addMouvement({
-      type:    'entree_pf',
-      ref:     p.ref,
-      nom:     p.nom,
-      qte:     of.quantite,
-      motif:   'Production ' + of.ref,
-      ref_doc: of.ref,
-    });
+    await addMouvement({ type: 'entree_pf', ref: p.ref, nom: p.nom, qte: of.quantite, motif: 'Production ' + of.ref, ref_doc: of.ref });
     p.stock = newPFStock;
 
     await updateOFStatut(id, 'clos');
@@ -450,6 +457,7 @@ async function _terminerFab(id) {
       }
     }
 
+    _renderBadges();
     _renderOFs();
     _renderCalendrier();
     _renderBesoins();
@@ -469,6 +477,7 @@ async function _annulerOF(id) {
   try {
     await updateOFStatut(id, 'annule');
     of.statut = 'annule';
+    _renderBadges();
     _renderOFs();
     showToast('OF ' + of.ref + ' annulé.');
   } catch (err) {
@@ -481,15 +490,9 @@ async function _creerOF(produitId, qte) {
   if (!p) return;
   const ref = nextRef('OF', _ofs);
   try {
-    const of = await createOF({
-      ref,
-      produit_id:  p.id,
-      produit_nom: p.nom,
-      quantite:    qte,
-      date_prevue: today(),
-      statut:      'planifie',
-    });
+    const of = await createOF({ ref, produit_id: p.id, produit_nom: p.nom, quantite: qte, date_prevue: today(), statut: 'planifie' });
     _ofs.push(of);
+    _renderBadges();
     _renderOFs();
     _renderCalendrier();
     showToast('✅ OF ' + ref + ' créé.');
@@ -541,12 +544,8 @@ function _addOFLigne(preselectProduitRef = null) {
     <input type="date" class="of-date inp" value="${today()}">
     <button style="background:none;border:none;color:var(--ui-red);font-size:18px;cursor:pointer;line-height:1;" type="button">×</button>`;
 
-  div.querySelector('.of-ref').addEventListener('change', (e) => {
-    div.querySelector('.of-nom').value = e.target.value;
-  });
-  div.querySelector('.of-nom').addEventListener('change', (e) => {
-    div.querySelector('.of-ref').value = e.target.value;
-  });
+  div.querySelector('.of-ref').addEventListener('change', (e) => { div.querySelector('.of-nom').value = e.target.value; });
+  div.querySelector('.of-nom').addEventListener('change', (e) => { div.querySelector('.of-ref').value = e.target.value; });
   div.querySelector('button').addEventListener('click', () => div.remove());
 
   container.appendChild(div);
@@ -581,15 +580,7 @@ async function _savePlanifier() {
       if (!p) continue;
 
       const ref = nextRef('OF', _ofs);
-      const of  = await createOF({
-        ref,
-        produit_id:  p.id,
-        produit_nom: p.nom,
-        quantite:    qte,
-        notes:       notesClients,
-        date_prevue: date,
-        statut:      'planifie',
-      });
+      const of  = await createOF({ ref, produit_id: p.id, produit_nom: p.nom, quantite: qte, notes: notesClients, date_prevue: date, statut: 'planifie' });
       _ofs.push(of);
       createdCount++;
 
@@ -605,21 +596,12 @@ async function _savePlanifier() {
         const doublon = await achatDoublonExiste(a.id, ref);
         if (doublon) continue;
         const bcRef = nextRef('BC', await getAchats());
-        await createAchat({
-          ref:           bcRef,
-          article_id:    a.id,
-          article_nom:   a.nom,
-          quantite:      Math.ceil(manque),
-          prix_unitaire: a.prix,
-          fournisseur:   a.fournisseur || '',
-          statut:        'brouillon',
-          ref_commande:  ref,
-          notes:         'Auto OF ' + ref,
-        });
+        await createAchat({ ref: bcRef, article_id: a.id, article_nom: a.nom, quantite: Math.ceil(manque), prix_unitaire: a.prix, fournisseur: a.fournisseur || '', statut: 'brouillon', ref_commande: ref, notes: 'Auto OF ' + ref });
       }
     }
 
     closeModal('modalPlanifier');
+    _renderBadges();
     _renderOFs();
     _renderCalendrier();
     showToast(`✅ ${createdCount} OF planifié(s).`);
