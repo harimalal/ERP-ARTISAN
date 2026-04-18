@@ -349,8 +349,6 @@ async function _saveAchat() {
   try {
     /* Règle 11 — recharger les caches avant nextRef */
     try { [_achats, _articles] = await Promise.all([getAchats(), getArticles()]); } catch (_) {}
-    const bcRef = nextRef('BC', _achats);
-
     let nbCrees = 0;
     let nbCumules = 0;
 
@@ -377,7 +375,10 @@ async function _saveAchat() {
         nbCumules++;
         showToast(`⚠ ${a ? a.nom : 'Article'} déjà en commande — quantité cumulée (${fmtQ(newQte)}).`);
       } else {
-        /* Créer un nouveau BC */
+        /* Créer un nouveau BC — Règle 21 : ref générée dans la boucle, jamais avant */
+        /* pour éviter la violation de contrainte unique sur bcRef si N articles nouveaux */
+        try { [_achats] = await Promise.all([getAchats()]); } catch (_) {}
+        const bcRef = nextRef('BC', _achats);
         const bc = await createAchat({
           ref:           bcRef,
           article_id:    ligne.articleId,

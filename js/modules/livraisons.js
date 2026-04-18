@@ -75,7 +75,9 @@ export async function render() {
    Colonnes : N° Facture | Date | Client | Montant HT | TTC | Statut | Changer | Aperçu
 ------------------------------------------------------- */
 function _renderTable() {
-  document.getElementById('facturesTbody').innerHTML = _factures.map(f => `
+  const tbody = document.getElementById('facturesTbody');
+  if (!tbody) return; /* Règle 21 — guard : page Livraisons peut ne pas être active */
+  tbody.innerHTML = _factures.map(f => `
     <tr class="clickable" data-id="${f.id}">
       <td class="td-ref">${esc(f.ref)}</td>
       <td style="font-size:11.5px;">${esc(f.date_facture || '—')}</td>
