@@ -370,10 +370,13 @@ async function _saveAchat() {
     for (const [fourn, items] of parFournisseur) {
       /* Chercher UN BC brouillon existant pour ce fournisseur
          Statut brouillon UNIQUEMENT — jamais envoye / recu / annule
+         On cherche dans les GROUPES reconstruits (pas les lignes brutes)
+         pour avoir le statut réel du BC complet, pas d'une ligne isolée
          Si plusieurs brouillons → prendre le plus récent */
-      const bcExistant = _achats
-        .filter(bc => bc.fournisseur === fourn && bc.statut === 'brouillon')
-        .sort((a, b) => (b.date_cmd || '').localeCompare(a.date_cmd || ''))[0] || null;
+      const groupes = _grouperAchats(_achats);
+      const bcExistant = groupes
+        .filter(g => g.fournisseur === fourn && g.statut === 'brouillon')
+        .sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] || null;
 
       /* Règle 21 — nextRef appelé UNE FOIS par groupe, jamais dans la boucle article */
       const bcRef = bcExistant ? bcExistant.ref : nextRef('BC', _achats);
