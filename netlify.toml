@@ -27,19 +27,19 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 
-# JS — no-cache : vérifie si nouveau fichier à chaque visite, re-télécharge seulement si modifié
+# JS — chargement immédiat depuis cache + vérification en arrière-plan
 [[headers]]
   for = "/js/*"
   [headers.values]
-    Cache-Control = "no-cache"
+    Cache-Control = "public, max-age=0, stale-while-revalidate=86400"
 
-# CSS — no-cache
+# CSS — même stratégie
 [[headers]]
   for = "/css/*"
   [headers.values]
-    Cache-Control = "no-cache"
+    Cache-Control = "public, max-age=0, stale-while-revalidate=86400"
 
-# HTML — no-cache (app.html et index.html mis à jour fréquemment)
+# HTML — vérifie toujours (app.html change souvent)
 [[headers]]
   for = "/*.html"
   [headers.values]
