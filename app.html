@@ -86,6 +86,7 @@
       <button class="side-item" data-page="livraisons">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-4"/><line x1="12" y1="12" x2="23" y2="12"/></svg>
         Livraisons &amp; Factures
+        <span class="side-pill red" id="badgeLivraisons" style="display:none">0</span>
       </button>
 
       <button class="side-item" data-page="recettes">
@@ -122,8 +123,9 @@
         <div class="topbar-sub" id="topbarSub">Vue d'ensemble de votre activité</div>
       </div>
       <div class="topbar-right">
-        <button class="hdr-btn-ghost" id="btnSignOut">Déconnexion</button>
+        <button class="hdr-btn-ghost" data-modal="modalImportIA" id="btnImportIA">Import IA</button>
         <button class="hdr-btn" id="btnNewCommande">+ Commande</button>
+        <button class="hdr-btn-ghost" id="btnSignOut">Déconnexion</button>
       </div>
     </div>
 
@@ -335,7 +337,10 @@
 <div id="page-achats" class="page">
   <div class="sec-hdr">
     <div></div>
-    <div class="btn-row"><button class="btn btn-primary" data-modal="modalAchat">+ Nouveau BC</button></div>
+    <div class="btn-row">
+      <button class="btn btn-outline" data-modal="modalImportIA" style="background:#fff;border-color:var(--ui-brd);color:var(--ink);">Import IA</button>
+      <button class="btn btn-primary" data-modal="modalAchat">+ Nouveau BC</button>
+    </div>
   </div>
   <div class="card">
     <table><thead><tr><th>N° BC</th><th>Date</th><th>Fournisseur</th><th>Article</th><th>Qté</th><th>Montant HT</th><th>Réf commande</th><th>Statut</th></tr></thead>

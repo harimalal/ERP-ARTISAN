@@ -62,6 +62,9 @@ function _renderBadges() {
   const enCours  = _ofs.filter(o => o.statut === 'en_cours').length;
   const planifies = _ofs.filter(o => o.statut === 'planifie').length;
 
+  const bof = document.getElementById('badgeOF');
+  if (bof) { bof.textContent = planifies + enCours; bof.style.display = (planifies + enCours) > 0 ? '' : 'none'; }
+
   const el = document.getElementById('productionBadges');
   if (!el) return;
   el.innerHTML = `

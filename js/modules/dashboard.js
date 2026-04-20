@@ -215,13 +215,21 @@ function renderDernieresCommandes(commandes, produits) {
 /* -------------------------------------------------------
    BADGES NAVIGATION
 ------------------------------------------------------- */
-function updateBadges({ articles, commandes }) {
+function updateBadges({ articles, commandes, ofs, factures }) {
   const alertsA = articles.filter(a => a.stock <= a.seuil).length;
   const cmdOpen = commandes.filter(c => c.statut !== 'cloture').length;
+  const ofActifs = (ofs || []).filter(o => ['planifie', 'en_cours'].includes(o.statut)).length;
+  const facAlerte = (factures || []).filter(f => f.statut === 'a_lancer' || f.statut === 'a_relancer').length;
 
   const ba = document.getElementById('badgeStockAlert');
   if (ba) { ba.textContent = alertsA; ba.style.display = alertsA > 0 ? '' : 'none'; }
 
   const bc = document.getElementById('badgeCmd');
   if (bc) { bc.textContent = cmdOpen; bc.style.display = cmdOpen > 0 ? '' : 'none'; }
+
+  const bof = document.getElementById('badgeOF');
+  if (bof) { bof.textContent = ofActifs; bof.style.display = ofActifs > 0 ? '' : 'none'; }
+
+  const bliv = document.getElementById('badgeLivraisons');
+  if (bliv) { bliv.textContent = facAlerte; bliv.style.display = facAlerte > 0 ? '' : 'none'; }
 }

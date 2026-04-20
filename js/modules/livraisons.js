@@ -83,6 +83,10 @@ export async function render() {
    Colonnes : N° Facture | Date | Client | Montant HT | TTC | Statut | Changer | Aperçu
 ------------------------------------------------------- */
 function _renderTable() {
+  const facAlerte = _factures.filter(f => f.statut === 'a_lancer' || f.statut === 'a_relancer').length;
+  const bliv = document.getElementById('badgeLivraisons');
+  if (bliv) { bliv.textContent = facAlerte; bliv.style.display = facAlerte > 0 ? '' : 'none'; }
+
   const tbody = document.getElementById('facturesTbody');
   if (!tbody) return; /* Règle 21 — guard : page Livraisons peut ne pas être active */
   tbody.innerHTML = _factures.map(f => `
