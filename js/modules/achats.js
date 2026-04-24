@@ -653,9 +653,9 @@ function _ouvrirFenetrePDF({ g, t, f, totalHT, tva, ttc }) {
     <style>
     @page { size: A4; margin: 18mm 15mm 18mm 15mm; }
     *{box-sizing:border-box;}
-    body{font-family:Arial,sans-serif;font-size:11px;margin:0;padding:20px 28px;color:#1a1a1a;}
+    body{font-family:Arial,sans-serif;font-size:11px;margin:0 auto;padding:20px 50px;color:#1a1a1a;max-width:860px;}
     .btn-print{display:block;margin:0 auto 20px;padding:9px 28px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;}
-    @media print{.btn-print{display:none;}body{padding:0;}}
+    @media print{.btn-print{display:none;}body{padding:0;margin:0;}}
     h1{font-size:17px;text-transform:uppercase;margin:0 0 2px;}
     .hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1a1a1a;padding-bottom:12px;margin-bottom:16px;}
     .parties{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:16px;padding:10px 12px;background:#f9fafb;border-radius:6px;}

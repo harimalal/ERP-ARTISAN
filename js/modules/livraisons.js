@@ -16,7 +16,7 @@ import {
   createLivraison, factureExistePourCommande,
   getCommandes, getClients, getProduits,
   updateProduitStock, addMouvement,
-  updateCommandeStatut,
+  updateCommandeStatut, getTenant,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, badgeFac, showToast, today,
@@ -49,7 +49,7 @@ export async function init() {
       const btnPdf = e.target.closest('#facturesTbody [data-action="pdf"]');
       if (btnPdf) {
         e.stopPropagation();
-        _aperçuPdfFac(btnPdf.dataset.id);
+        _aperçuPdfFac(btnPdf.dataset.id).catch(() => {});
         return;
       }
       /* Clic ligne → édition */
@@ -286,13 +286,121 @@ async function _saveNewFacture() {
 }
 
 /* -------------------------------------------------------
-   APERÇU PDF
+   APERÇU PDF — nouvelle fenêtre A4 identique au BC
 ------------------------------------------------------- */
-function _aperçuPdfFac(id) {
+async function _aperçuPdfFac(id) {
   const f = _factures.find(x => x.id === id);
   if (!f) return;
   const c = _commandes.find(x => x.id === f.commande_id);
-  document.dispatchEvent(new CustomEvent('appmee:showPdf', {
-    detail: { title: 'Facture ' + f.ref, type: 'facture', data: f, commande: c },
-  }));
+  const t = await getTenant() || {};
+  _ouvrirFenetrePDFFac(f, t, c);
+}
+
+function _ouvrirFenetrePDFFac(f, t, c) {
+  const lignes = c ? (c.commande_lignes || []) : [];
+  const montantHT = f.montant_ht || 0;
+  const tvaRate = f.taux_tva || 20;
+  const tva = montantHT * (tvaRate / 100);
+  const ttc = f.montant_ttc || montantHT + tva;
+  const fmtPrix = v => fmt(Number(v)) + ' €';
+
+  const lignesHTML = lignes.map(l => {
+    const ref = (_produits.find(p => p.id === l.produit_id) || {}).ref || '—';
+    return `
+    <tr>
+      <td style="font-weight:700;color:#2563eb;font-size:10px;white-space:nowrap;">${esc(ref)}</td>
+      <td>${esc(l.produit_nom || '—')}</td>
+      <td class="r">${fmtQ(l.quantite || 0)}</td>
+      <td class="r">${fmtPrix(l.prix_unitaire || 0)}</td>
+      <td class="r" style="font-weight:600;">${fmtPrix(l.total_ht || ((l.quantite || 0) * (l.prix_unitaire || 0)))}</td>
+    </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+    <title>Facture ${esc(f.ref)}</title>
+    <style>
+    @page { size: A4; margin: 18mm 15mm 18mm 15mm; }
+    *{box-sizing:border-box;}
+    body{font-family:Arial,sans-serif;font-size:11px;margin:0 auto;padding:20px 50px;color:#1a1a1a;max-width:860px;}
+    .btn-print{display:block;margin:0 auto 20px;padding:9px 28px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;}
+    @media print{.btn-print{display:none;}body{padding:0;margin:0;}}
+    h1{font-size:17px;text-transform:uppercase;margin:0 0 2px;}
+    .hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1a1a1a;padding-bottom:12px;margin-bottom:16px;}
+    .parties{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:16px;padding:10px 12px;background:#f9fafb;border-radius:6px;}
+    .plbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:4px;}
+    .pnom{font-size:12px;font-weight:700;margin-bottom:2px;}
+    .pinfo{font-size:10px;color:#555;line-height:1.5;}
+    table{width:100%;border-collapse:collapse;margin-bottom:0;}
+    thead tr{background:#1a1a1a;color:#fff;}
+    thead th{padding:7px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;}
+    thead th.r{text-align:right;}
+    tbody tr{border-bottom:1px solid #eee;}tbody tr:nth-child(even){background:#f9fafb;}
+    tbody td{padding:5px 8px;font-size:10.5px;}tbody td.r{text-align:right;}
+    .totaux{width:240px;margin-left:auto;margin-top:8px;border-collapse:collapse;}
+    .totaux td{padding:4px 8px;font-size:11px;}
+    .totaux .lbl{text-align:right;color:#555;}.totaux .val{text-align:right;font-weight:600;}
+    .totaux tr.ttc td{background:#1a1a1a;color:#fff;font-weight:700;font-size:12px;padding:6px 8px;}
+    .mentions{margin-top:16px;padding:10px 12px;background:#f9fafb;border-radius:6px;font-size:9.5px;color:#555;line-height:1.6;border-left:3px solid #2563eb;}
+    .footer{margin-top:12px;border-top:1px solid #e5e7eb;padding-top:8px;display:flex;justify-content:space-between;font-size:9px;color:#aaa;}
+    </style></head><body>
+    <button class="btn-print" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF (A4)</button>
+    <div class="hdr">
+      <div>
+        <h1>Facture</h1>
+        <div style="font-size:10px;color:#666;margin-top:2px;">${esc(t.nom || '')}</div>
+      </div>
+      <div style="text-align:right;font-size:10.5px;">
+        <div style="font-size:14px;font-weight:700;color:#2563eb;margin-bottom:2px;">N° ${esc(f.ref)}</div>
+        <div style="color:#555;">Date : ${esc(f.date_facture || '—')}</div>
+        ${f.ref_commande ? `<div style="color:#555;">Commande : ${esc(f.ref_commande)}</div>` : ''}
+      </div>
+    </div>
+    <div class="parties">
+      <div>
+        <div class="plbl">Émetteur</div>
+        <div class="pnom">${esc(t.nom || '—')}</div>
+        <div class="pinfo">
+          ${t.adresse ? esc(t.adresse) + '<br>' : ''}
+          ${t.tel     ? 'Tél : ' + esc(t.tel) + '<br>' : ''}
+          ${t.email   ? esc(t.email) + '<br>' : ''}
+          ${t.siret   ? '<strong>SIRET : ' + esc(t.siret) + '</strong><br>' : ''}
+          ${t.tva     ? 'N° TVA : ' + esc(t.tva) + '<br>' : ''}
+        </div>
+      </div>
+      <div>
+        <div class="plbl">Facturé à</div>
+        <div class="pnom">${esc(f.client_nom || '—')}</div>
+      </div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Réf</th>
+        <th>Produit</th>
+        <th class="r">Qté</th>
+        <th class="r">PU HT</th>
+        <th class="r">Total HT</th>
+      </tr></thead>
+      <tbody>${lignesHTML}</tbody>
+    </table>
+    <table class="totaux">
+      <tr><td class="lbl">Total HT</td><td class="val">${fmtPrix(montantHT)}</td></tr>
+      <tr><td class="lbl">TVA ${tvaRate} %</td><td class="val">${fmtPrix(tva)}</td></tr>
+      <tr class="ttc"><td class="lbl" style="color:#fff;font-weight:700;">TOTAL TTC</td><td class="val">${fmtPrix(ttc)}</td></tr>
+    </table>
+    ${f.notes ? `<div style="margin-top:12px;padding:8px 10px;background:#eff6ff;border-left:3px solid #2563eb;font-size:10px;"><strong>Note :</strong> ${esc(f.notes)}</div>` : ''}
+    ${t.iban || t.siret || t.tva || t.forme || t.cpt ? `<div class="mentions">
+      ${t.cpt ? '<strong>Conditions de règlement :</strong> ' + esc(t.cpt) + (t.iban ? ' — <strong>IBAN :</strong> ' + esc(t.iban) : '') + '<br>' : (t.iban ? '<strong>IBAN :</strong> ' + esc(t.iban) + '<br>' : '')}
+      ${t.siret ? '<strong>SIRET :</strong> ' + esc(t.siret) + (t.tva ? ' — ' : '') : ''}
+      ${t.tva   ? '<strong>N° TVA :</strong> ' + esc(t.tva) + (t.forme ? ' — ' : '') : ''}
+      ${t.forme ? '<strong>Forme juridique :</strong> ' + esc(t.forme) : ''}
+    </div>` : ''}
+    <div class="footer">
+      <span>${esc(t.nom || 'AppMee')} — Document généré le ${new Date().toLocaleDateString('fr-FR')}</span>
+      <span>Page 1/1</span>
+    </div>
+    </body></html>`;
+
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+  else showToast('⚠ Pop-up bloqué — autorisez les pop-ups.', 'error');
 }
