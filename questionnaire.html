@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arteasy — Questionnaire Artisan</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange: #C8541A;
+    --orange-light: #E06830;
+    --dark: #2A1F14;
+    --beige: #F7F2EB;
+    --beige-mid: #EDE5D8;
+    --beige-dark: #E0D5C5;
+    --text: #3D2E1A;
+    --muted: #8C7A6B;
+    --white: #FFFDF9;
+    --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--beige); color: var(--text); min-height: 100vh; }
+
+  /* HEADER */
+  .header {
+    background: var(--beige);
+    border-bottom: 1px solid var(--beige-dark);
+    padding: 16px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.25rem; color: var(--dark); letter-spacing: -0.02em; }
+  .logo span { color: var(--orange); }
+  .header-demo {
+    font-size: 0.8rem; font-weight: 500; color: var(--orange);
+    text-decoration: none; display: flex; align-items: center; gap: 6px;
+    border: 1.5px solid var(--orange); border-radius: 100px;
+    padding: 6px 14px; transition: all 0.2s;
+  }
+  .header-demo:hover { background: var(--orange); color: var(--white); }
+
+  /* HERO */
+  .hero {
+    background: var(--beige);
+    padding: 64px 24px 56px;
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #FFF0E8; border: 1px solid #F0C4A8;
+    color: var(--orange); font-size: 0.75rem; font-weight: 500;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 6px 14px; border-radius: 100px; margin-bottom: 28px;
+  }
+  .hero-badge::before { content: '●'; font-size: 0.5rem; }
+  .hero h1 {
+    font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: clamp(1.9rem, 5vw, 3rem); line-height: 1.12;
+    color: var(--dark); margin-bottom: 20px;
+    letter-spacing: -0.02em;
+  }
+  .hero h1 em { color: var(--orange); font-style: normal; }
+  .hero-sub {
+    font-size: 1rem; color: var(--muted); line-height: 1.7;
+    max-width: 480px; margin: 0 auto 32px; font-weight: 300;
+  }
+
+  /* BÉNÉFICES */
+  .benefits {
+    display: flex; justify-content: center; gap: 10px;
+    flex-wrap: wrap; margin-bottom: 36px;
+  }
+  .benefit {
+    background: var(--white); border: 1px solid var(--beige-dark);
+    border-radius: 100px; padding: 8px 16px;
+    font-size: 0.82rem; font-weight: 500; color: var(--text);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  /* DEMO CTA */
+  .demo-cta {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--dark); color: var(--white);
+    padding: 14px 28px; border-radius: 100px;
+    text-decoration: none; font-family: 'Syne', sans-serif;
+    font-size: 0.9rem; font-weight: 700; letter-spacing: 0.02em;
+    transition: all 0.2s; margin-bottom: 12px;
+    box-shadow: 0 4px 20px rgba(42,31,20,0.2);
+  }
+  .demo-cta:hover { background: var(--orange); transform: translateY(-1px); box-shadow: 0 6px 24px rgba(200,84,26,0.35); }
+  .demo-cta .play { 
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--orange); display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .demo-cta:hover .play { background: rgba(255,255,255,0.2); }
+  .demo-note { font-size: 0.75rem; color: var(--muted); }
+
+  /* DIVIDER */
+  .divider {
+    max-width: 580px; margin: 0 auto 0;
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px;
+  }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--beige-dark); }
+  .divider-text { font-size: 0.78rem; color: var(--muted); white-space: nowrap; font-weight: 400; }
+
+  /* FORM */
+  .form-outer { max-width: 580px; margin: 0 auto 64px; padding: 24px 20px 0; }
+  .form-card {
+    background: var(--white); border-radius: 18px;
+    border: 1px solid var(--beige-dark);
+    box-shadow: 0 4px 24px rgba(42,31,20,0.07);
+    padding: 36px 36px 32px;
+  }
+
+  .section-label {
+    font-family: 'Syne', sans-serif; font-size: 0.68rem; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--orange);
+    margin: 30px 0 14px; display: flex; align-items: center; gap: 10px;
+  }
+  .section-label:first-child { margin-top: 0; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--beige-mid); }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 0.84rem; font-weight: 500; color: var(--text); margin-bottom: 7px; line-height: 1.4; }
+  .field label .req { color: var(--orange); margin-left: 2px; }
+
+  input[type="text"], select, textarea {
+    width: 100%; padding: 11px 14px;
+    border: 1.5px solid var(--beige-dark); border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif; font-size: 0.92rem; color: var(--text);
+    background: var(--beige); transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none; appearance: none; -webkit-appearance: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--orange); box-shadow: 0 0 0 3px rgba(200,84,26,0.08); background: var(--white);
+  }
+  select:disabled { opacity: 0.4; cursor: not-allowed; }
+  textarea { resize: vertical; min-height: 84px; line-height: 1.6; }
+
+  .select-wrap { position: relative; }
+  .select-wrap::after {
+    content: '▾'; position: absolute; right: 13px; top: 50%;
+    transform: translateY(-50%); color: var(--muted); pointer-events: none; font-size: 0.82rem;
+  }
+  .metier-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .choice-group { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .choice-group.cols-1 { grid-template-columns: 1fr; }
+  .choice-item { position: relative; }
+  .choice-item input[type="radio"], .choice-item input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
+  .choice-item label {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 13px; border: 1.5px solid var(--beige-dark); border-radius: var(--radius);
+    cursor: pointer; font-size: 0.84rem; font-weight: 400; color: var(--text);
+    background: var(--beige); transition: all 0.15s; margin-bottom: 0; line-height: 1.35;
+  }
+  .choice-item input:checked + label { border-color: var(--orange); background: #FFF5EE; color: var(--dark); font-weight: 500; }
+  .choice-item label:hover { border-color: var(--orange-light); background: #FFF8F3; }
+
+  .choice-dot {
+    width: 14px; height: 14px; border-radius: 50%; border: 2px solid #C8B9A8;
+    flex-shrink: 0; transition: all 0.15s; display: flex; align-items: center; justify-content: center;
+  }
+  .choice-item input:checked + label .choice-dot { border-color: var(--orange); background: var(--orange); }
+  .choice-item input:checked + label .choice-dot::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: white; display: block; }
+
+  .choice-check {
+    width: 14px; height: 14px; border-radius: 4px; border: 2px solid #C8B9A8;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .choice-item input:checked + label .choice-check { border-color: var(--orange); background: var(--orange); }
+  .choice-item input:checked + label .choice-check::after { content: '✓'; color: white; font-size: 8px; font-weight: 700; }
+
+  .submit-wrap { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--beige-mid); text-align: center; }
+  .btn-submit {
+    font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700;
+    color: var(--white); background: var(--orange); border: none;
+    padding: 14px 44px; border-radius: 100px; cursor: pointer;
+    letter-spacing: 0.02em; transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(200,84,26,0.3);
+  }
+  .btn-submit:hover { background: var(--orange-light); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(200,84,26,0.4); }
+  .btn-submit:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+  .submit-note { font-size: 0.76rem; color: var(--muted); margin-top: 10px; }
+  .error-msg { color: #b83c1a; font-size: 0.8rem; margin-top: 8px; display: none; }
+
+  /* SUCCESS */
+  .success-screen { display: none; text-align: center; padding: 8px 0; }
+  .success-screen.active { display: block; }
+  .success-icon {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, var(--orange), var(--orange-light));
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 22px; font-size: 1.7rem;
+    box-shadow: 0 6px 20px rgba(200,84,26,0.3);
+  }
+  .success-screen h2 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; margin-bottom: 10px; color: var(--dark); }
+  .success-screen p { color: var(--muted); font-size: 0.9rem; line-height: 1.65; }
+
+  @media (max-width: 520px) {
+    .header-demo span { display: none; }
+    .form-card { padding: 22px 16px; }
+    .choice-group { grid-template-columns: 1fr; }
+    .metier-row { grid-template-columns: 1fr; }
+    .hero { padding: 44px 20px 40px; }
+    .benefits { gap: 7px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">Art<span>easy</span></div>
+  <a href="#demo" target="_blank" class="header-demo">
+    <span>▶ Voir la démo</span>
+  </a>
+</header>
+
+<section class="hero">
+  <div class="hero-badge">Pour les artisans qui fabriquent</div>
+  <h1>Gagnez du temps.<br><em>Gérez tout</em> sans effort.</h1>
+  <p class="hero-sub">
+    Stock, commandes, production, factures — tout est automatisé.
+    Vous vous concentrez sur votre métier, Arteasy s'occupe du reste.
+  </p>
+
+  <div class="benefits">
+    <div class="benefit">⏱ Moins de paperasse</div>
+    <div class="benefit">🧘 Sérénité au quotidien</div>
+    <div class="benefit">⚡ Tout centralisé</div>
+  </div>
+
+  <div>
+    <a href="#demo" target="_blank" class="demo-cta">
+      <span class="play">▶</span>
+      Voir comment ça fonctionne
+    </a>
+    <div class="demo-note">Démo en 3 minutes — aucune installation</div>
+  </div>
+</section>
+
+<div class="divider">
+  <span class="divider-text">Vous êtes artisan fabricant ? Dites-nous en plus</span>
+</div>
+
+<div class="form-outer">
+  <div class="form-card">
+    <div id="form-content">
+
+      <!-- IDENTITÉ -->
+      <div class="section-label">Qui êtes-vous ?</div>
+
+      <div class="field">
+        <label>Votre prénom <span class="req">*</span></label>
+        <input type="text" id="prenom" placeholder="ex. Marc" />
+      </div>
+
+      <div class="field">
+        <label>Votre métier <span class="req">*</span></label>
+        <div class="metier-row">
+          <div class="select-wrap">
+            <select id="categorie" onchange="updateMetiers()">
+              <option value="">— Votre secteur —</option>
+              <option value="alimentaire">🍞 Alimentaire</option>
+              <option value="bois">🪵 Bois & Matériaux</option>
+              <option value="metal">⚒️ Métal & Bijou</option>
+              <option value="textile">🧵 Textile & Cuir</option>
+              <option value="ceramique">🏺 Céramique & Verre</option>
+              <option value="cosmetique">🌿 Cosmétique & Bien-être</option>
+              <option value="papier">📄 Papier & Impression</option>
+              <option value="autre">✦ Autre</option>
+            </select>
+          </div>
+          <div class="select-wrap">
+            <select id="metier" disabled>
+              <option value="">— Choisissez d'abord —</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="field" id="field-metier-autre" style="display:none;">
+        <label>Précisez votre métier</label>
+        <input type="text" id="metier-autre" placeholder="ex. Tonnelier, apiculteur transformateur…" />
+      </div>
+
+      <!-- STRUCTURE -->
+      <div class="section-label">Votre structure</div>
+
+      <div class="field">
+        <label>Combien de personnes dans votre boîte ? <span class="req">*</span></label>
+        <div class="choice-group">
+          <div class="choice-item"><input type="radio" name="taille" id="t1" value="Seul(e)" /><label for="t1"><span class="choice-dot"></span>Seul(e)</label></div>
+          <div class="choice-item"><input type="radio" name="taille" id="t2" value="2 à 5 personnes" /><label for="t2"><span class="choice-dot"></span>2 à 5 personnes</label></div>
+          <div class="choice-item"><input type="radio" name="taille" id="t3" value="6 à 15 personnes" /><label for="t3"><span class="choice-dot"></span>6 à 15 personnes</label></div>
+          <div class="choice-item"><input type="radio" name="taille" id="t4" value="Plus de 15" /><label for="t4"><span class="choice-dot"></span>Plus de 15</label></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Depuis combien de temps vous exercez ? <span class="req">*</span></label>
+        <div class="choice-group">
+          <div class="choice-item"><input type="radio" name="anciennete" id="a1" value="Moins de 2 ans" /><label for="a1"><span class="choice-dot"></span>Moins de 2 ans</label></div>
+          <div class="choice-item"><input type="radio" name="anciennete" id="a2" value="2 à 5 ans" /><label for="a2"><span class="choice-dot"></span>2 à 5 ans</label></div>
+          <div class="choice-item"><input type="radio" name="anciennete" id="a3" value="5 à 15 ans" /><label for="a3"><span class="choice-dot"></span>5 à 15 ans</label></div>
+          <div class="choice-item"><input type="radio" name="anciennete" id="a4" value="Plus de 15 ans" /><label for="a4"><span class="choice-dot"></span>Plus de 15 ans</label></div>
+        </div>
+      </div>
+
+      <!-- GESTION -->
+      <div class="section-label">Votre gestion aujourd'hui</div>
+
+      <div class="field">
+        <label>Comment vous gérez votre activité au quotidien ? <span class="req">*</span></label>
+        <div class="choice-group cols-1">
+          <div class="choice-item"><input type="radio" name="gestion" id="g1" value="Sur papier / carnets" /><label for="g1"><span class="choice-dot"></span>📄 Sur papier — carnets, feuilles</label></div>
+          <div class="choice-item"><input type="radio" name="gestion" id="g2" value="Excel / Google Sheets" /><label for="g2"><span class="choice-dot"></span>📊 Excel ou Google Sheets</label></div>
+          <div class="choice-item"><input type="radio" name="gestion" id="g3" value="Un logiciel dédié" /><label for="g3"><span class="choice-dot"></span>💻 Un logiciel dédié</label></div>
+          <div class="choice-item"><input type="radio" name="gestion" id="g4" value="Un mix de tout ça" /><label for="g4"><span class="choice-dot"></span>🔀 Un mix de tout ça</label></div>
+          <div class="choice-item"><input type="radio" name="gestion" id="g5" value="Pas vraiment de système" /><label for="g5"><span class="choice-dot"></span>🤷 Pas vraiment de système</label></div>
+        </div>
+      </div>
+
+      <div class="field" id="field-logiciel" style="display:none;">
+        <label>Lequel ?</label>
+        <input type="text" id="logiciel-nom" placeholder="ex. EBP, Dolibarr, Pennylane…" />
+      </div>
+
+      <!-- CE QUI COINCE -->
+      <div class="section-label">Ce qui coince</div>
+
+      <div class="field">
+        <label>Qu'est-ce que vous gérez le plus difficilement ? <small style="font-weight:300;color:var(--muted)">(plusieurs choix)</small></label>
+        <div class="choice-group">
+          <div class="choice-item"><input type="checkbox" id="pb1" value="Stock matières premières" /><label for="pb1"><span class="choice-check"></span>Stock matières</label></div>
+          <div class="choice-item"><input type="checkbox" id="pb2" value="Commandes clients" /><label for="pb2"><span class="choice-check"></span>Commandes clients</label></div>
+          <div class="choice-item"><input type="checkbox" id="pb3" value="Facturation" /><label for="pb3"><span class="choice-check"></span>Facturation</label></div>
+          <div class="choice-item"><input type="checkbox" id="pb4" value="Planification production" /><label for="pb4"><span class="choice-check"></span>Planification prod.</label></div>
+          <div class="choice-item"><input type="checkbox" id="pb5" value="Achats fournisseurs" /><label for="pb5"><span class="choice-check"></span>Achats fournisseurs</label></div>
+          <div class="choice-item"><input type="checkbox" id="pb6" value="Vue d'ensemble" /><label for="pb6"><span class="choice-check"></span>Vue d'ensemble</label></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>En quelques mots, c'est quoi votre principal casse-tête au quotidien ?</label>
+        <textarea id="douleur" placeholder="ex. Je sais jamais ce qu'il me reste en stock, mes commandes traînent sur trois carnets…"></textarea>
+      </div>
+
+      <!-- CONTACT -->
+      <div class="section-label">Pour vous recontacter</div>
+
+      <div class="field">
+        <label>Votre numéro WhatsApp <span class="req">*</span></label>
+        <input type="text" id="whatsapp" placeholder="ex. 06 12 34 56 78" />
+      </div>
+
+      <div class="field">
+        <label>Vous êtes disponible plutôt… <span class="req">*</span></label>
+        <div class="choice-group">
+          <div class="choice-item"><input type="radio" name="dispo" id="d1" value="Matin (8h–12h)" /><label for="d1"><span class="choice-dot"></span>🌅 Matin (8h–12h)</label></div>
+          <div class="choice-item"><input type="radio" name="dispo" id="d2" value="Midi (12h–14h)" /><label for="d2"><span class="choice-dot"></span>☀️ Midi (12h–14h)</label></div>
+          <div class="choice-item"><input type="radio" name="dispo" id="d3" value="Après-midi (14h–18h)" /><label for="d3"><span class="choice-dot"></span>🌤 Après-midi</label></div>
+          <div class="choice-item"><input type="radio" name="dispo" id="d4" value="Soir (après 18h)" /><label for="d4"><span class="choice-dot"></span>🌙 Soir (après 18h)</label></div>
+        </div>
+      </div>
+
+      <div class="submit-wrap">
+        <button class="btn-submit" id="btnSubmit" onclick="submitForm()">Envoyer mes réponses →</button>
+        <div class="error-msg" id="errMsg"></div>
+        <div class="submit-note">Aucune publicité. On vous contacte juste pour une démo personnalisée.</div>
+      </div>
+
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="success-screen" id="success">
+      <div class="success-icon">✓</div>
+      <h2>Merci <span id="success-prenom"></span> !</h2>
+      <p>On a bien reçu vos réponses.<br>On vous contacte très vite sur WhatsApp.</p>
+      <div style="margin:32px auto;max-width:560px;background:#1a1a1a;border-radius:12px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;">
+        <div style="text-align:center;color:#666;">
+          <div style="font-size:48px;margin-bottom:12px;">▶</div>
+          <div style="font-size:14px;">Vidéo de démonstration</div>
+          <div style="font-size:12px;margin-top:4px;color:#444;">Bientôt disponible</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const NOTION_API_URL = '/api/notion-lead';
+
+  const METIERS = {
+    alimentaire: ['Boulanger / Pâtissier','Chocolatier / Confiseur','Glacier artisanal','Fromager / Affineur','Charcutier / Salaison','Brasseur artisanal','Distillateur / Vinaigrier','Torréfacteur','Apiculteur transformateur','Confiturerie / Conserverie'],
+    bois:        ['Ébéniste / Menuisier d\'art','Charpentier / Ossature bois','Tonnelier','Luthier / Facteur d\'instruments','Fabricant de jouets en bois'],
+    metal:       ['Bijoutier / Joaillier','Orfèvre','Coutelier / Forgeron','Horloger','Ferronnier d\'art'],
+    textile:     ['Maroquinier / Sellier','Couturier / Créateur mode','Tisserand / Brodeur','Tanneur / Corroyeur'],
+    ceramique:   ['Céramiste / Potier','Verrier souffleur','Mosaïste'],
+    cosmetique:  ['Savonnier artisanal','Parfumeur artisanal','Cosmétique naturelle'],
+    papier:      ['Relieur / Doreur sur cuir','Imprimeur sérigraphe'],
+    autre:       [],
+  };
+
+  function updateMetiers() {
+    const cat = document.getElementById('categorie').value;
+    const sel = document.getElementById('metier');
+    const fieldAutre = document.getElementById('field-metier-autre');
+    if (!cat || cat === 'autre') {
+      sel.innerHTML = '<option value="">—</option>';
+      sel.disabled = true;
+      fieldAutre.style.display = cat === 'autre' ? 'block' : 'none';
+      return;
+    }
+    fieldAutre.style.display = 'none';
+    const list = METIERS[cat] || [];
+    sel.innerHTML = '<option value="">— Votre métier —</option>' +
+      list.map(m => `<option value="${m}">${m}</option>`).join('') +
+      '<option value="autre">Autre…</option>';
+    sel.disabled = false;
+    sel.onchange = () => { fieldAutre.style.display = sel.value === 'autre' ? 'block' : 'none'; };
+  }
+
+  document.querySelectorAll('input[name="gestion"]').forEach(r => {
+    r.addEventListener('change', function() {
+      document.getElementById('field-logiciel').style.display =
+        ['Un logiciel dédié','Un mix de tout ça'].includes(this.value) ? 'block' : 'none';
+    });
+  });
+
+  function getChecked(name) {
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    return el ? el.value : '';
+  }
+
+  function calcScore(taille, anciennete, gestion, nbDiff) {
+    let s = 0;
+    if (['Seul(e)','2 à 5 personnes'].includes(taille)) s += 3;
+    else if (taille === '6 à 15 personnes') s += 1;
+    if (anciennete === 'Moins de 2 ans') s += 3;
+    else if (anciennete === '2 à 5 ans') s += 2;
+    else if (anciennete === '5 à 15 ans') s += 1;
+    if (['Sur papier / carnets','Excel / Google Sheets'].includes(gestion)) s += 3;
+    else if (['Un mix de tout ça','Pas vraiment de système'].includes(gestion)) s += 2;
+    s += Math.min(nbDiff, 4);
+    return s;
+  }
+
+  function getStatut(score) {
+    if (score >= 8) return '🔥 Chaud';
+    if (score >= 5) return '🌡️ Tiède';
+    return '❄️ Froid';
+  }
+
+  async function submitForm() {
+    const prenom     = document.getElementById('prenom').value.trim();
+    const cat        = document.getElementById('categorie').value;
+    const catLabel   = cat ? document.getElementById('categorie').options[document.getElementById('categorie').selectedIndex].text : '';
+    const metierSel  = document.getElementById('metier').value;
+    const metierFree = document.getElementById('metier-autre').value.trim();
+    const metier     = (metierSel === 'autre' || cat === 'autre') ? metierFree : metierSel;
+    const taille     = getChecked('taille');
+    const anciennete = getChecked('anciennete');
+    const gestion    = getChecked('gestion');
+    const whatsapp   = document.getElementById('whatsapp').value.trim();
+    const dispo      = getChecked('dispo');
+
+    const showErr = msg => { const e = document.getElementById('errMsg'); e.textContent = msg; e.style.display = 'block'; };
+    document.getElementById('errMsg').style.display = 'none';
+
+    if (!prenom)     return showErr('Merci d\'entrer votre prénom.');
+    if (!cat)        return showErr('Merci de sélectionner votre secteur.');
+    if (!metier)     return showErr('Merci de préciser votre métier.');
+    if (!taille)     return showErr('Merci de sélectionner la taille de votre équipe.');
+    if (!anciennete) return showErr('Merci de sélectionner votre ancienneté.');
+    if (!gestion)    return showErr('Merci de sélectionner votre mode de gestion.');
+    if (!whatsapp)   return showErr('Merci d\'entrer votre numéro WhatsApp.');
+    if (!dispo)      return showErr('Merci d\'indiquer vos disponibilités.');
+
+    const difficultes = ['pb1','pb2','pb3','pb4','pb5','pb6']
+      .map(id => document.getElementById(id)).filter(el => el.checked).map(el => el.value);
+    const score  = calcScore(taille, anciennete, gestion, difficultes.length);
+    const statut = getStatut(score);
+
+    const btn = document.getElementById('btnSubmit');
+    btn.disabled = true; btn.textContent = 'Envoi en cours…';
+
+    try {
+      const res = await fetch(NOTION_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prenom, secteur: catLabel, metier, taille, anciennete, gestion,
+          whatsapp, dispo, difficultes, score, statut,
+          douleur: document.getElementById('douleur').value.trim() || '—'
+        })
+      });
+
+      if (!res.ok) {
+        showErr('Une erreur est survenue. Réessayez dans un instant.');
+        btn.disabled = false; btn.textContent = 'Envoyer mes réponses →';
+        return;
+      }
+
+      document.getElementById('form-content').style.display = 'none';
+      document.getElementById('success-prenom').textContent = prenom;
+      document.getElementById('success').classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    } catch(e) {
+      showErr('Problème de connexion. Vérifiez votre réseau et réessayez.');
+      btn.disabled = false; btn.textContent = 'Envoyer mes réponses →';
+    }
+  }
+</script>
+</body>
+</html>

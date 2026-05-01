@@ -6,15 +6,20 @@
   port = 8888
   targetPort = 3000
 
-# Redirections SPA
+# Routes principales
 [[redirects]]
-  from = "/app"
-  to = "/app.html"
+  from = "/login"
+  to = "/login.html"
   status = 200
 
 [[redirects]]
-  from = "/login"
-  to = "/index.html"
+  from = "/questionnaire"
+  to = "/questionnaire.html"
+  status = 200
+
+[[redirects]]
+  from = "/app"
+  to = "/app.html"
   status = 200
 
 # Sécurité : headers sur toutes les pages
