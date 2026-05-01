@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Arteasy — Questionnaire Artisan</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&display=swap" rel="stylesheet">
 <style>
   :root {
     --orange: #C8541A;
@@ -41,7 +42,7 @@
   /* HERO */
   .hero {
     background: var(--beige);
-    padding: 64px 24px 56px;
+    padding: 36px 24px 24px;
     text-align: center;
     max-width: 700px;
     margin: 0 auto;
@@ -55,21 +56,20 @@
   }
   .hero-badge::before { content: '●'; font-size: 0.5rem; }
   .hero h1 {
-    font-family: 'Syne', sans-serif; font-weight: 800;
-    font-size: clamp(1.9rem, 5vw, 3rem); line-height: 1.12;
+    font-family: 'Fraunces', serif; font-weight: 700;
+    font-size: clamp(2rem, 6vw, 3.5rem); line-height: 1.05;
     color: var(--dark); margin-bottom: 20px;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
   }
-  .hero h1 em { color: var(--orange); font-style: normal; }
   .hero-sub {
     font-size: 1rem; color: var(--muted); line-height: 1.7;
-    max-width: 480px; margin: 0 auto 32px; font-weight: 300;
+    max-width: 480px; margin: 0 auto 24px; font-weight: 300;
   }
 
   /* BÉNÉFICES */
   .benefits {
     display: flex; justify-content: center; gap: 10px;
-    flex-wrap: wrap; margin-bottom: 36px;
+    flex-wrap: wrap; margin-bottom: 20px;
   }
   .benefit {
     background: var(--white); border: 1px solid var(--beige-dark);
@@ -215,12 +215,7 @@
 
 
 <section class="hero">
-  <div class="hero-badge">Pour les artisans qui fabriquent</div>
-  <h1><span style="color:var(--dark);">Gagnez du temps.</span><br><span style="color:var(--orange);">Gérez tout sans effort.</span></h1>
-  <p class="hero-sub">
-    Stock, commandes, production, factures — tout est automatisé.<br>
-    Vous vous concentrez sur votre métier, Arteasy s'occupe du reste.
-  </p>
+  <h1>Artisans,<br><span style="color:var(--dark);">Gagnez du temps,</span><br><span style="color:var(--orange);">Gérez tout sans effort.</span></h1>
 
   <div class="benefits">
     <div class="benefit">⏱ Moins de paperasse</div>
@@ -228,10 +223,22 @@
     <div class="benefit">⚡ Tout centralisé</div>
   </div>
 
+  <p class="hero-sub">
+    Stock, commandes, production, factures — tout est automatisé.<br>
+    Vous vous concentrez sur votre métier, Arteasy s'occupe du reste.
+  </p>
 </section>
 
 <div class="divider">
   <span class="divider-text">Vous êtes artisan fabricant ? Dites-nous en plus</span>
+</div>
+
+<div style="text-align:center; padding:20px 0 4px;">
+  <a href="#demo" target="_blank" class="demo-cta">
+    <span class="play">▶</span>
+    Voir comment ça fonctionne
+  </a>
+  <div class="demo-note">Démo en 3 minutes — aucune installation</div>
 </div>
 
 <div class="form-outer">
@@ -361,13 +368,6 @@
         <div class="submit-note">Aucune publicité. On vous contacte juste pour une démo personnalisée.</div>
       </div>
 
-      <div style="text-align:center; margin-top:28px;">
-        <a href="#demo" target="_blank" class="demo-cta">
-          <span class="play">▶</span>
-          Voir comment ça fonctionne
-        </a>
-        <div class="demo-note">Démo en 3 minutes — aucune installation</div>
-      </div>
 
     </div>
 
