@@ -179,20 +179,15 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 <script>
 (function() {
-  var CTA_TEXTS = ['essai gratuit', 'voir l'outil', 'commencer', 'démarrer', 'tester', 'accès gratuit', 'je veux'];
-
-  function isCTA(el) {
-    var text = (el.textContent || '').toLowerCase().trim();
-    return CTA_TEXTS.some(function(t) { return text.includes(t); });
-  }
-
-  // Délégation sur document — intercepte tous les clics
   document.addEventListener('click', function(e) {
     var el = e.target;
-    // Remonter jusqu'à 4 niveaux pour trouver le CTA
-    for (var i = 0; i < 4; i++) {
+    for (var i = 0; i < 6; i++) {
       if (!el) break;
-      if (isCTA(el)) {
+      if (el.tagName === 'A') {
+        var href = (el.getAttribute('href') || '').trim();
+        if (href.startsWith('http') || href.startsWith('mailto') ||
+            href.startsWith('tel') || href.includes('/login') ||
+            href.includes('/app')) return;
         e.preventDefault();
         e.stopPropagation();
         window.location.href = '/questionnaire';
