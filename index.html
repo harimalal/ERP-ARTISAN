@@ -179,29 +179,28 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 <script>
 (function() {
-  function patchCTAs() {
-    document.querySelectorAll('a[href], button').forEach(function(el) {
-      var href = el.getAttribute('href') || '';
-      if (href.startsWith('#') || href.startsWith('mailto') || href.startsWith('tel') ||
-          href.includes('/login') || href.includes('/app') || href.includes('supabase')) return;
-      el.setAttribute('href', '/questionnaire');
-      el.removeAttribute('target');
-      el.onclick = function(e) { e.preventDefault(); window.location.href = '/questionnaire'; };
-    });
+  var CTA_TEXTS = ['essai gratuit', 'voir l'outil', 'commencer', 'démarrer', 'tester', 'accès gratuit', 'je veux'];
+
+  function isCTA(el) {
+    var text = (el.textContent || '').toLowerCase().trim();
+    return CTA_TEXTS.some(function(t) { return text.includes(t); });
   }
-  var done = false;
-  var obs = new MutationObserver(function() {
-    if (done) return;
-    var thumb = document.getElementById('__bundler_thumbnail');
-    if (thumb && (thumb.style.display === 'none' || thumb.style.opacity === '0')) {
-      done = true; patchCTAs(); obs.disconnect();
+
+  // Délégation sur document — intercepte tous les clics
+  document.addEventListener('click', function(e) {
+    var el = e.target;
+    // Remonter jusqu'à 4 niveaux pour trouver le CTA
+    for (var i = 0; i < 4; i++) {
+      if (!el) break;
+      if (isCTA(el)) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.location.href = '/questionnaire';
+        return;
+      }
+      el = el.parentElement;
     }
-  });
-  obs.observe(document.body, { childList: true, subtree: true, attributes: true });
-  window.addEventListener('load', function() {
-    setTimeout(patchCTAs, 800);
-    setTimeout(patchCTAs, 2500);
-  });
+  }, true);
 })();
 </script>
 </body>
