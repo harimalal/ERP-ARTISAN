@@ -679,7 +679,7 @@ export async function exporterTout() {
     for (const exp of exports) {
       if (!exp.data || !exp.data.length) continue;
       const csv = _genererCSV(exp.data, exp.colonnes);
-      _telechargerCSV(csv, `appmee_${exp.nom}_${today()}.csv`);
+      _telechargerCSV(csv, `arteasy_${exp.nom}_${today()}.csv`);
       nbFichiers++;
       await new Promise(r => setTimeout(r, 300));
     }
@@ -960,5 +960,5 @@ function _dlTemplate(type) {
   const ws = XLSX.utils.aoa_to_sheet(tpl[type] || []);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, type);
-  XLSX.writeFile(wb, 'appmee_modele_' + type + '.xlsx');
+  XLSX.writeFile(wb, 'arteasy_modele_' + type + '.xlsx');
 }
