@@ -3,667 +3,307 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AppMee — Connexion</title>
+<title>ARTEASY — Connexion</title>
 <meta name="supa-url" content="https://rynfsrsevgqyiycdscov.supabase.co">
 <meta name="supa-key" content="sb_publishable_g_gefc-Mrw1wgSC_F8nZlw_BAMix93k">
-<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-:root {
-  --ink: #1a1814;
-  --cream: #faf8f4;
-  --cream-dark: #f0ede7;
-  --accent: #c8432b;
-  --accent-hover: #a8371f;
-  --gold: #c8943a;
-  --rule: #d8d4ce;
-  --muted: #8a8480;
-  --dark-bg: #18160f;
-  --dark-bg2: #1f1c13;
-  --dark-border: rgba(255,255,255,0.07);
-  --dark-text: rgba(255,255,255,0.55);
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 html, body {
-  height: 100%;
+  height: 100%; width: 100%;
   font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
-  background: var(--dark-bg);
+  color: #1A1410;
   overflow: hidden;
 }
 
-/* ── LAYOUT ─────────────────────────────────── */
-.split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  height: 100vh;
-}
-
-/* ── PANNEAU GAUCHE (sombre) ─────────────────── */
-.panel-left {
-  background: var(--dark-bg);
+/* ============================================ */
+/* LAYOUT CENTRÉ FULL-VIEWPORT                  */
+/* ============================================ */
+.page {
+  width: 100vw; height: 100vh;
+  background: linear-gradient(135deg, #FAF6EE 0%, #F2EBDC 100%);
   position: relative;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  padding: 36px 44px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 
-/* Texture grain subtile */
-.panel-left::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+.page::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(192,84,58,0.08) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(192,148,58,0.08) 0%, transparent 40%);
+  z-index: 1;
   pointer-events: none;
-  z-index: 0;
 }
 
-/* Lueur chaude en bas à gauche */
-.panel-left::after {
-  content: '';
+/* ============================================ */
+/* BADGES FLOTTANTS                             */
+/* ============================================ */
+.float-badge {
   position: absolute;
-  bottom: -80px;
-  left: -60px;
-  width: 420px;
-  height: 420px;
-  background: radial-gradient(circle, rgba(200,67,43,0.13) 0%, rgba(200,147,58,0.06) 45%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.panel-left > * { position: relative; z-index: 1; }
-
-/* LOGO */
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: auto;
-}
-
-.logo-icon {
-  width: 38px;
-  height: 38px;
-  background: linear-gradient(160deg, #F0841F 0%, #C45A0E 100%);
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 3px 0 #9B430A, 0 5px 10px rgba(196,90,14,0.30);
-}
-
-.logo-icon svg {
-  width: 20px;
-  height: 20px;
-  fill: #fff;
-}
-
-.logo-name {
-  font-family: 'Libre Baskerville', serif;
-  font-size: 15px;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-/* HOOK */
-.hook {
-  margin: auto 0;
-  padding: 20px 0;
-}
-
-.hook-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--gold);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-}
-
-.hook-label::before {
-  content: '';
-  display: block;
-  width: 28px;
-  height: 1.5px;
-  background: var(--gold);
-  flex-shrink: 0;
-}
-
-.hook-title {
-  font-family: 'Libre Baskerville', serif;
-  font-size: clamp(28px, 3.2vw, 42px);
-  font-weight: 700;
-  color: #fff;
-  line-height: 1.15;
-  margin-bottom: 10px;
-}
-
-.hook-sub {
-  font-family: 'Libre Baskerville', serif;
-  font-size: clamp(28px, 3.2vw, 42px);
-  font-weight: 700;
-  font-style: italic;
-  line-height: 1.2;
-  margin-bottom: 36px;
-  height: 1.25em;
-  position: relative;
-  overflow: hidden;
-}
-
-.hook-word {
-  position: absolute;
-  left: 0;
-  top: 0;
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 16px;
+  background: rgba(255,255,255,0.92);
+  border-radius: 24px;
+  font-size: 13px; font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
   white-space: nowrap;
-  color: #e09828;
-  text-shadow: 0 1px 12px rgba(220,148,40,0.18);
-  opacity: 0;
-  transform: translateY(110%);
-  transition: none;
+  z-index: 2;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.float-badge::before {
+  content: ''; width: 8px; height: 8px; border-radius: 50%;
+  background: currentColor;
+}
+.fb-dashboard { color: #16a34a; }
+.fb-stock { color: #2563eb; }
+.fb-commande { color: #9333ea; }
+.fb-facturation { color: #dc2626; }
+.fb-production { color: #ea580c; }
+.fb-bon { color: #f59e0b; }
+.fb-recette { color: #0891b2; }
+.fb-genai { color: #7c3aed; }
+.fb-integration { color: #06b6d4; }
+
+.fb-pos-1 { top: 8%;  left: 6%;  animation: float1 9s  ease-in-out infinite; }
+.fb-pos-2 { top: 12%; right: 8%; animation: float2 11s ease-in-out infinite; }
+.fb-pos-3 { top: 35%; left: 4%;  animation: float3 13s ease-in-out infinite; }
+.fb-pos-4 { top: 40%; right: 5%; animation: float4 10s ease-in-out infinite; }
+.fb-pos-5 { bottom: 28%; left: 10%; animation: float5 12s ease-in-out infinite; }
+.fb-pos-6 { bottom: 22%; right: 12%; animation: float1 14s ease-in-out infinite reverse; }
+.fb-pos-7 { bottom: 8%;  left: 24%;  animation: float2 11s ease-in-out infinite reverse; }
+.fb-pos-8 { bottom: 6%;  right: 26%; animation: float3 13s ease-in-out infinite reverse; }
+.fb-pos-9 { top: 6%;    left: 44%;   animation: float4 15s ease-in-out infinite; }
+
+@keyframes float1 {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(15px, -12px) rotate(1deg); }
+  50% { transform: translate(-8px, -20px) rotate(-1deg); }
+  75% { transform: translate(-12px, 10px) rotate(0.5deg); }
+}
+@keyframes float2 {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(-18px, 14px) rotate(-1.5deg); }
+  66% { transform: translate(12px, -16px) rotate(1deg); }
+}
+@keyframes float3 {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  20% { transform: translate(10px, 18px) rotate(1deg); }
+  50% { transform: translate(20px, -10px) rotate(-1deg); }
+  80% { transform: translate(-10px, 8px) rotate(0.5deg); }
+}
+@keyframes float4 {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  40% { transform: translate(-14px, -18px) rotate(-1deg); }
+  70% { transform: translate(16px, 12px) rotate(1.5deg); }
+}
+@keyframes float5 {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  30% { transform: translate(18px, 10px) rotate(1deg); }
+  60% { transform: translate(-12px, -16px) rotate(-1deg); }
 }
 
-.hook-word.state-in {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 0.42s ease, transform 0.42s cubic-bezier(0.22,1,0.36,1);
+/* ============================================ */
+/* CONTENU CENTRAL                              */
+/* ============================================ */
+.center-stack {
+  position: relative; z-index: 4;
+  display: flex; flex-direction: column; align-items: center;
+  width: 100%; max-width: 440px; padding: 0 20px;
 }
 
-.hook-word.state-out {
-  opacity: 0;
-  transform: translateY(-110%);
-  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.55,0,1,0.45);
+/* TITRE 2 LIGNES */
+.headline { text-align: center; margin-bottom: 22px; }
+.headline h1 {
+  font-family: 'Fraunces', serif; font-size: 32px; font-weight: 700;
+  line-height: 1.15; letter-spacing: -0.025em;
+  color: #1A1410;
 }
+.headline h1 .accent { color: #C0543A; display: block; }
 
-/* FONCTIONNALITÉS */
-.features {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.feature-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 11px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--dark-border);
-  background: rgba(255,255,255,0.028);
-  transition: all 0.2s;
-  cursor: default;
-}
-
-.feature-item:hover {
-  background: rgba(255,255,255,0.05);
-  border-color: rgba(255,255,255,0.12);
-}
-
-.feature-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.feature-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex-shrink: 0;
-}
-
-.feature-name {
-  font-size: 12.5px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.82);
-}
-
-.feature-badge {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: rgba(200,67,43,0.18);
-  color: #e07060;
-  border: 1px solid rgba(200,67,43,0.25);
-  text-transform: uppercase;
-}
-
-.feature-badge.green {
-  background: rgba(45,106,79,0.28);
-  color: #5ecb8e;
-  border-color: rgba(45,106,79,0.35);
-}
-
-.feature-badge.soon {
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.28);
-  border-color: rgba(255,255,255,0.08);
-}
-
-
-
-/* ── PANNEAU DROIT (clair) ───────────────────── */
-.panel-right {
-  background: var(--cream);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 56px;
-  overflow-y: auto;
-}
-
+/* ============================================ */
+/* MODULE AUTH-BOX                              */
+/* ============================================ */
 .auth-box {
+  background: white;
+  border-radius: 14px;
+  padding: 28px 32px 26px;
+  box-shadow: 0 16px 48px rgba(26,20,16,0.12), 0 0 0 1px rgba(0,0,0,0.04);
   width: 100%;
-  max-width: 380px;
 }
 
-.auth-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--accent);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  margin-bottom: 16px;
+/* Logo ARTEASY dans le module */
+.module-logo {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-bottom: 12px;
+}
+.module-logo .logo-mark {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, #C0543A, #a8431f);
+  color: white; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif; font-weight: 700; font-size: 18px;
+  box-shadow: 0 4px 12px rgba(192,84,58,0.3);
+}
+.module-logo .logo-name {
+  font-family: 'Fraunces', serif;
+  font-size: 22px; font-weight: 700;
+  color: #1A1410; letter-spacing: -0.02em;
+}
+.module-logo .logo-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 700;
+  background: rgba(192,84,58,0.1); color: #C0543A;
+  padding: 3px 7px; border-radius: 5px; letter-spacing: 1px;
 }
 
-.auth-eyebrow::before {
-  content: '';
-  display: block;
-  width: 24px;
-  height: 1.5px;
-  background: var(--accent);
-  flex-shrink: 0;
+/* Sous-titre orange italique */
+.module-tagline {
+  font-family: 'Fraunces', serif; font-size: 15px; font-weight: 500;
+  text-align: center; margin-bottom: 18px;
+  color: #C0543A; font-style: italic;
 }
 
-.auth-title {
-  font-family: 'Libre Baskerville', serif;
-  font-size: 30px;
-  font-weight: 700;
-  color: var(--ink);
-  margin-bottom: 5px;
-  line-height: 1.1;
-}
-
-.auth-sub {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 28px;
-}
+/* IDs JS conservés mais cachés (le JS continue de les modifier) */
+.auth-eyebrow, .auth-title, .auth-sub { display: none; }
 
 /* ONGLETS */
 .tabs {
-  display: flex;
-  border-bottom: 1.5px solid var(--rule);
-  margin-bottom: 26px;
-  gap: 0;
+  display: flex; gap: 4px; margin-bottom: 18px;
+  background: #F5F0E8; padding: 4px; border-radius: 10px;
 }
-
 .tab-btn {
-  padding: 10px 0;
-  margin-right: 28px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--muted);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1.5px;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
+  flex: 1; padding: 9px 14px; border: none; background: transparent;
+  font-family: inherit; font-size: 13px; font-weight: 600; color: #888;
+  cursor: pointer; border-radius: 7px; transition: all .15s ease;
 }
+.tab-btn:hover { color: #1A1410; }
+.tab-btn.active { background: white; color: #C0543A; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
 
-.tab-btn.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-  font-weight: 600;
+/* MESSAGE BOX */
+.msg-box {
+  display: none; padding: 10px 14px; border-radius: 8px;
+  font-size: 13px; margin-bottom: 14px;
+  align-items: center; gap: 8px;
 }
-
-.tab-btn:hover:not(.active) {
-  color: var(--ink);
+.msg-box.error, .msg-box.success {
+  display: flex;
 }
+.msg-box.error { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
+.msg-box.success { background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
 
-/* FORMULAIRES */
+/* PANELS */
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  margin-bottom: 14px;
-}
-
+/* FORM */
+.form-group { margin-bottom: 12px; }
 .form-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--ink);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  display: block; font-size: 11px; font-weight: 600; color: #555;
+  margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;
 }
-
 .form-input {
-  padding: 11px 14px;
-  border: 1.5px solid var(--rule);
-  border-radius: 7px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  color: var(--ink);
-  background: #fff;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  outline: none;
-  width: 100%;
+  width: 100%; padding: 10px 14px;
+  border: 1px solid #e0d8cc; border-radius: 8px;
+  font-size: 14px; font-family: inherit;
+  background: #FAF6EE; color: #1A1410;
 }
+.form-input:focus { outline: none; border-color: #C0543A; background: white; }
 
-.form-input::placeholder { color: #bbb8b2; }
-
-.form-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(200,67,43,0.1);
-}
-
-.input-wrap {
-  position: relative;
-}
-
-.input-wrap .form-input {
-  padding-right: 42px;
-}
-
+.input-wrap { position: relative; }
+.input-wrap .form-input { padding-right: 40px; }
 .eye-btn {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--muted);
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  transition: color 0.15s;
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; color: #888; padding: 4px;
+  display: flex; align-items: center; justify-content: center;
 }
+.eye-btn:hover { color: #C0543A; }
 
-.eye-btn:hover { color: var(--ink); }
+.name-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 .form-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  margin-top: 2px;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px; font-size: 12px;
 }
-
 .checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  color: var(--muted);
-  cursor: pointer;
-  user-select: none;
+  display: flex; align-items: center; gap: 6px; color: #666; cursor: pointer;
 }
+.checkbox-label input { accent-color: #C0543A; }
+.link-forgot { color: #C0543A; text-decoration: none; font-weight: 500; }
+.link-forgot:hover { text-decoration: underline; }
 
-.checkbox-label input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
-  border-radius: 3px;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-.link-forgot {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--accent);
-  text-decoration: none;
-  transition: opacity 0.15s;
-}
-
-.link-forgot:hover { opacity: 0.75; }
-
-/* BOUTON PRINCIPAL */
 .btn-submit {
-  width: 100%;
-  padding: 13px;
-  background: var(--accent);
-  color: #fff;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  border: none;
-  border-radius: 100px;
-  cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
-  letter-spacing: 0.01em;
+  width: 100%; padding: 12px;
+  background: #C0543A; color: white; border: none;
+  border-radius: 8px; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  transition: background .15s ease;
 }
+.btn-submit:hover { background: #a8431f; }
+.btn-submit.loading { opacity: 0.7; cursor: wait; }
 
-.btn-submit:hover { background: var(--accent-hover); }
-.btn-submit:active { transform: scale(0.99); }
-
-/* BOUTON LOADING */
-.btn-submit.loading {
-  background: var(--accent-hover);
-  pointer-events: none;
-}
-
-.btn-submit.loading::after {
-  content: '';
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255,255,255,0.35);
-  border-top-color: #fff;
-  border-radius: 50%;
-  margin-left: 10px;
-  vertical-align: middle;
-  animation: spin 0.7s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* SEPARATEUR */
-.divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 20px 0;
-  color: var(--rule);
-  font-size: 11px;
-  color: #c4bfb8;
-}
-
-.divider::before, .divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--rule);
-}
-
-/* LIEN INSCRIPTION */
 .switch-link {
-  text-align: center;
-  margin-top: 20px;
-  font-size: 12.5px;
-  color: var(--muted);
+  text-align: center; font-size: 13px; color: #666; margin-top: 14px;
+}
+.switch-link a { color: #C0543A; font-weight: 600; text-decoration: none; }
+.switch-link a:hover { text-decoration: underline; }
+
+/* FOOTER */
+.page-footer {
+  position: absolute; bottom: 14px; left: 0; right: 0;
+  text-align: center; font-size: 11px; color: #999; z-index: 4;
 }
 
-.switch-link a {
-  color: var(--accent);
-  font-weight: 600;
-  text-decoration: none;
-  transition: opacity 0.15s;
+/* RESPONSIVE */
+@media (max-width: 600px) {
+  .center-stack { padding: 0 16px; }
+  .auth-box { padding: 22px 24px; }
+  .headline h1 { font-size: 26px; }
+  .float-badge { font-size: 11px; padding: 8px 12px; }
 }
-
-.switch-link a:hover { opacity: 0.75; }
-
-/* MESSAGE ERREUR / SUCCÈS */
-.msg-box {
-  padding: 10px 14px;
-  border-radius: 7px;
-  font-size: 12px;
-  margin-bottom: 14px;
-  display: none;
-}
-
-.msg-box.error {
-  background: #fdecea;
-  color: #c8432b;
-  border: 1px solid #f5c2c2;
-  display: flex;
-  align-items: flex-start;
-  gap: 7px;
-}
-
-.msg-box.success {
-  background: #e6f4ed;
-  color: #2d6a4f;
-  border: 1px solid #a8d5bc;
-  display: flex;
-  align-items: flex-start;
-  gap: 7px;
-}
-
-/* CHAMP NOM pour inscription */
-.name-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-/* ── RESPONSIVE ──────────────────────────────── */
-@media (max-width: 860px) {
-  html, body { overflow: auto; }
-  .split {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-    height: auto;
-    min-height: 100vh;
-  }
-  .panel-left {
-    padding: 28px 28px 32px;
-  }
-  .hook-title { font-size: 26px; }
-  .hook-sub { font-size: 22px; }
-  .panel-right {
-    padding: 36px 28px;
-    align-items: flex-start;
-  }
-}
-
-/* ── ANIMATION ENTRÉE ────────────────────────── */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.auth-box { animation: fadeUp 0.45s ease both; animation-delay: 0.1s; opacity: 0; }
-.hook     { animation: fadeUp 0.5s ease both;  animation-delay: 0.05s; opacity: 0; }
-.features { animation: fadeUp 0.5s ease both;  animation-delay: 0.15s; opacity: 0; }
 </style>
 </head>
 <body>
 
-<div class="split">
+<div class="page">
 
-  <!-- ═══ PANNEAU GAUCHE ═══ -->
-  <div class="panel-left">
+  <!-- BADGES FLOTTANTS -->
+  <div class="float-badge fb-dashboard fb-pos-1">Dashboard</div>
+  <div class="float-badge fb-stock fb-pos-2">Stock</div>
+  <div class="float-badge fb-commande fb-pos-3">Commande Article</div>
+  <div class="float-badge fb-facturation fb-pos-4">Facturation</div>
+  <div class="float-badge fb-production fb-pos-5">Production</div>
+  <div class="float-badge fb-bon fb-pos-6">Bon de Commande</div>
+  <div class="float-badge fb-recette fb-pos-7">Recette</div>
+  <div class="float-badge fb-genai fb-pos-8">Génération IA</div>
+  <div class="float-badge fb-integration fb-pos-9">Intégration IA</div>
 
-    <!-- Logo -->
-    <div class="logo">
-      <div class="logo-icon">
-        <svg viewBox="0 0 24 24">
-          <path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zM10 5h4v2h-4V5zm9 14H5V9h14v10z"/>
-          <rect x="9" y="12" width="6" height="1.5" rx=".75"/>
-          <rect x="9" y="15" width="4" height="1.5" rx=".75"/>
-        </svg>
-      </div>
-      <span class="logo-name">AppMee</span>
+  <!-- CONTENU CENTRÉ -->
+  <div class="center-stack">
+
+    <!-- TITRE -->
+    <div class="headline">
+      <h1>Piloter votre atelier<span class="accent">en quelques clics.</span></h1>
     </div>
 
-    <!-- Hook -->
-    <div class="hook">
-      <div class="hook-label">La plateforme métier faite pour les artisans</div>
-      <h1 class="hook-title">Toute votre activité,</h1>
-      <div class="hook-sub" id="hookSub">
-        <span class="hook-word">centralisée.</span>
-        <span class="hook-word">optimisée.</span>
-        <span class="hook-word">autopilotée.</span>
-        <span class="hook-word">boostée par l'IA.</span>
-      </div>
-
-      <!-- Fonctionnalités dans l'ordre du flux métier -->
-      <div class="features">
-        <div class="feature-item">
-          <div class="feature-left">
-            <div class="feature-dot"></div>
-            <span class="feature-name">Dashboard & KPIs</span>
-          </div>
-          <span class="feature-badge green">Actif</span>
-        </div>
-        <div class="feature-item">
-          <div class="feature-left">
-            <div class="feature-dot"></div>
-            <span class="feature-name">Commandes clients</span>
-          </div>
-          <span class="feature-badge green">Actif</span>
-        </div>
-        <div class="feature-item">
-          <div class="feature-left">
-            <div class="feature-dot"></div>
-            <span class="feature-name">Production & Planning</span>
-          </div>
-          <span class="feature-badge green">Actif</span>
-        </div>
-        <div class="feature-item">
-          <div class="feature-left">
-            <div class="feature-dot"></div>
-            <span class="feature-name">Stock & Approvisionnement</span>
-          </div>
-          <span class="feature-badge green">Actif</span>
-        </div>
-        <div class="feature-item">
-          <div class="feature-left">
-            <div class="feature-dot"></div>
-            <span class="feature-name">Livraisons & Facturation</span>
-          </div>
-          <span class="feature-badge green">Actif</span>
-        </div>
-        <div class="feature-item">
-          <div class="feature-left">
-            <div class="feature-dot"></div>
-            <span class="feature-name">Saisie automatique par IA</span>
-          </div>
-          <span class="feature-badge green">Actif</span>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- ═══ PANNEAU DROIT ═══ -->
-  <div class="panel-right">
+    <!-- MODULE AUTH (intact côté logique : IDs, formulaires, JS) -->
     <div class="auth-box">
 
+      <!-- LOGO ARTEASY -->
+      <div class="module-logo">
+        <div class="logo-mark">A</div>
+        <span class="logo-name">ARTEASY</span>
+        <span class="logo-tag">IA</span>
+      </div>
+      <div class="module-tagline">accéder à votre atelier</div>
+
+      <!-- IDs cachés mais conservés pour compatibilité JS -->
       <div class="auth-eyebrow">Espace client</div>
       <h2 class="auth-title" id="authTitle">Bon retour.</h2>
-      <p class="auth-sub" id="authSub">Connectez-vous à votre espace AppMee.</p>
+      <p class="auth-sub" id="authSub">Connectez-vous à votre espace ARTEASY.</p>
 
       <!-- Onglets -->
       <div class="tabs">
@@ -734,7 +374,7 @@ html, body {
           <input class="form-input" type="email" id="signupEmail" placeholder="vous@exemple.fr" autocomplete="email">
         </div>
 
-        <div class="form-group" style="margin-bottom:20px;">
+        <div class="form-group" style="margin-bottom:16px;">
           <label class="form-label">Mot de passe</label>
           <div class="input-wrap">
             <input class="form-input" type="password" id="signupPassword" placeholder="8 caractères minimum" autocomplete="new-password">
@@ -748,11 +388,11 @@ html, body {
 
         <button class="btn-submit" onclick="handleSignup(this)">Créer mon compte gratuit</button>
 
-        <div class="switch-link" style="margin-top:16px;">
+        <div class="switch-link" style="margin-top:14px;">
           Déjà un compte&nbsp;? <a href="#" onclick="switchTab('login');return false;">Se connecter</a>
         </div>
 
-        <div class="switch-link" style="margin-top:10px;font-size:11px;color:#bbb8b2;">
+        <div class="switch-link" style="margin-top:8px;font-size:11px;color:#bbb8b2;">
           En créant un compte, vous acceptez nos <a href="#" style="color:#bbb8b2;">Conditions d'utilisation</a>
         </div>
 
@@ -760,6 +400,8 @@ html, body {
 
     </div>
   </div>
+
+  <div class="page-footer">© ARTEASY 2026 · Données hébergées en France</div>
 
 </div>
 
@@ -777,7 +419,7 @@ function switchTab(tab) {
 
   document.getElementById('authTitle').textContent = isLogin ? 'Bon retour.' : 'Commençons.';
   document.getElementById('authSub').textContent = isLogin
-    ? 'Connectez-vous à votre espace AppMee.'
+    ? 'Connectez-vous à votre espace ARTEASY.'
     : 'Créez votre compte — c\'est gratuit et sans engagement.';
 
   hideMsg();
@@ -897,40 +539,6 @@ async function handleSignup(btn) {
     showMsg('Erreur de création de compte. Réessayez.');
   }
 }
-
-// ── CYCLE MOTS HOOK ──────────────────────────
-(function() {
-  const HOLD    = 1800;  // ms visible
-  const GAP     = 120;   // ms entre sortie et entrée suivante
-
-  const words = document.querySelectorAll('#hookSub .hook-word');
-  let current = 0;
-
-  function showNext() {
-    const prev = words[current];
-    current = (current + 1) % words.length;
-    const next = words[current];
-
-    // Sortie du précédent
-    prev.classList.remove('state-in');
-    prev.classList.add('state-out');
-
-    // Entrée du suivant après le GAP
-    setTimeout(() => {
-      // Reset position basse avant d'animer
-      next.classList.remove('state-out');
-      // Force reflow pour que la transition joue
-      void next.offsetWidth;
-      next.classList.add('state-in');
-    }, GAP);
-
-    setTimeout(showNext, HOLD + GAP);
-  }
-
-  // Premier mot : apparaît immédiatement au chargement
-  words[0].classList.add('state-in');
-  setTimeout(showNext, HOLD);
-})();
 
 // ── ENTRÉE CLAVIER ────────────────────────────
 document.addEventListener('keydown', (e) => {
