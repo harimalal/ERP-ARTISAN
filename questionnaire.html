@@ -108,7 +108,7 @@
   .divider-text { font-size: 0.78rem; color: var(--muted); white-space: nowrap; font-weight: 400; }
 
   /* FORM */
-  .form-outer { max-width: 580px; margin: 0 auto 64px; padding: 24px 20px 0; }
+  .form-outer { max-width: 700px; margin: 0 auto 64px; padding: 24px 20px 0; }
   .form-card {
     background: var(--white); border-radius: 18px;
     border: 1px solid var(--beige-dark);
@@ -150,6 +150,9 @@
 
   .choice-group { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
   .choice-group.cols-1 { grid-template-columns: 1fr; }
+  .choice-group.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .field-row-3 .field { margin-bottom: 0; }
   .choice-item { position: relative; }
   .choice-item input[type="radio"], .choice-item input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
   .choice-item label {
@@ -198,13 +201,15 @@
     margin: 0 auto 22px; font-size: 1.7rem;
     box-shadow: 0 6px 20px rgba(200,84,26,0.3);
   }
-  .success-screen h2 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; margin-bottom: 10px; color: var(--dark); }
+  .success-screen h2 { font-family: 'Fraunces', serif; font-weight: 700; font-size: 2.5rem; margin-bottom: 10px; color: var(--dark); line-height: 1.1; }
   .success-screen p { color: var(--muted); font-size: 0.9rem; line-height: 1.65; }
 
   @media (max-width: 520px) {
     .header-demo span { display: none; }
     .form-card { padding: 22px 16px; }
     .choice-group { grid-template-columns: 1fr; }
+    .choice-group.cols-4 { grid-template-columns: 1fr; }
+    .field-row-3 { grid-template-columns: 1fr; }
     .metier-row { grid-template-columns: 1fr; }
     .hero { padding: 44px 20px 40px; }
     .benefits { gap: 7px; }
@@ -233,14 +238,6 @@
   <span class="divider-text">Vous êtes artisan fabricant ? Dites-nous en plus</span>
 </div>
 
-<div style="text-align:center; padding:20px 0 4px;">
-  <a href="#demo" target="_blank" class="demo-cta">
-    <span class="play">▶</span>
-    Voir comment ça fonctionne
-  </a>
-  <div class="demo-note">Démo en 3 minutes — aucune installation</div>
-</div>
-
 <div class="form-outer">
   <div class="form-card">
     <div id="form-content">
@@ -248,9 +245,21 @@
       <!-- IDENTITÉ -->
       <div class="section-label">Qui êtes-vous ?</div>
 
-      <div class="field">
-        <label>Votre prénom <span class="req">*</span></label>
-        <input type="text" id="prenom" placeholder="ex. Marc" />
+      <div class="field-row-3">
+        <div class="field">
+          <label>Votre prénom <span class="req">*</span></label>
+          <input type="text" id="prenom" placeholder="ex. Marc" />
+        </div>
+
+        <div class="field">
+          <label>Votre nom <span class="req">*</span></label>
+          <input type="text" id="nom" placeholder="ex. Dupont" />
+        </div>
+
+        <div class="field">
+          <label>Votre entreprise <span class="req">*</span></label>
+          <input type="text" id="entreprise" placeholder="ex. Boulangerie Dupont" />
+        </div>
       </div>
 
       <div class="field">
@@ -287,18 +296,18 @@
 
       <div class="field">
         <label>Combien de personnes dans votre boîte ? <span class="req">*</span></label>
-        <div class="choice-group">
+        <div class="choice-group cols-4">
           <div class="choice-item"><input type="radio" name="taille" id="t1" value="Seul(e)" /><label for="t1"><span class="choice-dot"></span>Seul(e)</label></div>
-          <div class="choice-item"><input type="radio" name="taille" id="t2" value="2 à 5 personnes" /><label for="t2"><span class="choice-dot"></span>2 à 5 personnes</label></div>
-          <div class="choice-item"><input type="radio" name="taille" id="t3" value="6 à 15 personnes" /><label for="t3"><span class="choice-dot"></span>6 à 15 personnes</label></div>
+          <div class="choice-item"><input type="radio" name="taille" id="t2" value="2 à 5" /><label for="t2"><span class="choice-dot"></span>2 à 5</label></div>
+          <div class="choice-item"><input type="radio" name="taille" id="t3" value="6 à 15" /><label for="t3"><span class="choice-dot"></span>6 à 15</label></div>
           <div class="choice-item"><input type="radio" name="taille" id="t4" value="Plus de 15" /><label for="t4"><span class="choice-dot"></span>Plus de 15</label></div>
         </div>
       </div>
 
       <div class="field">
         <label>Depuis combien de temps vous exercez ? <span class="req">*</span></label>
-        <div class="choice-group">
-          <div class="choice-item"><input type="radio" name="anciennete" id="a1" value="Moins de 2 ans" /><label for="a1"><span class="choice-dot"></span>Moins de 2 ans</label></div>
+        <div class="choice-group cols-4">
+          <div class="choice-item"><input type="radio" name="anciennete" id="a1" value="< 2 ans" /><label for="a1"><span class="choice-dot"></span>< 2 ans</label></div>
           <div class="choice-item"><input type="radio" name="anciennete" id="a2" value="2 à 5 ans" /><label for="a2"><span class="choice-dot"></span>2 à 5 ans</label></div>
           <div class="choice-item"><input type="radio" name="anciennete" id="a3" value="5 à 15 ans" /><label for="a3"><span class="choice-dot"></span>5 à 15 ans</label></div>
           <div class="choice-item"><input type="radio" name="anciennete" id="a4" value="Plus de 15 ans" /><label for="a4"><span class="choice-dot"></span>Plus de 15 ans</label></div>
@@ -348,8 +357,13 @@
       <div class="section-label">Pour vous recontacter</div>
 
       <div class="field">
-        <label>Votre numéro WhatsApp <span class="req">*</span></label>
-        <input type="text" id="whatsapp" placeholder="ex. 06 12 34 56 78" />
+        <label>Votre téléphone <span class="req">*</span></label>
+        <input type="text" id="telephone" placeholder="ex. 06 12 34 56 78" />
+      </div>
+
+      <div class="field">
+        <label>Votre email <span class="req">*</span></label>
+        <input type="text" id="email" placeholder="ex. marc@example.com" />
       </div>
 
       <div class="field">
@@ -373,16 +387,8 @@
 
     <!-- SUCCESS -->
     <div class="success-screen" id="success">
-      <div class="success-icon">✓</div>
-      <h2>Merci <span id="success-prenom"></span> !</h2>
-      <p>On a bien reçu vos réponses.<br>On vous contacte très vite sur WhatsApp.</p>
-      <div style="margin:32px auto;max-width:560px;background:#1a1a1a;border-radius:12px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;">
-        <div style="text-align:center;color:#666;">
-          <div style="font-size:48px;margin-bottom:12px;">▶</div>
-          <div style="font-size:14px;">Vidéo de démonstration</div>
-          <div style="font-size:12px;margin-top:4px;color:#444;">Bientôt disponible</div>
-        </div>
-      </div>
+      <h2>Merci <span id="success-prenom"></span></h2>
+      <p style="margin-top:20px;">On a bien reçu vos réponses.<br>On vous contacte très vite.</p>
     </div>
 
   </div>
@@ -435,9 +441,9 @@
 
   function calcScore(taille, anciennete, gestion, nbDiff) {
     let s = 0;
-    if (['Seul(e)','2 à 5 personnes'].includes(taille)) s += 3;
-    else if (taille === '6 à 15 personnes') s += 1;
-    if (anciennete === 'Moins de 2 ans') s += 3;
+    if (['Seul(e)','2 à 5'].includes(taille)) s += 3;
+    else if (taille === '6 à 15') s += 1;
+    if (anciennete === '< 2 ans') s += 3;
     else if (anciennete === '2 à 5 ans') s += 2;
     else if (anciennete === '5 à 15 ans') s += 1;
     if (['Sur papier / carnets','Excel / Google Sheets'].includes(gestion)) s += 3;
@@ -454,6 +460,8 @@
 
   async function submitForm() {
     const prenom     = document.getElementById('prenom').value.trim();
+    const nom        = document.getElementById('nom').value.trim();
+    const entreprise = document.getElementById('entreprise').value.trim();
     const cat        = document.getElementById('categorie').value;
     const catLabel   = cat ? document.getElementById('categorie').options[document.getElementById('categorie').selectedIndex].text : '';
     const metierSel  = document.getElementById('metier').value;
@@ -462,19 +470,23 @@
     const taille     = getChecked('taille');
     const anciennete = getChecked('anciennete');
     const gestion    = getChecked('gestion');
-    const whatsapp   = document.getElementById('whatsapp').value.trim();
+    const telephone  = document.getElementById('telephone').value.trim();
+    const email      = document.getElementById('email').value.trim();
     const dispo      = getChecked('dispo');
 
     const showErr = msg => { const e = document.getElementById('errMsg'); e.textContent = msg; e.style.display = 'block'; };
     document.getElementById('errMsg').style.display = 'none';
 
     if (!prenom)     return showErr('Merci d\'entrer votre prénom.');
+    if (!nom)        return showErr('Merci d\'entrer votre nom.');
+    if (!entreprise) return showErr('Merci d\'entrer votre entreprise.');
     if (!cat)        return showErr('Merci de sélectionner votre secteur.');
     if (!metier)     return showErr('Merci de préciser votre métier.');
     if (!taille)     return showErr('Merci de sélectionner la taille de votre équipe.');
     if (!anciennete) return showErr('Merci de sélectionner votre ancienneté.');
     if (!gestion)    return showErr('Merci de sélectionner votre mode de gestion.');
-    if (!whatsapp)   return showErr('Merci d\'entrer votre numéro WhatsApp.');
+    if (!telephone)  return showErr('Merci d\'entrer votre numéro de téléphone.');
+    if (!email)      return showErr('Merci d\'entrer votre email.');
     if (!dispo)      return showErr('Merci d\'indiquer vos disponibilités.');
 
     const difficultes = ['pb1','pb2','pb3','pb4','pb5','pb6']
@@ -490,8 +502,8 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prenom, secteur: catLabel, metier, taille, anciennete, gestion,
-          whatsapp, dispo, difficultes, score, statut,
+          prenom, nom, entreprise, secteur: catLabel, metier, taille, anciennete, gestion,
+          telephone, email, dispo, difficultes, score, statut,
           douleur: document.getElementById('douleur').value.trim() || '—'
         })
       });

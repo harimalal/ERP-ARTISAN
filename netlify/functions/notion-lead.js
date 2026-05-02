@@ -18,7 +18,7 @@ exports.handler = async function(event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Données invalides' }) };
   }
 
-  const { prenom, secteur, metier, taille, anciennete, gestion, whatsapp, dispo, difficultes, douleur, score, statut } = data;
+  const { prenom, nom, entreprise, secteur, metier, taille, anciennete, gestion, telephone, email, dispo, difficultes, douleur, score, statut } = data;
 
   try {
     const res = await fetch('https://api.notion.com/v1/pages', {
@@ -32,9 +32,12 @@ exports.handler = async function(event) {
         parent: { database_id: NOTION_DB_ID },
         properties: {
           'Prénom':           { title: [{ text: { content: prenom || '' } }] },
+          'Nom':              { rich_text: [{ text: { content: nom || '' } }] },
+          'Entreprise':       { rich_text: [{ text: { content: entreprise || '' } }] },
           'Statut':           { select: { name: statut || '❄️ Froid' } },
           'Score':            { number: score || 0 },
-          'WhatsApp':         { rich_text: [{ text: { content: whatsapp || '' } }] },
+          'Téléphone':        { rich_text: [{ text: { content: telephone || '' } }] },
+          'Email':            { rich_text: [{ text: { content: email || '' } }] },
           'Secteur':          { rich_text: [{ text: { content: secteur || '' } }] },
           'Métier':           { rich_text: [{ text: { content: metier || '' } }] },
           'Taille équipe':    { select: { name: taille || '' } },
