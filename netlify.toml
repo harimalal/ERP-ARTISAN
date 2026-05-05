@@ -49,3 +49,10 @@
   for = "/*.html"
   [headers.values]
     Cache-Control = "no-cache"
+
+# Slideshow — autorisé en iframe same-origin pour intégration landing
+[[headers]]
+  for = "/arteasy-slideshow.html"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    Content-Security-Policy = "frame-ancestors 'self'"
