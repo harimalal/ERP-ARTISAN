@@ -339,7 +339,7 @@ html, body {
             <input type="checkbox" id="rememberMe">
             Se souvenir de moi
           </label>
-          <a href="#" class="link-forgot">Mot de passe oublié&nbsp;?</a>
+          <a href="#" class="link-forgot" onclick="showForgot();return false;">Mot de passe oublié&nbsp;?</a>
         </div>
 
         <button class="btn-submit" onclick="handleLogin(this)">Se connecter</button>
@@ -398,6 +398,48 @@ html, body {
 
       </div>
 
+      <!-- ── ONGLET MOT DE PASSE OUBLIÉ ── -->
+      <div class="tab-panel" id="panel-forgot">
+        <div class="form-group">
+          <label class="form-label">Adresse e-mail</label>
+          <input class="form-input" type="email" id="forgotEmail" placeholder="vous@exemple.fr" autocomplete="email">
+        </div>
+        <button class="btn-submit" onclick="handleForgot(this)">Envoyer le lien de réinitialisation</button>
+        <div class="switch-link">
+          <a href="#" onclick="switchTab('login');return false;">← Retour à la connexion</a>
+        </div>
+      </div>
+
+      <!-- ── ONGLET RÉINITIALISATION (nouveau mot de passe) ── -->
+      <div class="tab-panel" id="panel-reset">
+        <div class="form-group">
+          <label class="form-label">Nouveau mot de passe</label>
+          <div class="input-wrap">
+            <input class="form-input" type="password" id="resetPassword" placeholder="8 caractères minimum" autocomplete="new-password">
+            <button class="eye-btn" type="button" onclick="togglePwd('resetPassword', this)" aria-label="Afficher le mot de passe">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirmer le mot de passe</label>
+          <div class="input-wrap">
+            <input class="form-input" type="password" id="resetPassword2" placeholder="Répétez le mot de passe" autocomplete="new-password">
+            <button class="eye-btn" type="button" onclick="togglePwd('resetPassword2', this)" aria-label="Afficher le mot de passe">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <button class="btn-submit" onclick="handleReset(this)">Mettre à jour le mot de passe</button>
+        <div class="switch-link">
+          <a href="#" onclick="switchTab('login');return false;">← Retour à la connexion</a>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -409,20 +451,35 @@ html, body {
 // ── SWITCH ONGLETS ─────────────────────────────
 function switchTab(tab) {
   const isLogin = tab === 'login';
+  const isSignup = tab === 'signup';
+  const isForgot = tab === 'forgot';
+  const isReset = tab === 'reset';
 
   document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', isLogin ? i === 0 : i === 1);
+    b.classList.toggle('active', isLogin ? i === 0 : isSignup ? i === 1 : false);
   });
 
   document.getElementById('panel-login').classList.toggle('active', isLogin);
-  document.getElementById('panel-signup').classList.toggle('active', !isLogin);
+  document.getElementById('panel-signup').classList.toggle('active', isSignup);
+  document.getElementById('panel-forgot').classList.toggle('active', isForgot);
+  document.getElementById('panel-reset').classList.toggle('active', isReset);
 
-  document.getElementById('authTitle').textContent = isLogin ? 'Bon retour.' : 'Commençons.';
+  document.getElementById('authTitle').textContent = isLogin ? 'Bon retour.' : isSignup ? 'Commençons.' : isForgot ? 'Mot de passe oublié.' : 'Nouveau mot de passe.';
   document.getElementById('authSub').textContent = isLogin
     ? 'Connectez-vous à votre espace ARTEASY.'
-    : 'Créez votre compte — c\'est gratuit et sans engagement.';
+    : isSignup
+      ? 'Créez votre compte — c\'est gratuit et sans engagement.'
+      : isForgot
+        ? 'Saisissez votre e-mail, nous vous enverrons un lien.'
+        : 'Choisissez un nouveau mot de passe.';
 
   hideMsg();
+}
+
+// ── AFFICHER LE PANNEAU MOT DE PASSE OUBLIÉ ────
+function showForgot() {
+  switchTab('forgot');
+  document.getElementById('forgotEmail').value = document.getElementById('loginEmail').value.trim();
 }
 
 // ── TOGGLE MOT DE PASSE ───────────────────────
@@ -550,6 +607,93 @@ document.addEventListener('keydown', (e) => {
     handleSignup(document.querySelector('#panel-signup .btn-submit'));
   }
 });
+
+// ── MOT DE PASSE OUBLIÉ ───────────────────────
+async function handleForgot(btn) {
+  hideMsg();
+  const email = document.getElementById('forgotEmail').value.trim();
+
+  if (!email) { showMsg('Veuillez saisir votre adresse e-mail.'); return; }
+  if (!validateEmail(email)) { showMsg('Adresse e-mail invalide.'); return; }
+
+  btn.classList.add('loading');
+  btn.dataset.orig = btn.textContent;
+  btn.textContent = 'Envoi en cours';
+
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    const supabase = createClient(
+      document.querySelector('meta[name="supa-url"]').content,
+      document.querySelector('meta[name="supa-key"]').content
+    );
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/login.html'
+    });
+
+    btn.classList.remove('loading');
+    btn.textContent = btn.dataset.orig;
+
+    if (error) {
+      showMsg(error.message || 'Erreur lors de l\'envoi du lien.');
+      return;
+    }
+
+    showMsg('Si un compte existe avec cet e-mail, un lien de réinitialisation a été envoyé. Vérifiez votre boîte de réception.', 'success');
+  } catch (err) {
+    btn.classList.remove('loading');
+    btn.textContent = btn.dataset.orig;
+    showMsg('Erreur d\'envoi. Réessayez.');
+  }
+}
+
+// ── RÉINITIALISATION DU MOT DE PASSE ──────────
+async function handleReset(btn) {
+  hideMsg();
+  const pwd = document.getElementById('resetPassword').value;
+  const pwd2 = document.getElementById('resetPassword2').value;
+
+  if (pwd.length < 8) { showMsg('Le mot de passe doit contenir au moins 8 caractères.'); return; }
+  if (pwd !== pwd2) { showMsg('Les deux mots de passe ne correspondent pas.'); return; }
+
+  btn.classList.add('loading');
+  btn.dataset.orig = btn.textContent;
+  btn.textContent = 'Mise à jour en cours';
+
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    const supabase = createClient(
+      document.querySelector('meta[name="supa-url"]').content,
+      document.querySelector('meta[name="supa-key"]').content
+    );
+    const { error } = await supabase.auth.updateUser({ password: pwd });
+
+    btn.classList.remove('loading');
+    btn.textContent = btn.dataset.orig;
+
+    if (error) {
+      showMsg(error.message || 'Erreur lors de la mise à jour.');
+      return;
+    }
+
+    showMsg('Mot de passe mis à jour ! Vous pouvez vous connecter.', 'success');
+    setTimeout(() => { switchTab('login'); }, 2000);
+  } catch (err) {
+    btn.classList.remove('loading');
+    btn.textContent = btn.dataset.orig;
+    showMsg('Erreur de mise à jour. Réessayez.');
+  }
+}
+
+// ── DÉTECTION DU TOKEN DE RÉINITIALISATION ────
+(async function detectResetToken() {
+  // Supabase place le token dans le hash de l'URL (#access_token=...)
+  const hash = window.location.hash;
+  if (hash && (hash.includes('access_token') || hash.includes('type=recovery'))) {
+    // Le SDK récupère automatiquement la session depuis le hash.
+    // On affiche directement le panneau de réinitialisation.
+    switchTab('reset');
+  }
+})();
 </script>
 </body>
 </html>
