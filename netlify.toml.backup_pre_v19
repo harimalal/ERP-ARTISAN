@@ -1,0 +1,51 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[dev]
+  port = 8888
+  targetPort = 3000
+
+# Routes principales
+[[redirects]]
+  from = "/login"
+  to = "/login.html"
+  status = 200
+
+[[redirects]]
+  from = "/questionnaire"
+  to = "/questionnaire.html"
+  status = 200
+
+[[redirects]]
+  from = "/app"
+  to = "/app.html"
+  status = 200
+
+# Sécurité : headers sur toutes les pages
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# JS — chargement immédiat depuis cache + vérification en arrière-plan
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, stale-while-revalidate=86400"
+
+# CSS — même stratégie
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, stale-while-revalidate=86400"
+
+# HTML — vérifie toujours (app.html change souvent)
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache"

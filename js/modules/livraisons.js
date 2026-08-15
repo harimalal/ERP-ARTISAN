@@ -17,10 +17,11 @@ import {
   getCommandes, getClients, getProduits,
   updateProduitStock, addMouvement,
   updateCommandeStatut, getTenant,
+  createFactureLignes, nextRefServeur, getFactureLignes,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, badgeFac, showToast, today,
-  openModal, closeModal, nextRef,
+  openModal, closeModal,
 } from '../ui.js';
 
 let _factures  = [];
@@ -150,22 +151,59 @@ export async function saveLivraison() {
     }
 
     /* Créer la livraison */
-    await createLivraison({ commande_id: commandeId, ref: nextRef('LIV', []), date_livraison: date, statut: 'livree' });
+    await createLivraison({ commande_id: commandeId, ref: await nextRefServeur('LIV'), date_livraison: date, statut: 'livree' });
 
     /* Créer la facture si inexistante — statut par défaut : 'a_lancer' */
     const dejafac = await factureExistePourCommande(commandeId);
     if (!dejafac) {
       const tot = (c.commande_lignes || []).reduce((s, l) => s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
+
+      /* TVA multi-taux : taux par défaut du tenant */
+      let tauxTva = 20;
+      try {
+        const tenant = await getTenant();
+        if (tenant && tenant.taux_tva != null) tauxTva = Number(tenant.taux_tva);
+      } catch (_) {}
+
+      /* Résoudre le client pour les mentions légales (SIREN, adresse) */
+      let clientId = c.client_id || null;
+      let siretClient = '';
+      let adresseClient = '';
+      try {
+        const client = clientId
+          ? _clients.find(x => x.id === clientId)
+          : _clients.find(x => x.nom === c.client_nom);
+        if (client) {
+          clientId = client.id;
+          siretClient = client.siret || '';
+          adresseClient = client.adresse || '';
+        }
+      } catch (_) {}
+
       const fac = await createFacture({
-        ref:          nextRef('FAC', _factures),
-        commande_id:  commandeId,
-        client_nom:   c.client_nom,
-        montant_ht:   tot,
-        taux_tva:     20,
-        statut:       'a_lancer',   /* Fix S11 — défaut À lancer */
-        date_facture: date,
+        ref:           await nextRefServeur('FAC'),
+        commande_id:   commandeId,
+        client_id:     clientId,
+        client_nom:    c.client_nom,
+        siret_client:  siretClient,
+        adresse_client: adresseClient,
+        montant_ht:    tot,
+        taux_tva:      tauxTva,
+        statut:        'a_lancer',   /* Fix S11 — défaut À lancer */
+        date_facture:  date,
       });
       _factures.unshift(fac);
+
+      /* Figer les lignes de facture (copie depuis la commande) */
+      const lignesFigees = (c.commande_lignes || []).map(l => ({
+        produit_id:    l.produit_id,
+        produit_nom:   l.produit_nom,
+        quantite:      l.quantite,
+        prix_unitaire: l.prix_unitaire,
+        taux_tva:      tauxTva,
+        total_ht:      l.total_ht || (l.quantite * l.prix_unitaire),
+      }));
+      await createFactureLignes(fac.id, lignesFigees);
     }
 
     /* Clôturer la commande — isolé pour ne pas bloquer */
@@ -264,12 +302,26 @@ async function _saveNewFacture() {
   const clientNom = document.getElementById('nfClient').value;
   const montant   = parseFloat(document.getElementById('nfMontant').value) || 0;
   if (!clientNom || !montant) { showToast('⚠ Client et montant requis.', 'error'); return; }
-  const ref = nextRef('FAC', _factures);
+  const ref = await nextRefServeur('FAC');
   try {
+    /* Résoudre le client pour les mentions légales */
+    let clientId = null, siretClient = '', adresseClient = '';
+    try {
+      const client = _clients.find(x => x.nom === clientNom);
+      if (client) {
+        clientId = client.id;
+        siretClient = client.siret || '';
+        adresseClient = client.adresse || '';
+      }
+    } catch (_) {}
+
     const fac = await createFacture({
       ref,
       date_facture: document.getElementById('nfDate').value || today(),
+      client_id:    clientId,
       client_nom:   clientNom,
+      siret_client: siretClient,
+      adresse_client: adresseClient,
       montant_ht:   montant,
       taux_tva:     parseFloat(document.getElementById('nfTva').value) || 20,
       statut:       document.getElementById('nfStatut').value,
@@ -293,11 +345,16 @@ async function _aperçuPdfFac(id) {
   if (!f) return;
   const c = _commandes.find(x => x.id === f.commande_id);
   const t = await getTenant() || {};
-  _ouvrirFenetrePDFFac(f, t, c);
+  /* Lignes figées : priorité à facture_lignes, sinon fallback commande */
+  let lignes = [];
+  try {
+    lignes = await getFactureLignes(f.id);
+  } catch (_) {}
+  if (!lignes.length && c) lignes = c.commande_lignes || [];
+  _ouvrirFenetrePDFFac(f, t, c, lignes);
 }
 
-function _ouvrirFenetrePDFFac(f, t, c) {
-  const lignes = c ? (c.commande_lignes || []) : [];
+function _ouvrirFenetrePDFFac(f, t, c, lignes) {
   const montantHT = f.montant_ht || 0;
   const tvaRate = f.taux_tva || 20;
   const tva = montantHT * (tvaRate / 100);
@@ -370,6 +427,10 @@ function _ouvrirFenetrePDFFac(f, t, c) {
       <div>
         <div class="plbl">Facturé à</div>
         <div class="pnom">${esc(f.client_nom || '—')}</div>
+        <div class="pinfo">
+          ${f.adresse_client ? esc(f.adresse_client) + '<br>' : ''}
+          ${f.siret_client ? '<strong>SIRET : ' + esc(f.siret_client) + '</strong>' : ''}
+        </div>
       </div>
     </div>
     <table>

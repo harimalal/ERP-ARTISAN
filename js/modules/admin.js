@@ -76,6 +76,8 @@ function _renderEntreprise() {
   set('me_web', 'site'); set('me_iban', 'iban'); set('me_cpt', 'cpt_paiement');
   const forme = document.getElementById('me_forme');
   if (forme && me.forme) forme.value = me.forme;
+  const tauxTva = document.getElementById('me_taux_tva');
+  if (tauxTva) tauxTva.value = (me.taux_tva != null ? me.taux_tva : 20);
 }
 
 function _bindEntrepriseForm() {
@@ -91,6 +93,7 @@ function _bindEntrepriseForm() {
       site:         document.getElementById('me_web').value,
       iban:         document.getElementById('me_iban').value,
       cpt_paiement: document.getElementById('me_cpt').value,
+      taux_tva:     parseFloat(document.getElementById('me_taux_tva')?.value) || 20,
     };
     try {
       await updateTenant(data);

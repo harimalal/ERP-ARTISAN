@@ -9,10 +9,11 @@ import {
   getCommandes, createCommande, avancerStatutCommande,
   deleteCommande, getClients, getProduits, getArticles,
   createAchat, achatDoublonExiste, getAchats,
+  upsertClient, nextRefServeur,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, badgeCmd, showToast, today,
-  openModal, closeModal, nextRef, confirmDialog,
+  openModal, closeModal, confirmDialog,
 } from '../ui.js';
 
 /* Cache local */
@@ -295,16 +296,24 @@ async function _saveCommande() {
     return;
   }
 
-  const ref = nextRef('CMD', _commandes);
+  const ref = await nextRefServeur('CMD');
 
   try {
+    /* Résoudre le client en client_id (lien réel, pas juste le nom) */
+    let clientId = null;
+    if (clientNom && clientNom !== 'Client inconnu') {
+      const client = await upsertClient(clientNom);
+      clientId = client ? client.id : null;
+    }
+
     /* Créer la commande avec son UUID Supabase */
     const cmd = await createCommande({
       ref,
-      client_nom:     clientNom,
-      date_cmd:       date,
+      client_id:     clientId,
+      client_nom:    clientNom,
+      date_cmd:      date,
       date_livraison: dateLiv,
-      statut:         'a_produire',
+      statut:        'a_produire',
       notes,
     }, lignes);
 
@@ -351,7 +360,7 @@ async function _analyserStock(cmd, lignes) {
     const doublon = await achatDoublonExiste(aref, cmd.ref);
     if (doublon) continue;
 
-    const bcRef = nextRef('BC', await getAchats());
+    const bcRef = await nextRefServeur('BC');
     await createAchat({
       ref:         bcRef,
       article_id:  a.id,

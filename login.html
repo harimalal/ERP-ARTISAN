@@ -448,6 +448,21 @@ html, body {
 </div>
 
 <script>
+// ── CLIENT SUPABASE PARTAGÉ ──────────────────
+// Créé une seule fois, réutilisé partout. Le SDK détecte
+// automatiquement le token de recovery dans le hash de l'URL
+// au moment de la création du client.
+let _supabase = null;
+async function getSupabase() {
+  if (_supabase) return _supabase;
+  const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+  _supabase = createClient(
+    document.querySelector('meta[name="supa-url"]').content,
+    document.querySelector('meta[name="supa-key"]').content
+  );
+  return _supabase;
+}
+
 // ── SWITCH ONGLETS ─────────────────────────────
 function switchTab(tab) {
   const isLogin = tab === 'login';
@@ -524,11 +539,7 @@ async function handleLogin(btn) {
   btn.textContent = 'Connexion en cours';
 
   try {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    const supabase = createClient(
-      document.querySelector('meta[name="supa-url"]').content,
-      document.querySelector('meta[name="supa-key"]').content
-    );
+    const supabase = await getSupabase();
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     btn.classList.remove('loading');
@@ -567,11 +578,7 @@ async function handleSignup(btn) {
   btn.textContent = 'Création en cours';
 
   try {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    const supabase = createClient(
-      document.querySelector('meta[name="supa-url"]').content,
-      document.querySelector('meta[name="supa-key"]').content
-    );
+    const supabase = await getSupabase();
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -621,13 +628,9 @@ async function handleForgot(btn) {
   btn.textContent = 'Envoi en cours';
 
   try {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    const supabase = createClient(
-      document.querySelector('meta[name="supa-url"]').content,
-      document.querySelector('meta[name="supa-key"]').content
-    );
+    const supabase = await getSupabase();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/login.html'
+      redirectTo: window.location.origin + '/login'
     });
 
     btn.classList.remove('loading');
@@ -660,22 +663,36 @@ async function handleReset(btn) {
   btn.textContent = 'Mise à jour en cours';
 
   try {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    const supabase = createClient(
-      document.querySelector('meta[name="supa-url"]').content,
-      document.querySelector('meta[name="supa-key"]').content
-    );
+    const supabase = await getSupabase();
+
+    // Vérifier qu'une session de récupération est bien active.
+    // Sans elle, updateUser échoue avec une erreur générique.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      btn.classList.remove('loading');
+      btn.textContent = btn.dataset.orig;
+      showMsg('Lien de réinitialisation expiré ou invalide. Redemandez un nouveau lien.');
+      return;
+    }
+
     const { error } = await supabase.auth.updateUser({ password: pwd });
 
     btn.classList.remove('loading');
     btn.textContent = btn.dataset.orig;
 
     if (error) {
-      showMsg(error.message || 'Erreur lors de la mise à jour.');
+      // Cas fréquent : token recovery expiré entre l'ouverture et le clic.
+      if (error.message && /expired|expiré|token|jwt/i.test(error.message)) {
+        showMsg('Lien de réinitialisation expiré. Redemandez un nouveau lien.');
+      } else {
+        showMsg(error.message || 'Erreur lors de la mise à jour.');
+      }
       return;
     }
 
     showMsg('Mot de passe mis à jour ! Vous pouvez vous connecter.', 'success');
+    // Déconnecter toute session résiduelle pour éviter un état incohérent.
+    await supabase.auth.signOut();
     setTimeout(() => { switchTab('login'); }, 2000);
   } catch (err) {
     btn.classList.remove('loading');
@@ -686,12 +703,26 @@ async function handleReset(btn) {
 
 // ── DÉTECTION DU TOKEN DE RÉINITIALISATION ────
 (async function detectResetToken() {
-  // Supabase place le token dans le hash de l'URL (#access_token=...)
+  // Supabase place le token dans le hash de l'URL (#access_token=...&type=recovery).
   const hash = window.location.hash;
   if (hash && (hash.includes('access_token') || hash.includes('type=recovery'))) {
-    // Le SDK récupère automatiquement la session depuis le hash.
-    // On affiche directement le panneau de réinitialisation.
-    switchTab('reset');
+    // Le SDK récupère la session depuis le hash à la création du client.
+    // On force la récupération explicite pour garantir que la session
+    // recovery est active avant d'afficher le panneau de reset.
+    try {
+      const supabase = await getSupabase();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        switchTab('reset');
+      } else {
+        // Token présent mais session non récupérable → lien expiré.
+        switchTab('forgot');
+        showMsg('Lien de réinitialisation expiré. Redemandez un nouveau lien.');
+      }
+    } catch {
+      switchTab('forgot');
+      showMsg('Lien de réinitialisation invalide. Redemandez un nouveau lien.');
+    }
   }
 })();
 </script>

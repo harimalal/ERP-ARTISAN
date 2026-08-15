@@ -8,11 +8,11 @@
 import {
   getAchats, createAchat, updateAchat, deleteAchat,
   getArticles, getFournisseurs, getTenant,
-  updateArticleStock, addMouvement,
+  updateArticleStock, addMouvement, nextRefServeur,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, badgeAchat, showToast, today,
-  openModal, closeModal, nextRef, confirmDialog,
+  openModal, closeModal, confirmDialog,
 } from '../ui.js';
 
 let _achats       = [];
@@ -325,7 +325,10 @@ async function _saveAchat() {
       const bcExistant = groupes
         .filter(g => g.fournisseur === fourn && g.statut === 'brouillon')
         .sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] || null;
-      const bcRef = bcExistant ? bcExistant.ref : nextRef('BC', _achats);
+      const bcRef = bcExistant ? bcExistant.ref : await nextRefServeur('BC');
+      /* Résoudre le fournisseur_id (lien réel) */
+      const fournObj = _fournisseurs.find(x => x.nom === fourn) || null;
+      const fournisseurId = fournObj ? fournObj.id : null;
       let nbCrees = 0, nbCumules = 0;
       for (const { ligne, a } of items) {
         const prix = ligne.prix > 0 ? ligne.prix : (a ? a.prix : 0);
@@ -338,7 +341,7 @@ async function _saveAchat() {
           if (idx >= 0) { _achats[idx].quantite = newQte; _achats[idx].montant_ht = newMontant; }
           nbCumules++;
         } else {
-          const bc = await createAchat({ ref: bcRef, article_id: ligne.articleId, article_nom: ligne.nom || (a ? a.nom : ''), quantite: ligne.qte, prix_unitaire: prix, montant_ht: ligne.qte * prix, fournisseur: fourn, statut: 'brouillon', ref_commande: refCommande, notes, date_cmd: date });
+          const bc = await createAchat({ ref: bcRef, article_id: ligne.articleId, article_nom: ligne.nom || (a ? a.nom : ''), quantite: ligne.qte, prix_unitaire: prix, montant_ht: ligne.qte * prix, fournisseur: fourn, fournisseur_id: fournisseurId, statut: 'brouillon', ref_commande: refCommande, notes, date_cmd: date });
           _achats.unshift(bc);
           nbCrees++;
         }

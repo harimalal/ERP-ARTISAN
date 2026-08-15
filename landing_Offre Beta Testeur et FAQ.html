@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AppMee — Votre activité, centralisée, sécurisée, optimisée.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --tc:#C0543A;--tc-d:#9B3F28;--tc-l:#E8846E;
+  --cream:#F5F0E8;--cream-d:#EDE7DA;
+  --ink:#1A1410;--ink-m:#3D2E26;--ink-s:#7A6258;
+  --white:#FEFCF8;--olive:#6B7056;
+}
+html{scroll-behavior:smooth;}
+body{font-family:'DM Sans',sans-serif;background:var(--white);color:var(--ink);overflow-x:hidden;}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:16px 48px;background:rgba(26,20,16,0.97);backdrop-filter:blur(12px);border-bottom:1px solid rgba(192,84,58,0.18);}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.nav-logo-ico{width:32px;height:32px;background:var(--tc);border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.nav-logo-ico svg{width:17px;height:17px;fill:white;}
+.nav-logo-name{font-weight:600;font-size:16px;color:white;letter-spacing:-.3px;}
+.nav-logo-tag{font-size:10px;font-weight:600;color:var(--tc-l);background:rgba(192,84,58,0.15);padding:2px 7px;border-radius:20px;border:1px solid rgba(192,84,58,0.3);}
+.nav-cta{background:var(--tc);color:white;border:none;cursor:pointer;padding:10px 22px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;text-decoration:none;transition:background .2s;}
+.nav-cta:hover{background:var(--tc-d);}
+
+/* HERO */
+.hero{min-height:100vh;background:var(--cream);display:grid;grid-template-columns:1fr 1fr;align-items:center;padding:120px 48px 80px;position:relative;overflow:hidden;gap:60px;}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 60% at 65% 50%,rgba(192,84,58,0.06) 0%,transparent 70%);pointer-events:none;}
+.hero-left{position:relative;z-index:1;}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--tc);margin-bottom:26px;animation:fadeUp .6s ease both;}
+.hero-eyebrow::before{content:'';display:block;width:28px;height:1px;background:var(--tc);}
+.hero-title{font-family:'Playfair Display',serif;font-size:clamp(36px,4vw,60px);font-weight:900;line-height:1.06;color:var(--ink);margin-bottom:10px;letter-spacing:-1px;animation:fadeUp .7s .1s ease both;}
+.hero-title-sub{font-family:'Playfair Display',serif;font-size:clamp(36px,4vw,60px);font-weight:900;font-style:normal;color:var(--tc);margin-bottom:28px;line-height:1.06;letter-spacing:-1px;animation:fadeUp .7s .15s ease both;}
+.hero-hook{font-size:16px;line-height:1.7;color:var(--ink-s);max-width:440px;margin-bottom:40px;font-weight:300;animation:fadeUp .7s .2s ease both;}
+.hero-hook strong{color:var(--ink);font-weight:500;}
+.hero-cta-group{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:52px;animation:fadeUp .7s .3s ease both;}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;background:var(--tc);color:white;padding:14px 26px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;text-decoration:none;transition:all .2s;letter-spacing:-.2px;}
+.btn-primary:hover{background:var(--tc-d);transform:translateY(-1px);box-shadow:0 8px 24px rgba(192,84,58,.35);}
+.btn-ghost{color:var(--ink-s);font-size:14px;font-weight:400;text-decoration:none;transition:color .2s;}
+.btn-ghost:hover{color:var(--ink);}
+.hero-stats{display:flex;gap:28px;animation:fadeUp .7s .4s ease both;}
+.hero-stat-num{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--ink);letter-spacing:-.5px;}
+.hero-stat-num span{color:var(--tc);}
+.hero-stat-label{font-size:11px;color:var(--ink-s);margin-top:2px;}
+.hero-right{position:relative;z-index:1;display:flex;justify-content:center;align-items:center;animation:fadeUp .8s .2s ease both;}
+
+/* Device frame */
+.device-frame{width:100%;max-width:600px;}
+.device-browser{background:#E0D8CE;border-radius:14px;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.06);}
+.device-toolbar{background:#C8C0B6;padding:10px 14px;display:flex;align-items:center;gap:10px;}
+.device-dots{display:flex;gap:5px;}
+.device-dot{width:10px;height:10px;border-radius:50%;}
+.device-dot:nth-child(1){background:#FF5F57;}.device-dot:nth-child(2){background:#FFBD2E;}.device-dot:nth-child(3){background:#28C840;}
+.device-url{flex:1;background:rgba(255,255,255,.5);border-radius:4px;padding:4px 10px;font-size:11px;color:var(--ink-s);font-family:'DM Sans',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.device-screen{position:relative;overflow:hidden;background:#F5F0E8;}
+.screen-slide{position:absolute;inset:0;opacity:0;transition:opacity .4s ease;}
+.screen-slide.active{opacity:1;position:relative;}
+.screen-slide svg{width:100%;height:auto;display:block;}
+.slide-nav{display:flex;justify-content:center;gap:6px;margin-top:14px;}
+.slide-dot{width:22px;height:3px;border-radius:2px;background:var(--cream-d);cursor:pointer;transition:background .3s,width .3s;}
+.slide-dot.active{background:var(--tc);width:34px;}
+.slide-caption{text-align:center;margin-top:10px;font-size:12px;color:var(--ink-s);min-height:16px;}
+
+/* PAIN */
+.section-pain{background:var(--white);padding:96px 48px;}
+.section-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--tc);margin-bottom:18px;}
+.section-eyebrow::before{content:'';display:block;width:28px;height:1px;background:var(--tc);}
+.section-title{font-family:'Playfair Display',serif;font-size:clamp(30px,3.2vw,48px);font-weight:700;line-height:1.1;color:var(--ink);margin-bottom:14px;letter-spacing:-.5px;}
+.section-sub{font-size:16px;color:var(--ink-s);max-width:500px;line-height:1.6;margin-bottom:52px;font-weight:300;}
+.section-sub-3lines{margin-bottom:52px;}
+.section-sub-3lines p{font-size:18px;color:var(--ink-s);font-weight:300;line-height:1.5;margin-bottom:2px;}
+.pain-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1100px;}
+.pain-card{background:var(--cream);border-radius:12px;overflow:hidden;}
+.pain-card-header{background:white;padding:16px 22px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;color:var(--tc);}
+.pain-card-body{padding:20px 22px;}
+
+.pain-text{font-size:13.5px;color:var(--ink-m);line-height:1.65;font-weight:300;}
+
+/* SCREENS */
+.section-screens{background:var(--cream);padding:96px 48px;overflow:hidden;}
+.section-screens .section-title{color:var(--ink);}
+.section-screens .section-sub{color:var(--ink-s);margin-bottom:52px;}
+.screens-container{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;max-width:1100px;}
+.screens-tabs{display:flex;flex-direction:column;gap:3px;}
+.screen-tab{padding:16px 20px;border-radius:10px;cursor:pointer;display:flex;align-items:flex-start;gap:14px;transition:all .25s;border:1px solid transparent;}
+.screen-tab.active{background:white;border-color:var(--cream-d);}
+.screen-tab:hover:not(.active){background:white;}
+.screen-tab-num{font-size:11px;font-weight:700;color:var(--sand);padding-top:2px;min-width:18px;transition:color .25s;}
+.screen-tab.active .screen-tab-num{color:var(--tc);}
+.screen-tab-title{font-size:14px;font-weight:600;color:var(--ink-s);margin-bottom:3px;transition:color .25s;}
+.screen-tab.active .screen-tab-title{color:var(--ink);}
+.screen-tab-desc{font-size:12.5px;color:var(--ink-s);line-height:1.5;font-weight:300;display:none;}
+.screen-tab.active .screen-tab-desc{display:block;color:var(--ink-s);}
+.screen-preview-frame{background:#E8E2D8;border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.1),0 0 0 1px rgba(0,0,0,.06);}
+.screen-preview-bar{background:#D8D0C8;padding:9px 14px;display:flex;align-items:center;gap:8px;}
+.screen-preview-dots{display:flex;gap:4px;}
+.screen-preview-dot{width:8px;height:8px;border-radius:50%;opacity:.5;}
+.screen-preview-dot:nth-child(1){background:#FF5F57;}.screen-preview-dot:nth-child(2){background:#FFBD2E;}.screen-preview-dot:nth-child(3){background:#28C840;}
+.screen-preview-wrap{background:#F5F0E8;overflow:hidden;}
+.screen-preview-wrap svg{width:100%;height:auto;display:block;transition:opacity .3s;}
+
+/* BETA */
+.section-beta{background:var(--white);padding:96px 48px;}
+.beta-inner{max-width:900px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:stretch;}
+.beta-badge{display:inline-flex;align-items:center;gap:8px;background:var(--ink);color:white;padding:8px 16px;border-radius:30px;font-size:12px;font-weight:600;letter-spacing:.5px;margin-bottom:22px;}
+.beta-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px rgba(74,222,128,.5);animation:pulse-green 2s infinite;}
+@keyframes pulse-green{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.7;transform:scale(1.3);}}
+.beta-give{background:white;border-radius:14px;padding:32px 28px;border:1px solid var(--cream-d);height:100%;}
+.beta-give-title{font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--ink-s);margin-bottom:20px;}
+.beta-item{display:flex;align-items:flex-start;gap:13px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--cream-d);}
+.beta-item:last-child{margin-bottom:0;padding-bottom:0;border:none;}
+.beta-item-ico{width:34px;height:34px;min-width:34px;border-radius:8px;background:white;border:1px solid var(--cream-d);display:flex;align-items:center;justify-content:center;font-size:15px;}
+.beta-item-text{font-size:13.5px;line-height:1.55;color:var(--ink-m);}
+.beta-item-text strong{color:var(--ink);font-weight:600;}
+.beta-ask{background:var(--cream-d);border-radius:14px;padding:32px 28px;color:var(--ink);height:100%;}
+.beta-ask-title{font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--ink-s);margin-bottom:20px;}
+.beta-ask-item{display:flex;align-items:flex-start;gap:12px;margin-bottom:15px;}
+.beta-ask-item-dot{width:6px;height:6px;min-width:6px;border-radius:50%;background:var(--tc);margin-top:7px;}
+.beta-ask-item-text{font-size:14px;color:var(--ink-m);line-height:1.55;font-weight:300;}
+.beta-ask-item-text strong{color:var(--ink);font-weight:600;}
+.beta-pricing{margin-top:26px;padding-top:22px;border-top:1px solid rgba(0,0,0,.08);}
+.beta-pricing-label{font-size:11px;color:var(--ink-s);margin-bottom:7px;}
+.beta-pricing-val{font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:var(--ink);letter-spacing:-1px;}
+.beta-pricing-val span{font-size:15px;color:var(--ink-s);font-family:'DM Sans',sans-serif;font-weight:300;}
+.beta-pricing-note{font-size:12.5px;color:var(--ink-s);margin-top:5px;}
+
+/* FAQ */
+.section-faq{background:var(--white);padding:80px 48px;border-top:1px solid var(--cream-d);}
+.faq-max{max-width:800px;}
+.faq-item{border-bottom:none;background:white;border-radius:10px;border:1px solid var(--cream-d);margin-bottom:10px;}
+.faq-q{width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;gap:16px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:var(--ink);transition:color .2s;}
+.faq-q:hover{color:var(--tc);}
+.faq-q-icon{width:22px;height:22px;min-width:22px;border:1.5px solid var(--cream-d);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--ink-s);transition:all .2s;font-weight:300;}
+.faq-item.open .faq-q-icon{background:var(--tc);border-color:var(--tc);color:white;transform:rotate(45deg);}
+.faq-a{display:none;padding:0 20px 20px;font-size:14px;color:var(--ink-s);line-height:1.68;font-weight:300;max-width:640px;}
+.faq-item.open .faq-a{display:block;}
+
+/* CTA FINAL */
+.section-final{background:var(--cream);padding:96px 48px;text-align:center;position:relative;overflow:hidden;border-top:1px solid var(--cream-d);}
+.section-final::before{content:'';position:absolute;top:-50%;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(192,84,58,.07) 0%,transparent 70%);pointer-events:none;}
+.final-form-wrap{background:white;border-radius:16px;padding:48px 40px;max-width:500px;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,.06);border:1px solid var(--cream-d);}
+.final-counter{display:inline-flex;align-items:center;gap:10px;background:rgba(192,84,58,.1);border:1px solid rgba(192,84,58,.25);color:var(--tc);padding:8px 18px;border-radius:30px;font-size:13px;font-weight:600;margin-bottom:30px;letter-spacing:.3px;}
+.final-title{font-family:'Playfair Display',serif;font-size:clamp(34px,4vw,56px);font-weight:700;color:var(--ink);line-height:1.1;margin-bottom:18px;letter-spacing:-.5px;}
+.final-title em{font-style:italic;color:var(--tc);}
+.final-sub{font-size:16px;color:var(--ink-s);max-width:440px;margin:0 auto 44px;line-height:1.65;font-weight:300;}
+.beta-form{display:flex;flex-direction:column;gap:13px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+.form-field{display:flex;flex-direction:column;gap:6px;}
+.form-label{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--ink-s);}
+.form-input{background:white;border:1px solid var(--cream-d);border-radius:8px;padding:13px 15px;color:var(--ink);font-family:'DM Sans',sans-serif;font-size:14px;transition:border-color .2s;outline:none;}
+.form-input::placeholder{color:var(--sand);}
+.form-input:focus{border-color:var(--tc);}
+.form-submit{background:var(--tc);color:white;border:none;cursor:pointer;padding:15px 28px;border-radius:8px;margin-top:4px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px;}
+.form-submit:hover{background:var(--tc-d);transform:translateY(-1px);box-shadow:0 8px 24px rgba(192,84,58,.4);}
+.form-note{font-size:12px;color:var(--ink-s);text-align:center;}
+.form-success{display:none;text-align:center;padding:32px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);border-radius:12px;max-width:420px;margin:0 auto;}
+.form-success-icon{font-size:34px;margin-bottom:12px;}
+.form-success-title{color:var(--ink);font-size:17px;font-weight:600;margin-bottom:8px;}
+.form-success-text{color:var(--ink-s);font-size:14px;}
+
+footer{background:var(--cream-d);padding:28px 48px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--cream-d);}
+.footer-brand{font-size:13px;color:var(--ink-s);}
+.footer-brand strong{color:var(--ink);}
+.footer-note{font-size:12px;color:var(--ink-s);}
+
+
+/* FEATURES GRID */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1100px;}
+.feat-card{background:white;padding:32px 28px;transition:box-shadow .25s;border-radius:12px;border:1px solid var(--cream-d);}
+.feat-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.07);}
+.feat-card-ia{background:white;border:1px solid rgba(192,84,58,.2);}
+.feat-card-ia:hover{box-shadow:0 4px 20px rgba(0,0,0,.07);}
+.feat-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:700;margin-bottom:18px;letter-spacing:.1px;}
+
+.feat-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--ink);margin-bottom:12px;line-height:1.3;}
+.feat-desc{font-size:14px;color:var(--ink-s);line-height:1.65;font-weight:300;margin-bottom:14px;}
+.feat-gain{font-size:13px;font-weight:600;color:var(--tc);letter-spacing:-.1px;}
+
+@media(max-width:900px){.features-grid{grid-template-columns:1fr 1fr;gap:16px;}}
+@media(max-width:580px){.features-grid{grid-template-columns:1fr;gap:14px;}}
+
+
+.feat-pill-dashboard{background:rgba(219,234,254,0.7);color:#1e40af;}
+.feat-pill-stock{background:rgba(209,250,229,0.7);color:#065f46;}
+.feat-pill-commandes{background:rgba(254,243,199,0.7);color:#92400e;}
+.feat-pill-production{background:rgba(237,233,254,0.7);color:#5b21b6;}
+.feat-pill-facturation{background:rgba(255,228,230,0.7);color:#9f1239;}
+.feat-pill-ia{background:rgba(255,237,213,0.7);color:#c2410c;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:translateY(0);}}
+
+@media(max-width:920px){
+  nav{padding:14px 20px;}
+  .hero{grid-template-columns:1fr;padding:100px 20px 56px;gap:40px;}
+  .hero-right{max-width:480px;margin:0 auto;width:100%;}
+  .pain-grid{grid-template-columns:1fr 1fr;}
+  .section-pain,.section-screens,.section-beta,.section-faq,.section-final{padding:68px 20px;}
+  .screens-container{grid-template-columns:1fr;}
+  .screens-tabs{order:2;}.screens-preview{order:1;}
+  .beta-inner{grid-template-columns:1fr;gap:20px;}
+  .form-row{grid-template-columns:1fr;}
+  footer{flex-direction:column;gap:8px;text-align:center;}
+}
+@media(max-width:580px){
+  .pain-grid{grid-template-columns:1fr;}
+  .hero-stats{gap:18px;flex-wrap:wrap;}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-ico"><svg viewBox="0 0 24 24"><path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zM10 5h4v2h-4V5zm9 14H5V9h14v10z"/></svg></div>
+    <span class="nav-logo-name">AppMee</span>
+    <span class="nav-logo-tag">BÊTA</span>
+  </a>
+  <a href="https://erpartisant.netlify.app/?signup=1" class="nav-cta">Essayez gratuitement →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">Un outil tout-en-un fait pour les artisans fabricants</div>
+    <h1 class="hero-title">Artisans,<br>toute votre activité</h1>
+    <div class="hero-title-sub" id="heroSub">centralisée.</div>
+    <p class="hero-hook">Fini la gestion manuelle, les recopiages multiples, l'administratif à n'en plus finir, les oublis de commande et de paiements&hellip;</p>
+    <div class="hero-cta-group">
+      <a href="https://erpartisant.netlify.app/?signup=1" class="btn-primary">Essayez gratuitement →</a>
+      <a href="#outil" class="btn-ghost">Voir l'outil ↓</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hero-stat-num">9<span> modules</span></div><div class="hero-stat-label">En production</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">20<span> places</span></div><div class="hero-stat-label">Bêta disponibles</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">0€</div><div class="hero-stat-label">Pour tester</div></div>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="device-frame">
+      <div class="device-browser">
+        <div class="device-toolbar">
+          <div class="device-dots"><div class="device-dot"></div><div class="device-dot"></div><div class="device-dot"></div></div>
+          <div class="device-url" id="deviceUrl">erpartisant.netlify.app/app · Dashboard</div>
+        </div>
+        <div class="device-screen" id="deviceScreen">
+          <div class="screen-slide active" id="slide0"><svg viewBox="0 0 560 360" xmlns="http://www.w3.org/2000/svg" font-family="'DM Sans',system-ui,sans-serif">
+  <rect width="560" height="360" fill="#F5F0E8"/>
+  <!-- Sidebar -->
+  <rect width="148" height="360" fill="white"/>
+  <rect x="148" width="1" height="360" fill="#E8E2D8"/>
+  <!-- Logo -->
+  <rect x="12" y="12" width="26" height="26" rx="6" fill="#C0543A"/>
+  <text x="25" y="29" font-size="13" font-weight="700" fill="white" text-anchor="middle">A</text>
+  <text x="46" y="29" font-size="12" font-weight="700" fill="#1A1410">AppMee</text>
+  <rect x="88" y="17" width="26" height="14" rx="7" fill="#F5F0E8"/>
+  <text x="101" y="27" font-size="8" font-weight="700" fill="#C0543A" text-anchor="middle">PRO</text>
+  <!-- Sidebar label -->
+  <text x="16" y="60" font-size="8" font-weight="600" fill="#9CA3AF" letter-spacing="1">VUE GÉNÉRALE</text>
+  <!-- Sidebar items -->
+  <rect x="8" y="66" width="132" height="26" rx="6" fill="#F5F0E8"/>
+  <text x="16" y="82" font-size="9.5" fill="#1A1410" font-weight="600">📊 Dashboard</text>
+  <text x="16" y="109" font-size="9.5" fill="#7A6258">📦 Stock Articles</text>
+  <rect x="120" y="100" width="18" height="14" rx="7" fill="#FEF2F2"/>
+  <text x="129" y="110" font-size="8" font-weight="700" fill="#C0543A" text-anchor="middle">7</text>
+  <text x="16" y="130" font-size="9.5" fill="#7A6258">🏷 Produits Finis</text>
+  <text x="16" y="151" font-size="9.5" fill="#7A6258">📋 Commandes</text>
+  <rect x="120" y="142" width="18" height="14" rx="7" fill="#FEF2F2"/>
+  <text x="129" y="152" font-size="8" font-weight="700" fill="#C0543A" text-anchor="middle">1</text>
+  <!-- Sidebar label 2 -->
+  <text x="16" y="176" font-size="8" font-weight="600" fill="#9CA3AF" letter-spacing="1">FABRICATION</text>
+  <text x="16" y="196" font-size="9.5" fill="#7A6258">🏭 Production</text>
+  <rect x="120" y="187" width="18" height="14" rx="7" fill="#FEF2F2"/>
+  <text x="129" y="197" font-size="8" font-weight="700" fill="#C0543A" text-anchor="middle">4</text>
+  <text x="16" y="218" font-size="9.5" fill="#7A6258">🛒 Achats</text>
+  <text x="16" y="238" font-size="8" font-weight="600" fill="#9CA3AF" letter-spacing="1">GESTION</text>
+  <text x="16" y="258" font-size="9.5" fill="#7A6258">🚚 Livraisons &amp; Factures</text>
+  <rect x="120" y="249" width="18" height="14" rx="7" fill="#FEF2F2"/>
+  <text x="129" y="259" font-size="8" font-weight="700" fill="#C0543A" text-anchor="middle">4</text>
+  <!-- User pill bottom -->
+  <circle cx="22" cy="340" r="12" fill="#166534"/>
+  <text x="22" y="344" font-size="9" font-weight="700" fill="white" text-anchor="middle">R</text>
+  <text x="40" y="337" font-size="10" font-weight="600" fill="#1A1410">RAD</text>
+  <text x="40" y="349" font-size="8" fill="#9CA3AF">lun 20 avril 2026</text>
+  <!-- Main header -->
+  <text x="172" y="32" font-size="15" font-weight="700" fill="#1A1410">Tableau de bord</text>
+  <text x="172" y="47" font-size="8.5" fill="#9CA3AF">Vue d'ensemble de votre activité</text>
+  <rect x="438" y="16" width="108" height="24" rx="6" fill="#C0543A"/>
+  <text x="492" y="32" font-size="10" font-weight="600" fill="white" text-anchor="middle">+ Commande</text>
+  <!-- KPI CARDS -->
+  <!-- Alertes stock -->
+  <rect x="162" y="62" width="88" height="70" rx="8" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <rect x="162" y="62" width="88" height="4" rx="2" fill="#C0543A"/>
+  <text x="170" y="84" font-size="8" fill="#9CA3AF" font-weight="600" letter-spacing=".5">ALERTES STOCK</text>
+  <text x="170" y="108" font-size="28" font-weight="800" fill="#C0543A">7</text>
+  <text x="170" y="124" font-size="8" fill="#9CA3AF">articles sous seuil</text>
+  <!-- Commandes -->
+  <rect x="258" y="62" width="118" height="70" rx="8" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <rect x="258" y="62" width="118" height="4" rx="2" fill="#3B82F6"/>
+  <text x="266" y="84" font-size="8" fill="#9CA3AF" font-weight="600" letter-spacing=".5">COMMANDES</text>
+  <text x="266" y="108" font-size="20" font-weight="800" fill="#1A1410">11 120,38 €</text>
+  <text x="266" y="124" font-size="8" fill="#9CA3AF">13 commandes enregistrées</text>
+  <!-- Factures -->
+  <rect x="384" y="62" width="88" height="70" rx="8" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <rect x="384" y="62" width="88" height="4" rx="2" fill="#C0543A"/>
+  <text x="392" y="84" font-size="8" fill="#9CA3AF" font-weight="600" letter-spacing=".5">FACTURES À RELANCER</text>
+  <text x="392" y="108" font-size="14" font-weight="800" fill="#C0543A">4 825,58 €</text>
+  <text x="392" y="124" font-size="8" fill="#9CA3AF">4 factures</text>
+  <!-- OF en cours -->
+  <rect x="480" y="62" width="72" height="70" rx="8" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <rect x="480" y="62" width="72" height="4" rx="2" fill="#F59E0B"/>
+  <text x="488" y="84" font-size="8" fill="#9CA3AF" font-weight="600" letter-spacing=".5">OF EN COURS</text>
+  <text x="488" y="108" font-size="28" font-weight="800" fill="#1A1410">0</text>
+  <text x="488" y="124" font-size="8" fill="#9CA3AF">ordre de fabrication</text>
+  <!-- Alertes stock table -->
+  <rect x="162" y="144" width="200" height="112" rx="8" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="172" y="162" font-size="10" font-weight="700" fill="#C0543A">⚠ Alertes stock articles</text>
+  <!-- table headers -->
+  <text x="172" y="180" font-size="8" fill="#9CA3AF" font-weight="600">RÉF</text>
+  <text x="210" y="180" font-size="8" fill="#9CA3AF" font-weight="600">ARTICLE</text>
+  <text x="296" y="180" font-size="8" fill="#9CA3AF" font-weight="600">STOCK / SEUIL</text>
+  <line x1="162" y1="184" x2="362" y2="184" stroke="#E8E2D8" stroke-width="1"/>
+  <!-- row 1 -->
+  <text x="172" y="198" font-size="9" fill="#7A6258" font-weight="600">A0002</text>
+  <text x="210" y="198" font-size="9" fill="#1A1410" font-weight="600">Pot verre 100ml</text>
+  <text x="296" y="198" font-size="9" fill="#C0543A" font-weight="700">1155</text>
+  <rect x="328" y="192" width="20" height="5" rx="2" fill="#FCA5A5"/>
+  <text x="352" y="198" font-size="8" fill="#9CA3AF">/ 1500</text>
+  <!-- row 2 -->
+  <text x="172" y="216" font-size="9" fill="#7A6258" font-weight="600">A0004</text>
+  <text x="210" y="216" font-size="9" fill="#1A1410" font-weight="600">Couvercle 52mm</text>
+  <text x="296" y="216" font-size="9" fill="#C0543A" font-weight="700">1000</text>
+  <rect x="328" y="210" width="15" height="5" rx="2" fill="#FCA5A5"/>
+  <text x="352" y="216" font-size="8" fill="#9CA3AF">/ 2000</text>
+  <!-- row 3 -->
+  <text x="172" y="234" font-size="9" fill="#7A6258" font-weight="600">A0005</text>
+  <text x="210" y="234" font-size="9" fill="#1A1410" font-weight="600">Couvercle 70mm</text>
+  <text x="296" y="234" font-size="9" fill="#F59E0B" font-weight="700">580</text>
+  <rect x="328" y="228" width="18" height="5" rx="2" fill="#FDE68A"/>
+  <text x="352" y="234" font-size="8" fill="#9CA3AF">/ 800</text>
+  <!-- Btn commander -->
+  <rect x="172" y="244" width="60" height="16" rx="4" stroke="#E8E2D8" stroke-width="1" fill="white"/>
+  <text x="202" y="255" font-size="8" fill="#1A1410" text-anchor="middle">Commander</text>
+  <!-- Stock produits finis -->
+  <rect x="370" y="144" width="182" height="112" rx="8" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="380" y="162" font-size="10" font-weight="700" fill="#7A6258">🏷 Stock produits finis</text>
+  <text x="380" y="178" font-size="8" fill="#9CA3AF" font-weight="600">PRODUIT</text>
+  <text x="490" y="178" font-size="8" fill="#9CA3AF" font-weight="600">STOCK</text>
+  <text x="530" y="178" font-size="8" fill="#9CA3AF" font-weight="600">STATUT</text>
+  <line x1="370" y1="182" x2="552" y2="182" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="380" y="196" font-size="8" fill="#1A1410">CONFITURE ABRICOT 230G</text>
+  <text x="490" y="196" font-size="9" font-weight="700" fill="#1A1410">1152</text>
+  <rect x="524" y="190" width="22" height="12" rx="6" fill="#DCFCE7"/>
+  <text x="535" y="199" font-size="7" font-weight="700" fill="#166534" text-anchor="middle">OK</text>
+  <text x="380" y="214" font-size="8" fill="#1A1410">CONFITURE FRAISE 230G</text>
+  <text x="490" y="214" font-size="9" font-weight="700" fill="#C0543A">88</text>
+  <rect x="521" y="208" width="28" height="12" rx="6" fill="#FEE2E2"/>
+  <text x="535" y="217" font-size="7" font-weight="700" fill="#C0543A" text-anchor="middle">Bas</text>
+  <text x="380" y="232" font-size="8" fill="#1A1410">CONFITURE FIGUE 230G</text>
+  <text x="490" y="232" font-size="9" font-weight="700" fill="#1A1410">2298</text>
+  <rect x="524" y="226" width="22" height="12" rx="6" fill="#DCFCE7"/>
+  <text x="535" y="235" font-size="7" font-weight="700" fill="#166534" text-anchor="middle">OK</text>
+  <!-- Dernières commandes -->
+  <rect x="162" y="264" width="390" height="86" rx="8" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="172" y="282" font-size="10" font-weight="700" fill="#1A1410">📋 Dernières commandes</text>
+  <text x="172" y="298" font-size="8" fill="#9CA3AF" font-weight="600">RÉF</text>
+  <text x="215" y="298" font-size="8" fill="#9CA3AF" font-weight="600">CLIENT</text>
+  <text x="315" y="298" font-size="8" fill="#9CA3AF" font-weight="600">DATE</text>
+  <text x="380" y="298" font-size="8" fill="#9CA3AF" font-weight="600">MONTANT</text>
+  <text x="455" y="298" font-size="8" fill="#9CA3AF" font-weight="600">STATUT</text>
+  <line x1="162" y1="302" x2="552" y2="302" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="172" y="317" font-size="8" fill="#7A6258" font-weight="600">CMD0010</text>
+  <text x="215" y="317" font-size="9" fill="#1A1410" font-weight="600">R.T.F.</text>
+  <text x="315" y="317" font-size="8" fill="#7A6258">2026-03-29</text>
+  <text x="380" y="317" font-size="9" fill="#1A1410" font-weight="700">334,86 €</text>
+  <rect x="452" y="310" width="44" height="13" rx="6" fill="#DCFCE7"/>
+  <text x="474" y="320" font-size="7" font-weight="700" fill="#166534" text-anchor="middle">Clôturée</text>
+  <text x="172" y="337" font-size="8" fill="#7A6258" font-weight="600">CMD0009</text>
+  <text x="215" y="337" font-size="9" fill="#1A1410" font-weight="600">Maison Dupont</text>
+  <text x="315" y="337" font-size="8" fill="#7A6258">2026-03-22</text>
+  <text x="380" y="337" font-size="9" fill="#1A1410" font-weight="700">1 240,00 €</text>
+  <rect x="449" y="330" width="50" height="13" rx="6" fill="#FEF3C7"/>
+  <text x="474" y="340" font-size="7" font-weight="700" fill="#92400E" text-anchor="middle">En cours</text>
+</svg></div>
+          <div class="screen-slide" id="slide1"><svg viewBox="0 0 560 320" xmlns="http://www.w3.org/2000/svg" font-family="'DM Sans',system-ui,sans-serif">
+  <rect width="560" height="320" fill="#F5F0E8"/>
+  <!-- Sidebar -->
+  <rect width="148" height="320" fill="white"/>
+  <rect x="148" width="1" height="320" fill="#E8E2D8"/>
+  <rect x="12" y="12" width="26" height="26" rx="6" fill="#C0543A"/>
+  <text x="25" y="29" font-size="13" font-weight="700" fill="white" text-anchor="middle">A</text>
+  <text x="46" y="29" font-size="12" font-weight="700" fill="#1A1410">AppMee</text>
+  <text x="16" y="60" font-size="8" font-weight="600" fill="#9CA3AF" letter-spacing="1">VUE GÉNÉRALE</text>
+  <text x="16" y="80" font-size="11" fill="#7A6258">📊 Dashboard</text>
+  <!-- Stock Articles active -->
+  <rect x="8" y="86" width="132" height="26" rx="6" fill="#FEF2F2"/>
+  <text x="16" y="103" font-size="11" fill="#C0543A" font-weight="700">📦 Stock Articles</text>
+  <rect x="120" y="88" width="18" height="14" rx="7" fill="#C0543A"/>
+  <text x="129" y="98" font-size="8" font-weight="700" fill="white" text-anchor="middle">7</text>
+  <text x="16" y="124" font-size="11" fill="#7A6258">🏷 Produits Finis</text>
+  <text x="16" y="145" font-size="11" fill="#7A6258">📋 Commandes</text>
+  <text x="16" y="168" font-size="8" font-weight="600" fill="#9CA3AF" letter-spacing="1">FABRICATION</text>
+  <text x="16" y="188" font-size="11" fill="#7A6258">🏭 Production</text>
+  <text x="16" y="209" font-size="11" fill="#7A6258">🛒 Achats</text>
+  <text x="16" y="230" font-size="8" font-weight="600" fill="#9CA3AF" letter-spacing="1">GESTION</text>
+  <text x="16" y="250" font-size="11" fill="#7A6258">🚚 Livraisons &amp; Factures</text>
+  <!-- Main -->
+  <text x="172" y="30" font-size="15" font-weight="700" fill="#1A1410">Stock Articles</text>
+  <text x="172" y="44" font-size="10" fill="#9CA3AF">Matières premières, emballages, consommables</text>
+  <!-- Filter pills -->
+  <rect x="162" y="56" width="70" height="22" rx="11" fill="white" stroke="#22C55E" stroke-width="1.5"/>
+  <circle cx="174" cy="67" r="4" fill="#22C55E"/>
+  <text x="183" y="71" font-size="9" font-weight="600" fill="#1A1410">En stock 19</text>
+  <rect x="240" y="56" width="62" height="22" rx="11" fill="white" stroke="#F59E0B" stroke-width="1.5"/>
+  <circle cx="252" cy="67" r="4" fill="#F59E0B"/>
+  <text x="261" y="71" font-size="9" font-weight="600" fill="#1A1410">Faibles 4</text>
+  <rect x="310" y="56" width="68" height="22" rx="11" fill="white" stroke="#EF4444" stroke-width="1.5"/>
+  <circle cx="322" cy="67" r="4" fill="#EF4444"/>
+  <text x="331" y="71" font-size="9" font-weight="600" fill="#1A1410">Sous seuil 3</text>
+  <!-- Buttons right -->
+  <rect x="390" y="54" width="80" height="26" rx="6" stroke="#E8E2D8" stroke-width="1" fill="white"/>
+  <text x="430" y="71" font-size="9" fill="#1A1410" text-anchor="middle">+ Bon de commande</text>
+  <rect x="476" y="54" width="76" height="26" rx="6" fill="#C0543A"/>
+  <text x="514" y="71" font-size="9" font-weight="600" fill="white" text-anchor="middle">+ Nouvel article</text>
+  <!-- Table -->
+  <rect x="162" y="88" width="390" height="222" rx="8" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <!-- Headers -->
+  <rect x="162" y="88" width="390" height="26" rx="8" fill="#FAFAF9"/>
+  <rect x="162" y="102" width="390" height="12" fill="#FAFAF9"/>
+  <text x="172" y="106" font-size="8" fill="#9CA3AF" font-weight="600">RÉF</text>
+  <text x="214" y="106" font-size="8" fill="#9CA3AF" font-weight="600">ARTICLE</text>
+  <text x="308" y="106" font-size="8" fill="#9CA3AF" font-weight="600">CATÉGORIE</text>
+  <text x="380" y="106" font-size="8" fill="#9CA3AF" font-weight="600">STOCK</text>
+  <text x="415" y="106" font-size="8" fill="#9CA3AF" font-weight="600">SEUIL</text>
+  <text x="448" y="106" font-size="8" fill="#9CA3AF" font-weight="600">STATUT</text>
+  <text x="494" y="106" font-size="8" fill="#9CA3AF" font-weight="600">PRIX</text>
+  <line x1="162" y1="114" x2="552" y2="114" stroke="#E8E2D8" stroke-width="1"/>
+  <!-- Row 1 - OK -->
+  <text x="172" y="132" font-size="9" fill="#7A6258" font-weight="600">A0001</text>
+  <text x="214" y="132" font-size="9" fill="#1A1410" font-weight="700">Pot verre 50ml</text>
+  <rect x="305" y="124" width="48" height="14" rx="7" fill="#E0F2FE"/>
+  <text x="329" y="134" font-size="7.5" fill="#0369A1" text-anchor="middle" font-weight="600">Emballage</text>
+  <text x="380" y="132" font-size="9" fill="#22C55E" font-weight="800">7000</text>
+  <text x="415" y="132" font-size="9" fill="#7A6258">2000</text>
+  <rect x="448" y="125" width="24" height="14" rx="7" fill="#DCFCE7"/>
+  <text x="460" y="135" font-size="7.5" fill="#166534" text-anchor="middle" font-weight="700">OK</text>
+  <text x="494" y="132" font-size="9" fill="#7A6258">0,45 €</text>
+  <line x1="162" y1="140" x2="552" y2="140" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row 2 - Faible -->
+  <text x="172" y="158" font-size="9" fill="#7A6258" font-weight="600">A0002</text>
+  <text x="214" y="158" font-size="9" fill="#1A1410" font-weight="700">Pot verre 100ml</text>
+  <rect x="305" y="150" width="48" height="14" rx="7" fill="#E0F2FE"/>
+  <text x="329" y="160" font-size="7.5" fill="#0369A1" text-anchor="middle" font-weight="600">Emballage</text>
+  <text x="380" y="158" font-size="9" fill="#F59E0B" font-weight="800">1155</text>
+  <text x="415" y="158" font-size="9" fill="#7A6258">1500</text>
+  <rect x="445" y="151" width="30" height="14" rx="7" fill="#FEF3C7"/>
+  <text x="460" y="161" font-size="7.5" fill="#92400E" text-anchor="middle" font-weight="700">Faible</text>
+  <text x="494" y="158" font-size="9" fill="#7A6258">0,58 €</text>
+  <line x1="162" y1="166" x2="552" y2="166" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row 3 - OK -->
+  <text x="172" y="184" font-size="9" fill="#7A6258" font-weight="600">A0003</text>
+  <text x="214" y="184" font-size="9" fill="#1A1410" font-weight="700">Pot verre 200ml</text>
+  <rect x="305" y="176" width="48" height="14" rx="7" fill="#E0F2FE"/>
+  <text x="329" y="186" font-size="7.5" fill="#0369A1" text-anchor="middle" font-weight="600">Emballage</text>
+  <text x="380" y="184" font-size="9" fill="#22C55E" font-weight="800">1200</text>
+  <text x="415" y="184" font-size="9" fill="#7A6258">1000</text>
+  <rect x="448" y="177" width="24" height="14" rx="7" fill="#DCFCE7"/>
+  <text x="460" y="187" font-size="7.5" fill="#166534" text-anchor="middle" font-weight="700">OK</text>
+  <text x="494" y="184" font-size="9" fill="#7A6258">0,74 €</text>
+  <line x1="162" y1="192" x2="552" y2="192" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row 4 - Bas -->
+  <text x="172" y="210" font-size="9" fill="#7A6258" font-weight="600">A0004</text>
+  <text x="214" y="210" font-size="9" fill="#1A1410" font-weight="700">Couvercle 52mm</text>
+  <rect x="305" y="202" width="48" height="14" rx="7" fill="#E0F2FE"/>
+  <text x="329" y="212" font-size="7.5" fill="#0369A1" text-anchor="middle" font-weight="600">Emballage</text>
+  <text x="380" y="210" font-size="9" fill="#EF4444" font-weight="800">1000</text>
+  <text x="415" y="210" font-size="9" fill="#7A6258">2000</text>
+  <rect x="448" y="203" width="24" height="14" rx="7" fill="#FEE2E2"/>
+  <text x="460" y="213" font-size="7.5" fill="#C0543A" text-anchor="middle" font-weight="700">Bas</text>
+  <text x="494" y="210" font-size="9" fill="#7A6258">0,12 €</text>
+  <line x1="162" y1="218" x2="552" y2="218" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row 5 -->
+  <text x="172" y="236" font-size="9" fill="#7A6258" font-weight="600">A0005</text>
+  <text x="214" y="236" font-size="9" fill="#1A1410" font-weight="700">Couvercle 70mm</text>
+  <rect x="305" y="228" width="48" height="14" rx="7" fill="#E0F2FE"/>
+  <text x="329" y="238" font-size="7.5" fill="#0369A1" text-anchor="middle" font-weight="600">Emballage</text>
+  <text x="380" y="236" font-size="9" fill="#F59E0B" font-weight="800">580</text>
+  <text x="415" y="236" font-size="9" fill="#7A6258">800</text>
+  <rect x="445" y="229" width="30" height="14" rx="7" fill="#FEF3C7"/>
+  <text x="460" y="239" font-size="7.5" fill="#92400E" text-anchor="middle" font-weight="700">Faible</text>
+  <text x="494" y="236" font-size="9" fill="#7A6258">0,09 €</text>
+  <line x1="162" y1="244" x2="552" y2="244" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row 6 -->
+  <text x="172" y="262" font-size="9" fill="#7A6258" font-weight="600">A0006</text>
+  <text x="214" y="262" font-size="9" fill="#1A1410" font-weight="700">Étiquette 50x70mm</text>
+  <rect x="305" y="254" width="56" height="14" rx="7" fill="#F3E8FF"/>
+  <text x="333" y="264" font-size="7.5" fill="#7C3AED" text-anchor="middle" font-weight="600">Consommable</text>
+  <text x="380" y="262" font-size="9" fill="#22C55E" font-weight="800">8500</text>
+  <text x="415" y="262" font-size="9" fill="#7A6258">2000</text>
+  <rect x="448" y="255" width="24" height="14" rx="7" fill="#DCFCE7"/>
+  <text x="460" y="265" font-size="7.5" fill="#166534" text-anchor="middle" font-weight="700">OK</text>
+  <text x="494" y="262" font-size="9" fill="#7A6258">0,04 €</text>
+  <line x1="162" y1="270" x2="552" y2="270" stroke="#F5F0E8" stroke-width="1"/>
+  <text x="172" y="295" font-size="9" fill="#9CA3AF">26 articles au total · 3 sous seuil · 4 faibles</text>
+</svg></div>
+          <div class="screen-slide" id="slide2"><svg viewBox="0 0 560 320" xmlns="http://www.w3.org/2000/svg" font-family="'DM Sans',system-ui,sans-serif">
+  <rect width="560" height="320" fill="#F5F0E8"/>
+  <!-- Sidebar -->
+  <rect width="148" height="320" fill="white"/>
+  <rect x="148" width="1" height="320" fill="#E8E2D8"/>
+  <rect x="12" y="12" width="26" height="26" rx="6" fill="#C0543A"/>
+  <text x="25" y="29" font-size="13" font-weight="700" fill="white" text-anchor="middle">A</text>
+  <text x="46" y="29" font-size="12" font-weight="700" fill="#1A1410">AppMee</text>
+  <text x="16" y="60" font-size="8" font-weight="600" fill="#9CA3AF" letter-spacing="1">VUE GÉNÉRALE</text>
+  <text x="16" y="80" font-size="11" fill="#7A6258">📊 Dashboard</text>
+  <text x="16" y="100" font-size="11" fill="#7A6258">📦 Stock Articles</text>
+  <text x="16" y="120" font-size="11" fill="#7A6258">🏷 Produits Finis</text>
+  <text x="16" y="140" font-size="11" fill="#7A6258">📋 Commandes</text>
+  <text x="16" y="162" font-size="8" font-weight="600" fill="#9CA3AF" letter-spacing="1">FABRICATION</text>
+  <!-- Production active -->
+  <rect x="8" y="168" width="132" height="26" rx="6" fill="#FEF2F2"/>
+  <text x="16" y="185" font-size="11" fill="#C0543A" font-weight="700">🏭 Production</text>
+  <rect x="120" y="170" width="18" height="14" rx="7" fill="#C0543A"/>
+  <text x="129" y="180" font-size="8" font-weight="700" fill="white" text-anchor="middle">4</text>
+  <text x="16" y="209" font-size="11" fill="#7A6258">🛒 Achats</text>
+  <text x="16" y="230" font-size="8" font-weight="600" fill="#9CA3AF" letter-spacing="1">GESTION</text>
+  <text x="16" y="250" font-size="11" fill="#7A6258">🚚 Livraisons &amp; Factures</text>
+  <!-- Main -->
+  <text x="172" y="28" font-size="15" font-weight="700" fill="#1A1410">Production</text>
+  <text x="172" y="42" font-size="10" fill="#9CA3AF">Ordres de fabrication et calendrier</text>
+  <!-- Calendar header -->
+  <rect x="162" y="54" width="390" height="130" rx="8" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <!-- Cal title -->
+  <text x="180" y="72" font-size="11" font-weight="700" fill="#1A1410">📅 Calendrier de production — semaine en cours</text>
+  <rect x="520" y="60" width="22" height="20" rx="5" stroke="#E8E2D8" stroke-width="1" fill="white"/>
+  <text x="531" y="74" font-size="10" fill="#7A6258" text-anchor="middle">◀</text>
+  <!-- Day headers -->
+  <rect x="168" y="82" width="52" height="28" rx="4" fill="#1A1410"/>
+  <text x="194" y="100" font-size="9" font-weight="700" fill="white" text-anchor="middle">Lun 20/4</text>
+  <text x="236" y="96" font-size="8" fill="#7A6258" text-anchor="middle">Mar 21/4</text>
+  <text x="290" y="96" font-size="8" fill="#7A6258" text-anchor="middle">Mer 22/4</text>
+  <text x="344" y="96" font-size="8" fill="#7A6258" text-anchor="middle">Jeu 23/4</text>
+  <text x="398" y="96" font-size="8" fill="#7A6258" text-anchor="middle">Ven 24/4</text>
+  <text x="452" y="96" font-size="8" fill="#7A6258" text-anchor="middle">Sam 25/4</text>
+  <text x="506" y="96" font-size="8" fill="#7A6258" text-anchor="middle">Dim 26/4</text>
+  <!-- Day columns -->
+  <line x1="222" y1="82" x2="222" y2="174" stroke="#E8E2D8" stroke-width="1"/>
+  <line x1="276" y1="82" x2="276" y2="174" stroke="#E8E2D8" stroke-width="1"/>
+  <line x1="330" y1="82" x2="330" y2="174" stroke="#E8E2D8" stroke-width="1"/>
+  <line x1="384" y1="82" x2="384" y2="174" stroke="#E8E2D8" stroke-width="1"/>
+  <line x1="438" y1="82" x2="438" y2="174" stroke="#E8E2D8" stroke-width="1"/>
+  <line x1="492" y1="82" x2="492" y2="174" stroke="#E8E2D8" stroke-width="1"/>
+  <!-- Events -->
+  <!-- Mardi - planifié (bleu clair) -->
+  <rect x="228" y="108" width="42" height="44" rx="4" fill="#DBEAFE"/>
+  <text x="232" y="120" font-size="7" fill="#1D4ED8" font-weight="600">CONFITURE</text>
+  <text x="232" y="130" font-size="7" fill="#1D4ED8" font-weight="600">ABRICOT</text>
+  <text x="232" y="140" font-size="7" fill="#1D4ED8" font-weight="600">×200</text>
+  <!-- Dimanche - fabriqué (vert) -->
+  <rect x="498" y="108" width="42" height="44" rx="4" fill="#DCFCE7"/>
+  <text x="502" y="120" font-size="7" fill="#166534" font-weight="600">CONFITURE</text>
+  <text x="502" y="130" font-size="7" fill="#166534" font-weight="600">ABRICOT</text>
+  <text x="502" y="140" font-size="7" fill="#166534" font-weight="600">×111</text>
+  <!-- Legend -->
+  <rect x="170" y="162" width="10" height="8" rx="2" fill="#FEF9C3"/>
+  <text x="184" y="169" font-size="8" fill="#7A6258">En cours</text>
+  <rect x="228" y="162" width="10" height="8" rx="2" fill="#DBEAFE"/>
+  <text x="242" y="169" font-size="8" fill="#7A6258">Planifié</text>
+  <rect x="286" y="162" width="10" height="8" rx="2" fill="#DCFCE7"/>
+  <text x="300" y="169" font-size="8" fill="#7A6258">Fabriqué</text>
+  <rect x="344" y="162" width="10" height="8" rx="2" fill="#1A1410"/>
+  <text x="358" y="169" font-size="8" fill="#7A6258">Livraison client</text>
+  <!-- OF Table -->
+  <rect x="162" y="194" width="390" height="116" rx="8" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="180" y="212" font-size="11" font-weight="700" fill="#1A1410">📋 Ordres de fabrication (OF)</text>
+  <text x="180" y="228" font-size="8" fill="#9CA3AF" font-weight="600">RÉFÉRENCE</text>
+  <text x="248" y="228" font-size="8" fill="#9CA3AF" font-weight="600">PRODUIT</text>
+  <text x="360" y="228" font-size="8" fill="#9CA3AF" font-weight="600">QTÉ</text>
+  <text x="392" y="228" font-size="8" fill="#9CA3AF" font-weight="600">DATE PLANIFIÉE</text>
+  <text x="476" y="228" font-size="8" fill="#9CA3AF" font-weight="600">STATUT</text>
+  <line x1="162" y1="232" x2="552" y2="232" stroke="#E8E2D8" stroke-width="1"/>
+  <!-- OF row 1 -->
+  <text x="180" y="250" font-size="9" fill="#7A6258" font-weight="600">OF0036</text>
+  <text x="248" y="250" font-size="9" fill="#1A1410" font-weight="700">CONFITURE ABRICOT 230G</text>
+  <text x="360" y="250" font-size="9" fill="#1A1410" font-weight="700">200</text>
+  <text x="392" y="250" font-size="9" fill="#7A6258">21/04/2026</text>
+  <rect x="474" y="243" width="60" height="16" rx="8" fill="#DBEAFE"/>
+  <text x="504" y="254" font-size="8" font-weight="700" fill="#1D4ED8" text-anchor="middle">Planifié</text>
+  <line x1="162" y1="262" x2="552" y2="262" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- OF row 2 -->
+  <text x="180" y="280" font-size="9" fill="#7A6258" font-weight="600">OF0035</text>
+  <text x="248" y="280" font-size="9" fill="#1A1410" font-weight="700">CONFITURE ABRICOT 230G</text>
+  <text x="360" y="280" font-size="9" fill="#1A1410" font-weight="700">111</text>
+  <text x="392" y="280" font-size="9" fill="#7A6258">26/04/2026</text>
+  <rect x="474" y="273" width="60" height="16" rx="8" fill="#DCFCE7"/>
+  <text x="504" y="284" font-size="8" font-weight="700" fill="#166534" text-anchor="middle">Fabriqué</text>
+  <line x1="162" y1="292" x2="552" y2="292" stroke="#F5F0E8" stroke-width="1"/>
+  <text x="180" y="306" font-size="8" fill="#9CA3AF">4 ordres de fabrication actifs</text>
+</svg></div>
+          <div class="screen-slide" id="slide3"><svg viewBox="0 0 560 320" xmlns="http://www.w3.org/2000/svg" font-family="'DM Sans',system-ui,sans-serif">
+  <rect width="560" height="320" fill="#F5F0E8"/>
+  <rect width="148" height="320" fill="white"/>
+  <rect x="148" width="1" height="320" fill="#E8E2D8"/>
+  <rect x="12" y="12" width="26" height="26" rx="6" fill="#C0543A"/>
+  <text x="25" y="29" font-size="13" font-weight="700" fill="white" text-anchor="middle">A</text>
+  <text x="46" y="29" font-size="12" font-weight="700" fill="#1A1410">AppMee</text>
+  <text x="16" y="60" font-size="8" font-weight="600" fill="#9CA3AF" letter-spacing="1">VUE GÉNÉRALE</text>
+  <text x="16" y="80" font-size="11" fill="#7A6258">📊 Dashboard</text>
+  <text x="16" y="100" font-size="11" fill="#7A6258">📦 Stock Articles</text>
+  <text x="16" y="120" font-size="11" fill="#7A6258">🏷 Produits Finis</text>
+  <rect x="8" y="128" width="132" height="26" rx="6" fill="#FEF2F2"/>
+  <text x="16" y="145" font-size="11" fill="#C0543A" font-weight="700">📋 Commandes</text>
+  <rect x="120" y="130" width="18" height="14" rx="7" fill="#C0543A"/>
+  <text x="129" y="140" font-size="8" font-weight="700" fill="white" text-anchor="middle">1</text>
+  <text x="16" y="168" font-size="8" font-weight="600" fill="#9CA3AF" letter-spacing="1">FABRICATION</text>
+  <text x="16" y="188" font-size="11" fill="#7A6258">🏭 Production</text>
+  <text x="16" y="209" font-size="11" fill="#7A6258">🛒 Achats</text>
+  <text x="16" y="230" font-size="8" font-weight="600" fill="#9CA3AF" letter-spacing="1">GESTION</text>
+  <text x="16" y="250" font-size="11" fill="#7A6258">🚚 Livraisons &amp; Factures</text>
+  <!-- Main -->
+  <text x="172" y="28" font-size="15" font-weight="700" fill="#1A1410">Commandes clients</text>
+  <text x="172" y="42" font-size="10" fill="#9CA3AF">Suivi de toutes vos commandes</text>
+  <!-- Expanded order CMD0010 -->
+  <rect x="162" y="54" width="390" height="30" rx="8" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <rect x="162" y="54" width="390" height="30" rx="0" fill="#FAFAF9"/>
+  <rect x="162" y="54" width="390" height="8" rx="4" fill="#FAFAF9"/>
+  <rect x="162" y="58" width="390" height="26" fill="#FAFAF9"/>
+  <text x="172" y="73" font-size="9" font-weight="700" fill="#7A6258">CMD0010</text>
+  <text x="220" y="73" font-size="9" font-weight="700" fill="#1A1410">R.T.F.</text>
+  <text x="260" y="73" font-size="8.5" fill="#7A6258">2026-03-29</text>
+  <text x="316" y="73" font-size="8.5" fill="#7A6258">Livr. : 2026-03-30</text>
+  <rect x="455" y="62" width="48" height="14" rx="7" fill="#DCFCE7"/>
+  <text x="479" y="72" font-size="7.5" font-weight="700" fill="#166534" text-anchor="middle">Clôturée</text>
+  <text x="426" y="73" font-size="9" font-weight="700" fill="#C0543A">334,86 €</text>
+  <!-- Detail table -->
+  <rect x="162" y="88" width="390" height="222" rx="8" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="172" y="105" font-size="8" fill="#9CA3AF" font-weight="600">RÉF</text>
+  <text x="230" y="105" font-size="8" fill="#9CA3AF" font-weight="600">PRODUIT</text>
+  <text x="380" y="105" font-size="8" fill="#9CA3AF" font-weight="600">QTÉ</text>
+  <text x="405" y="105" font-size="8" fill="#9CA3AF" font-weight="600">STOCK DISPO</text>
+  <text x="458" y="105" font-size="8" fill="#9CA3AF" font-weight="600">FAISABLE</text>
+  <text x="510" y="105" font-size="8" fill="#9CA3AF" font-weight="600">TOTAL</text>
+  <line x1="162" y1="110" x2="552" y2="110" stroke="#E8E2D8" stroke-width="1"/>
+  <!-- Row P0003 - OK -->
+  <text x="172" y="128" font-size="9" fill="#7A6258" font-weight="600">P0003</text>
+  <text x="230" y="128" font-size="9" fill="#1A1410">Confiture Abricot Bergeron 100ml</text>
+  <text x="380" y="128" font-size="9" fill="#1A1410" font-weight="700">12</text>
+  <text x="405" y="128" font-size="9" fill="#1A1410">1152</text>
+  <rect x="456" y="121" width="28" height="14" rx="7" fill="#DCFCE7"/>
+  <text x="470" y="131" font-size="7.5" fill="#166534" text-anchor="middle" font-weight="700">✓ OK</text>
+  <text x="510" y="128" font-size="9" fill="#1A1410" font-weight="700">76,80 €</text>
+  <line x1="162" y1="136" x2="552" y2="136" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row FRAISEFRGRI - Manque -->
+  <text x="172" y="154" font-size="8.5" fill="#C0543A" font-weight="700">FRAISEFRGRI</text>
+  <text x="230" y="154" font-size="9" fill="#1A1410">CONFITURE FRAISE FRAMBOISE GRIOTTE 230G</text>
+  <text x="380" y="154" font-size="9" fill="#1A1410" font-weight="700">12</text>
+  <text x="405" y="154" font-size="9" fill="#C0543A" font-weight="700">0</text>
+  <rect x="453" y="147" width="40" height="14" rx="7" fill="#FEE2E2"/>
+  <text x="473" y="157" font-size="7.5" fill="#C0543A" text-anchor="middle" font-weight="700">Manque 12</text>
+  <text x="510" y="154" font-size="9" fill="#1A1410" font-weight="700">59,04 €</text>
+  <line x1="162" y1="162" x2="552" y2="162" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row ORANGEPAMP - OK -->
+  <text x="172" y="180" font-size="8.5" fill="#7A6258" font-weight="600">ORANGEPAMP</text>
+  <text x="230" y="180" font-size="9" fill="#1A1410">CONFITURE ORANGE PAMPLEMOUSSE 230G</text>
+  <text x="380" y="180" font-size="9" fill="#1A1410" font-weight="700">6</text>
+  <text x="405" y="180" font-size="9" fill="#1A1410">170</text>
+  <rect x="456" y="173" width="28" height="14" rx="7" fill="#DCFCE7"/>
+  <text x="470" y="183" font-size="7.5" fill="#166534" text-anchor="middle" font-weight="700">✓ OK</text>
+  <text x="510" y="180" font-size="9" fill="#1A1410" font-weight="700">26,58 €</text>
+  <line x1="162" y1="188" x2="552" y2="188" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row P0005 - OK -->
+  <text x="172" y="206" font-size="9" fill="#7A6258" font-weight="600">P0005</text>
+  <text x="230" y="206" font-size="9" fill="#1A1410">Confiture Figue au Rhum 200ml</text>
+  <text x="380" y="206" font-size="9" fill="#1A1410" font-weight="700">6</text>
+  <text x="405" y="206" font-size="9" fill="#1A1410">84</text>
+  <rect x="456" y="199" width="28" height="14" rx="7" fill="#DCFCE7"/>
+  <text x="470" y="209" font-size="7.5" fill="#166534" text-anchor="middle" font-weight="700">✓ OK</text>
+  <text x="510" y="206" font-size="9" fill="#1A1410" font-weight="700">59,40 €</text>
+  <line x1="162" y1="214" x2="552" y2="214" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row POIREVAN - OK -->
+  <text x="172" y="232" font-size="8.5" fill="#7A6258" font-weight="600">POIREVAN</text>
+  <text x="230" y="232" font-size="9" fill="#1A1410">CONFITURE POIRE VANILLE 230G</text>
+  <text x="380" y="232" font-size="9" fill="#1A1410" font-weight="700">12</text>
+  <text x="405" y="232" font-size="9" fill="#1A1410">140</text>
+  <rect x="456" y="225" width="28" height="14" rx="7" fill="#DCFCE7"/>
+  <text x="470" y="235" font-size="7.5" fill="#166534" text-anchor="middle" font-weight="700">✓ OK</text>
+  <text x="510" y="232" font-size="9" fill="#1A1410" font-weight="700">55,68 €</text>
+  <line x1="162" y1="240" x2="552" y2="240" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row CASSIS - OK -->
+  <text x="172" y="258" font-size="8.5" fill="#7A6258" font-weight="600">CASSIS</text>
+  <text x="230" y="258" font-size="9" fill="#1A1410">CONFITURE CASSIS 230G</text>
+  <text x="380" y="258" font-size="9" fill="#1A1410" font-weight="700">4</text>
+  <text x="405" y="258" font-size="9" fill="#1A1410">611</text>
+  <rect x="456" y="251" width="28" height="14" rx="7" fill="#DCFCE7"/>
+  <text x="470" y="261" font-size="7.5" fill="#166534" text-anchor="middle" font-weight="700">✓ OK</text>
+  <text x="510" y="258" font-size="9" fill="#1A1410" font-weight="700">17,72 €</text>
+  <rect x="430" y="275" width="112" height="24" rx="6" fill="#C0543A"/>
+  <text x="486" y="291" font-size="9" font-weight="600" fill="white" text-anchor="middle">Valider la commande</text>
+</svg></div>
+          <div class="screen-slide" id="slide4"><svg viewBox="0 0 560 320" xmlns="http://www.w3.org/2000/svg" font-family="'DM Sans',system-ui,sans-serif">
+  <rect width="560" height="320" fill="#F5F0E8"/>
+  <rect width="148" height="320" fill="white"/>
+  <rect x="148" width="1" height="320" fill="#E8E2D8"/>
+  <rect x="12" y="12" width="26" height="26" rx="6" fill="#C0543A"/>
+  <text x="25" y="29" font-size="13" font-weight="700" fill="white" text-anchor="middle">A</text>
+  <text x="46" y="29" font-size="12" font-weight="700" fill="#1A1410">AppMee</text>
+  <text x="16" y="60" font-size="8" font-weight="600" fill="#9CA3AF" letter-spacing="1">VUE GÉNÉRALE</text>
+  <text x="16" y="80" font-size="11" fill="#7A6258">📊 Dashboard</text>
+  <rect x="8" y="86" width="132" height="26" rx="6" fill="#FAFAF9"/>
+  <text x="16" y="103" font-size="11" fill="#1A1410" font-weight="600">📦 Stock Articles</text>
+  <text x="16" y="124" font-size="11" fill="#7A6258">🏷 Produits Finis</text>
+  <text x="16" y="145" font-size="11" fill="#7A6258">📋 Commandes</text>
+  <text x="16" y="168" font-size="8" font-weight="600" fill="#9CA3AF" letter-spacing="1">FABRICATION</text>
+  <text x="16" y="188" font-size="11" fill="#7A6258">🏭 Production</text>
+  <text x="16" y="209" font-size="11" fill="#7A6258">🛒 Achats</text>
+  <!-- Main header -->
+  <text x="172" y="28" font-size="15" font-weight="700" fill="#1A1410">Tableau de bord</text>
+  <!-- Modal overlay -->
+  <rect width="560" height="320" fill="rgba(0,0,0,0.45)"/>
+  <!-- Modal -->
+  <rect x="140" y="40" width="300" height="240" rx="12" fill="white" filter="url(#shadow)"/>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="20" flood-color="#00000033"/>
+    </filter>
+  </defs>
+  <!-- Modal header -->
+  <text x="158" y="68" font-size="13" font-weight="700" fill="#1A1410">Import IA — Bon de commande</text>
+  <text x="424" y="68" font-size="16" fill="#9CA3AF">×</text>
+  <line x1="140" y1="76" x2="440" y2="76" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Drop zone -->
+  <rect x="154" y="86" width="272" height="90" rx="8" fill="#FAFAF9" stroke="#E8E2D8" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <!-- Robot icon -->
+  <rect x="265" y="96" width="50" height="40" rx="8" fill="#E8E2D8"/>
+  <rect x="270" y="104" width="10" height="8" rx="2" fill="white"/>
+  <rect x="300" y="104" width="10" height="8" rx="2" fill="white"/>
+  <rect x="270" y="116" width="40" height="6" rx="2" fill="white"/>
+  <circle cx="278" cy="108" r="3" fill="#9CA3AF"/>
+  <circle cx="302" cy="108" r="3" fill="#9CA3AF"/>
+  <rect x="278" y="94" width="5" height="4" rx="1" fill="#9CA3AF"/>
+  <text x="290" y="156" font-size="10" font-weight="600" fill="#1A1410" text-anchor="middle">Déposez votre bon de commande</text>
+  <text x="290" y="170" font-size="9" fill="#9CA3AF" text-anchor="middle">PDF · Excel · Word · Image</text>
+  <!-- Contexte -->
+  <text x="158" y="196" font-size="9" font-weight="600" fill="#7A6258" letter-spacing=".5">CONTEXTE (opt.)</text>
+  <rect x="154" y="202" width="272" height="28" rx="6" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="162" y="220" font-size="9" fill="#C8C0B8">Ex : commande urgente, livraison avant le 20 mars…</text>
+  <!-- Footer -->
+  <text x="162" y="264" font-size="8" fill="#9CA3AF">Powered by Claude AI via Netlify</text>
+  <rect x="372" y="250" width="58" height="22" rx="6" fill="#3D3730"/>
+  <text x="401" y="264" font-size="9" font-weight="600" fill="white" text-anchor="middle">Analyser</text>
+  <!-- IA sparkle -->
+  <text x="300" y="295" font-size="10" fill="rgba(255,255,255,0.5)" text-anchor="middle">✨ Intelligence artificielle intégrée</text>
+</svg></div>
+        </div>
+      </div>
+      <div class="slide-nav" id="slideNav">
+        <div class="slide-dot active" data-i="0"></div>
+        <div class="slide-dot" data-i="1"></div>
+        <div class="slide-dot" data-i="2"></div>
+        <div class="slide-dot" data-i="3"></div>
+        <div class="slide-dot" data-i="4"></div>
+      </div>
+      <div class="slide-caption" id="slideCaption">Vue d'ensemble — chiffres en temps réel</div>
+    </div>
+  </div>
+</section>
+
+<!-- DOULEURS -->
+<section class="section-pain" id="problemes">
+  <div class="section-eyebrow">Ce que disent la plupart des artisans</div>
+  <h2 class="section-title">La réalité du quotidien.</h2>
+  <div class="pain-grid">
+    <div class="pain-card">
+      <div class="pain-card-header">La même info ressaisie 3 fois</div>
+      <div class="pain-card-body"><div class="pain-text">Commande reçue → notée sur carnet → re-saisie Excel → répétée sur WhatsApp. Chaque transfert = une erreur possible.</div></div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-card-header">La rupture de stock le jour J</div>
+      <div class="pain-card-body"><div class="pain-text">Vous le découvrez le matin de la fabrication. Il manque un composant. Livraison reportée. Client mécontent.</div></div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-card-header">La facture faite à la main</div>
+      <div class="pain-card-body"><div class="pain-text">Chaque facture est une heure perdue. Modèle, lignes, montants, envoi, relance si impayée. À recommencer à chaque livraison.</div></div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-card-header">Le planning dans la tête</div>
+      <div class="pain-card-body"><div class="pain-text">Vous savez ce qu'il y a à faire. Mais si quelqu'un demande "où en est la commande de Mme Martin ?" — il faut chercher partout.</div></div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-card-header">Les marges approximatives</div>
+      <div class="pain-card-body"><div class="pain-text">Votre prix de vente est basé sur l'instinct. Matières + temps + emballage = vous perdez parfois de l'argent sans le savoir.</div></div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-card-header">Les paiements qui traînent</div>
+      <div class="pain-card-body"><div class="pain-text">4 factures non réglées. Vous savez. Mais relancer, c'est inconfortable, et ça prend du temps que vous n'avez pas.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section-screens" id="outil">
+  <h2 class="section-title">AppMee, les vrais plus au quotidien.</h2>
+  <div class="section-sub-3lines">
+    <p>Une gestion centralisée, automatisée.</p>
+    <p>8h d'administratif en moins.</p>
+    <p>La sérénité en plus.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-pill feat-pill-dashboard">Dashboard</div>
+      <div class="feat-title">Vue d'ensemble instantanée</div>
+      <div class="feat-desc">Commandes en cours, alertes stock, factures à relancer — tout centralisé sur un seul écran. Fini la chasse aux informations au démarrage de journée.</div>
+      <div class="feat-gain">→ Démarrez votre journée en 30 secondes</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-pill feat-pill-stock">Stock</div>
+      <div class="feat-title">Alertes avant la rupture</div>
+      <div class="feat-desc">Chaque matière a son seuil d'alerte. AppMee vous prévient automatiquement — pas le matin où vous démarrez la fabrication et où il est trop tard.</div>
+      <div class="feat-gain">→ Zéro surprise le jour de la production</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-pill feat-pill-commandes">Commandes</div>
+      <div class="feat-title">Faisabilité en temps réel</div>
+      <div class="feat-desc">Chaque ligne de commande affiche le stock disponible immédiatement. Vous savez en un coup d'œil ce qui est faisable et ce qui manque — avant de confirmer.</div>
+      <div class="feat-gain">→ Confirmez vos délais en confiance</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-pill feat-pill-production">Production</div>
+      <div class="feat-title">Planning visuel semaine</div>
+      <div class="feat-desc">Vos ordres de fabrication sur un calendrier. Couleur = statut : planifié, en cours, fabriqué. Votre atelier organisé sans tableau blanc ni post-its.</div>
+      <div class="feat-gain">→ Votre planning dans votre poche</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-pill feat-pill-facturation">Facturation</div>
+      <div class="feat-title">Facture depuis la livraison</div>
+      <div class="feat-desc">La facture est générée directement depuis la commande livrée. Aucune re-saisie, aucun oubli. Envoi, suivi des paiements et relances intégrés.</div>
+      <div class="feat-gain">→ Zéro heure perdue sur l'administratif</div>
+    </div>
+    <div class="feat-card feat-card-ia">
+      <div class="feat-pill feat-pill-ia">Import IA</div>
+      <div class="feat-title">Bon de commande → AppMee en secondes</div>
+      <div class="feat-desc">Déposez un PDF, Excel ou une photo de bon de commande. L'IA analyse et intègre automatiquement dans votre espace. Propulsé par Claude AI.</div>
+      <div class="feat-gain">→ Zéro saisie manuelle</div>
+    </div>
+  </div>
+</section>
+
+<!-- BETA -->
+<section class="section-beta">
+  <div class="section-eyebrow">Accès bêta</div>
+  <h2 class="section-title">Offre de lancement<br>"Bêta-testeurs"</h2>
+  <p class="section-sub">Soyez parmi les 20 premiers utilisateurs pour bénéficier de tous les avantages de votre nouveau système de gestion d'activité.</p>
+  <div class="beta-inner">
+    <div>
+      <div class="beta-badge">Places disponibles · 20 artisans max</div>
+      <div class="beta-give">
+        <div class="beta-give-title">Ce que vous obtenez</div>
+        <div class="beta-item"><div class="beta-item-ico">🔓</div><div class="beta-item-text"><strong>Accès complet</strong> à tous les modules — Dashboard, Stock, Commandes, Production, Facturation, Import IA.</div></div>
+        <div class="beta-item"><div class="beta-item-ico">🏠</div><div class="beta-item-text"><strong>Votre espace privé et isolé.</strong> Vos données n'appartiennent qu'à vous. Personne d'autre n'y accède.</div></div>
+        <div class="beta-item"><div class="beta-item-ico">📥</div><div class="beta-item-text"><strong>Import de vos données existantes</strong> — articles, produits, clients, fournisseurs. On vous aide à démarrer.</div></div>
+        <div class="beta-item"><div class="beta-item-ico">🤝</div><div class="beta-item-text"><strong>Onboarding personnalisé</strong> de 30 minutes. Vous partez en autonomie, pas dans le vide.</div></div>
+        <div class="beta-item"><div class="beta-item-ico">🔒</div><div class="beta-item-text"><strong>Tarif fondateur bloqué à vie.</strong> Le prix monte après la bêta — le vôtre reste.</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="beta-ask">
+        <div class="beta-ask-title">Ce qu'on vous demande</div>
+        <div class="beta-ask-item"><div class="beta-ask-item-dot"></div><div class="beta-ask-item-text"><strong>20 à 30 minutes</strong> de retour terrain après 3 semaines. Ce qui marche, ce qui bloque, ce qui manque.</div></div>
+        <div class="beta-ask-item"><div class="beta-ask-item-dot"></div><div class="beta-ask-item-text"><strong>Votre regard d'artisan.</strong> Pas de jargon tech requis. Votre métier, votre façon de travailler.</div></div>
+        <div class="beta-ask-item"><div class="beta-ask-item-dot"></div><div class="beta-ask-item-text">C'est tout. <strong>Aucun engagement. Aucune carte bancaire</strong> pour tester.</div></div>
+        <div class="beta-pricing">
+          <div class="beta-pricing-label">Tarif pendant la bêta</div>
+          <div class="beta-pricing-val">Gratuit <span>· puis tarif fondateur</span></div>
+          <div class="beta-pricing-note">Communiqué à l'onboarding · Bloqué à vie pour les bêta-testeurs</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="section-final" id="postuler">
+  <div class="final-counter">🔴 &nbsp;20 places · Métiers variés uniquement</div>
+  <h2 class="final-title">Votre métier mérite<br>un outil <em>à sa hauteur.</em></h2>
+  <p class="final-sub">Laissez-nous votre métier et votre email. On revient vers vous sous 48h.</p>
+  <div class="final-form-wrap">
+  <form class="beta-form" id="betaForm">
+    <div class="form-row">
+      <div class="form-field">
+        <label class="form-label">Prénom</label>
+        <input class="form-input" type="text" placeholder="Marie" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Métier / activité</label>
+        <input class="form-input" type="text" placeholder="Confiturier, bijoutier..." required>
+      </div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" placeholder="vous@exemple.fr" required>
+    </div>
+    <button class="form-submit" type="submit">Je postule pour la bêta AppMee →</button>
+    <div class="form-note">Sans engagement · Sans carte bancaire · Réponse sous 48h</div>
+  </form>
+  <div class="form-success" id="formSuccess">
+    <div class="form-success-icon">✅</div>
+    <div class="form-success-title">Candidature reçue !</div>
+    <div class="form-success-text">On revient vers vous sous 48h pour organiser votre onboarding personnalisé.</div>
+  </div>
+  </div><!-- /final-form-wrap -->
+</section>
+
+<!-- FAQ -->
+<section class="section-faq">
+  <div class="section-eyebrow">F.A.Q</div>
+  <h2 class="section-title" style="margin-bottom:40px">Comment ça se passe ?</h2>
+  <div class="faq-max" id="faqList">
+    <div class="faq-item open">
+      <button class="faq-q">C'est compliqué à prendre en main ?<div class="faq-q-icon">+</div></button>
+      <div class="faq-a">Si vous savez utiliser Excel, vous savez utiliser AppMee. L'interface est pensée pour un artisan, pas pour un comptable. Et on vous accompagne à l'onboarding — 30 minutes suffisent pour démarrer.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q">Mes données sont en sécurité ?<div class="faq-q-icon">+</div></button>
+      <div class="faq-a">Oui. Chaque artisan a son espace privé et totalement isolé. Vos données ne sont visibles ni par les autres utilisateurs, ni par nous au quotidien. L'hébergement est en Europe, les accès sont sécurisés.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q">Et après la bêta, ça coûte combien ?<div class="faq-q-icon">+</div></button>
+      <div class="faq-a">Le tarif fondateur est communiqué à l'onboarding — et bloqué à vie pour les bêta-testeurs. Pas de surprise. Pas d'abonnement caché qui monte. Vous êtes les premiers, vous bénéficiez du meilleur tarif.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q">C'est quoi exactement le rôle d'un bêta-testeur ?<div class="faq-q-icon">+</div></button>
+      <div class="faq-a">Vous utilisez AppMee dans votre quotidien d'artisan — avec vos vraies commandes, votre vrai stock, vos vrais clients. Après 3 semaines, on vous demande 20 à 30 minutes pour partager votre retour : ce qui a changé concrètement, ce qui bloque encore, ce que vous aimeriez voir en priorité. C'est votre avis qui façonne les prochaines versions.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q">Comment ça va se passer concrètement après mon inscription ?<div class="faq-q-icon">+</div></button>
+      <div class="faq-a">Dans les 48h après votre candidature, on vous recontacte pour valider votre profil et votre métier. Si votre activité correspond à un besoin non encore couvert dans la bêta, on organise ensemble une session d'onboarding de 30 minutes. On importe vos données, on paramètre votre espace, et vous démarrez. Simple et accompagné du début à la fin.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q">Ça marche pour quel type d'artisans ?<div class="faq-q-icon">+</div></button>
+      <div class="faq-a">AppMee est conçu pour les artisans qui fabriquent — bijoutiers, céramistes, confituriers, maroquiniers, menuisiers, couturiers, chocolatiers, savonniers, et bien d'autres. Si vous gérez des matières premières, des commandes clients, de la production et de la facturation : AppMee est fait pour vous. On cherche des métiers variés pour la bêta — postulez même si votre activité est atypique.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-brand"><strong>AppMee</strong> — La plateforme métier pour les artisans qui fabriquent</div>
+  <div class="footer-note">Bêta privée · Avril 2026 · Données hébergées en Europe</div>
+</footer>
+
+<script>
+// Hero rotating subtitle
+const subs = ['centralisée,','sécurisée,','optimisée,','boosté avec l\'IA.'];
+let si = 0;
+const heroSub = document.getElementById('heroSub');
+setInterval(() => {
+  heroSub.style.opacity = '0';
+  setTimeout(() => { si = (si+1)%subs.length; heroSub.textContent = subs[si]; heroSub.style.opacity = '1'; }, 300);
+}, 2200);
+heroSub.style.transition = 'opacity .3s';
+
+// Hero slideshow
+const heroSlides = document.querySelectorAll('.screen-slide');
+const heroDots = document.querySelectorAll('.slide-dot');
+const caption = document.getElementById('slideCaption');
+const deviceUrl = document.getElementById('deviceUrl');
+const slideData = [
+  {cap:"Vue d'ensemble — chiffres en temps réel", url:"erpartisant.netlify.app/app · Dashboard"},
+  {cap:"Stock articles — alertes automatiques", url:"erpartisant.netlify.app/app · Stock Articles"},
+  {cap:"Calendrier de production semaine en cours", url:"erpartisant.netlify.app/app · Production"},
+  {cap:"Détail commande — faisabilité instantanée", url:"erpartisant.netlify.app/app · Commandes"},
+  {cap:"Import IA — PDF, Excel, image acceptés", url:"erpartisant.netlify.app/app · Import IA"},
+];
+let cur = 0;
+function goTo(i) {
+  heroSlides[cur].classList.remove('active'); heroDots[cur].classList.remove('active');
+  cur = i;
+  heroSlides[cur].classList.add('active'); heroDots[cur].classList.add('active');
+  caption.textContent = slideData[i].cap; deviceUrl.textContent = slideData[i].url;
+}
+let ap = setInterval(() => goTo((cur+1)%heroSlides.length), 3400);
+heroDots.forEach(d => d.addEventListener('click', () => { clearInterval(ap); goTo(+d.dataset.i); ap = setInterval(() => goTo((cur+1)%heroSlides.length), 3400); }));
+
+// Screen tabs
+const svgScreens = [
+`<svg viewBox="0 0 580 400" xmlns="http://www.w3.org/2000/svg" font-family="'DM Sans',system-ui,sans-serif">
+  <rect width="580" height="400" fill="#F5F0E8"/>
+  <rect width="150" height="400" fill="white"/>
+  <rect x="150" width="1" height="400" fill="#E8E2D8"/>
+  <rect x="12" y="14" width="28" height="28" rx="7" fill="#C0543A"/>
+  <text x="26" y="33" font-size="14" font-weight="700" fill="white" text-anchor="middle">A</text>
+  <text x="48" y="33" font-size="13" font-weight="700" fill="#1A1410">AppMee</text>
+  <rect x="90" y="19" width="26" height="14" rx="7" fill="#F5F0E8"/>
+  <text x="103" y="29" font-size="8" font-weight="700" fill="#C0543A" text-anchor="middle">PRO</text>
+  <text x="16" y="68" font-size="9" font-weight="600" fill="#B0A090" letter-spacing="1">VUE GÉNÉRALE</text>
+  <rect x="9" y="76" width="134" height="30" rx="7" fill="#F5F0E8"/>
+  <text x="18" y="96" font-size="12" fill="#1A1410" font-weight="600">📊 Dashboard</text>
+  <text x="18" y="126" font-size="12" fill="#7A6258">📦 Stock Articles</text>
+  <rect x="124" y="116" width="18" height="15" rx="7" fill="#FEF2F2"/>
+  <text x="133" y="127" font-size="8" font-weight="700" fill="#C0543A" text-anchor="middle">7</text>
+  <text x="18" y="154" font-size="12" fill="#7A6258">🏷 Produits Finis</text>
+  <text x="18" y="182" font-size="12" fill="#7A6258">📋 Commandes</text>
+  <rect x="124" y="172" width="18" height="15" rx="7" fill="#FEF2F2"/>
+  <text x="133" y="183" font-size="8" font-weight="700" fill="#C0543A" text-anchor="middle">1</text>
+  <text x="16" y="208" font-size="9" font-weight="600" fill="#B0A090" letter-spacing="1">FABRICATION</text>
+  <text x="18" y="228" font-size="12" fill="#7A6258">🏭 Production</text>
+  <rect x="124" y="218" width="18" height="15" rx="7" fill="#FEF2F2"/>
+  <text x="133" y="229" font-size="8" font-weight="700" fill="#C0543A" text-anchor="middle">4</text>
+  <text x="18" y="254" font-size="12" fill="#7A6258">🛒 Achats</text>
+  <text x="16" y="278" font-size="9" font-weight="600" fill="#B0A090" letter-spacing="1">GESTION</text>
+  <text x="18" y="298" font-size="12" fill="#7A6258">🚚 Livraisons</text>
+  <rect x="124" y="288" width="18" height="15" rx="7" fill="#FEF2F2"/>
+  <text x="133" y="299" font-size="8" font-weight="700" fill="#C0543A" text-anchor="middle">4</text>
+  <circle cx="24" cy="378" r="13" fill="#166534"/>
+  <text x="24" y="382" font-size="10" font-weight="700" fill="white" text-anchor="middle">R</text>
+  <text x="44" y="373" font-size="11" font-weight="600" fill="#1A1410">RAD</text>
+  <text x="44" y="387" font-size="9" fill="#9CA3AF">lun 20 avril 2026</text>
+  <!-- Main -->
+  <text x="175" y="36" font-size="16" font-weight="700" fill="#1A1410">Tableau de bord</text>
+  <text x="175" y="54" font-size="11" fill="#9CA3AF">Vue d'ensemble de votre activité</text>
+  <rect x="448" y="18" width="118" height="28" rx="7" fill="#C0543A"/>
+  <text x="507" y="37" font-size="11" font-weight="600" fill="white" text-anchor="middle">+ Commande</text>
+  <!-- KPI row -->
+  <rect x="165" y="68" width="96" height="80" rx="9" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <rect x="165" y="68" width="96" height="5" rx="3" fill="#C0543A"/>
+  <text x="175" y="94" font-size="9" fill="#9CA3AF" font-weight="600" letter-spacing=".5">ALERTES STOCK</text>
+  <text x="175" y="126" font-size="32" font-weight="800" fill="#C0543A">7</text>
+  <text x="175" y="142" font-size="9" fill="#9CA3AF">sous seuil</text>
+  <rect x="270" y="68" width="126" height="80" rx="9" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <rect x="270" y="68" width="126" height="5" rx="3" fill="#3B82F6"/>
+  <text x="282" y="94" font-size="9" fill="#9CA3AF" font-weight="600" letter-spacing=".5">COMMANDES</text>
+  <text x="282" y="126" font-size="22" font-weight="800" fill="#1A1410">11 120,38 €</text>
+  <text x="282" y="142" font-size="9" fill="#9CA3AF">13 enregistrées</text>
+  <rect x="406" y="68" width="96" height="80" rx="9" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <rect x="406" y="68" width="96" height="5" rx="3" fill="#C0543A"/>
+  <text x="416" y="90" font-size="8" fill="#9CA3AF" font-weight="600" letter-spacing=".5">FACTURES</text>
+  <text x="416" y="100" font-size="8" fill="#9CA3AF" font-weight="600" letter-spacing=".5">À RELANCER</text>
+  <text x="416" y="126" font-size="22" font-weight="800" fill="#C0543A">4 826 €</text>
+  <text x="416" y="142" font-size="9" fill="#9CA3AF">4 factures</text>
+  <rect x="512" y="68" width="54" height="80" rx="9" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <rect x="512" y="68" width="54" height="5" rx="3" fill="#F59E0B"/>
+  <text x="522" y="90" font-size="8" fill="#9CA3AF" font-weight="600">OF EN</text>
+  <text x="522" y="101" font-size="8" fill="#9CA3AF" font-weight="600">COURS</text>
+  <text x="522" y="126" font-size="26" font-weight="800" fill="#1A1410">0</text>
+  <!-- Alertes stock table -->
+  <rect x="165" y="162" width="212" height="130" rx="9" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="178" y="183" font-size="11" font-weight="700" fill="#C0543A">⚠ Alertes stock</text>
+  <text x="178" y="204" font-size="9" fill="#9CA3AF" font-weight="600">ARTICLE</text>
+  <text x="300" y="204" font-size="9" fill="#9CA3AF" font-weight="600">STOCK / SEUIL</text>
+  <line x1="165" y1="210" x2="377" y2="210" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="178" y="228" font-size="10" fill="#1A1410" font-weight="600">Pot verre 100ml</text>
+  <text x="300" y="228" font-size="10" fill="#C0543A" font-weight="700">1 155</text>
+  <rect x="342" y="221" width="22" height="6" rx="3" fill="#FCA5A5"/>
+  <text x="368" y="228" font-size="9" fill="#9CA3AF">/ 1500</text>
+  <line x1="165" y1="238" x2="377" y2="238" stroke="#F5F0E8" stroke-width="1"/>
+  <text x="178" y="256" font-size="10" fill="#1A1410" font-weight="600">Couvercle 52mm</text>
+  <text x="300" y="256" font-size="10" fill="#C0543A" font-weight="700">1 000</text>
+  <rect x="342" y="249" width="16" height="6" rx="3" fill="#FCA5A5"/>
+  <text x="368" y="256" font-size="9" fill="#9CA3AF">/ 2000</text>
+  <line x1="165" y1="266" x2="377" y2="266" stroke="#F5F0E8" stroke-width="1"/>
+  <text x="178" y="284" font-size="10" fill="#1A1410" font-weight="600">Couvercle 70mm</text>
+  <text x="300" y="284" font-size="10" fill="#F59E0B" font-weight="700">580</text>
+  <rect x="342" y="277" width="20" height="6" rx="3" fill="#FDE68A"/>
+  <text x="368" y="284" font-size="9" fill="#9CA3AF">/ 800</text>
+  <!-- Dernières commandes -->
+  <rect x="165" y="302" width="398" height="86" rx="9" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="178" y="322" font-size="11" font-weight="700" fill="#1A1410">📋 Dernières commandes</text>
+  <text x="178" y="342" font-size="9" fill="#9CA3AF" font-weight="600">CLIENT</text>
+  <text x="280" y="342" font-size="9" fill="#9CA3AF" font-weight="600">DATE</text>
+  <text x="360" y="342" font-size="9" fill="#9CA3AF" font-weight="600">MONTANT</text>
+  <text x="456" y="342" font-size="9" fill="#9CA3AF" font-weight="600">STATUT</text>
+  <line x1="165" y1="348" x2="563" y2="348" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="178" y="368" font-size="10" fill="#1A1410" font-weight="700">R.T.F.</text>
+  <text x="280" y="368" font-size="9" fill="#7A6258">29/03/2026</text>
+  <text x="360" y="368" font-size="10" fill="#1A1410" font-weight="700">334,86 €</text>
+  <rect x="453" y="361" width="50" height="14" rx="7" fill="#DCFCE7"/>
+  <text x="478" y="371" font-size="8" font-weight="700" fill="#166534" text-anchor="middle">Clôturée</text>
+  <text x="178" y="384" font-size="10" fill="#1A1410" font-weight="700">Maison Dupont</text>
+  <text x="280" y="384" font-size="9" fill="#7A6258">22/03/2026</text>
+  <text x="360" y="384" font-size="10" fill="#1A1410" font-weight="700">1 240,00 €</text>
+  <rect x="450" y="377" width="56" height="14" rx="7" fill="#FEF3C7"/>
+  <text x="478" y="387" font-size="8" font-weight="700" fill="#92400E" text-anchor="middle">En cours</text>
+</svg>`,
+`<svg viewBox="0 0 580 380" xmlns="http://www.w3.org/2000/svg" font-family="'DM Sans',system-ui,sans-serif">
+  <rect width="580" height="380" fill="#F5F0E8"/>
+  <rect width="150" height="380" fill="white"/>
+  <rect x="150" width="1" height="380" fill="#E8E2D8"/>
+  <rect x="12" y="14" width="28" height="28" rx="7" fill="#C0543A"/>
+  <text x="26" y="33" font-size="14" font-weight="700" fill="white" text-anchor="middle">A</text>
+  <text x="48" y="33" font-size="13" font-weight="700" fill="#1A1410">AppMee</text>
+  <text x="16" y="68" font-size="9" font-weight="600" fill="#B0A090" letter-spacing="1">VUE GÉNÉRALE</text>
+  <text x="18" y="90" font-size="12" fill="#7A6258">📊 Dashboard</text>
+  <rect x="9" y="98" width="134" height="30" rx="7" fill="#FEF2F2"/>
+  <text x="18" y="118" font-size="12" fill="#C0543A" font-weight="700">📦 Stock Articles</text>
+  <rect x="124" y="100" width="18" height="15" rx="7" fill="#C0543A"/>
+  <text x="133" y="111" font-size="8" font-weight="700" fill="white" text-anchor="middle">7</text>
+  <text x="18" y="146" font-size="12" fill="#7A6258">🏷 Produits Finis</text>
+  <text x="18" y="174" font-size="12" fill="#7A6258">📋 Commandes</text>
+  <text x="16" y="200" font-size="9" font-weight="600" fill="#B0A090" letter-spacing="1">FABRICATION</text>
+  <text x="18" y="222" font-size="12" fill="#7A6258">🏭 Production</text>
+  <text x="18" y="250" font-size="12" fill="#7A6258">🛒 Achats</text>
+  <!-- Main -->
+  <text x="175" y="36" font-size="16" font-weight="700" fill="#1A1410">Stock Articles</text>
+  <text x="175" y="54" font-size="11" fill="#9CA3AF">Matières premières, emballages, consommables</text>
+  <!-- Filtres -->
+  <rect x="165" y="64" width="84" height="26" rx="13" fill="white" stroke="#22C55E" stroke-width="1.5"/>
+  <circle cx="180" cy="77" r="5" fill="#22C55E"/>
+  <text x="190" y="81" font-size="10" font-weight="600" fill="#1A1410">En stock 19</text>
+  <rect x="258" y="64" width="74" height="26" rx="13" fill="white" stroke="#F59E0B" stroke-width="1.5"/>
+  <circle cx="272" cy="77" r="5" fill="#F59E0B"/>
+  <text x="282" y="81" font-size="10" font-weight="600" fill="#1A1410">Faibles 4</text>
+  <rect x="342" y="64" width="82" height="26" rx="13" fill="white" stroke="#EF4444" stroke-width="1.5"/>
+  <circle cx="356" cy="77" r="5" fill="#EF4444"/>
+  <text x="366" y="81" font-size="10" font-weight="600" fill="#1A1410">Sous seuil 3</text>
+  <!-- Boutons -->
+  <rect x="436" y="62" width="60" height="30" rx="7" stroke="#E8E2D8" stroke-width="1" fill="white"/>
+  <text x="466" y="81" font-size="9" fill="#1A1410" text-anchor="middle">+ Bon cmd</text>
+  <rect x="504" y="62" width="62" height="30" rx="7" fill="#C0543A"/>
+  <text x="535" y="81" font-size="9" font-weight="600" fill="white" text-anchor="middle">+ Article</text>
+  <!-- Table -->
+  <rect x="165" y="102" width="401" height="266" rx="9" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <rect x="165" y="102" width="401" height="28" rx="9" fill="#FAFAF9"/>
+  <rect x="165" y="118" width="401" height="12" fill="#FAFAF9"/>
+  <text x="178" y="120" font-size="9" fill="#9CA3AF" font-weight="600">RÉF</text>
+  <text x="220" y="120" font-size="9" fill="#9CA3AF" font-weight="600">ARTICLE</text>
+  <text x="328" y="120" font-size="9" fill="#9CA3AF" font-weight="600">CATÉGORIE</text>
+  <text x="398" y="120" font-size="9" fill="#9CA3AF" font-weight="600">STOCK</text>
+  <text x="434" y="120" font-size="9" fill="#9CA3AF" font-weight="600">SEUIL</text>
+  <text x="466" y="120" font-size="9" fill="#9CA3AF" font-weight="600">STATUT</text>
+  <text x="516" y="120" font-size="9" fill="#9CA3AF" font-weight="600">PRIX</text>
+  <line x1="165" y1="130" x2="566" y2="130" stroke="#E8E2D8" stroke-width="1"/>
+  <!-- Row 1 OK -->
+  <text x="178" y="152" font-size="10" fill="#7A6258" font-weight="600">A0001</text>
+  <text x="220" y="152" font-size="10" fill="#1A1410" font-weight="700">Pot verre 50ml</text>
+  <rect x="326" y="143" width="52" height="16" rx="8" fill="#E0F2FE"/>
+  <text x="352" y="154" font-size="8" fill="#0369A1" text-anchor="middle" font-weight="600">Emballage</text>
+  <text x="398" y="152" font-size="10" fill="#22C55E" font-weight="800">7 000</text>
+  <text x="434" y="152" font-size="10" fill="#7A6258">2 000</text>
+  <rect x="464" y="143" width="28" height="16" rx="8" fill="#DCFCE7"/>
+  <text x="478" y="154" font-size="8" fill="#166534" text-anchor="middle" font-weight="700">OK</text>
+  <text x="516" y="152" font-size="10" fill="#7A6258">0,45 €</text>
+  <line x1="165" y1="162" x2="566" y2="162" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row 2 Faible -->
+  <text x="178" y="184" font-size="10" fill="#7A6258" font-weight="600">A0002</text>
+  <text x="220" y="184" font-size="10" fill="#1A1410" font-weight="700">Pot verre 100ml</text>
+  <rect x="326" y="175" width="52" height="16" rx="8" fill="#E0F2FE"/>
+  <text x="352" y="186" font-size="8" fill="#0369A1" text-anchor="middle" font-weight="600">Emballage</text>
+  <text x="398" y="184" font-size="10" fill="#F59E0B" font-weight="800">1 155</text>
+  <text x="434" y="184" font-size="10" fill="#7A6258">1 500</text>
+  <rect x="461" y="175" width="34" height="16" rx="8" fill="#FEF3C7"/>
+  <text x="478" y="186" font-size="8" fill="#92400E" text-anchor="middle" font-weight="700">Faible</text>
+  <text x="516" y="184" font-size="10" fill="#7A6258">0,58 €</text>
+  <line x1="165" y1="194" x2="566" y2="194" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row 3 OK -->
+  <text x="178" y="216" font-size="10" fill="#7A6258" font-weight="600">A0003</text>
+  <text x="220" y="216" font-size="10" fill="#1A1410" font-weight="700">Pot verre 200ml</text>
+  <rect x="326" y="207" width="52" height="16" rx="8" fill="#E0F2FE"/>
+  <text x="352" y="218" font-size="8" fill="#0369A1" text-anchor="middle" font-weight="600">Emballage</text>
+  <text x="398" y="216" font-size="10" fill="#22C55E" font-weight="800">1 200</text>
+  <text x="434" y="216" font-size="10" fill="#7A6258">1 000</text>
+  <rect x="464" y="207" width="28" height="16" rx="8" fill="#DCFCE7"/>
+  <text x="478" y="218" font-size="8" fill="#166534" text-anchor="middle" font-weight="700">OK</text>
+  <text x="516" y="216" font-size="10" fill="#7A6258">0,74 €</text>
+  <line x1="165" y1="226" x2="566" y2="226" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row 4 Bas -->
+  <text x="178" y="248" font-size="10" fill="#7A6258" font-weight="600">A0004</text>
+  <text x="220" y="248" font-size="10" fill="#1A1410" font-weight="700">Couvercle 52mm</text>
+  <rect x="326" y="239" width="52" height="16" rx="8" fill="#E0F2FE"/>
+  <text x="352" y="250" font-size="8" fill="#0369A1" text-anchor="middle" font-weight="600">Emballage</text>
+  <text x="398" y="248" font-size="10" fill="#EF4444" font-weight="800">1 000</text>
+  <text x="434" y="248" font-size="10" fill="#7A6258">2 000</text>
+  <rect x="464" y="239" width="28" height="16" rx="8" fill="#FEE2E2"/>
+  <text x="478" y="250" font-size="8" fill="#C0543A" text-anchor="middle" font-weight="700">Bas</text>
+  <text x="516" y="248" font-size="10" fill="#7A6258">0,12 €</text>
+  <line x1="165" y1="258" x2="566" y2="258" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row 5 -->
+  <text x="178" y="280" font-size="10" fill="#7A6258" font-weight="600">A0005</text>
+  <text x="220" y="280" font-size="10" fill="#1A1410" font-weight="700">Couvercle 70mm</text>
+  <rect x="326" y="271" width="52" height="16" rx="8" fill="#E0F2FE"/>
+  <text x="352" y="282" font-size="8" fill="#0369A1" text-anchor="middle" font-weight="600">Emballage</text>
+  <text x="398" y="280" font-size="10" fill="#F59E0B" font-weight="800">580</text>
+  <text x="434" y="280" font-size="10" fill="#7A6258">800</text>
+  <rect x="461" y="271" width="34" height="16" rx="8" fill="#FEF3C7"/>
+  <text x="478" y="282" font-size="8" fill="#92400E" text-anchor="middle" font-weight="700">Faible</text>
+  <text x="516" y="280" font-size="10" fill="#7A6258">0,09 €</text>
+  <line x1="165" y1="290" x2="566" y2="290" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row 6 -->
+  <text x="178" y="312" font-size="10" fill="#7A6258" font-weight="600">A0006</text>
+  <text x="220" y="312" font-size="10" fill="#1A1410" font-weight="700">Étiquette 50×70mm</text>
+  <rect x="326" y="303" width="62" height="16" rx="8" fill="#F3E8FF"/>
+  <text x="357" y="314" font-size="8" fill="#7C3AED" text-anchor="middle" font-weight="600">Consommable</text>
+  <text x="398" y="312" font-size="10" fill="#22C55E" font-weight="800">8 500</text>
+  <text x="434" y="312" font-size="10" fill="#7A6258">2 000</text>
+  <rect x="464" y="303" width="28" height="16" rx="8" fill="#DCFCE7"/>
+  <text x="478" y="314" font-size="8" fill="#166534" text-anchor="middle" font-weight="700">OK</text>
+  <text x="516" y="312" font-size="10" fill="#7A6258">0,04 €</text>
+  <text x="178" y="358" font-size="10" fill="#9CA3AF">26 articles · 3 sous seuil · 4 faibles</text>
+</svg>`,
+`<svg viewBox="0 0 580 380" xmlns="http://www.w3.org/2000/svg" font-family="'DM Sans',system-ui,sans-serif">
+  <rect width="580" height="380" fill="#F5F0E8"/>
+  <rect width="150" height="380" fill="white"/>
+  <rect x="150" width="1" height="380" fill="#E8E2D8"/>
+  <rect x="12" y="14" width="28" height="28" rx="7" fill="#C0543A"/>
+  <text x="26" y="33" font-size="14" font-weight="700" fill="white" text-anchor="middle">A</text>
+  <text x="48" y="33" font-size="13" font-weight="700" fill="#1A1410">AppMee</text>
+  <text x="16" y="68" font-size="9" font-weight="600" fill="#B0A090" letter-spacing="1">VUE GÉNÉRALE</text>
+  <text x="18" y="90" font-size="12" fill="#7A6258">📊 Dashboard</text>
+  <text x="18" y="118" font-size="12" fill="#7A6258">📦 Stock Articles</text>
+  <text x="18" y="146" font-size="12" fill="#7A6258">🏷 Produits Finis</text>
+  <text x="18" y="174" font-size="12" fill="#7A6258">📋 Commandes</text>
+  <text x="16" y="200" font-size="9" font-weight="600" fill="#B0A090" letter-spacing="1">FABRICATION</text>
+  <rect x="9" y="208" width="134" height="30" rx="7" fill="#FEF2F2"/>
+  <text x="18" y="228" font-size="12" fill="#C0543A" font-weight="700">🏭 Production</text>
+  <rect x="124" y="210" width="18" height="15" rx="7" fill="#C0543A"/>
+  <text x="133" y="221" font-size="8" font-weight="700" fill="white" text-anchor="middle">4</text>
+  <text x="18" y="258" font-size="12" fill="#7A6258">🛒 Achats</text>
+  <!-- Main -->
+  <text x="175" y="36" font-size="16" font-weight="700" fill="#1A1410">Production</text>
+  <text x="175" y="54" font-size="11" fill="#9CA3AF">Ordres de fabrication et calendrier</text>
+  <!-- Calendar card -->
+  <rect x="165" y="64" width="401" height="150" rx="9" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="182" y="86" font-size="12" font-weight="700" fill="#1A1410">📅 Calendrier de production — semaine en cours</text>
+  <!-- Day headers -->
+  <rect x="172" y="96" width="54" height="30" rx="5" fill="#1A1410"/>
+  <text x="199" y="115" font-size="9.5" font-weight="700" fill="white" text-anchor="middle">Lun 20/4</text>
+  <text x="247" y="111" font-size="9" fill="#7A6258" text-anchor="middle">Mar 21/4</text>
+  <text x="301" y="111" font-size="9" fill="#7A6258" text-anchor="middle">Mer 22/4</text>
+  <text x="355" y="111" font-size="9" fill="#7A6258" text-anchor="middle">Jeu 23/4</text>
+  <text x="409" y="111" font-size="9" fill="#7A6258" text-anchor="middle">Ven 24/4</text>
+  <text x="463" y="111" font-size="9" fill="#7A6258" text-anchor="middle">Sam 25/4</text>
+  <text x="517" y="111" font-size="9" fill="#7A6258" text-anchor="middle">Dim 26/4</text>
+  <!-- Colonnes -->
+  <line x1="226" y1="96" x2="226" y2="196" stroke="#E8E2D8" stroke-width="1"/>
+  <line x1="280" y1="96" x2="280" y2="196" stroke="#E8E2D8" stroke-width="1"/>
+  <line x1="334" y1="96" x2="334" y2="196" stroke="#E8E2D8" stroke-width="1"/>
+  <line x1="388" y1="96" x2="388" y2="196" stroke="#E8E2D8" stroke-width="1"/>
+  <line x1="442" y1="96" x2="442" y2="196" stroke="#E8E2D8" stroke-width="1"/>
+  <line x1="496" y1="96" x2="496" y2="196" stroke="#E8E2D8" stroke-width="1"/>
+  <!-- Events -->
+  <rect x="232" y="120" width="44" height="50" rx="5" fill="#DBEAFE"/>
+  <text x="254" y="136" font-size="8" fill="#1D4ED8" font-weight="600" text-anchor="middle">CONFITURE</text>
+  <text x="254" y="148" font-size="8" fill="#1D4ED8" font-weight="600" text-anchor="middle">ABRICOT</text>
+  <text x="254" y="160" font-size="8" fill="#1D4ED8" font-weight="700" text-anchor="middle">×200</text>
+  <rect x="502" y="120" width="44" height="50" rx="5" fill="#DCFCE7"/>
+  <text x="524" y="136" font-size="8" fill="#166534" font-weight="600" text-anchor="middle">CONFITURE</text>
+  <text x="524" y="148" font-size="8" fill="#166534" font-weight="600" text-anchor="middle">ABRICOT</text>
+  <text x="524" y="160" font-size="8" fill="#166534" font-weight="700" text-anchor="middle">×111</text>
+  <!-- Légende -->
+  <rect x="174" y="182" width="12" height="9" rx="2" fill="#FEF9C3"/>
+  <text x="190" y="189" font-size="9" fill="#7A6258">En cours</text>
+  <rect x="240" y="182" width="12" height="9" rx="2" fill="#DBEAFE"/>
+  <text x="256" y="189" font-size="9" fill="#7A6258">Planifié</text>
+  <rect x="306" y="182" width="12" height="9" rx="2" fill="#DCFCE7"/>
+  <text x="322" y="189" font-size="9" fill="#7A6258">Fabriqué</text>
+  <rect x="372" y="182" width="12" height="9" rx="2" fill="#1A1410"/>
+  <text x="388" y="189" font-size="9" fill="#7A6258">Livraison</text>
+  <!-- OF Table -->
+  <rect x="165" y="226" width="401" height="142" rx="9" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="182" y="248" font-size="12" font-weight="700" fill="#1A1410">📋 Ordres de fabrication (OF)</text>
+  <text x="182" y="268" font-size="9" fill="#9CA3AF" font-weight="600">RÉFÉRENCE</text>
+  <text x="258" y="268" font-size="9" fill="#9CA3AF" font-weight="600">PRODUIT</text>
+  <text x="390" y="268" font-size="9" fill="#9CA3AF" font-weight="600">QTÉ</text>
+  <text x="424" y="268" font-size="9" fill="#9CA3AF" font-weight="600">DATE PLANIFIÉE</text>
+  <text x="508" y="268" font-size="9" fill="#9CA3AF" font-weight="600">STATUT</text>
+  <line x1="165" y1="276" x2="566" y2="276" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="182" y="298" font-size="10" fill="#7A6258" font-weight="600">OF0036</text>
+  <text x="258" y="298" font-size="10" fill="#1A1410" font-weight="700">CONFITURE ABRICOT 230G</text>
+  <text x="390" y="298" font-size="10" fill="#1A1410" font-weight="700">200</text>
+  <text x="424" y="298" font-size="10" fill="#7A6258">21/04/2026</text>
+  <rect x="506" y="290" width="54" height="16" rx="8" fill="#DBEAFE"/>
+  <text x="533" y="301" font-size="8.5" font-weight="700" fill="#1D4ED8" text-anchor="middle">Planifié</text>
+  <line x1="165" y1="310" x2="566" y2="310" stroke="#F5F0E8" stroke-width="1"/>
+  <text x="182" y="332" font-size="10" fill="#7A6258" font-weight="600">OF0035</text>
+  <text x="258" y="332" font-size="10" fill="#1A1410" font-weight="700">CONFITURE ABRICOT 230G</text>
+  <text x="390" y="332" font-size="10" fill="#1A1410" font-weight="700">111</text>
+  <text x="424" y="332" font-size="10" fill="#7A6258">26/04/2026</text>
+  <rect x="506" y="324" width="54" height="16" rx="8" fill="#DCFCE7"/>
+  <text x="533" y="335" font-size="8.5" font-weight="700" fill="#166534" text-anchor="middle">Fabriqué</text>
+  <line x1="165" y1="344" x2="566" y2="344" stroke="#F5F0E8" stroke-width="1"/>
+  <text x="182" y="360" font-size="10" fill="#9CA3AF">4 ordres de fabrication actifs</text>
+</svg>`,
+`<svg viewBox="0 0 580 370" xmlns="http://www.w3.org/2000/svg" font-family="'DM Sans',system-ui,sans-serif">
+  <rect width="580" height="370" fill="#F5F0E8"/>
+  <rect width="150" height="370" fill="white"/>
+  <rect x="150" width="1" height="370" fill="#E8E2D8"/>
+  <rect x="12" y="14" width="28" height="28" rx="7" fill="#C0543A"/>
+  <text x="26" y="33" font-size="14" font-weight="700" fill="white" text-anchor="middle">A</text>
+  <text x="48" y="33" font-size="13" font-weight="700" fill="#1A1410">AppMee</text>
+  <text x="16" y="68" font-size="9" font-weight="600" fill="#B0A090" letter-spacing="1">VUE GÉNÉRALE</text>
+  <text x="18" y="90" font-size="12" fill="#7A6258">📊 Dashboard</text>
+  <text x="18" y="118" font-size="12" fill="#7A6258">📦 Stock Articles</text>
+  <text x="18" y="146" font-size="12" fill="#7A6258">🏷 Produits Finis</text>
+  <rect x="9" y="154" width="134" height="30" rx="7" fill="#FEF2F2"/>
+  <text x="18" y="174" font-size="12" fill="#C0543A" font-weight="700">📋 Commandes</text>
+  <rect x="124" y="156" width="18" height="15" rx="7" fill="#C0543A"/>
+  <text x="133" y="167" font-size="8" font-weight="700" fill="white" text-anchor="middle">1</text>
+  <text x="16" y="200" font-size="9" font-weight="600" fill="#B0A090" letter-spacing="1">FABRICATION</text>
+  <text x="18" y="222" font-size="12" fill="#7A6258">🏭 Production</text>
+  <text x="18" y="250" font-size="12" fill="#7A6258">🛒 Achats</text>
+  <!-- Main -->
+  <text x="175" y="36" font-size="16" font-weight="700" fill="#1A1410">Commandes clients</text>
+  <!-- Entête commande CMD0010 -->
+  <rect x="165" y="52" width="401" height="34" rx="7" fill="#FAFAF9" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="180" y="74" font-size="10" font-weight="700" fill="#7A6258">CMD0010</text>
+  <text x="244" y="74" font-size="10" font-weight="700" fill="#1A1410">R.T.F.</text>
+  <text x="292" y="74" font-size="9.5" fill="#7A6258">29/03/2026</text>
+  <text x="356" y="74" font-size="9.5" fill="#7A6258">Livr. : 30/03/2026</text>
+  <rect x="476" y="62" width="52" height="16" rx="8" fill="#DCFCE7"/>
+  <text x="502" y="73" font-size="8.5" font-weight="700" fill="#166534" text-anchor="middle">Clôturée</text>
+  <text x="440" y="74" font-size="10" font-weight="700" fill="#C0543A">334,86 €</text>
+  <!-- Table detail -->
+  <rect x="165" y="96" width="401" height="264" rx="9" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="180" y="116" font-size="9" fill="#9CA3AF" font-weight="600">PRODUIT</text>
+  <text x="356" y="116" font-size="9" fill="#9CA3AF" font-weight="600">QTÉ</text>
+  <text x="394" y="116" font-size="9" fill="#9CA3AF" font-weight="600">STOCK DISPO</text>
+  <text x="454" y="116" font-size="9" fill="#9CA3AF" font-weight="600">FAISABLE</text>
+  <text x="516" y="116" font-size="9" fill="#9CA3AF" font-weight="600">TOTAL</text>
+  <line x1="165" y1="124" x2="566" y2="124" stroke="#E8E2D8" stroke-width="1"/>
+  <!-- Row 1 OK -->
+  <text x="180" y="148" font-size="10" fill="#1A1410">Confiture Abricot Bergeron 100ml</text>
+  <text x="356" y="148" font-size="10" fill="#1A1410" font-weight="700">12</text>
+  <text x="394" y="148" font-size="10" fill="#1A1410">1 152</text>
+  <rect x="452" y="140" width="30" height="16" rx="8" fill="#DCFCE7"/>
+  <text x="467" y="151" font-size="8" fill="#166534" text-anchor="middle" font-weight="700">✓ OK</text>
+  <text x="516" y="148" font-size="10" fill="#1A1410" font-weight="700">76,80 €</text>
+  <line x1="165" y1="158" x2="566" y2="158" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row 2 Manque -->
+  <text x="180" y="182" font-size="10" fill="#1A1410">Confiture Fraise Framboise Griotte 230G</text>
+  <text x="356" y="182" font-size="10" fill="#1A1410" font-weight="700">12</text>
+  <text x="394" y="182" font-size="10" fill="#C0543A" font-weight="700">0</text>
+  <rect x="449" y="174" width="44" height="16" rx="8" fill="#FEE2E2"/>
+  <text x="471" y="185" font-size="8" fill="#C0543A" text-anchor="middle" font-weight="700">Manque 12</text>
+  <text x="516" y="182" font-size="10" fill="#1A1410" font-weight="700">59,04 €</text>
+  <line x1="165" y1="192" x2="566" y2="192" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row 3 OK -->
+  <text x="180" y="216" font-size="10" fill="#1A1410">Confiture Orange Pamplemousse 230G</text>
+  <text x="356" y="216" font-size="10" fill="#1A1410" font-weight="700">6</text>
+  <text x="394" y="216" font-size="10" fill="#1A1410">170</text>
+  <rect x="452" y="208" width="30" height="16" rx="8" fill="#DCFCE7"/>
+  <text x="467" y="219" font-size="8" fill="#166534" text-anchor="middle" font-weight="700">✓ OK</text>
+  <text x="516" y="216" font-size="10" fill="#1A1410" font-weight="700">26,58 €</text>
+  <line x1="165" y1="226" x2="566" y2="226" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row 4 OK -->
+  <text x="180" y="250" font-size="10" fill="#1A1410">Confiture Figue au Rhum 200ml</text>
+  <text x="356" y="250" font-size="10" fill="#1A1410" font-weight="700">6</text>
+  <text x="394" y="250" font-size="10" fill="#1A1410">84</text>
+  <rect x="452" y="242" width="30" height="16" rx="8" fill="#DCFCE7"/>
+  <text x="467" y="253" font-size="8" fill="#166534" text-anchor="middle" font-weight="700">✓ OK</text>
+  <text x="516" y="250" font-size="10" fill="#1A1410" font-weight="700">59,40 €</text>
+  <line x1="165" y1="260" x2="566" y2="260" stroke="#F5F0E8" stroke-width="1"/>
+  <!-- Row 5 OK -->
+  <text x="180" y="284" font-size="10" fill="#1A1410">Confiture Poire Vanille 230G</text>
+  <text x="356" y="284" font-size="10" fill="#1A1410" font-weight="700">12</text>
+  <text x="394" y="284" font-size="10" fill="#1A1410">140</text>
+  <rect x="452" y="276" width="30" height="16" rx="8" fill="#DCFCE7"/>
+  <text x="467" y="287" font-size="8" fill="#166534" text-anchor="middle" font-weight="700">✓ OK</text>
+  <text x="516" y="284" font-size="10" fill="#1A1410" font-weight="700">55,68 €</text>
+  <line x1="165" y1="294" x2="566" y2="294" stroke="#F5F0E8" stroke-width="1"/>
+  <rect x="440" y="310" width="118" height="28" rx="7" fill="#C0543A"/>
+  <text x="499" y="329" font-size="10" font-weight="600" fill="white" text-anchor="middle">Valider la commande →</text>
+</svg>`,
+`<svg viewBox="0 0 580 360" xmlns="http://www.w3.org/2000/svg" font-family="'DM Sans',system-ui,sans-serif">
+  <rect width="580" height="360" fill="#F5F0E8"/>
+  <rect width="150" height="360" fill="white"/>
+  <rect x="150" width="1" height="360" fill="#E8E2D8"/>
+  <rect x="12" y="14" width="28" height="28" rx="7" fill="#C0543A"/>
+  <text x="26" y="33" font-size="14" font-weight="700" fill="white" text-anchor="middle">A</text>
+  <text x="48" y="33" font-size="13" font-weight="700" fill="#1A1410">AppMee</text>
+  <text x="16" y="68" font-size="9" font-weight="600" fill="#B0A090" letter-spacing="1">VUE GÉNÉRALE</text>
+  <text x="18" y="90" font-size="12" fill="#7A6258">📊 Dashboard</text>
+  <rect x="9" y="98" width="134" height="30" rx="7" fill="#F5F0E8"/>
+  <text x="18" y="118" font-size="12" fill="#1A1410" font-weight="600">📦 Stock Articles</text>
+  <text x="18" y="146" font-size="12" fill="#7A6258">🏷 Produits Finis</text>
+  <text x="18" y="174" font-size="12" fill="#7A6258">📋 Commandes</text>
+  <!-- Modal overlay -->
+  <rect x="150" y="0" width="430" height="360" fill="rgba(26,20,16,0.35)"/>
+  <!-- Modal -->
+  <rect x="180" y="40" width="310" height="280" rx="14" fill="white"/>
+  <!-- Modal header -->
+  <text x="200" y="72" font-size="14" font-weight="700" fill="#1A1410">Import IA</text>
+  <text x="200" y="90" font-size="10" fill="#9CA3AF">Bon de commande</text>
+  <text x="474" y="72" font-size="18" fill="#9CA3AF">×</text>
+  <line x1="180" y1="100" x2="490" y2="100" stroke="#F5F0E8" stroke-width="1.5"/>
+  <!-- Drop zone -->
+  <rect x="198" y="112" width="274" height="100" rx="10" fill="#FAFAF9" stroke="#E8E2D8" stroke-width="1.5" stroke-dasharray="7,5"/>
+  <!-- Robot -->
+  <rect x="273" y="124" width="44" height="38" rx="8" fill="#E8E2D8"/>
+  <rect x="279" y="133" width="9" height="8" rx="2" fill="white"/>
+  <rect x="302" y="133" width="9" height="8" rx="2" fill="white"/>
+  <rect x="279" y="145" width="32" height="5" rx="2" fill="white"/>
+  <circle cx="285" cy="137" r="3" fill="#9CA3AF"/>
+  <circle cx="307" cy="137" r="3" fill="#9CA3AF"/>
+  <rect x="283" y="122" width="5" height="5" rx="1" fill="#9CA3AF"/>
+  <text x="295" y="178" font-size="11" font-weight="600" fill="#1A1410" text-anchor="middle">Déposez votre bon de commande</text>
+  <text x="295" y="196" font-size="10" fill="#9CA3AF" text-anchor="middle">PDF · Excel · Word · Image</text>
+  <!-- Label contexte -->
+  <text x="200" y="228" font-size="10" font-weight="600" fill="#7A6258" letter-spacing=".5">CONTEXTE (optionnel)</text>
+  <rect x="198" y="236" width="274" height="32" rx="8" fill="white" stroke="#E8E2D8" stroke-width="1"/>
+  <text x="210" y="257" font-size="10" fill="#C8C0B8">Commande urgente, livraison avant le 20 mars…</text>
+  <!-- Footer -->
+  <text x="200" y="295" font-size="9" fill="#B0A090">Powered by Claude AI via Netlify</text>
+  <rect x="376" y="280" width="72" height="28" rx="7" fill="#3D3730"/>
+  <text x="412" y="298" font-size="10" font-weight="600" fill="white" text-anchor="middle">Analyser</text>
+  <!-- Badge IA -->
+  <rect x="220" y="308" width="150" height="22" rx="11" fill="#F5F0E8"/>
+  <text x="295" y="323" font-size="9.5" fill="#7A6258" text-anchor="middle">✨ Intelligence artificielle intégrée</text>
+</svg>`
+];const screenTabs = document.querySelectorAll('.screen-tab');
+const previewWrap = document.getElementById('screenPreviewWrap');
+screenTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    screenTabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const i = +tab.dataset.screen;
+    previewWrap.style.opacity = '0';
+    setTimeout(() => { previewWrap.innerHTML = svgScreens[i]; previewWrap.style.opacity = '1'; }, 220);
+  });
+});
+previewWrap.style.transition = 'opacity .25s';
+
+// FAQ
+document.querySelectorAll('.faq-q').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const item = btn.closest('.faq-item');
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!wasOpen) item.classList.add('open');
+  });
+});
+
+// Form
+document.getElementById('betaForm').addEventListener('submit', e => {
+  e.preventDefault();
+  window.location.href = 'https://erpartisant.netlify.app/?signup=1';
+});
+
+// Scroll reveal
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) { e.target.style.opacity='1'; e.target.style.transform='translateY(0)'; }});
+}, {threshold:.08});
+document.querySelectorAll('.pain-card,.screen-tab,.beta-give,.beta-ask,.cred-stat').forEach(el => {
+  el.style.opacity='0'; el.style.transform='translateY(18px)';
+  el.style.transition='opacity .45s ease,transform .45s ease';
+  obs.observe(el);
+});
+</script>
+</body>
+</html>

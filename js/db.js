@@ -557,6 +557,54 @@ export async function createLivraison(livraison) {
 }
 
 /* -------------------------------------------------------
+   NUMÉROTATION SÉQUENTIELLE SERVEUR
+   Appelle la RPC next_ref (SECURITY DEFINER) qui garantit
+   une séquence continue et sans trou par tenant.
+   Remplace le nextRef client (ui.js) pour les documents
+   légaux (commande, facture, BC, livraison).
+------------------------------------------------------- */
+export async function nextRefServeur(prefix) {
+  const { data, error } = await supabase.rpc('next_ref', { p_prefix: prefix });
+  if (error) handleError('nextRefServeur', error);
+  return data;
+}
+
+/* -------------------------------------------------------
+   FACTURE LIGNES (figées à l'émission)
+------------------------------------------------------- */
+export async function getFactureLignes(factureId) {
+  const { data, error } = await supabase
+    .from('facture_lignes')
+    .select('*')
+    .eq('facture_id', factureId)
+    .eq('tenant_id', tid())
+    .order('created_at');
+  if (error) handleError('getFactureLignes', error);
+  return data;
+}
+
+export async function createFactureLignes(factureId, lignes) {
+  if (!lignes || !lignes.length) return [];
+  const rows = lignes.map(l => ({
+    tenant_id:     tid(),
+    facture_id:    factureId,
+    produit_id:    l.produit_id || null,
+    produit_nom:   l.produit_nom || null,
+    quantite:      l.quantite,
+    prix_unitaire: l.prix_unitaire,
+    taux_tva:      l.taux_tva ?? 20,
+    total_ht:      l.total_ht ?? (l.quantite * l.prix_unitaire),
+    total_ttc:     l.total_ttc ?? (l.quantite * l.prix_unitaire * (1 + (l.taux_tva ?? 20) / 100)),
+  }));
+  const { data, error } = await supabase
+    .from('facture_lignes')
+    .insert(rows)
+    .select();
+  if (error) handleError('createFactureLignes', error);
+  return data;
+}
+
+/* -------------------------------------------------------
    FACTURES
 ------------------------------------------------------- */
 
