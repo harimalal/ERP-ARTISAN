@@ -306,7 +306,16 @@ function _editRow(type, id) {
       <div class="form-group"><label>Prix achat HT (€)</label><input type="number" id="er_prix" value="${a.prix}" step="0.001"></div>
       <div class="form-group"><label>Fournisseur</label><input id="er_fournisseur" value="${esc(a.fournisseur || '')}"></div>
       <div class="form-group"><label>Seuil alerte</label><input type="number" id="er_seuil" value="${a.seuil}"></div>
-      <div class="form-group"><label>Stock actuel</label><input type="number" id="er_stock" value="${a.stock}" step="0.01"></div>`;
+      <div class="form-group"><label>Stock actuel</label><input type="number" id="er_stock" value="${a.stock}" step="0.01">
+      <div class="form-group"><label>Taux TVA (%)</label>
+        <select id="er_tva">
+          <option value="20" ${(a.taux_tva == null || a.taux_tva == 20) ? 'selected' : ''}>20% — standard</option>
+          <option value="10" ${a.taux_tva == 10 ? 'selected' : ''}>10% — intermédiaire</option>
+          <option value="5.5" ${a.taux_tva == 5.5 ? 'selected' : ''}>5,5% — réduit</option>
+          <option value="2.1" ${a.taux_tva == 2.1 ? 'selected' : ''}>2,1% — presse/médicament</option>
+          <option value="0" ${a.taux_tva == 0 ? 'selected' : ''}>0% — exonéré</option>
+        </select>
+      </div>`;
   } else if (type === 'produit') {
     const p = _produits.find(x => x.id === id);
     html += `
@@ -314,7 +323,16 @@ function _editRow(type, id) {
       <div class="form-group"><label>Nom</label><input id="er_nom" value="${esc(p.nom)}"></div>
       <div class="form-group"><label>Prix vente HT (€)</label><input type="number" id="er_prix" value="${p.prix_vente || p.prix}" step="0.01"></div>
       <div class="form-group"><label>Seuil alerte</label><input type="number" id="er_seuil" value="${p.seuil}"></div>
-      <div class="form-group"><label>Stock actuel</label><input type="number" id="er_stock" value="${p.stock}" step="0.01"></div>`;
+      <div class="form-group"><label>Stock actuel</label><input type="number" id="er_stock" value="${p.stock}" step="0.01"></div>
+      <div class="form-group"><label>Taux TVA (%)</label>
+        <select id="er_tva">
+          <option value="20" ${(p.taux_tva == null || p.taux_tva == 20) ? 'selected' : ''}>20% — standard</option>
+          <option value="10" ${p.taux_tva == 10 ? 'selected' : ''}>10% — intermédiaire</option>
+          <option value="5.5" ${p.taux_tva == 5.5 ? 'selected' : ''}>5,5% — réduit</option>
+          <option value="2.1" ${p.taux_tva == 2.1 ? 'selected' : ''}>2,1% — presse/médicament</option>
+          <option value="0" ${p.taux_tva == 0 ? 'selected' : ''}>0% — exonéré</option>
+        </select>
+      </div>`;
   } else if (type === 'client') {
     /* Fix B5 — formulaire complet client (tous les champs) */
     const c = _clients.find(x => x.id === id);
@@ -377,6 +395,7 @@ async function _saveEditRow() {
         fournisseur: document.getElementById('er_fournisseur').value,
         seuil:       parseInt(document.getElementById('er_seuil').value) || 0,
         stock:       parseFloat(document.getElementById('er_stock').value) || 0,
+        taux_tva:    parseFloat(document.getElementById('er_tva')?.value) ?? 20,
       });
     } else if (_editType === 'produit') {
       await updateProduit(_editId, {
@@ -384,6 +403,7 @@ async function _saveEditRow() {
         prix_vente: parseFloat(document.getElementById('er_prix').value) || 0,
         seuil:      parseInt(document.getElementById('er_seuil').value) || 0,
         stock:      parseFloat(document.getElementById('er_stock').value) || 0,
+        taux_tva:   parseFloat(document.getElementById('er_tva')?.value) ?? 20,
       });
     } else if (_editType === 'client') {
       /* Fix B5 — sauvegarder tous les champs client, pas uniquement le nom */

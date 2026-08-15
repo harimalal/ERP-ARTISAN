@@ -26,6 +26,14 @@ let _delegationBound = false;
 /* -------------------------------------------------------
    HELPERS
 ------------------------------------------------------- */
+function _tauxArticle(articleId) {
+  if (!articleId) return 20;
+  const art = _articles.find(x => x.id === articleId);
+  if (art && art.taux_tva != null) return Number(art.taux_tva);
+  if (_tenant && _tenant.taux_tva != null) return Number(_tenant.taux_tva);
+  return 20;
+}
+
 function _refRacine(ref) {
   if (!ref) return ref;
   const m = ref.match(/^(BC\d+)/i);
@@ -45,7 +53,12 @@ function _grouperAchats(achats) {
     }
     const g = map.get(racine);
     g.lignes.push(a);
-    g.totalHT += (a.montant_ht || (a.quantite * (a.prix_unitaire || 0)) || 0);
+    const ht = a.montant_ht || (a.quantite * (a.prix_unitaire || 0)) || 0;
+    g.totalHT += ht;
+    const tx = _tauxArticle(a.article_id);
+    g._tva = (g._tva || 0) + ht * tx / 100;
+    g._ttc = (g._ttc || 0) + ht * (1 + tx / 100);
+    g._tauxAff = tx; /* affiché = taux de la dernière ligne */
     g.ids.push(a.id);
   }
   return Array.from(map.values()).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
@@ -384,6 +397,7 @@ function _openDetailBC(refGroupe) {
       <td style="padding:4px 6px;">
         <input type="number" class="dbc-qte" data-id="${l.id}" value="${l.quantite || 0}"
           step="0.01" style="width:70px;padding:3px 6px;border:1px solid var(--ui-brd);border-radius:5px;font-size:11.5px;"
+          data-taux="${_tauxArticle(l.article_id)}"
           oninput="_dbcRecalcLigne(this)">
       </td>
       <td style="padding:4px 6px;">
@@ -462,13 +476,13 @@ function _openDetailBC(refGroupe) {
           <td></td>
         </tr>
         <tr>
-          <td colspan="4" style="text-align:right;padding:4px 8px;font-size:10.5px;color:var(--ink-muted);">TVA 20%</td>
-          <td id="dbcTVA" style="padding:4px 8px;font-size:10.5px;color:var(--ink-muted);text-align:right;">${fmt(g.totalHT * 0.2)} €</td>
+          <td colspan="4" style="text-align:right;padding:4px 8px;font-size:10.5px;color:var(--ink-muted);">TVA ${esc(g._tauxAff || 20)}%</td>
+          <td id="dbcTVA" style="padding:4px 8px;font-size:10.5px;color:var(--ink-muted);text-align:right;">${fmt(g._tva || (g.totalHT * 0.2))} €</td>
           <td></td>
         </tr>
         <tr style="background:var(--ui-bg2);">
           <td colspan="4" style="text-align:right;font-weight:700;padding:7px 8px;">Total TTC</td>
-          <td id="dbcTotalTTC" style="font-weight:700;padding:7px 8px;text-align:right;">${fmt(g.totalHT * 1.2)} €</td>
+          <td id="dbcTotalTTC" style="font-weight:700;padding:7px 8px;text-align:right;">${fmt(g._ttc || (g.totalHT * 1.2))} €</td>
           <td></td>
         </tr>
       </tfoot>
@@ -491,18 +505,27 @@ function _dbcRecalcLigne(input) {
 }
 
 function _dbcRecalcAll() {
-  let totalHT = 0;
+  let totalHT = 0, totalTVA = 0, totalTTC = 0;
+  let tauxAff = 20;
   document.querySelectorAll('#dbcLignesTbody tr').forEach(r => {
     const q = parseFloat(r.querySelector('.dbc-qte')?.value) || 0;
     const p = parseFloat(r.querySelector('.dbc-prix')?.value) || 0;
-    totalHT += q * p;
+    const tx = parseFloat(r.querySelector('.dbc-qte')?.dataset.taux) || 20;
+    const ht = q * p;
+    totalHT += ht;
+    totalTVA += ht * tx / 100;
+    totalTTC += ht * (1 + tx / 100);
+    if (ht > 0) tauxAff = tx;
   });
   const elHT  = document.getElementById('dbcTotalHT');
   const elTVA = document.getElementById('dbcTVA');
   const elTTC = document.getElementById('dbcTotalTTC');
   if (elHT)  elHT.textContent  = fmt(totalHT) + ' €';
-  if (elTVA) elTVA.textContent = fmt(totalHT * 0.2) + ' €';
-  if (elTTC) elTTC.textContent = fmt(totalHT * 1.2) + ' €';
+  if (elTVA) elTVA.textContent = fmt(totalTVA) + ' €';
+  if (elTTC) elTTC.textContent = fmt(totalTTC) + ' €';
+  /* Update TVA label */
+  const tvaLabel = document.querySelector('#detailBCContent tr:nth-child(2) td:first-child');
+  if (tvaLabel) tvaLabel.textContent = 'TVA ' + tauxAff + '%';
 }
 
 function _bindDetailBCForm() {
@@ -633,11 +656,21 @@ function _aperçuBCFormulaire() {
 }
 
 function _buildPdfData(g, t, f) {
-  const totalHT = g.totalHT || g.lignes.reduce((s, l) => s + (l.montant_ht || ((l.quantite || 0) * (l.prix_unitaire || 0))), 0);
-  return { g, t, f, totalHT, tva: totalHT * 0.2, ttc: totalHT * 1.2 };
+  let totalHT = 0, totalTVA = 0, totalTTC = 0;
+  let tauxAff = 20;
+  const lignes = g.lignes || [];
+  for (const l of lignes) {
+    const ht = l.montant_ht || ((l.quantite || 0) * (l.prix_unitaire || 0));
+    const tx = l.taux_tva != null ? Number(l.taux_tva) : _tauxArticle(l.article_id);
+    totalHT += ht;
+    totalTVA += ht * tx / 100;
+    totalTTC += ht * (1 + tx / 100);
+    if (ht > 0) tauxAff = tx;
+  }
+  return { g, t, f, totalHT, tva: totalTVA, ttc: totalTTC, tauxAff };
 }
 
-function _ouvrirFenetrePDF({ g, t, f, totalHT, tva, ttc }) {
+function _ouvrirFenetrePDF({ g, t, f, totalHT, tva, ttc, tauxAff }) {
   /* Fix S12 — ref article depuis cache ou propriété directe */
   const lignesHTML = (g.lignes || []).map(l => {
     const artRef = l.ref_article || (_articles.find(x => x.id === l.article_id) || {}).ref || '—';
@@ -725,7 +758,7 @@ function _ouvrirFenetrePDF({ g, t, f, totalHT, tva, ttc }) {
     </table>
     <table class="totaux">
       <tr><td class="lbl">Total HT</td><td class="val">${_fmtPrix(totalHT)}</td></tr>
-      <tr><td class="lbl">TVA 20 %</td><td class="val">${_fmtPrix(tva)}</td></tr>
+      <tr><td class="lbl">TVA ${tauxAff || 20} %</td><td class="val">${_fmtPrix(tva)}</td></tr>
       <tr class="ttc"><td class="lbl" style="color:#fff;font-weight:700;">TOTAL TTC</td><td class="val">${_fmtPrix(ttc)}</td></tr>
     </table>
     ${g.notes ? `<div style="margin-top:12px;padding:8px 10px;background:#eff6ff;border-left:3px solid #2563eb;font-size:10px;"><strong>Note :</strong> ${_esc(g.notes)}</div>` : ''}

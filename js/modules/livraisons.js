@@ -96,7 +96,7 @@ function _renderTable() {
       <td style="font-size:11.5px;">${esc(f.date_facture || '—')}</td>
       <td class="td-bold">${esc(f.client_nom)}</td>
       <td style="font-weight:600">${fmt(f.montant_ht)} €</td>
-      <td style="color:var(--ink-muted);font-size:11.5px;">${fmt((f.montant_ht || 0) * (1 + (f.taux_tva || 20) / 100))} €</td>
+      <td style="color:var(--ink-muted);font-size:11.5px;">${fmt((f.montant_ht || 0) * (1 + ((f.taux_tva != null ? Number(f.taux_tva) : 20)) / 100))} €</td>
       <td>${badgeFac(f.statut)}</td>
       <td onclick="event.stopPropagation()">
         <select data-id="${f.id}" data-action="changer-statut"
@@ -158,14 +158,29 @@ export async function saveLivraison() {
     if (!dejafac) {
       const tot = (c.commande_lignes || []).reduce((s, l) => s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
 
-      /* TVA multi-taux : taux par défaut du tenant */
-      let tauxTva = 20;
+      /* TVA multi-taux : priorité produit > tenant > 20 */
+      let tauxFacture = 20;
       try {
         const tenant = await getTenant();
-        if (tenant && tenant.taux_tva != null) tauxTva = Number(tenant.taux_tva);
+        if (tenant && tenant.taux_tva != null) tauxFacture = Number(tenant.taux_tva);
       } catch (_) {}
 
-      /* Résoudre le client pour les mentions légales (SIREN, adresse) */
+      const lignesFigees = (c.commande_lignes || []).map(l => {
+        const p = _produits.find(x => x.id === l.produit_id);
+        const tauxLigne = (p && p.taux_tva != null) ? Number(p.taux_tva) : tauxFacture;
+        return {
+          produit_id:    l.produit_id,
+          produit_nom:   l.produit_nom,
+          quantite:      l.quantite,
+          prix_unitaire: l.prix_unitaire,
+          taux_tva:      tauxLigne,
+          total_ht:      l.total_ht || (l.quantite * l.prix_unitaire),
+        };
+      });
+
+      /* Taux de la facture = taux le plus élevé parmi les lignes, ou tenant */
+      const tauxLignes = lignesFigees.filter(l => l.total_ht > 0).map(l => l.taux_tva);
+      if (tauxLignes.length > 0) tauxFacture = Math.max(...tauxLignes);
       let clientId = c.client_id || null;
       let siretClient = '';
       let adresseClient = '';
@@ -188,21 +203,13 @@ export async function saveLivraison() {
         siret_client:  siretClient,
         adresse_client: adresseClient,
         montant_ht:    tot,
-        taux_tva:      tauxTva,
+        taux_tva:      tauxFacture,
         statut:        'a_lancer',   /* Fix S11 — défaut À lancer */
         date_facture:  date,
       });
       _factures.unshift(fac);
 
-      /* Figer les lignes de facture (copie depuis la commande) */
-      const lignesFigees = (c.commande_lignes || []).map(l => ({
-        produit_id:    l.produit_id,
-        produit_nom:   l.produit_nom,
-        quantite:      l.quantite,
-        prix_unitaire: l.prix_unitaire,
-        taux_tva:      tauxTva,
-        total_ht:      l.total_ht || (l.quantite * l.prix_unitaire),
-      }));
+      /* Lignes déjà figées avec TVA par produit (calculées ci-dessus) */
       await createFactureLignes(fac.id, lignesFigees);
     }
 
@@ -323,7 +330,7 @@ async function _saveNewFacture() {
       siret_client: siretClient,
       adresse_client: adresseClient,
       montant_ht:   montant,
-      taux_tva:     parseFloat(document.getElementById('nfTva').value) || 20,
+      taux_tva:     parseFloat(document.getElementById('nfTva').value) || null,
       statut:       document.getElementById('nfStatut').value,
       notes:        document.getElementById('nfNotes').value,
     });
@@ -356,7 +363,7 @@ async function _aperçuPdfFac(id) {
 
 function _ouvrirFenetrePDFFac(f, t, c, lignes) {
   const montantHT = f.montant_ht || 0;
-  const tvaRate = f.taux_tva || 20;
+  const tvaRate = f.taux_tva != null ? Number(f.taux_tva) : 20;
   const tva = montantHT * (tvaRate / 100);
   const ttc = f.montant_ttc || montantHT + tva;
   const fmtPrix = v => fmt(Number(v)) + ' €';
