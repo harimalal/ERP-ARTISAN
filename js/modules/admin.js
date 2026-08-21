@@ -509,6 +509,7 @@ function _bindFicheClientForm() {
     if (!_ficheClientId) return;
     const changes = {
       nom:     document.getElementById('fc_nom').value.trim(),
+      siret:   document.getElementById('fc_siret')?.value.trim() || '',
       email:   document.getElementById('fc_email').value.trim(),
       tel:     document.getElementById('fc_tel').value.trim(),
       adresse: document.getElementById('fc_adresse').value.trim(),
