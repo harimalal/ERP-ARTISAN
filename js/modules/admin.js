@@ -53,6 +53,8 @@ export async function init() {
   _bindImportIA();
   _bindImportAvance();
   _bindSearchInputs();
+  document.getElementById('btnSupprimerDoublons')?.addEventListener('click', _ouvrirSuppressionDoublons);
+  document.getElementById('doublonsBtnSupprimer')?.addEventListener('click', _supprimerDoublonsSelection);
 }
 
 /* -------------------------------------------------------
@@ -1517,4 +1519,102 @@ function _dlTemplate(type) {
 }
 
 export const _detecterTypeModeleTest = _detecterTypeModele;
+
+/* -------------------------------------------------------
+   SUPPRESSION DES DOUBLONS
+------------------------------------------------------- */
+const _LABELS_TYPE_DOUBLON = { client: 'Client', fournisseur: 'Fournisseur', article: 'Article', produit: 'Produit' };
+
+function _grouperDoublons(collection) {
+  const groupes = {};
+  for (const item of collection) {
+    const cle = _normaliserNom(item.nom);
+    if (!cle) continue;
+    if (!groupes[cle]) groupes[cle] = [];
+    groupes[cle].push(item);
+  }
+  return Object.values(groupes).filter(g => g.length > 1);
+}
+
+function _trierParAnciennete(groupe) {
+  return [...groupe].sort((a, b) => {
+    const da = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const db = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return da - db;
+  });
+}
+
+async function _ouvrirSuppressionDoublons() {
+  const [clients, fournisseurs, articles, produits] = await Promise.all([
+    getClients(), getFournisseurs(), getArticles(), getProduits(),
+  ]);
+
+  const parType = {
+    client:      _grouperDoublons(clients),
+    fournisseur: _grouperDoublons(fournisseurs),
+    article:     _grouperDoublons(articles),
+    produit:     _grouperDoublons(produits),
+  };
+
+  const el = document.getElementById('doublonsListe');
+  if (!el) return;
+
+  const totalGroupes = Object.values(parType).reduce((s, g) => s + g.length, 0);
+  if (!totalGroupes) {
+    el.innerHTML = '<p style="font-size:12.5px;color:var(--ink-muted);">Aucun doublon détecté.</p>';
+  } else {
+    el.innerHTML = Object.entries(parType).filter(([, groupes]) => groupes.length).map(([type, groupes]) => `
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:600;font-size:12.5px;margin-bottom:6px;">${_LABELS_TYPE_DOUBLON[type]}s - ${groupes.length} groupe(s) de doublons</div>
+        ${groupes.map(groupe => {
+          const trie = _trierParAnciennete(groupe);
+          return `<div style="border:1px solid var(--ui-brd);border-radius:6px;padding:8px;margin-bottom:6px;">
+            <div style="font-size:12px;font-weight:600;margin-bottom:4px;">${esc(trie[0].nom)}</div>
+            ${trie.map((entite, i) => `
+              <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;padding:2px 0;">
+                <input type="checkbox" data-doublon-type="${type}" data-doublon-id="${entite.id}" ${i === 0 ? '' : 'checked'}>
+                <span>${i === 0 ? '(a garder par defaut) ' : ''}${esc(entite.email || entite.tel || entite.ref || entite.contact || '')} - cree le ${entite.created_at ? new Date(entite.created_at).toLocaleDateString('fr-FR') : 'date inconnue'}</span>
+              </label>`).join('')}
+          </div>`;
+        }).join('')}
+      </div>`).join('');
+  }
+
+  const btnSupprimer = document.getElementById('doublonsBtnSupprimer');
+  if (btnSupprimer) { btnSupprimer.disabled = !totalGroupes; btnSupprimer.style.opacity = totalGroupes ? '1' : '.5'; }
+  openModal('modalDoublons');
+}
+
+async function _supprimerDoublonsSelection() {
+  const btn = document.getElementById('doublonsBtnSupprimer');
+  if (btn) { btn.disabled = true; btn.textContent = 'Suppression…'; }
+
+  const cases = document.querySelectorAll('#doublonsListe input[type="checkbox"]:checked');
+  const suppressions = { client: deleteClient, fournisseur: deleteFournisseur, article: deleteArticle, produit: deleteProduit };
+  let reussies = 0;
+  const echecs = [];
+
+  for (const c of cases) {
+    const type = c.dataset.doublonType;
+    const id = c.dataset.doublonId;
+    try {
+      await suppressions[type](id);
+      reussies++;
+    } catch (err) {
+      echecs.push(`${type} : ${err.message}`);
+    }
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Supprimer la sélection'; }
+
+  if (echecs.length) {
+    showToast(`⚠ ${reussies} supprimé(s), ${echecs.length} impossible(s) — probablement lié(s) à des commandes/achats existants. Voir console.`, 'warn');
+    echecs.forEach(e => console.warn('[SuppressionDoublons]', e));
+  } else {
+    showToast(`✅ ${reussies} doublon(s) supprimé(s).`);
+    closeModal('modalDoublons');
+  }
+
+  _renderArticles(); _renderProduits(); _renderClients(); _renderFournisseurs();
+}
 export const _matchEntiteExistanteTest = _matchEntiteExistante;
