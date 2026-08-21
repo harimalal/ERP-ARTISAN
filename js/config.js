@@ -40,7 +40,7 @@ export const PLANS_QUOTA_IA = {
 /* ENDPOINTS NETLIFY FUNCTIONS — underscores obligatoires */
 export const API = {
   aiAnalyseBC:  '/api/ai-analyse-bc',
-  aiExtractDoc: '/api/ai-extract-doc',
+  aiExtractDoc: '/api/ai-extract-batch',
 };
 
 export const CAT_ARTICLES = ['emballage', 'matiere', 'ingredient', 'fourniture', 'autre'];
