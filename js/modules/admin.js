@@ -935,46 +935,51 @@ async function _onFichiersDeposes(fileList) {
   if (_scanEnCours) return;
   _scanEnCours = true;
 
-  const fichiers = Array.from(fileList);
-  const TAILLE_MAX = 15 * 1024 * 1024;
-  const EXT_OK = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'xlsx', 'xls', 'csv'];
+  try {
+    const fichiers = Array.from(fileList);
+    const TAILLE_MAX = 15 * 1024 * 1024;
+    const EXT_OK = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'xlsx', 'xls', 'csv'];
 
-  const rejetes = [];
-  const accepted = fichiers.filter(f => {
-    const ext = f.name.split('.').pop().toLowerCase();
-    if (!EXT_OK.includes(ext)) { rejetes.push({ nom: f.name, raison: 'format non supporté' }); return false; }
-    if (f.size > TAILLE_MAX) { rejetes.push({ nom: f.name, raison: 'fichier trop volumineux (>15 Mo)' }); return false; }
-    return true;
-  });
+    const rejetes = [];
+    const accepted = fichiers.filter(f => {
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (!EXT_OK.includes(ext)) { rejetes.push({ nom: f.name, raison: 'format non supporté' }); return false; }
+      if (f.size > TAILLE_MAX) { rejetes.push({ nom: f.name, raison: 'fichier trop volumineux (>15 Mo)' }); return false; }
+      return true;
+    });
 
-  if (rejetes.length) _afficherFichiersRejetes(rejetes);
-  if (!accepted.length) { _scanEnCours = false; return; }
+    if (rejetes.length) _afficherFichiersRejetes(rejetes);
+    if (!accepted.length) return;
 
-  const excelDirects = [];
-  const aScannerIA   = [];
+    const excelDirects = [];
+    const aScannerIA   = [];
 
-  for (const f of accepted) {
-    const ext = f.name.split('.').pop().toLowerCase();
-    if (ext !== 'xlsx' && ext !== 'xls' && ext !== 'csv') { aScannerIA.push(f); continue; }
-    try {
-      const headers = await _lireHeadersFichier(f, ext);
-      const type = _detecterTypeModele(headers);
-      if (type) excelDirects.push({ file: f, type });
-      else aScannerIA.push(f);
-    } catch { aScannerIA.push(f); }
+    for (const f of accepted) {
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (ext !== 'xlsx' && ext !== 'xls' && ext !== 'csv') { aScannerIA.push(f); continue; }
+      try {
+        const headers = await _lireHeadersFichier(f, ext);
+        const type = _detecterTypeModele(headers);
+        if (type) excelDirects.push({ file: f, type });
+        else aScannerIA.push(f);
+      } catch { aScannerIA.push(f); }
+    }
+
+    if (excelDirects.length) await _importerModelesConnus(excelDirects);
+
+    if (aScannerIA.length) {
+      const batchId = crypto.randomUUID();
+      _afficherProgressionScan(0, aScannerIA.length);
+      await _lancerScanLot(aScannerIA, batchId, (etat) => _afficherProgressionScan(etat.traites, etat.total, etat));
+      await _deduplicquerLot(batchId);
+      await _renderEcranValidation(batchId);
+    }
+  } catch (err) {
+    console.error('[admin] _onFichiersDeposes ERREUR:', err.message, err.stack);
+    showToast('⚠ Une erreur est survenue pendant le scan. Réessayez ou rechargez la page si le problème persiste.', 'warn');
+  } finally {
+    _scanEnCours = false;
   }
-
-  if (excelDirects.length) await _importerModelesConnus(excelDirects);
-
-  if (aScannerIA.length) {
-    const batchId = crypto.randomUUID();
-    _afficherProgressionScan(0, aScannerIA.length);
-    await _lancerScanLot(aScannerIA, batchId, (etat) => _afficherProgressionScan(etat.traites, etat.total, etat));
-    await _deduplicquerLot(batchId);
-    await _renderEcranValidation(batchId);
-  }
-
-  _scanEnCours = false;
 }
 
 function _lireHeadersFichier(file, ext) {
