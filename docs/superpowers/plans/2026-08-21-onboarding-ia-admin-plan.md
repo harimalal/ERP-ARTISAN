@@ -1864,6 +1864,71 @@ git commit -m "fix(admin): _scanEnCours toujours relache meme en cas d'erreur (t
 
 ---
 
+### Task 14: Cellules Excel formatées en date lues comme numéro de série (fix robustesse)
+
+Repéré en réfléchissant aux scénarios catastrophe avec l'utilisateur : SheetJS, sans option particulière, lit une cellule Excel formatée comme une date sous la forme d'un numéro de série (ex. 45123) plutôt que d'une date lisible. Ce numéro brut partirait tel quel dans le texte envoyé à l'IA (Tâche 12) ou dans l'import direct (Tâche 9), avec un risque réel de donnée fausse silencieusement stockée dans une fiche client/fournisseur/article — contraire à la Règle 21C du projet. Exception documentée à la protection habituelle de `_lireLignesFichier` (Tâche 9) : ce n'est pas un changement de contrat de la fonction (elle retourne toujours un tableau d'objets ligne), c'est la correction d'un bug de lecture déjà présent, qui touche aussi bien le chemin déterministe que le chemin IA — décision explicite de l'utilisateur de corriger maintenant plutôt qu'après un test réel.
+
+**Files:**
+- Modify: `js/modules/admin.js` (`_lireHeadersFichier` ligne 994, `_lireOngletsFichier` lignes 1028+1031, `_lireLignesFichier` lignes 1362+1364)
+
+**Interfaces:** aucune — aucune signature ni forme de retour ne change, seule la valeur des cellules de type date change (numéro de série → chaîne "yyyy-mm-dd").
+
+- [ ] **Step 1: `_lireHeadersFichier` — cellDates pour cohérence (pas de dateNF nécessaire, lecture d'en-têtes uniquement)**
+
+Ligne 994, remplacer :
+```js
+          const wb = XLSX.read(e.target.result, { type: 'array' });
+```
+par :
+```js
+          const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+```
+
+- [ ] **Step 2: `_lireOngletsFichier` — cellDates + formatage des dates en chaîne lisible**
+
+Ligne 1028, même remplacement que Step 1 (dans cette fonction).
+Ligne 1031, remplacer :
+```js
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[nom], { defval: '' });
+```
+par :
+```js
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[nom], { defval: '', raw: false, dateNF: 'yyyy-mm-dd' });
+```
+
+- [ ] **Step 3: `_lireLignesFichier` — même correction (exception documentée à la protection habituelle, cf. contexte ci-dessus)**
+
+Ligne 1362, même remplacement que Step 1 (dans cette fonction).
+Ligne 1364, remplacer :
+```js
+          resolve(XLSX.utils.sheet_to_json(ws, { defval: '' }));
+```
+par :
+```js
+          resolve(XLSX.utils.sheet_to_json(ws, { defval: '', raw: false, dateNF: 'yyyy-mm-dd' }));
+```
+
+- [ ] **Step 4: Valider la syntaxe**
+
+Run: `node --check js/modules/admin.js`
+
+- [ ] **Step 5: Vérifier qu'aucun autre appel `XLSX.read`/`sheet_to_json` n'a été manqué**
+
+Grep `XLSX.read\|sheet_to_json` dans tout le fichier — confirmer que les 3 fonctions listées ci-dessus sont bien les seules à lire des données de cellules (les 2 appels `sheet_to_json(..., { header: 1 })` dans `_lireHeadersFichier`, lignes 996 et 1001, lisent des en-têtes texte, pas des données — laisser tels quels, ne pas leur ajouter `raw:false`/`dateNF` inutilement).
+
+- [ ] **Step 6: Trace manuelle**
+
+Tracer : un fichier Excel avec une colonne "date_livraison" formatée comme date Excel (valeur affichée "15/03/2026", stockée en interne comme numéro de série 46096) → avec `cellDates: true` + `raw: false, dateNF: 'yyyy-mm-dd'`, `sheet_to_json` retourne la chaîne "2026-03-15" pour cette cellule au lieu du numéro brut. Vérifier cette trace sur les 3 fonctions modifiées. Écrire la trace dans le rapport.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add js/modules/admin.js
+git commit -m "fix(admin): cellules Excel formatees en date lues correctement (cellDates + dateNF)"
+```
+
+---
+
 ## Self-Review
 
 Couverture du spec : section 3 (architecture Option C) → Tâches 1, 2, 6. Section 4 (pipeline 4 étapes) → Tâches 4 (étape 1), 6 (étape 2), 5+7 (étape 3), 8 (étape 4). Section 5 (table staging) → Tâche 1. Section 6 (contrat fonction IA) → Tâche 3. Section 7 (garde-fous taille/format) → Tâche 6 Step 1 (`TAILLE_MAX`, `EXT_OK`). Section 8 (vérification schéma) → Tâche 1 Step 2. Section 9 (scénarios Règle 21B) → Tâche 10 Step 2. Section 10 (hors scope) → respecté, `_massImport` recettes/commandes non touché, `_dlTemplate` laissé en décision ouverte plutôt que supprimé unilatéralement.
