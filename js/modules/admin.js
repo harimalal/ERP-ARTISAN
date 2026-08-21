@@ -766,6 +766,65 @@ function _detecterTypeModele(headers) {
 }
 
 /* -------------------------------------------------------
+   DÉDOUBLONNAGE DÉTERMINISTE
+   Jamais laissé à l'IA — comparaison floue sur le nom,
+   confirmation par un champ clé (email/tel/siret/ref).
+------------------------------------------------------- */
+function _normaliserNom(nom) {
+  return String(nom || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
+const _CHAMPS_CLES = {
+  client:      ['email', 'siret', 'tel'],
+  fournisseur: ['siret', 'email', 'iban'],
+  article:     ['ref'],
+  produit:     ['ref'],
+};
+
+const _COLLECTIONS = { client: 'clients', fournisseur: 'fournisseurs', article: 'articles', produit: 'produits' };
+
+function _matchEntiteExistante(entite, existants) {
+  const collection = existants[_COLLECTIONS[entite.type]] || [];
+  const nomCible    = _normaliserNom(entite.champs.nom);
+
+  if (!nomCible && entite.type !== 'article' && entite.type !== 'produit') {
+    return { statut: 'nouveau', correspondance: null };
+  }
+
+  const refCible = _normaliserNom(entite.champs.ref);
+  const clesType  = _CHAMPS_CLES[entite.type] || [];
+
+  for (const existant of collection) {
+    const refExistant = _normaliserNom(existant.ref);
+    if ((entite.type === 'article' || entite.type === 'produit') && refCible && refExistant && refCible === refExistant) {
+      return { statut: 'existant', correspondance: existant };
+    }
+
+    const champCleConfirme = clesType.some(champ => {
+      const v1 = _normaliserNom(entite.champs[champ]);
+      const v2 = _normaliserNom(existant[champ]);
+      return v1 && v2 && v1 === v2;
+    });
+
+    if (champCleConfirme) {
+      return { statut: 'existant', correspondance: existant };
+    }
+
+    const nomExistant = _normaliserNom(existant.nom);
+    const nomProche    = nomCible && nomExistant && (nomCible === nomExistant || nomExistant.includes(nomCible) || nomCible.includes(nomExistant));
+    if (!nomProche) continue;
+
+    return { statut: 'ambigu', correspondance: existant };
+  }
+
+  return { statut: 'nouveau', correspondance: null };
+}
+
+/* -------------------------------------------------------
    IMPORT EN MASSE (XLSX/CSV)
 ------------------------------------------------------- */
 let _massLoaded = {};
@@ -1018,3 +1077,4 @@ function _dlTemplate(type) {
 }
 
 export const _detecterTypeModeleTest = _detecterTypeModele;
+export const _matchEntiteExistanteTest = _matchEntiteExistante;
