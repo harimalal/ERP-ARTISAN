@@ -332,7 +332,6 @@ async function _saveNewFacture() {
       montant_ht:   montant,
       taux_tva:     parseFloat(document.getElementById('nfTva').value) || null,
       statut:       document.getElementById('nfStatut').value,
-      notes:        document.getElementById('nfNotes').value,
     });
     _factures.unshift(fac);
     closeModal('modalNewFacture');
