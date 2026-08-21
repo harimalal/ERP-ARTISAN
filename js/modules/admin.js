@@ -51,6 +51,7 @@ export async function init() {
   _bindFicheFournisseurForm();
   _bindHistoriqueForm();
   _bindImportIA();
+  _bindImportAvance();
   _bindSearchInputs();
 }
 
@@ -1166,6 +1167,70 @@ function _bindImportIA() {
     const batchId = document.getElementById('importValidation')?.dataset.batchId;
     if (batchId) _confirmerImport(batchId);
   });
+}
+
+/* -------------------------------------------------------
+   IMPORT AVANCÉ (recettes, commandes) — secours hors IA
+   Ces 2 types n'ont pas de détection automatique fiable
+   (lignes multiples par entité) ; on garde un accès direct
+   par modèle Excel/CSV, en dehors du pipeline IA.
+------------------------------------------------------- */
+function _bindImportAvance() {
+  const toggle = document.getElementById('importAvanceToggle');
+  const zone   = document.getElementById('importAvanceZone');
+  if (toggle && zone) {
+    toggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      zone.style.display = zone.style.display === 'none' ? '' : 'none';
+    });
+  }
+
+  _bindImportAvanceZone('recettes', 'importAvanceRecettesZone', 'importAvanceRecettesInput', 'importAvanceRecettesNom');
+  _bindImportAvanceZone('commandes', 'importAvanceCommandesZone', 'importAvanceCommandesInput', 'importAvanceCommandesNom');
+
+  document.getElementById('massBtnImport')?.addEventListener('click', () => {
+    if (!_massLoaded.recettes && !_massLoaded.commandes) {
+      showToast('⚠ Sélectionne un fichier recettes ou commandes avant d\'importer.', 'warn');
+      return;
+    }
+    _massImport();
+  });
+}
+
+function _bindImportAvanceZone(type, zoneId, inputId, nomId) {
+  const zone  = document.getElementById(zoneId);
+  const input = document.getElementById(inputId);
+  const nomEl = document.getElementById(nomId);
+  if (!zone || !input) return;
+
+  zone.addEventListener('click', () => input.click());
+  input.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) _chargerFichierAvance(type, file, nomEl);
+  });
+  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.style.borderColor = 'var(--ui-green)'; });
+  zone.addEventListener('dragleave', () => { zone.style.borderColor = 'var(--ui-brd)'; });
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.style.borderColor = 'var(--ui-brd)';
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) _chargerFichierAvance(type, file, nomEl);
+  });
+}
+
+async function _chargerFichierAvance(type, file, nomEl) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['xlsx', 'xls', 'csv'].includes(ext)) {
+    showToast('⚠ Format non supporté — xlsx, xls ou csv attendu.', 'warn');
+    return;
+  }
+  try {
+    const rows = await _lireLignesFichier(file, ext);
+    _massLoaded[type] = { rows };
+    if (nomEl) nomEl.textContent = `${file.name} (${rows.length} lignes)`;
+  } catch (err) {
+    showToast(`⚠ Lecture du fichier ${type} échouée : ${err.message}`, 'warn');
+  }
 }
 
 async function _importerModelesConnus(excelDirects) {

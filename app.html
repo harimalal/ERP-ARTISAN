@@ -883,6 +883,26 @@
     <div id="importRejetes" style="display:none;margin-top:10px;" class="alert-box alert-danger"></div>
     <div id="importProgression" style="display:none;margin-top:12px;"></div>
     <div id="importValidation" style="display:none;margin-top:12px;"></div>
+    <div style="margin-top:14px;">
+      <a href="#" id="importAvanceToggle" style="font-size:12px;color:var(--ink-muted);text-decoration:underline;">Import avancé (recettes, commandes)</a>
+      <div id="importAvanceZone" style="display:none;margin-top:10px;">
+        <p style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">Import direct par modèle Excel/CSV, sans passage par l'IA — réservé aux recettes et aux commandes.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div id="importAvanceRecettesZone" style="flex:1;min-width:180px;border:2px dashed var(--ui-brd);border-radius:8px;padding:14px;text-align:center;cursor:pointer;">
+            <input type="file" id="importAvanceRecettesInput" accept=".xlsx,.xls,.csv" style="display:none">
+            <span style="font-size:12.5px;">Recettes<br><small style="color:var(--ink-muted);" id="importAvanceRecettesNom">Glisse ou clique</small></span>
+          </div>
+          <div id="importAvanceCommandesZone" style="flex:1;min-width:180px;border:2px dashed var(--ui-brd);border-radius:8px;padding:14px;text-align:center;cursor:pointer;">
+            <input type="file" id="importAvanceCommandesInput" accept=".xlsx,.xls,.csv" style="display:none">
+            <span style="font-size:12.5px;">Commandes<br><small style="color:var(--ink-muted);" id="importAvanceCommandesNom">Glisse ou clique</small></span>
+          </div>
+        </div>
+        <div class="form-actions between" style="margin-top:10px;">
+          <span></span>
+          <button class="btn btn-ghost" id="massBtnImport">📥 Importer</button>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="form-actions between">
     <button class="btn btn-ghost" data-close="modalImportMasse">Fermer</button>
