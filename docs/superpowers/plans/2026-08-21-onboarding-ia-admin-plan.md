@@ -1561,6 +1561,225 @@ git commit -m "fix(ia): support Excel/CSV en vrac (texte structure) dans ai-extr
 
 ---
 
+### Task 12: Sécurisation du prompt IA + lecture multi-onglets Excel (durcissement post-audit)
+
+Ajouté après un audit dédié de la robustesse du prompt (`buildPrompt`, `SCHEMA_PROMPT`, `nettoyerEntites`) demandé par l'utilisateur. 3 faiblesses critiques identifiées : (1) aucune instruction "une ligne de tableur = une entité potentielle", (2) aucune définition métier des 4 types d'entités (risque de confusion client/fournisseur, article/produit), (3) `max_tokens: 2000` insuffisant pour un document à forte cardinalité d'entités, risque de troncature JSON silencieuse. Plus une faille distincte trouvée par l'utilisateur en relisant le code : `_lireHeadersFichier`/`_lireLignesFichier` ne lisent jamais que le premier onglet d'un classeur Excel — un fichier multi-onglets (ex. onglet Clients + onglet Fournisseurs + onglet Articles dans le même classeur) perd silencieusement tout sauf le premier onglet, y compris sur le chemin déterministe déjà en production (Tâches 4/9).
+
+**Files:**
+- Modify: `netlify/functions/ai_extract_doc.js` (`buildPrompt` ligne 118, `nettoyerEntites` ligne 181, handler lignes 253-264, `max_tokens` ligne 247)
+- Modify: `js/modules/admin.js` (`_lireHeadersFichier` lignes 975-995 — garde multi-onglets ; nouvelle fonction `_lireOngletsFichier` ; `_serialiserLignesTexte` et le branchement tabulaire de `_scannerFichierIA`, ajoutés en Tâche 11)
+
+**Interfaces:**
+- Consumes : aucune nouvelle dépendance externe.
+- Produces : `_lireOngletsFichier(file, ext)` → `Promise<{ [nomOnglet]: [{colonne: valeur}, ...] }>`, nouvelle fonction dédiée au chemin IA tabulaire — NE remplace PAS `_lireLignesFichier` (Tâche 9), qui reste inchangée et continue de servir uniquement le chemin déterministe/import avancé (protection Règle 19, zéro risque sur ce qui est déjà validé).
+- `nettoyerEntites` change de forme de retour : `Array` → `{ entites: Array, avertissements: Array<string> }` — le handler doit être adapté en conséquence (Étape 4 ci-dessous).
+
+- [ ] **Step 1: Garde multi-onglets dans `_lireHeadersFichier`**
+
+Dans `js/modules/admin.js`, dans `_lireHeadersFichier` (branche non-CSV, ligne ~984), avant de résoudre les headers du premier onglet, ajouter une vérification : si le classeur contient plus d'un onglet avec des données réelles, résoudre un tableau vide `[]` au lieu des headers du premier onglet — `_detecterTypeModele([])` retournera `null` naturellement (aucun match possible sur un tableau vide), ce qui route automatiquement le fichier vers `aScannerIA` sans toucher à `_onFichiersDeposes` :
+```js
+} else {
+  const wb = XLSX.read(e.target.result, { type: 'array' });
+  const ongletsAvecDonnees = wb.SheetNames.filter(nom => {
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[nom], { header: 1 });
+    return rows.length > 0;
+  });
+  if (ongletsAvecDonnees.length > 1) { resolve([]); return; }
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+  resolve(rows[0] || []);
+}
+```
+Un fichier Excel à un seul onglet garde exactement le même comportement qu'avant (Règle 19). Un fichier multi-onglets part systématiquement en scan IA, jamais sur le chemin déterministe (qui suppose un seul type par fichier).
+
+- [ ] **Step 2: `_lireOngletsFichier` — nouvelle fonction dédiée au chemin IA**
+
+Ajouter après `_lireHeadersFichier` :
+```js
+function _lireOngletsFichier(file, ext) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        if (ext === 'csv') {
+          const lines   = String(e.target.result).split('\n').filter(l => l.trim());
+          const headers = lines[0].split(/[,;]/).map(h => h.trim().replace(/^"|"$/g, ''));
+          const rows = lines.slice(1).map(line => {
+            const vals = line.split(/[,;]/).map(v => v.trim().replace(/^"|"$/g, ''));
+            const obj  = {};
+            headers.forEach((h, i) => { obj[h] = vals[i] || ''; });
+            return obj;
+          });
+          resolve({ 'Fichier CSV': rows });
+        } else {
+          const wb = XLSX.read(e.target.result, { type: 'array' });
+          const onglets = {};
+          for (const nom of wb.SheetNames) {
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[nom], { defval: '' });
+            if (rows.length) onglets[nom] = rows;
+          }
+          resolve(onglets);
+        }
+      } catch (err) { reject(err); }
+    };
+    reader.onerror = () => reject(new Error('Lecture fichier échouée'));
+    if (ext === 'csv') reader.readAsText(file, 'UTF-8');
+    else reader.readAsArrayBuffer(file);
+  });
+}
+```
+
+- [ ] **Step 3: `_serialiserLignesTexte` — sérialisation groupée par onglet**
+
+Remplacer la fonction `_serialiserLignesTexte` ajoutée en Tâche 11 par :
+```js
+function _serialiserLignesTexte(onglets, maxLignesParOnglet = 300) {
+  const noms = Object.keys(onglets);
+  if (!noms.length) return '(fichier vide, aucune ligne détectée)';
+  return noms.map(nom => {
+    const rows = onglets[nom];
+    const tronque = rows.length > maxLignesParOnglet;
+    const lignes = rows.slice(0, maxLignesParOnglet).map(row =>
+      Object.entries(row).map(([k, v]) => `${k}: ${v}`).join(' | ')
+    );
+    return `--- Onglet "${nom}" (${rows.length} ligne(s)) ---\n` + lignes.join('\n') +
+      (tronque ? `\n… (${rows.length - maxLignesParOnglet} lignes supplémentaires non incluses dans cet onglet)` : '');
+  }).join('\n\n');
+}
+```
+
+Dans `_scannerFichierIA` (Tâche 11), remplacer l'appel `const rows = await _lireLignesFichier(file, extension); payload.texte = _serialiserLignesTexte(rows);` par `const onglets = await _lireOngletsFichier(file, extension); payload.texte = _serialiserLignesTexte(onglets);`.
+
+- [ ] **Step 4: Réécrire `buildPrompt()` — définitions, instruction ligne-par-ligne, exemples concrets**
+
+Dans `netlify/functions/ai_extract_doc.js`, remplacer entièrement `buildPrompt()` (ligne 118) par :
+```js
+function buildPrompt() {
+  return `Tu es un assistant d'extraction de données pour une application ERP artisanale française.
+
+Analyse ce contenu et identifie TOUTES les entités qu'il contient parmi : client, fournisseur, article, produit.
+
+Définitions à respecter strictement :
+- client = une personne ou entreprise à qui l'artisan vend (facture, livre).
+- fournisseur = une personne ou entreprise à qui l'artisan achète (matière première, service) — un IBAN, un délai de livraison, ou une mention "commande vers"/"achat auprès de" signalent un fournisseur, pas un client.
+- article = une matière première ou un composant acheté à un fournisseur, entrant dans la fabrication.
+- produit = un article fini fabriqué par l'artisan, destiné à la vente.
+En cas de doute entre client et fournisseur sur un document sans contexte d'achat/vente explicite (ex : simple carte de visite), choisis confiance "basse" plutôt que de deviner le type.
+
+Un document peut contenir plusieurs entités de types différents (ex : un bon de livraison = 1 client + plusieurs articles).
+Un document peut contenir plusieurs documents logiques distincts (ex : plusieurs factures dans un seul PDF) — dans ce cas, indique la page_source de chaque entité pour les distinguer, ne fusionne jamais des informations venant de documents différents dans une seule entité.
+
+Si le contenu fourni est un export tableur (une ligne = une suite de paires colonne: valeur, éventuellement regroupées par onglet marqué "--- Onglet \\"nom\\" ---"), traite CHAQUE LIGNE comme une entité potentiellement distincte : un tableau de 50 lignes clients doit produire jusqu'à 50 entités séparées dans entites, jamais une seule entité agrégée. Chaque onglet peut contenir un type d'entité différent (ex : onglet "Clients" → entités client, onglet "Fournisseurs" → entités fournisseur) — déduis le type à partir des colonnes et du nom de l'onglet, pas seulement de sa position dans le fichier. Si plusieurs lignes semblent décrire la même entité (doublon apparent), signale-le dans avertissements plutôt que de les fusionner silencieusement. Dans ce cas (tableur), laisse page_source à null — la notion de page ne s'applique pas.
+
+Les noms de colonnes du fichier tableur peuvent différer des noms de champs attendus (ex : "Raison sociale" → nom, "Tél" → tel, "N° SIRET" → siret, une colonne "Fournisseur" en en-tête ne signifie pas forcément que la ligne EST un fournisseur). Fais la correspondance sémantique toi-même, sans jamais inventer une valeur si la correspondance est trop incertaine.
+
+Exemples concrets :
+1) Onglet tableur "Clients" avec 3 lignes (nom: Boulangerie Martin | email: contact@martin.fr ; nom: Épicerie Dupuis | tel: 0611223344 ; nom: Café des Arts | adresse: 5 rue de la Paix) → 3 entités type "client" séparées, une par ligne, confiance haute si les champs sont clairs.
+2) Un bon de livraison scanné mentionnant "Livré à : Boulangerie Martin" puis un tableau de 4 articles avec quantités → 1 entité "client" (Boulangerie Martin) + 4 entités "article", toutes avec la même page_source.
+3) Une carte de visite "Jean Dupont — Fournitures Boulangerie SARL — IBAN FR76..." sans contexte d'achat/vente → 1 entité "fournisseur" (l'IBAN et le nom d'entreprise orientent vers fournisseur plutôt que client), confiance moyenne si aucun autre signal ne confirme.
+
+Retourne UNIQUEMENT un objet JSON valide (sans backticks ni texte autour) au format suivant :
+${SCHEMA_PROMPT}
+
+Règles strictes :
+- Ne jamais inventer de donnée absente du document. Champ absent → chaîne vide "".
+- N'utilise jamais un type en dehors de client | fournisseur | article | produit. Si une entité ne correspond clairement à aucun des 4 types, ne l'ajoute pas dans entites avec un type approximatif : décris-la brièvement dans avertissements à la place, pour que rien ne disparaisse silencieusement.
+- Si le texte est flou, partiellement illisible, ou l'extraction incertaine → confiance "basse", jamais "haute" par défaut. Pour un contenu tableur, applique la même prudence si une valeur est incomplète, ambiguë entre deux champs possibles (ex : un nombre qui pourrait être un prix ou une quantité), ou si une ligne semble être un doublon ou une correction d'une autre ligne.
+- Si le document est totalement illisible ou vide → document_type_detecte: "illisible", entites: [].
+- SIRET : chiffres uniquement, sans espaces. IBAN : format standard (FR76...).
+- Si le document contient un grand nombre d'entités (tableur de plusieurs dizaines de lignes, PDF regroupant plusieurs dizaines de factures), garde extrait_source très court (moins de 12 mots) pour chaque entité, afin de ne jamais risquer de tronquer la réponse JSON.
+- Réponse en français.`;
+}
+```
+
+- [ ] **Step 5: `nettoyerEntites` — avertissement au lieu de suppression silencieuse**
+
+Remplacer `nettoyerEntites` (ligne 181) par :
+```js
+function nettoyerEntites(rawEntites) {
+  const avertissements = [];
+  if (!Array.isArray(rawEntites)) return { entites: [], avertissements };
+
+  const entites = [];
+  for (const e of rawEntites) {
+    if (!e || !e.champs || typeof e.champs !== 'object') {
+      avertissements.push('Une entité mal formée a été ignorée (structure invalide).');
+      continue;
+    }
+    if (!TYPES_VALIDES.includes(e.type)) {
+      avertissements.push(`Une entité de type "${e.type}" non reconnu a été ignorée — vérifiez le document manuellement.`);
+      continue;
+    }
+    entites.push({
+      type:           e.type,
+      champs:         whitelisterChamps(e.type, e.champs),
+      confiance:       ['haute', 'moyenne', 'basse'].includes(e.confiance) ? e.confiance : 'basse',
+      page_source:     Number.isInteger(e.page_source) ? e.page_source : null,
+      extrait_source:  typeof e.extrait_source === 'string' ? e.extrait_source.slice(0, 300) : '',
+    });
+  }
+  return { entites, avertissements };
+}
+```
+
+- [ ] **Step 6: Adapter le handler à la nouvelle forme de retour + relever `max_tokens`**
+
+Ligne 247, remplacer `max_tokens: 2000,` par `max_tokens: 8000,`.
+
+Lignes 253-264, remplacer :
+```js
+    const parsed      = parseReponseIA(rawText);
+    const entites      = nettoyerEntites(parsed.entites);
+
+    if (!quota.hors_quota) {
+      await incrementerQuota(tenantId, quota.mois, quota.appels, tokensUsed, supabase);
+    }
+
+    return new Response(JSON.stringify({
+      ok: true,
+      entites,
+      document_type_detecte: parsed.document_type_detecte || 'autre',
+      avertissements: Array.isArray(parsed.avertissements) ? parsed.avertissements : [],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+```
+par :
+```js
+    const parsed = parseReponseIA(rawText);
+    const { entites, avertissements: avertissementsDrop } = nettoyerEntites(parsed.entites);
+
+    if (!quota.hors_quota) {
+      await incrementerQuota(tenantId, quota.mois, quota.appels, tokensUsed, supabase);
+    }
+
+    return new Response(JSON.stringify({
+      ok: true,
+      entites,
+      document_type_detecte: parsed.document_type_detecte || 'autre',
+      avertissements: [...(Array.isArray(parsed.avertissements) ? parsed.avertissements : []), ...avertissementsDrop],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+```
+
+- [ ] **Step 7: Valider la syntaxe**
+
+Run: `node --check netlify/functions/ai_extract_doc.js && node --check js/modules/admin.js`
+
+- [ ] **Step 8: Vérifier qu'aucun autre appelant de `nettoyerEntites` n'existe** (changement de forme de retour, breaking change interne à ce fichier)
+
+Grep `nettoyerEntites` dans tout le repo — doit apparaître uniquement dans `ai_extract_doc.js` (sa définition + son unique appel dans le handler). Si un autre appelant existait, il faudrait l'adapter aussi.
+
+- [ ] **Step 9: Trace manuelle (pas d'environnement live)**
+
+Tracer un classeur Excel à 2 onglets ("Clients" 3 lignes, "Fournisseurs" 2 lignes) déposé seul : `_lireHeadersFichier` détecte 2 onglets non vides → résout `[]` → `_detecterTypeModele([])` → `null` → fichier routé vers `aScannerIA` (jamais vers le chemin déterministe). `_scannerFichierIA` appelle `_lireOngletsFichier` → `{ Clients: [...3 lignes], Fournisseurs: [...2 lignes] }` → `_serialiserLignesTexte` produit un texte avec 2 blocs "--- Onglet ... ---". Écrire cette trace, plus une seconde trace pour un fichier Excel à 1 seul onglet matchant le modèle "clients" existant, confirmant qu'il suit toujours exactement le même chemin déterministe qu'avant cette tâche (Règle 19).
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add netlify/functions/ai_extract_doc.js js/modules/admin.js
+git commit -m "feat(ia): durcissement prompt (definitions, exemples, une-ligne-une-entite) + lecture multi-onglets Excel"
+```
+
+---
+
 ## Self-Review
 
 Couverture du spec : section 3 (architecture Option C) → Tâches 1, 2, 6. Section 4 (pipeline 4 étapes) → Tâches 4 (étape 1), 6 (étape 2), 5+7 (étape 3), 8 (étape 4). Section 5 (table staging) → Tâche 1. Section 6 (contrat fonction IA) → Tâche 3. Section 7 (garde-fous taille/format) → Tâche 6 Step 1 (`TAILLE_MAX`, `EXT_OK`). Section 8 (vérification schéma) → Tâche 1 Step 2. Section 9 (scénarios Règle 21B) → Tâche 10 Step 2. Section 10 (hors scope) → respecté, `_massImport` recettes/commandes non touché, `_dlTemplate` laissé en décision ouverte plutôt que supprimé unilatéralement.
