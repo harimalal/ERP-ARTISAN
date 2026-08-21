@@ -736,6 +736,36 @@ function _telechargerCSV(contenu, nomFichier) {
 }
 
 /* -------------------------------------------------------
+   DÉTECTION DÉTERMINISTE DES ANCIENS MODÈLES
+   Si un fichier Excel/CSV matche déjà un modèle connu,
+   il saute l'IA — zéro risque, zéro coût.
+------------------------------------------------------- */
+const _MODELES_CONNUS = {
+  articles:     ['ref', 'nom', 'categorie', 'unite', 'prix', 'fournisseur', 'seuil', 'stock'],
+  produits:     ['ref', 'nom', 'prix', 'seuil', 'stock'],
+  clients:      ['nom', 'email', 'tel', 'adresse', 'notes'],
+  fournisseurs: ['nom', 'contact', 'email', 'tel', 'adresse', 'delai', 'categorie'],
+};
+
+function _normaliserHeader(h) {
+  return String(h || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function _detecterTypeModele(headers) {
+  const normalises = (headers || []).map(_normaliserHeader).sort();
+  for (const [type, colonnes] of Object.entries(_MODELES_CONNUS)) {
+    const attendu = [...colonnes].sort();
+    if (normalises.length === attendu.length && normalises.every((h, i) => h === attendu[i])) {
+      return type;
+    }
+  }
+  return null;
+}
+
+/* -------------------------------------------------------
    IMPORT EN MASSE (XLSX/CSV)
 ------------------------------------------------------- */
 let _massLoaded = {};
@@ -986,3 +1016,5 @@ function _dlTemplate(type) {
   XLSX.utils.book_append_sheet(wb, ws, type);
   XLSX.writeFile(wb, 'arteasy_modele_' + type + '.xlsx');
 }
+
+export const _detecterTypeModeleTest = _detecterTypeModele;
