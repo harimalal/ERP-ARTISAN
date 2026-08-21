@@ -14,11 +14,14 @@ import {
   getFournisseurs, createFournisseur, updateFournisseur, deleteFournisseur,
   getCommandes, createCommande, getAchats, getFactures, getAllOFs,
   getMouvements, addMouvement,
+  createImportScanItem, getOnboardingIAUtilise, markOnboardingIAUtilise,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, stockStatus, badgeCmd, showToast,
   openModal, closeModal, filterTable, today, confirmDialog,
 } from '../ui.js';
+import { getSession, getTenantId } from '../auth.js';
+import { API } from '../config.js';
 
 /* Cache local */
 let _tenant       = {};
@@ -822,6 +825,151 @@ function _matchEntiteExistante(entite, existants) {
   }
 
   return { statut: 'nouveau', correspondance: null };
+}
+
+/* -------------------------------------------------------
+   SCAN IA — ORCHESTRATION (Étape 2)
+   Concurrence limitée, écriture progressive en staging
+   pour survivre à un incident pendant un lot long.
+------------------------------------------------------- */
+const _CONCURRENCE_MAX = 3;
+let _scanEnCours = false;
+
+async function _lireFichierBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = () => reject(new Error('Lecture fichier échouée : ' + file.name));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function _scannerFichierIA(file, batchId, onProgress) {
+  const extension = file.name.split('.').pop().toLowerCase();
+  try {
+    const fichierBase64 = await _lireFichierBase64(file);
+    const session = await getSession();
+    const resp = await fetch(API.aiExtractDoc, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fichier: fichierBase64, extension, tenantId: getTenantId(), token: session.access_token }),
+    });
+    const data = await resp.json();
+
+    if (!data.ok) {
+      onProgress({ fichier: file.name, statut: 'echec', message: data.error });
+      return;
+    }
+
+    for (const entite of data.entites) {
+      await createImportScanItem({
+        batch_id:       batchId,
+        fichier_nom:    file.name,
+        page_source:    entite.page_source,
+        type_entite:    entite.type,
+        champs:         entite.champs,
+        confiance:      entite.confiance,
+        statut:         'a_creer',
+        extrait_source: entite.extrait_source,
+      });
+    }
+
+    onProgress({ fichier: file.name, statut: 'termine', nbEntites: data.entites.length, avertissements: data.avertissements });
+  } catch (err) {
+    console.error('[admin] _scannerFichierIA ERREUR:', err.message, err.stack);
+    onProgress({ fichier: file.name, statut: 'echec', message: err.message });
+  }
+}
+
+async function _lancerScanLot(fichiers, batchId, onProgress) {
+  if (!(await getOnboardingIAUtilise())) {
+    await markOnboardingIAUtilise();
+  }
+
+  let index = 0;
+  let traites = 0;
+  const total = fichiers.length;
+
+  async function _travailleur() {
+    while (index < fichiers.length) {
+      const i = index++;
+      await _scannerFichierIA(fichiers[i], batchId, (etat) => {
+        traites++;
+        onProgress({ ...etat, traites, total, pourcentage: Math.round((traites / total) * 100) });
+      });
+    }
+  }
+
+  const travailleurs = Array.from({ length: Math.min(_CONCURRENCE_MAX, fichiers.length) }, () => _travailleur());
+  await Promise.all(travailleurs);
+}
+
+async function _onFichiersDeposes(fileList) {
+  if (_scanEnCours) return;
+  _scanEnCours = true;
+
+  const fichiers = Array.from(fileList);
+  const TAILLE_MAX = 15 * 1024 * 1024;
+  const EXT_OK = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'xlsx', 'xls', 'csv'];
+
+  const rejetes = [];
+  const accepted = fichiers.filter(f => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (!EXT_OK.includes(ext)) { rejetes.push({ nom: f.name, raison: 'format non supporté' }); return false; }
+    if (f.size > TAILLE_MAX) { rejetes.push({ nom: f.name, raison: 'fichier trop volumineux (>15 Mo)' }); return false; }
+    return true;
+  });
+
+  if (rejetes.length) _afficherFichiersRejetes(rejetes);
+  if (!accepted.length) { _scanEnCours = false; return; }
+
+  const excelDirects = [];
+  const aScannerIA   = [];
+
+  for (const f of accepted) {
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (ext !== 'xlsx' && ext !== 'xls' && ext !== 'csv') { aScannerIA.push(f); continue; }
+    try {
+      const headers = await _lireHeadersFichier(f, ext);
+      const type = _detecterTypeModele(headers);
+      if (type) excelDirects.push({ file: f, type });
+      else aScannerIA.push(f);
+    } catch { aScannerIA.push(f); }
+  }
+
+  if (excelDirects.length) await _importerModelesConnus(excelDirects);
+
+  if (aScannerIA.length) {
+    const batchId = crypto.randomUUID();
+    _afficherProgressionScan(0, aScannerIA.length);
+    await _lancerScanLot(aScannerIA, batchId, (etat) => _afficherProgressionScan(etat.traites, etat.total, etat));
+    await _deduplicquerLot(batchId);
+    await _renderEcranValidation(batchId);
+  }
+
+  _scanEnCours = false;
+}
+
+function _lireHeadersFichier(file, ext) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        if (ext === 'csv') {
+          const first = String(e.target.result).split('\n')[0] || '';
+          resolve(first.split(/[,;]/).map(h => h.trim().replace(/^"|"$/g, '')));
+        } else {
+          const wb = XLSX.read(e.target.result, { type: 'array' });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+          resolve(rows[0] || []);
+        }
+      } catch (err) { reject(err); }
+    };
+    reader.onerror = () => reject(new Error('Lecture fichier échouée'));
+    if (ext === 'csv') reader.readAsText(file, 'UTF-8');
+    else reader.readAsArrayBuffer(file);
+  });
 }
 
 /* -------------------------------------------------------
