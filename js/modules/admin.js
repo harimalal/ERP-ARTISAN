@@ -991,7 +991,7 @@ function _lireHeadersFichier(file, ext) {
           const first = String(e.target.result).split('\n')[0] || '';
           resolve(first.split(/[,;]/).map(h => h.trim().replace(/^"|"$/g, '')));
         } else {
-          const wb = XLSX.read(e.target.result, { type: 'array' });
+          const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
           const ongletsAvecDonnees = wb.SheetNames.filter(nom => {
             const rows = XLSX.utils.sheet_to_json(wb.Sheets[nom], { header: 1 });
             return rows.length > 0;
@@ -1025,10 +1025,10 @@ function _lireOngletsFichier(file, ext) {
           });
           resolve({ 'Fichier CSV': rows });
         } else {
-          const wb = XLSX.read(e.target.result, { type: 'array' });
+          const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
           const onglets = {};
           for (const nom of wb.SheetNames) {
-            const rows = XLSX.utils.sheet_to_json(wb.Sheets[nom], { defval: '' });
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[nom], { defval: '', raw: false, dateNF: 'yyyy-mm-dd' });
             if (rows.length) onglets[nom] = rows;
           }
           resolve(onglets);
@@ -1359,9 +1359,9 @@ function _lireLignesFichier(file, ext) {
             return obj;
           }));
         } else {
-          const wb = XLSX.read(e.target.result, { type: 'array' });
+          const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
           const ws = wb.Sheets[wb.SheetNames[0]];
-          resolve(XLSX.utils.sheet_to_json(ws, { defval: '' }));
+          resolve(XLSX.utils.sheet_to_json(ws, { defval: '', raw: false, dateNF: 'yyyy-mm-dd' }));
         }
       } catch (err) { reject(err); }
     };
