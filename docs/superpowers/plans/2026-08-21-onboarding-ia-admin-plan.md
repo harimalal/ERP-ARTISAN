@@ -45,7 +45,7 @@ Réponse erreur : `{ ok: false, error: string, code?: string }`
 
 ---
 
-### Tâche 1 : Migration Supabase — table de staging + compteur onboarding
+### Task 1: Migration Supabase — table de staging + compteur onboarding
 
 **Files:**
 - Create: `supabase/migrations/2026-08-22_import_scan_items.sql`
@@ -121,7 +121,7 @@ git commit -m "feat(db): table import_scan_items + compteur onboarding_ia_utilis
 
 ---
 
-### Tâche 2 : db.js — accès à la table de staging
+### Task 2: db.js — accès à la table de staging
 
 **Files:**
 - Modify: `js/db.js` (ajouter une nouvelle section en fin de fichier, après la section FOURNISSEURS)
@@ -237,7 +237,7 @@ git commit -m "feat(db): fonctions d'acces import_scan_items + compteur onboardi
 
 ---
 
-### Tâche 3 : Netlify Function — `/api/ai-extract-batch`
+### Task 3: Netlify Function — `/api/ai-extract-batch`
 
 **Files:**
 - Modify: `netlify/functions/ai_extract_doc.js` (réécriture complète — le fichier existe mais n'est appelé par aucun code frontend actuel, vérifié par recherche exhaustive avant cette tâche, donc zéro régression possible)
@@ -526,7 +526,7 @@ git commit -m "feat(ia): fonction ai-extract-batch multi-entites, remplace le mo
 
 ---
 
-### Tâche 4 : admin.js — détection déterministe des anciens modèles (Étape 1)
+### Task 4: admin.js — détection déterministe des anciens modèles (Étape 1)
 
 **Files:**
 - Modify: `js/modules/admin.js` (nouvelle fonction pure, à ajouter juste avant `_bindImportMasse`, ligne ~739)
@@ -636,7 +636,7 @@ git commit -m "feat(admin): detection deterministe des anciens modeles Excel"
 
 ---
 
-### Tâche 5 : admin.js — dédoublonnage déterministe (Étape 3)
+### Task 5: admin.js — dédoublonnage déterministe (Étape 3)
 
 **Files:**
 - Modify: `js/modules/admin.js` (nouvelle section, après la fonction ajoutée en Tâche 4)
@@ -779,7 +779,7 @@ git commit -m "feat(admin): dedoublonnage deterministe des entites scannees"
 
 ---
 
-### Tâche 6 : admin.js — orchestration du scan IA (Étape 2)
+### Task 6: admin.js — orchestration du scan IA (Étape 2)
 
 **Files:**
 - Modify: `js/modules/admin.js` (nouvelle section après le dédoublonnage)
@@ -960,7 +960,7 @@ git commit -m "feat(admin): orchestration du scan IA multi-fichiers avec resilie
 
 ---
 
-### Tâche 7 : admin.js — application du dédoublonnage sur un batch (Étape 3, suite)
+### Task 7: admin.js — application du dédoublonnage sur un batch (Étape 3, suite)
 
 **Files:**
 - Modify: `js/modules/admin.js`
@@ -1027,7 +1027,7 @@ git commit -m "feat(admin): application du dedoublonnage sur un lot scanne"
 
 ---
 
-### Tâche 8 : admin.js + app.html — écran de validation et import final (Étape 4)
+### Task 8: admin.js + app.html — écran de validation et import final (Étape 4)
 
 **Files:**
 - Modify: `js/modules/admin.js`
@@ -1228,7 +1228,7 @@ git commit -m "feat(admin): ecran de validation et import final du scan IA"
 
 ---
 
-### Tâche 9 : admin.js — branchement de la dropzone et import direct des anciens modèles
+### Task 9: admin.js — branchement de la dropzone et import direct des anciens modèles
 
 **Files:**
 - Modify: `js/modules/admin.js` (remplacer `_bindImportMasse` et ajouter `_importerModelesConnus`, réutilisant la logique déjà présente dans l'ancien `_massImport` pour les 4 types concernés)
@@ -1360,7 +1360,7 @@ git commit -m "feat(admin): branchement dropzone unique + import direct anciens 
 
 ---
 
-### Tâche 10 : Vérification finale et rapport de session
+### Task 10: Vérification finale et rapport de session
 
 **Files:**
 - Aucun fichier de code — vérification et documentation uniquement.
