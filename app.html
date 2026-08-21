@@ -873,28 +873,20 @@
 </div></div>
 
 <div class="modal-overlay" id="modalImportMasse"><div class="modal modal-lg">
-  <div class="modal-hdr"><span class="modal-hdr-title">Import masse — Migration données</span><button class="modal-close" data-close="modalImportMasse">×</button></div>
-  <div style="padding:14px 16px 0;">
-    <div class="alert-box alert-info"><span>ℹ</span><span>Importez vos données existantes. Les données existantes sont conservées — l'import ajoute sans écraser.</span></div>
-    <div style="background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:8px;padding:12px 14px;margin-bottom:12px;">
-      <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Télécharger les modèles</div>
-      <div style="display:flex;gap:7px;flex-wrap:wrap;">
-        <button class="btn btn-outline btn-sm" id="dlArticles">Articles</button>
-        <button class="btn btn-outline btn-sm" id="dlProduits">Produits</button>
-        <button class="btn btn-outline btn-sm" id="dlClients">Clients</button>
-        <button class="btn btn-outline btn-sm" id="dlFournisseurs">Fournisseurs</button>
-        <button class="btn btn-outline btn-sm" id="dlCommandes">Commandes</button>
-      </div>
+  <div class="modal-hdr"><span class="modal-hdr-title">Import — Clients, fournisseurs, articles, produits</span><button class="modal-close" data-close="modalImportMasse">×</button></div>
+  <div style="padding:14px 16px 16px;">
+    <p style="font-size:12.5px;color:var(--ink-muted);margin-bottom:10px;">Dépose n'importe quel fichier — PDF, image, Excel, CSV, plusieurs à la fois. Delia identifie automatiquement les clients, fournisseurs, articles et produits qu'ils contiennent.</p>
+    <div id="importDropzone" style="border:2px dashed var(--ui-brd);border-radius:8px;padding:24px;text-align:center;cursor:pointer;">
+      <input type="file" id="importFileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.xls,.csv" style="display:none">
+      <span>Glisse tes fichiers ici ou clique pour choisir</span>
     </div>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;" id="massImportZones"></div>
-    <div id="massError" style="display:none;margin-bottom:10px;" class="alert-box alert-danger"></div>
+    <div id="importRejetes" style="display:none;margin-top:10px;" class="alert-box alert-danger"></div>
+    <div id="importProgression" style="display:none;margin-top:12px;"></div>
+    <div id="importValidation" style="display:none;margin-top:12px;"></div>
   </div>
   <div class="form-actions between">
-    <div id="massTotalCount" style="font-size:11.5px;color:var(--ink-muted);">Aucune donnée</div>
-    <div style="display:flex;gap:7px;">
-      <button class="btn btn-ghost" data-close="modalImportMasse">Annuler</button>
-      <button class="btn btn-primary" id="massBtnImport" disabled style="opacity:.5;">Importer</button>
-    </div>
+    <button class="btn btn-ghost" data-close="modalImportMasse">Fermer</button>
+    <button class="btn btn-primary" id="importBtnConfirmer" disabled style="opacity:.5;">Importer la sélection</button>
   </div>
 </div></div>
 
@@ -1085,7 +1077,7 @@ function setActiveNav(page) {
 
     document.addEventListener('appmee:datachanged', async (e) => {
       const { entity } = e.detail || {};
-      if (entity !== 'import_masse') return;
+      if (!['import_masse', 'import_ia'].includes(entity)) return;
       await Promise.allSettled([
         dashboard.render(), stock.render(), produits.render(), commandes.render(),
         production.render(), achats.render(), livraisons.render(), recettes.render(), admin.render(),

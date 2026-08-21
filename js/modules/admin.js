@@ -14,7 +14,7 @@ import {
   getFournisseurs, createFournisseur, updateFournisseur, deleteFournisseur,
   getCommandes, createCommande, getAchats, getFactures, getAllOFs,
   getMouvements, addMouvement,
-  createImportScanItem, getImportScanItems, updateImportScanItem,
+  createImportScanItem, getImportScanItems, updateImportScanItem, deleteImportScanItems,
   getOnboardingIAUtilise, markOnboardingIAUtilise,
 } from '../db.js';
 import {
@@ -1007,6 +1007,137 @@ async function _deduplicquerLot(batchId) {
     if (statut === 'a_creer') {
       dejaTraites[_COLLECTIONS[item.type_entite] || (item.type_entite + 's')].push({ id: item.id, nom: item.champs.nom, ref: item.champs.ref, email: item.champs.email, siret: item.champs.siret, iban: item.champs.iban });
     }
+  }
+}
+
+/* -------------------------------------------------------
+   UI PROGRESSION + VALIDATION + IMPORT FINAL (Étape 4)
+------------------------------------------------------- */
+function _afficherFichiersRejetes(rejetes) {
+  const el = document.getElementById('importRejetes');
+  if (!el) return;
+  el.style.display = 'flex';
+  el.textContent = rejetes.map(r => `${r.nom} : ${r.raison}`).join(' • ');
+}
+
+function _afficherProgressionScan(traites, total, etat) {
+  const el = document.getElementById('importProgression');
+  if (!el) return;
+  el.style.display = 'block';
+  const pourcentage = total ? Math.round((traites / total) * 100) : 0;
+  el.innerHTML = `<div style="font-size:12px;margin-bottom:4px;">Scan en cours : ${traites}/${total} fichiers (${pourcentage}%)${etat?.fichier ? ' — ' + esc(etat.fichier) : ''}</div>
+    <div style="background:var(--ui-bg2);border-radius:4px;height:8px;overflow:hidden;"><div style="background:var(--ui-green);height:100%;width:${pourcentage}%;transition:width .2s;"></div></div>`;
+}
+
+const _LABELS_TYPE = { client: 'Clients', fournisseur: 'Fournisseurs', article: 'Articles', produit: 'Produits' };
+
+async function _renderEcranValidation(batchId) {
+  const items = await getImportScanItems(batchId);
+  const el = document.getElementById('importValidation');
+  if (!el) return;
+  el.style.display = 'block';
+  el.dataset.batchId = batchId;
+
+  const parType = { client: [], fournisseur: [], article: [], produit: [] };
+  for (const item of items) parType[item.type_entite]?.push(item);
+
+  el.innerHTML = Object.entries(parType).filter(([, arr]) => arr.length).map(([type, arr]) => `
+    <div style="margin-top:10px;">
+      <div style="font-weight:600;font-size:12.5px;margin-bottom:6px;">${_LABELS_TYPE[type]} détectés : ${arr.length}</div>
+      ${arr.map(item => _renderLigneValidation(item)).join('')}
+    </div>`).join('') || '<p style="font-size:12.5px;color:var(--ink-muted);">Aucune entité détectée dans ce lot.</p>';
+
+  el.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => _traiterActionValidation(btn.dataset.itemId, btn.dataset.action, batchId));
+  });
+
+  _majBoutonConfirmer(items);
+}
+
+function _renderLigneValidation(item) {
+  const enAttente  = item.statut === 'doublon_possible' || (item.confiance === 'basse');
+  const dejaConnu  = item.statut === 'deja_existant';
+  const couleur    = dejaConnu ? 'var(--ink-muted)' : enAttente ? 'var(--ui-orange, #c77)' : 'var(--ui-green)';
+  const nomAffiche = item.champs.nom || item.champs.ref || '(sans nom)';
+
+  return `<div data-item-row="${item.id}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border-left:3px solid ${couleur};margin-bottom:4px;font-size:12px;">
+    <div>
+      <strong>${esc(nomAffiche)}</strong>
+      <span style="color:var(--ink-muted);margin-left:6px;">confiance ${item.confiance}${dejaConnu ? ' — déjà existant' : ''}${item.statut === 'doublon_possible' ? ' — doublon possible' : ''}</span>
+    </div>
+    ${dejaConnu ? '' : `<div style="display:flex;gap:4px;">
+      <button class="btn btn-outline btn-sm" data-item-id="${item.id}" data-action="confirmer">✓</button>
+      <button class="btn btn-outline btn-sm" data-item-id="${item.id}" data-action="ignorer">✗</button>
+    </div>`}
+  </div>`;
+}
+
+async function _traiterActionValidation(itemId, action, batchId) {
+  const statut = action === 'confirmer' ? 'confirme' : 'ignore';
+  await updateImportScanItem(itemId, { statut });
+  await _renderEcranValidation(batchId);
+}
+
+function _majBoutonConfirmer(items) {
+  const btn = document.getElementById('importBtnConfirmer');
+  if (!btn) return;
+  const enAttente = items.some(i => i.statut === 'a_creer' || i.statut === 'doublon_possible');
+  btn.disabled = false;
+  btn.style.opacity = '1';
+  btn.textContent = enAttente ? 'Importer (les lignes en attente seront ignorées)' : 'Importer la sélection';
+}
+
+async function _confirmerImport(batchId) {
+  const btn = document.getElementById('importBtnConfirmer');
+  if (btn) { btn.disabled = true; btn.textContent = 'Import en cours…'; }
+
+  const items = await getImportScanItems(batchId);
+  const aImporter = items.filter(i => i.statut === 'a_creer' || i.statut === 'confirme');
+
+  const counts = { clients: 0, fournisseurs: 0, articles: 0, produits: 0 };
+  const errors = [];
+
+  for (const item of aImporter) {
+    try {
+      if (item.type_entite === 'client' && item.champs.nom) {
+        await createClient({ nom: item.champs.nom, siret: item.champs.siret, email: item.champs.email, tel: item.champs.tel, adresse: item.champs.adresse, contact: item.champs.contact, cpt: item.champs.cpt, notes: item.champs.notes });
+        counts.clients++;
+      } else if (item.type_entite === 'fournisseur' && item.champs.nom) {
+        await createFournisseur({ nom: item.champs.nom, siret: item.champs.siret, contact: item.champs.contact, email: item.champs.email, tel: item.champs.tel, adresse: item.champs.adresse, iban: item.champs.iban, delai: item.champs.delai, categorie: (item.champs.categorie || '').toLowerCase() });
+        counts.fournisseurs++;
+      } else if (item.type_entite === 'article' && item.champs.ref && item.champs.nom) {
+        await createArticle({ ref: item.champs.ref, nom: item.champs.nom, categorie: (item.champs.categorie || 'autre').toLowerCase(), unite: item.champs.unite || 'unité', prix: parseFloat(String(item.champs.prix || '0').replace(',', '.')) || 0, fournisseur: item.champs.fournisseur || '', seuil: parseInt(item.champs.seuil || '0') || 0, stock: parseFloat(String(item.champs.stock || '0').replace(',', '.')) || 0 });
+        counts.articles++;
+      } else if (item.type_entite === 'produit' && item.champs.ref && item.champs.nom) {
+        await createProduit({ ref: item.champs.ref, nom: item.champs.nom, prix_vente: parseFloat(String(item.champs.prix || '0').replace(',', '.')) || 0, seuil: parseInt(item.champs.seuil || '0') || 0, stock: parseFloat(String(item.champs.stock || '0').replace(',', '.')) || 0 });
+        counts.produits++;
+      } else {
+        errors.push(`${item.type_entite} ignoré : champ obligatoire manquant`);
+        continue;
+      }
+      await updateImportScanItem(item.id, { statut: 'confirme' });
+    } catch (err) {
+      errors.push(`${item.type_entite} ${item.champs.nom || item.champs.ref} : ${err.message}`);
+    }
+  }
+
+  await deleteImportScanItems(batchId);
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Importer la sélection'; }
+  closeModal('modalImportMasse');
+  _renderArticles(); _renderProduits(); _renderClients(); _renderFournisseurs();
+
+  const total = Object.values(counts).reduce((s, v) => s + v, 0);
+  if (errors.length) {
+    showToast(`⚠ ${total} importés, ${errors.length} erreur(s). Voir console.`, 'warn');
+    errors.forEach(e => console.warn('[ImportIA]', e));
+  } else {
+    showToast(`✅ Import : ${counts.clients} clients, ${counts.fournisseurs} fournisseurs, ${counts.articles} articles, ${counts.produits} produits.`);
+  }
+
+  const entities = Object.entries(counts).filter(([, v]) => v > 0).map(([k]) => k);
+  if (entities.length) {
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'import_ia', entities } }));
   }
 }
 
