@@ -1929,6 +1929,67 @@ git commit -m "fix(admin): cellules Excel formatees en date lues correctement (c
 
 ---
 
+### Task 15: Doublons créés en cas de reclic sur "Importer" après échec partiel (fix post-test réel)
+
+Repéré par l'utilisateur pendant le tout premier test réel du pipeline complet (compte design.harimalal@gmail.com) : un import partiellement échoué laisse la fenêtre ouverte (comportement voulu, Fix 3 de la revue finale) mais les items déjà réussis restent au statut `confirme` — exactement le même statut que les items pas encore traités. Un reclic sur "Importer la sélection" reprend donc TOUS les items `confirme`, y compris ceux déjà créés, et les recrée en double. Confirmé réel par l'utilisateur (doublons manuellement supprimés de son côté avant vérification).
+
+**Files:**
+- Create: `supabase/migrations/2026-08-22b_import_scan_items_statut_importe.sql`
+- Modify: `js/modules/admin.js` (`_confirmerImport`, `_renderEcranValidation`)
+
+**Interfaces:** `statut` gagne une nouvelle valeur possible `'importe'`, distincte de `'confirme'` — `'confirme'` signifie désormais uniquement "l'utilisateur a validé cette ligne, prête à importer", `'importe'` signifie "déjà réellement inséré en base, ne plus jamais reprendre".
+
+- [ ] **Step 1: Migration — élargir la contrainte CHECK sur statut**
+
+```sql
+ALTER TABLE import_scan_items DROP CONSTRAINT IF EXISTS import_scan_items_statut_check;
+ALTER TABLE import_scan_items ADD CONSTRAINT import_scan_items_statut_check
+  CHECK (statut IN ('a_creer', 'deja_existant', 'doublon_possible', 'confirme', 'ignore', 'importe'));
+```
+À exécuter par l'utilisateur dans le SQL Editor Supabase (REQUIRED_HUMAN_ACTION, comme la migration initiale).
+
+- [ ] **Step 2: `_confirmerImport` — marquer `importe`, pas `confirme`, après un insert réussi**
+
+Trouver :
+```js
+        await updateImportScanItem(item.id, { statut: 'confirme' });
+```
+(dans la boucle `for (const item of aImporter)`, juste après le bloc `if/else if` de création)
+Remplacer par :
+```js
+        await updateImportScanItem(item.id, { statut: 'importe' });
+```
+
+- [ ] **Step 3: `_renderEcranValidation` — ne plus réafficher/reprendre les items déjà importés**
+
+Trouver :
+```js
+async function _renderEcranValidation(batchId) {
+  const items = await getImportScanItems(batchId);
+```
+Remplacer par :
+```js
+async function _renderEcranValidation(batchId) {
+  const items = (await getImportScanItems(batchId)).filter(i => i.statut !== 'importe');
+```
+
+- [ ] **Step 4: Valider la syntaxe**
+
+Run: `node --check js/modules/admin.js`
+
+- [ ] **Step 5: Trace manuelle**
+
+Tracer le scénario exact du bug : lot de 3 items, 2 réussissent (passent à `importe`), 1 échoue (reste `a_creer`, erreur poussée) → fenêtre reste ouverte, `_renderEcranValidation` filtre les 2 `importe` et ne montre plus que l'item en échec → reclic sur "Importer" → `aImporter` ne contient plus que l'item resté `a_creer`/`confirme`, les 2 déjà importés ne sont plus repris. Écrire la trace dans le rapport.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add supabase/migrations/2026-08-22b_import_scan_items_statut_importe.sql js/modules/admin.js
+git commit -m "fix(admin): statut importe distinct de confirme - evite la duplication au reclic apres echec partiel"
+```
+
+---
+
 ## Self-Review
 
 Couverture du spec : section 3 (architecture Option C) → Tâches 1, 2, 6. Section 4 (pipeline 4 étapes) → Tâches 4 (étape 1), 6 (étape 2), 5+7 (étape 3), 8 (étape 4). Section 5 (table staging) → Tâche 1. Section 6 (contrat fonction IA) → Tâche 3. Section 7 (garde-fous taille/format) → Tâche 6 Step 1 (`TAILLE_MAX`, `EXT_OK`). Section 8 (vérification schéma) → Tâche 1 Step 2. Section 9 (scénarios Règle 21B) → Tâche 10 Step 2. Section 10 (hors scope) → respecté, `_massImport` recettes/commandes non touché, `_dlTemplate` laissé en décision ouverte plutôt que supprimé unilatéralement.
