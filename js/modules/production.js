@@ -475,8 +475,11 @@ async function _terminerFab(id) {
               total_ht:      l.total_ht || (l.quantite * l.prix_unitaire),
             };
           });
-          const tauxLignes = lignesFigees.filter(l => l.total_ht > 0).map(l => l.taux_tva);
-          if (tauxLignes.length > 0) tauxFacture = Math.max(...tauxLignes);
+          /* Taux effectif pondéré — montant_ttc est une colonne générée en base
+             à partir d'un seul taux_tva, Math.max() sur les taux surfacturait
+             toute ligne à un taux inférieur au max (aligné livraisons.js). */
+          const totalTvaLignes = lignesFigees.reduce((s, l) => s + l.total_ht * l.taux_tva / 100, 0);
+          if (tot > 0) tauxFacture = totalTvaLignes / tot * 100;
 
           const client = c.client_id
             ? _clients.find(x => x.id === c.client_id)

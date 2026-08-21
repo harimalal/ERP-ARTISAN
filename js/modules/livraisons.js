@@ -178,9 +178,11 @@ export async function saveLivraison() {
         };
       });
 
-      /* Taux de la facture = taux le plus élevé parmi les lignes, ou tenant */
-      const tauxLignes = lignesFigees.filter(l => l.total_ht > 0).map(l => l.taux_tva);
-      if (tauxLignes.length > 0) tauxFacture = Math.max(...tauxLignes);
+      /* Taux de la facture = taux effectif pondéré (montant_ttc est une colonne
+         générée en base à partir d'un seul taux_tva — Math.max() sur les taux
+         surfacturait toute ligne à un taux inférieur au max). */
+      const totalTvaLignes = lignesFigees.reduce((s, l) => s + l.total_ht * l.taux_tva / 100, 0);
+      if (tot > 0) tauxFacture = totalTvaLignes / tot * 100;
       let clientId = c.client_id || null;
       let siretClient = '';
       let adresseClient = '';
@@ -362,10 +364,33 @@ async function _aperçuPdfFac(id) {
 
 function _ouvrirFenetrePDFFac(f, t, c, lignes) {
   const montantHT = f.montant_ht || 0;
-  const tvaRate = f.taux_tva != null ? Number(f.taux_tva) : 20;
-  const tva = montantHT * (tvaRate / 100);
-  const ttc = f.montant_ttc || montantHT + tva;
+  const tvaRateGlobal = f.taux_tva != null ? Number(f.taux_tva) : 20;
   const fmtPrix = v => fmt(Number(v)) + ' €';
+
+  /* Ventilation par taux — une facture peut mélanger plusieurs TVA
+     (une ligne par taux, comme l'exige la facturation FR), plutôt
+     qu'un taux unique appliqué à tort au total. */
+  const parTaux = {};
+  (lignes || []).forEach(l => {
+    const ht = l.total_ht || ((l.quantite || 0) * (l.prix_unitaire || 0));
+    if (!ht) return;
+    const tx = l.taux_tva != null ? Number(l.taux_tva) : tvaRateGlobal;
+    parTaux[tx] = (parTaux[tx] || 0) + ht;
+  });
+  const taux = Object.keys(parTaux).map(Number).sort((a, b) => a - b);
+
+  let tva, ttc, tvaLignesHTML;
+  if (taux.length > 0) {
+    tva = taux.reduce((s, tx) => s + parTaux[tx] * tx / 100, 0);
+    ttc = montantHT + tva;
+    tvaLignesHTML = taux.map(tx =>
+      `<tr><td class="lbl">TVA ${tx} %</td><td class="val">${fmtPrix(parTaux[tx] * tx / 100)}</td></tr>`
+    ).join('');
+  } else {
+    tva = montantHT * (tvaRateGlobal / 100);
+    ttc = f.montant_ttc || montantHT + tva;
+    tvaLignesHTML = `<tr><td class="lbl">TVA ${tvaRateGlobal} %</td><td class="val">${fmtPrix(tva)}</td></tr>`;
+  }
 
   const lignesHTML = lignes.map(l => {
     const ref = (_produits.find(p => p.id === l.produit_id) || {}).ref || '—';
@@ -451,7 +476,7 @@ function _ouvrirFenetrePDFFac(f, t, c, lignes) {
     </table>
     <table class="totaux">
       <tr><td class="lbl">Total HT</td><td class="val">${fmtPrix(montantHT)}</td></tr>
-      <tr><td class="lbl">TVA ${tvaRate} %</td><td class="val">${fmtPrix(tva)}</td></tr>
+      ${tvaLignesHTML}
       <tr class="ttc"><td class="lbl" style="color:#fff;font-weight:700;">TOTAL TTC</td><td class="val">${fmtPrix(ttc)}</td></tr>
     </table>
     ${f.notes ? `<div style="margin-top:12px;padding:8px 10px;background:#eff6ff;border-left:3px solid #2563eb;font-size:10px;"><strong>Note :</strong> ${esc(f.notes)}</div>` : ''}
