@@ -50,7 +50,7 @@ export async function init() {
   _bindFicheClientForm();
   _bindFicheFournisseurForm();
   _bindHistoriqueForm();
-  _bindImportMasse();
+  _bindImportIA();
   _bindSearchInputs();
 }
 
@@ -1146,99 +1146,97 @@ async function _confirmerImport(batchId) {
 ------------------------------------------------------- */
 let _massLoaded = {};
 
-function _bindImportMasse() {
-  const zones = [
-    { key: 'articles',     label: '📦 Articles',     fields: 'ref, nom, categorie, unite, prix, fournisseur, seuil, stock' },
-    { key: 'produits',     label: '🏷 Produits',      fields: 'ref, nom, prix, seuil, stock' },
-    { key: 'recettes',     label: '📖 Recettes',      fields: 'produit_ref, produit_nom, produit_prix, article_ref, quantite' },
-    { key: 'clients',      label: '👤 Clients',       fields: 'nom, email, tel, adresse, notes' },
-    { key: 'fournisseurs', label: '🏪 Fournisseurs',  fields: 'nom, contact, email, tel, adresse, delai, categorie' },
-    { key: 'commandes',    label: '📋 Commandes',     fields: 'commande_ref, client_nom, date_cmd, date_livraison, produit_ref, quantite, prix_unitaire' },
-  ];
+function _bindImportIA() {
+  const dropzone = document.getElementById('importDropzone');
+  const input    = document.getElementById('importFileInput');
+  if (!dropzone || !input) return;
 
-  const container = document.getElementById('massImportZones');
-  if (container) {
-    container.innerHTML = zones.map(z => `
-      <div style="border:1px solid var(--ui-brd);border-radius:7px;overflow:hidden;">
-        <div style="padding:9px 12px;background:var(--ui-bg2);display:flex;align-items:center;justify-content:space-between;gap:8px;">
-          <div>
-            <span style="font-weight:600;font-size:12.5px;">${z.label}</span>
-            <span style="font-size:10.5px;color:var(--ink-muted);margin-left:7px;">${z.fields}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:7px;">
-            <span id="mass${_cap(z.key)}Status" style="font-size:10.5px;color:var(--ink-muted);">Aucun</span>
-            <label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0;">Choisir
-              <input type="file" accept=".xlsx,.xls,.csv" style="display:none" data-type="${z.key}">
-            </label>
-          </div>
-        </div>
-        <div id="mass${_cap(z.key)}Preview" style="display:none;padding:6px 12px;font-size:11px;color:var(--ink-muted);border-top:1px solid var(--rule);"></div>
-      </div>`).join('');
+  dropzone.addEventListener('click', () => input.click());
+  input.addEventListener('change', (e) => _onFichiersDeposes(e.target.files));
 
-    container.querySelectorAll('input[type="file"]').forEach(input => {
-      input.addEventListener('change', (e) => _massLoad(e.target, e.target.dataset.type));
-    });
-  }
-
-  ['articles', 'produits', 'recettes', 'clients', 'fournisseurs', 'commandes'].forEach(type => {
-    document.getElementById('dl' + _cap(type))?.addEventListener('click', () => _dlTemplate(type));
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = 'var(--ui-green)'; });
+  dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor = 'var(--ui-brd)'; });
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.style.borderColor = 'var(--ui-brd)';
+    if (e.dataTransfer.files.length) _onFichiersDeposes(e.dataTransfer.files);
   });
 
-  document.getElementById('massBtnImport')?.addEventListener('click', _massImport);
+  document.getElementById('importBtnConfirmer')?.addEventListener('click', () => {
+    const batchId = document.getElementById('importValidation')?.dataset.batchId;
+    if (batchId) _confirmerImport(batchId);
+  });
 }
 
-function _cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+async function _importerModelesConnus(excelDirects) {
+  const counts = { clients: 0, fournisseurs: 0, articles: 0, produits: 0 };
+  const errors = [];
 
-function _massLoad(input, type) {
-  const f = input.files[0];
-  if (!f) return;
-  const ext    = f.name.split('.').pop().toLowerCase();
-  const reader = new FileReader();
+  for (const { file, type } of excelDirects) {
+    const ext  = file.name.split('.').pop().toLowerCase();
+    const rows = await _lireLignesFichier(file, ext);
 
-  reader.onload = (e) => {
-    try {
-      let rows = [];
-      if (ext === 'csv') {
-        const lines   = e.target.result.split('\n').filter(l => l.trim());
-        const headers = lines[0].split(/[,;]/).map(h => h.trim().replace(/^"|"$/g, ''));
-        rows = lines.slice(1).map(line => {
-          const vals = line.split(/[,;]/).map(v => v.trim().replace(/^"|"$/g, ''));
-          const obj  = {};
-          headers.forEach((h, i) => { obj[h] = vals[i] || ''; });
-          return obj;
-        });
-      } else {
-        const wb = XLSX.read(e.target.result, { type: 'array' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-      }
-
-      _massLoaded[type] = { rows, fileName: f.name };
-      const cap = _cap(type);
-      document.getElementById('mass' + cap + 'Status').textContent = rows.length + ' lignes';
-      document.getElementById('mass' + cap + 'Status').style.color = 'var(--ui-green)';
-      const prev = document.getElementById('mass' + cap + 'Preview');
-      if (prev) {
-        prev.style.display = 'block';
-        prev.textContent   = '✓ ' + rows.slice(0, 2).map(r => Object.values(r).slice(0, 4).join(' | ')).join(' • ') + (rows.length > 2 ? ' …' : '');
-      }
-      _massUpdateTotal();
-    } catch (err) {
-      const errEl = document.getElementById('massError');
-      if (errEl) { errEl.style.display = 'flex'; errEl.textContent = 'Erreur : ' + err.message; }
+    for (const r of rows) {
+      try {
+        if (type === 'clients') {
+          const nom = String(r.nom || r.Nom || '').trim();
+          if (!nom || _clients.find(c => c.nom === nom)) continue;
+          const created = await createClient({ nom, email: String(r.email || '').trim(), tel: String(r.tel || '').trim(), adresse: String(r.adresse || '').trim(), notes: String(r.notes || '').trim() });
+          _clients.push(created); counts.clients++;
+        } else if (type === 'fournisseurs') {
+          const nom = String(r.nom || r.Nom || '').trim();
+          if (!nom || _fournisseurs.find(f => f.nom === nom)) continue;
+          const created = await createFournisseur({ nom, contact: String(r.contact || '').trim(), email: String(r.email || '').trim(), tel: String(r.tel || '').trim(), adresse: String(r.adresse || '').trim(), delai: String(r.delai || '').trim(), categorie: String(r.categorie || '').trim().toLowerCase() });
+          _fournisseurs.push(created); counts.fournisseurs++;
+        } else if (type === 'articles') {
+          const ref = String(r.ref || '').trim();
+          const nom = String(r.nom || r.Nom || '').trim();
+          if (!ref || !nom || _articles.find(a => a.ref === ref)) continue;
+          const created = await createArticle({ ref, nom, categorie: String(r.categorie || 'autre').trim().toLowerCase(), unite: String(r.unite || 'unité').trim(), prix: parseFloat(String(r.prix || '0').replace(',', '.')) || 0, fournisseur: String(r.fournisseur || '').trim(), seuil: parseInt(r.seuil || '0') || 0, stock: parseFloat(String(r.stock || '0').replace(',', '.')) || 0 });
+          _articles.push(created); counts.articles++;
+        } else if (type === 'produits') {
+          const ref = String(r.ref || '').trim();
+          const nom = String(r.nom || r.Nom || '').trim();
+          if (!ref || !nom || _produits.find(p => p.ref === ref)) continue;
+          const created = await createProduit({ ref, nom, prix_vente: parseFloat(String(r.prix || '0').replace(',', '.')) || 0, seuil: parseInt(r.seuil || '0') || 0, stock: parseFloat(String(r.stock || '0').replace(',', '.')) || 0 });
+          _produits.push(created); counts.produits++;
+        }
+      } catch (err) { errors.push(`${type} : ${err.message}`); }
     }
-  };
+  }
 
-  if (ext === 'csv') reader.readAsText(f, 'UTF-8');
-  else reader.readAsArrayBuffer(f);
+  _renderArticles(); _renderProduits(); _renderClients(); _renderFournisseurs();
+  const total = Object.values(counts).reduce((s, v) => s + v, 0);
+  if (total) showToast(`✅ ${total} lignes importées directement (format déjà reconnu).`);
+  if (errors.length) errors.forEach(e => console.warn('[ImportModeleConnu]', e));
+  if (total) document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'import_ia', entities: Object.entries(counts).filter(([, v]) => v > 0).map(([k]) => k) } }));
 }
 
-function _massUpdateTotal() {
-  const tot = Object.values(_massLoaded).reduce((s, v) => s + (v.rows ? v.rows.length : 0), 0);
-  const el  = document.getElementById('massTotalCount');
-  const btn = document.getElementById('massBtnImport');
-  if (el)  el.textContent = tot > 0 ? tot + ' lignes prêtes' : 'Aucune donnée';
-  if (btn) { btn.disabled = tot === 0; btn.style.opacity = tot > 0 ? '1' : '.5'; }
+function _lireLignesFichier(file, ext) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        if (ext === 'csv') {
+          const lines   = String(e.target.result).split('\n').filter(l => l.trim());
+          const headers = lines[0].split(/[,;]/).map(h => h.trim().replace(/^"|"$/g, ''));
+          resolve(lines.slice(1).map(line => {
+            const vals = line.split(/[,;]/).map(v => v.trim().replace(/^"|"$/g, ''));
+            const obj  = {};
+            headers.forEach((h, i) => { obj[h] = vals[i] || ''; });
+            return obj;
+          }));
+        } else {
+          const wb = XLSX.read(e.target.result, { type: 'array' });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          resolve(XLSX.utils.sheet_to_json(ws, { defval: '' }));
+        }
+      } catch (err) { reject(err); }
+    };
+    reader.onerror = () => reject(new Error('Lecture fichier échouée'));
+    if (ext === 'csv') reader.readAsText(file, 'UTF-8');
+    else reader.readAsArrayBuffer(file);
+  });
 }
 
 async function _massImport() {
@@ -1246,32 +1244,6 @@ async function _massImport() {
   const errors  = [];
   const btn     = document.getElementById('massBtnImport');
   if (btn) { btn.disabled = true; btn.textContent = 'Import en cours…'; }
-
-  if (_massLoaded.articles) {
-    for (const r of _massLoaded.articles.rows) {
-      const ref = String(r.ref || '').trim();
-      const nom = String(r.nom || r.Nom || '').trim();
-      if (!ref || !nom) continue;
-      if (_articles.find(a => a.ref === ref)) continue;
-      try {
-        const created = await createArticle({ ref, nom, categorie: String(r.categorie || 'autre').trim().toLowerCase(), unite: String(r.unite || 'unité').trim(), prix: parseFloat(String(r.prix || '0').replace(',', '.')) || 0, fournisseur: String(r.fournisseur || '').trim(), seuil: parseInt(r.seuil || '0') || 0, stock: parseFloat(String(r.stock || '0').replace(',', '.')) || 0 });
-        _articles.push(created); counts.articles++;
-      } catch (err) { errors.push('Article ' + ref + ' : ' + err.message); }
-    }
-  }
-
-  if (_massLoaded.produits) {
-    for (const r of _massLoaded.produits.rows) {
-      const ref = String(r.ref || '').trim();
-      const nom = String(r.nom || r.Nom || '').trim();
-      if (!ref || !nom) continue;
-      if (_produits.find(p => p.ref === ref)) continue;
-      try {
-        const created = await createProduit({ ref, nom, prix_vente: parseFloat(String(r.prix || '0').replace(',', '.')) || 0, seuil: parseInt(r.seuil || '0') || 0, stock: parseFloat(String(r.stock || '0').replace(',', '.')) || 0 });
-        _produits.push(created); counts.produits++;
-      } catch (err) { errors.push('Produit ' + ref + ' : ' + err.message); }
-    }
-  }
 
   if (_massLoaded.recettes) {
     const articlesDB = _articles.length ? _articles : await getArticles();
@@ -1301,30 +1273,6 @@ async function _massImport() {
         await saveRecette(produit.id, infos.lignes);
         counts.recettes++;
       } catch (err) { errors.push(`Recette ${prodRef} : ${err.message}`); }
-    }
-  }
-
-  if (_massLoaded.clients) {
-    for (const r of _massLoaded.clients.rows) {
-      const nom = String(r.nom || r.Nom || '').trim();
-      if (!nom) continue;
-      if (_clients.find(c => c.nom === nom)) continue;
-      try {
-        const created = await createClient({ nom, email: String(r.email || '').trim(), tel: String(r.tel || '').trim(), adresse: String(r.adresse || '').trim(), notes: String(r.notes || '').trim() });
-        _clients.push(created); counts.clients++;
-      } catch (err) { errors.push('Client ' + nom + ' : ' + err.message); }
-    }
-  }
-
-  if (_massLoaded.fournisseurs) {
-    for (const r of _massLoaded.fournisseurs.rows) {
-      const nom = String(r.nom || r.Nom || '').trim();
-      if (!nom) continue;
-      if (_fournisseurs.find(f => f.nom === nom)) continue;
-      try {
-        const created = await createFournisseur({ nom, contact: String(r.contact || '').trim(), email: String(r.email || '').trim(), tel: String(r.tel || '').trim(), adresse: String(r.adresse || '').trim(), delai: String(r.delai || '').trim(), categorie: String(r.categorie || '').trim().toLowerCase() });
-        _fournisseurs.push(created); counts.fournisseurs++;
-      } catch (err) { errors.push('Fournisseur ' + nom + ' : ' + err.message); }
     }
   }
 
