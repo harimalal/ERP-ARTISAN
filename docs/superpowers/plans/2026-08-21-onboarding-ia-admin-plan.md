@@ -1408,6 +1408,159 @@ Ajouter une entrée dans `.claude/Rapport_developpement_code_DDMMYY.md` du jour 
 
 ---
 
+### Task 11: Support Excel/CSV en vrac dans la fonction IA (fix post-Tâche 10)
+
+Ajouté après la Tâche 10 : la vérification finale a révélé que `netlify/functions/ai_extract_doc.js` (Tâche 3) n'accepte que pdf/png/jpg/jpeg/webp côté serveur (`extOk` + `buildContent` ne construisent qu'un bloc image/document), alors que `js/modules/admin.js` (Tâche 6) route bien les fichiers Excel/CSV non reconnus par `_detecterTypeModele` vers cette même fonction. Résultat : un Excel "en vrac" échoue proprement (erreur 400 par fichier) au lieu d'être scanné. Cause racine : ce détail était prévu dès le brainstorming initial (Excel en vrac envoyé en texte structuré, pas en image) mais n'a jamais été écrit dans le spec.md commité, donc jamais propagé dans le brief de la Tâche 3. Ni l'implémentation ni la revue de la Tâche 3 n'ont fauté — elles ont livré exactement ce qui était spécifié.
+
+**Files:**
+- Modify: `js/modules/admin.js` (`_scannerFichierIA`, lignes ~849-884 — branche par catégorie d'extension ; nouvelle fonction `_serialiserLignesTexte`)
+- Modify: `netlify/functions/ai_extract_doc.js` (`extOk` ligne 209, `buildContent` ligne 136, handler lignes 201-224)
+
+**Interfaces:**
+- Consumes: `_lireLignesFichier(file, ext)` (Tâche 9, déjà existante, retourne un tableau d'objets ligne keyed par en-tête) — réutilisée telle quelle, ne pas la dupliquer.
+- Produces: contrat `/api/ai-extract-batch` élargi — la requête accepte désormais soit `{ fichier, extension, tenantId, token }` (pdf/image, comportement existant inchangé) soit `{ texte, extension, tenantId, token }` (xlsx/xls/csv, nouveau chemin texte). La réponse `{ ok, entites, document_type_detecte, avertissements }` ne change pas.
+
+- [ ] **Step 1: Sérialisation texte côté client**
+
+Dans `js/modules/admin.js`, ajouter avant `_scannerFichierIA` :
+```js
+function _serialiserLignesTexte(rows, maxLignes = 300) {
+  if (!rows.length) return '(fichier vide, aucune ligne détectée)';
+  const tronque = rows.length > maxLignes;
+  const lignes = rows.slice(0, maxLignes).map(row =>
+    Object.entries(row).map(([k, v]) => `${k}: ${v}`).join(' | ')
+  );
+  return lignes.join('\n') + (tronque ? `\n… (${rows.length - maxLignes} lignes supplémentaires non incluses, tronqué pour rester dans la limite de contexte)` : '');
+}
+```
+
+- [ ] **Step 2: Brancher `_scannerFichierIA` par catégorie d'extension**
+
+Remplacer le corps de `_scannerFichierIA` (lignes ~849-884) par :
+```js
+const _EXT_TABULAIRE = ['xlsx', 'xls', 'csv'];
+
+async function _scannerFichierIA(file, batchId, onProgress) {
+  const extension = file.name.split('.').pop().toLowerCase();
+  try {
+    const session = await getSession();
+    const isTabulaire = _EXT_TABULAIRE.includes(extension);
+    const payload = { extension, tenantId: getTenantId(), token: session.access_token };
+
+    if (isTabulaire) {
+      const rows = await _lireLignesFichier(file, extension);
+      payload.texte = _serialiserLignesTexte(rows);
+    } else {
+      payload.fichier = await _lireFichierBase64(file);
+    }
+
+    const resp = await fetch(API.aiExtractDoc, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+
+    if (!data.ok) {
+      onProgress({ fichier: file.name, statut: 'echec', message: data.error });
+      return;
+    }
+
+    for (const entite of data.entites) {
+      await createImportScanItem({
+        batch_id:       batchId,
+        fichier_nom:    file.name,
+        page_source:    entite.page_source,
+        type_entite:    entite.type,
+        champs:         entite.champs,
+        confiance:      entite.confiance,
+        statut:         'a_creer',
+        extrait_source: entite.extrait_source,
+      });
+    }
+
+    onProgress({ fichier: file.name, statut: 'termine', nbEntites: data.entites.length, avertissements: data.avertissements });
+  } catch (err) {
+    console.error('[admin] _scannerFichierIA ERREUR:', err.message, err.stack);
+    onProgress({ fichier: file.name, statut: 'echec', message: err.message });
+  }
+}
+```
+
+- [ ] **Step 3: Élargir `extOk` et `buildContent` côté serveur**
+
+Dans `netlify/functions/ai_extract_doc.js` ligne 209, remplacer :
+```js
+  const extOk = ['pdf', 'png', 'jpg', 'jpeg', 'webp'].includes(extension.toLowerCase());
+```
+par :
+```js
+  const extOk = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'xlsx', 'xls', 'csv'].includes(extension.toLowerCase());
+```
+
+Remplacer `buildContent` (ligne 136) par une version qui accepte soit un fichier binaire soit du texte tabulaire :
+```js
+const EXT_TABULAIRE = ['xlsx', 'xls', 'csv'];
+
+function buildContent({ fichier, texte }, extension, prompt) {
+  if (EXT_TABULAIRE.includes(extension)) {
+    return [
+      { type: 'text', text: `Voici le contenu brut d'un fichier tableur (${extension}), une ligne par ligne (colonne: valeur) :\n\n${texte}` },
+      { type: 'text', text: prompt },
+    ];
+  }
+  const isImage   = ['png', 'jpg', 'jpeg', 'webp'].includes(extension);
+  const mediaType = isImage ? `image/${extension === 'jpg' ? 'jpeg' : extension}` : 'application/pdf';
+  const mediaBlock = isImage
+    ? { type: 'image',    source: { type: 'base64', media_type: mediaType, data: fichier } }
+    : { type: 'document', source: { type: 'base64', media_type: mediaType, data: fichier } };
+  return [mediaBlock, { type: 'text', text: prompt }];
+}
+```
+
+- [ ] **Step 4: Adapter le handler**
+
+Ligne 201, remplacer :
+```js
+  const { fichier, extension, tenantId, token } = body;
+```
+par :
+```js
+  const { fichier, texte, extension, tenantId, token } = body;
+```
+
+Juste après la validation existante des champs manquants, ajouter une validation par catégorie : si `extension` est tabulaire (`xlsx`/`xls`/`csv`) alors `texte` est requis (sinon 400 `'Champ manquant : texte requis pour ce type de fichier'`) ; sinon `fichier` est requis (comportement déjà existant, ne pas dupliquer si déjà couvert par la validation en haut de fonction — vérifier avant d'ajouter).
+
+Ligne 223, remplacer :
+```js
+    const content   = buildContent(fichier, extension.toLowerCase(), prompt);
+```
+par :
+```js
+    const content   = buildContent({ fichier, texte }, extension.toLowerCase(), prompt);
+```
+
+- [ ] **Step 5: Valider la syntaxe**
+
+Run: `node --check js/modules/admin.js && node --check netlify/functions/ai_extract_doc.js`
+
+- [ ] **Step 6: Vérifier qu'il n'y a pas d'autre incohérence extOk/EXT_OK dans le code touché par ce plan**
+
+Grep `extOk|EXT_OK` sur tout le repo. `ai_analyse_bc.js` a son propre `extOk` restreint à pdf/image — c'est un flux séparé (scan BC pour le module Commandes), hors scope de ce plan, ne pas le toucher. Confirmer qu'aucune autre fonction touchée par les Tâches 1-10 n'a le même défaut de correspondance client/serveur.
+
+- [ ] **Step 7: Trace manuelle (pas d'environnement live)**
+
+Tracer : un CSV de 5 lignes de clients, non reconnu par `_detecterTypeModele` → `_scannerFichierIA` détecte l'extension tabulaire → `_lireLignesFichier` retourne 5 objets → `_serialiserLignesTexte` produit un texte de 5 lignes → payload `{texte, extension:'csv', ...}` envoyé → côté serveur `extOk` accepte `csv` → `buildContent` construit un bloc texte → réponse `entites` traitée normalement par le reste du pipeline (Tâches 6-8, inchangées). Écrire cette trace dans le rapport.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add js/modules/admin.js netlify/functions/ai_extract_doc.js
+git commit -m "fix(ia): support Excel/CSV en vrac (texte structure) dans ai-extract-batch"
+```
+
+---
+
 ## Self-Review
 
 Couverture du spec : section 3 (architecture Option C) → Tâches 1, 2, 6. Section 4 (pipeline 4 étapes) → Tâches 4 (étape 1), 6 (étape 2), 5+7 (étape 3), 8 (étape 4). Section 5 (table staging) → Tâche 1. Section 6 (contrat fonction IA) → Tâche 3. Section 7 (garde-fous taille/format) → Tâche 6 Step 1 (`TAILLE_MAX`, `EXT_OK`). Section 8 (vérification schéma) → Tâche 1 Step 2. Section 9 (scénarios Règle 21B) → Tâche 10 Step 2. Section 10 (hors scope) → respecté, `_massImport` recettes/commandes non touché, `_dlTemplate` laissé en décision ouverte plutôt que supprimé unilatéralement.
