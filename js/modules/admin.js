@@ -1123,7 +1123,7 @@ function _afficherProgressionScan(traites, total, etat) {
 const _LABELS_TYPE = { client: 'Clients', fournisseur: 'Fournisseurs', article: 'Articles', produit: 'Produits' };
 
 async function _renderEcranValidation(batchId) {
-  const items = await getImportScanItems(batchId);
+  const items = (await getImportScanItems(batchId)).filter(i => i.statut !== 'importe');
   const el = document.getElementById('importValidation');
   if (!el) return;
   el.style.display = 'block';
@@ -1212,7 +1212,7 @@ async function _confirmerImport(batchId) {
           errors.push(`${item.type_entite} ignoré : champ obligatoire manquant`);
           continue;
         }
-        await updateImportScanItem(item.id, { statut: 'confirme' });
+        await updateImportScanItem(item.id, { statut: 'importe' });
       } catch (err) {
         errors.push(`${item.type_entite} ${item.champs.nom || item.champs.ref} : ${err.message}`);
       }
