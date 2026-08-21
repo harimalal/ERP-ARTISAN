@@ -396,7 +396,7 @@ function _ouvrirFenetrePDFFac(f, t, c, lignes) {
     const ref = (_produits.find(p => p.id === l.produit_id) || {}).ref || '—';
     return `
     <tr>
-      <td style="font-weight:700;color:#2563eb;font-size:10px;white-space:nowrap;">${esc(ref)}</td>
+      <td style="font-weight:700;color:#3D6B52;font-family:monospace;font-size:10px;white-space:nowrap;">${esc(ref)}</td>
       <td>${esc(l.produit_nom || '—')}</td>
       <td class="r">${fmtQ(l.quantite || 0)}</td>
       <td class="r">${fmtPrix(l.prix_unitaire || 0)}</td>
@@ -410,10 +410,10 @@ function _ouvrirFenetrePDFFac(f, t, c, lignes) {
     @page { size: A4; margin: 18mm 15mm 18mm 15mm; }
     *{box-sizing:border-box;}
     body{font-family:Arial,sans-serif;font-size:11px;margin:0 auto;padding:20px 50px;color:#1a1a1a;max-width:860px;}
-    .btn-print{display:block;margin:0 auto 20px;padding:9px 28px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;}
+    .btn-print{display:block;margin:0 auto 20px;padding:9px 28px;background:#1E1A16;color:#F7F3EC;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600;}
     @media print{.btn-print{display:none;}body{padding:0;margin:0;}}
     h1{font-size:17px;text-transform:uppercase;margin:0 0 2px;}
-    .hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1a1a1a;padding-bottom:12px;margin-bottom:16px;}
+    .hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #C8432B;padding-bottom:12px;margin-bottom:16px;}
     .parties{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:16px;padding:10px 12px;background:#f9fafb;border-radius:6px;}
     .plbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:4px;}
     .pnom{font-size:12px;font-weight:700;margin-bottom:2px;}
@@ -428,17 +428,17 @@ function _ouvrirFenetrePDFFac(f, t, c, lignes) {
     .totaux td{padding:4px 8px;font-size:11px;}
     .totaux .lbl{text-align:right;color:#555;}.totaux .val{text-align:right;font-weight:600;}
     .totaux tr.ttc td{background:#1a1a1a;color:#fff;font-weight:700;font-size:12px;padding:6px 8px;}
-    .mentions{margin-top:16px;padding:10px 12px;background:#f9fafb;border-radius:6px;font-size:9.5px;color:#555;line-height:1.6;border-left:3px solid #2563eb;}
+    .mentions{margin-top:16px;padding:10px 12px;background:#f9fafb;border-radius:6px;font-size:9.5px;color:#555;line-height:1.6;border-left:3px solid #C8830A;}
     .footer{margin-top:12px;border-top:1px solid #e5e7eb;padding-top:8px;display:flex;justify-content:space-between;font-size:9px;color:#aaa;}
     </style></head><body>
-    <button class="btn-print" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF (A4)</button>
+    <button class="btn-print" onclick="window.print()">Imprimer / Enregistrer en PDF (A4)</button>
     <div class="hdr">
       <div>
         <h1>Facture</h1>
         <div style="font-size:10px;color:#666;margin-top:2px;">${esc(t.nom || '')}</div>
       </div>
       <div style="text-align:right;font-size:10.5px;">
-        <div style="font-size:14px;font-weight:700;color:#2563eb;margin-bottom:2px;">N° ${esc(f.ref)}</div>
+        <div style="font-size:14px;font-weight:700;color:#C8432B;margin-bottom:2px;">N° ${esc(f.ref)}</div>
         <div style="color:#555;">Date : ${esc(f.date_facture || '—')}</div>
         ${f.ref_commande ? `<div style="color:#555;">Commande : ${esc(f.ref_commande)}</div>` : ''}
       </div>
@@ -479,7 +479,7 @@ function _ouvrirFenetrePDFFac(f, t, c, lignes) {
       ${tvaLignesHTML}
       <tr class="ttc"><td class="lbl" style="color:#fff;font-weight:700;">TOTAL TTC</td><td class="val">${fmtPrix(ttc)}</td></tr>
     </table>
-    ${f.notes ? `<div style="margin-top:12px;padding:8px 10px;background:#eff6ff;border-left:3px solid #2563eb;font-size:10px;"><strong>Note :</strong> ${esc(f.notes)}</div>` : ''}
+    ${f.notes ? `<div style="margin-top:12px;padding:8px 10px;background:#FEF6E4;border-left:3px solid #C8830A;font-size:10px;"><strong>Note :</strong> ${esc(f.notes)}</div>` : ''}
     ${t.iban || t.siret || t.tva || t.forme || t.cpt ? `<div class="mentions">
       ${t.cpt ? '<strong>Conditions de règlement :</strong> ' + esc(t.cpt) + (t.iban ? ' — <strong>IBAN :</strong> ' + esc(t.iban) : '') + '<br>' : (t.iban ? '<strong>IBAN :</strong> ' + esc(t.iban) + '<br>' : '')}
       ${t.siret ? '<strong>SIRET :</strong> ' + esc(t.siret) + (t.tva ? ' — ' : '') : ''}

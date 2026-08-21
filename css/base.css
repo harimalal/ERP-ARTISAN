@@ -133,9 +133,30 @@ h1, h2, h3 {
 }
 
 .empty-icon {
-  font-size: 32px;
-  margin-bottom: 10px;
-  opacity: .6;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #EAF3EE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+}
+
+.empty-icon svg {
+  width: 17px;
+  height: 17px;
+  stroke: var(--sage);
+  fill: none;
+  stroke-width: 2.4;
+}
+
+.empty-icon.neutral {
+  background: var(--cream-dark);
+}
+
+.empty-icon.neutral svg {
+  stroke: var(--ink-muted);
 }
 
 /* MISC */
