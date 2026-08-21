@@ -14,6 +14,7 @@ import {
   updateArticleStock, updateProduitStock,
   createAchat, achatDoublonExiste,
   addMouvement, factureExistePourCommande, createFacture, createFactureLignes, nextRefServeur,
+  updateCommandeStatut,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, badgePlan, showToast, today,
@@ -451,6 +452,9 @@ async function _terminerFab(id) {
         return pp && pp.stock >= l.quantite;
       });
       if (toutOK) {
+        try { await updateCommandeStatut(c.id, 'pret'); } catch (e) {
+          console.error('[production] passage a pret non bloquant:', e.message);
+        }
         c.statut = 'pret';
         const dejafac = await factureExistePourCommande(c.id);
         if (!dejafac) {
