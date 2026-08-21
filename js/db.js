@@ -755,3 +755,80 @@ export async function getDashboardData() {
 
   return { articles, produits, commandes, achats, ofs, factures };
 }
+
+/* -------------------------------------------------------
+   IMPORT SCAN IA (staging onboarding Admin)
+------------------------------------------------------- */
+
+export async function createImportScanItem(item) {
+  const { data, error } = await supabase
+    .from('import_scan_items')
+    .insert({ ...item, tenant_id: tid() })
+    .select()
+    .single();
+  if (error) handleError('createImportScanItem', error);
+  return data;
+}
+
+export async function getImportScanItems(batchId) {
+  const { data, error } = await supabase
+    .from('import_scan_items')
+    .select('*')
+    .eq('tenant_id', tid())
+    .eq('batch_id', batchId)
+    .order('created_at');
+  if (error) handleError('getImportScanItems', error);
+  return data;
+}
+
+export async function updateImportScanItem(id, changes) {
+  const { data, error } = await supabase
+    .from('import_scan_items')
+    .update(changes)
+    .eq('id', id)
+    .eq('tenant_id', tid())
+    .select()
+    .single();
+  if (error) handleError('updateImportScanItem', error);
+  return data;
+}
+
+export async function deleteImportScanItems(batchId) {
+  const { error } = await supabase
+    .from('import_scan_items')
+    .delete()
+    .eq('tenant_id', tid())
+    .eq('batch_id', batchId);
+  if (error) handleError('deleteImportScanItems', error);
+}
+
+export async function getOpenImportBatch() {
+  const { data, error } = await supabase
+    .from('import_scan_items')
+    .select('batch_id, created_at')
+    .eq('tenant_id', tid())
+    .not('statut', 'in', '(confirme,ignore)')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) handleError('getOpenImportBatch', error);
+  return data ? data.batch_id : null;
+}
+
+export async function getOnboardingIAUtilise() {
+  const { data, error } = await supabase
+    .from('tenants')
+    .select('onboarding_ia_utilise')
+    .eq('id', tid())
+    .single();
+  if (error) handleError('getOnboardingIAUtilise', error);
+  return !!data?.onboarding_ia_utilise;
+}
+
+export async function markOnboardingIAUtilise() {
+  const { error } = await supabase
+    .from('tenants')
+    .update({ onboarding_ia_utilise: true })
+    .eq('id', tid());
+  if (error) handleError('markOnboardingIAUtilise', error);
+}
