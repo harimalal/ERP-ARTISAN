@@ -9,22 +9,12 @@
 -- l'écran de validation avant import définitif dans clients/fournisseurs/
 -- articles/produits.
 --
--- RLS — NOTE IMPORTANTE POUR L'EXÉCUTANT :
--- Le brief de la tâche proposait `tenant_id = (auth.jwt() ->> 'tenant_id')::uuid`
--- (JWT custom claim). Cette hypothèse a été écartée après lecture des
--- migrations déjà appliquées dans ce repo : 2026-08-15_priorite1_flux_facturation.sql
--- crée la policy `facture_lignes_tenant` avec le pattern
--- `tenant_id = (SELECT tenant_id FROM users WHERE id = auth.uid() LIMIT 1)`,
--- et js/auth.js confirme que le tenant_id de session est résolu via une
--- requête sur la table `users` (colonne tenant_id) keyée sur l'utilisateur
--- authentifié — pas via une claim JWT custom. La policy ci-dessous reprend
--- donc ce pattern pour rester cohérente avec le reste du schéma.
--- Cette déduction s'appuie sur les fichiers de migration locaux, pas sur
--- une lecture live de pg_policies pour la table `clients` (impossible dans
--- cet environnement, pas d'accès Supabase). À confirmer avant application
--- avec la requête de vérification fournie dans le rapport de tâche —
--- si le pattern réel sur `clients` diffère, adapter la clause USING/WITH
--- CHECK ci-dessous avant d'exécuter ce fichier.
+-- RLS — CONFIRMÉ EN LIVE (SELECT policyname, qual FROM pg_policies WHERE
+-- tablename = 'clients';) : la policy réelle sur `clients` est
+-- `clients_tenants` avec qual `tenant_id = my_tenant_id()` — une fonction
+-- Postgres dédiée, pas une sous-requête inline ni une claim JWT. La policy
+-- ci-dessous reprend ce pattern exact pour rester cohérente avec le reste
+-- du schéma.
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS import_scan_items (
@@ -46,13 +36,12 @@ CREATE INDEX IF NOT EXISTS idx_import_scan_items_batch ON import_scan_items (ten
 
 ALTER TABLE import_scan_items ENABLE ROW LEVEL SECURITY;
 
--- Policy alignée sur le pattern réel du projet (cf. note ci-dessus) :
--- resolution du tenant via la table users, pas via un claim JWT.
+-- Policy alignée sur le pattern réel confirmé sur `clients` (cf. note ci-dessus).
 DROP POLICY IF EXISTS "import_scan_items_tenant" ON import_scan_items;
 CREATE POLICY "import_scan_items_tenant" ON import_scan_items
   FOR ALL
-  USING (tenant_id = (SELECT tenant_id FROM users WHERE id = auth.uid() LIMIT 1))
-  WITH CHECK (tenant_id = (SELECT tenant_id FROM users WHERE id = auth.uid() LIMIT 1));
+  USING (tenant_id = my_tenant_id())
+  WITH CHECK (tenant_id = my_tenant_id());
 
 -- Compteur onboarding : un tenant qui a déjà utilisé le scan IA une fois
 -- (permet d'adapter l'UI — ex: ne plus remontrer l'onboarding par défaut).
