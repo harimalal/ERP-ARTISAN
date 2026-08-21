@@ -10,10 +10,10 @@
 
 import {
   getAllOFs, createOF, updateOFStatut, updateOFDate, deleteOF,
-  getCommandes, getProduits, getArticles, getRecettesByProduit,
+  getCommandes, getProduits, getArticles, getRecettesByProduit, getClients, getTenant,
   updateArticleStock, updateProduitStock,
-  createAchat, achatDoublonExiste, getAchats,
-  addMouvement, factureExistePourCommande, createFacture,
+  createAchat, achatDoublonExiste,
+  addMouvement, factureExistePourCommande, createFacture, createFactureLignes, nextRefServeur,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, badgePlan, showToast, today,
@@ -24,6 +24,7 @@ let _ofs       = [];
 let _commandes = [];
 let _produits  = [];
 let _articles  = [];
+let _clients   = [];
 let _recettes  = {};
 let _calOffset = 0;
 
@@ -31,8 +32,8 @@ let _calOffset = 0;
    INIT
 ------------------------------------------------------- */
 export async function init() {
-  [_ofs, _commandes, _produits, _articles] = await Promise.all([
-    getAllOFs(), getCommandes(), getProduits(), getArticles(),
+  [_ofs, _commandes, _produits, _articles, _clients] = await Promise.all([
+    getAllOFs(), getCommandes(), getProduits(), getArticles(), getClients(),
   ]);
   await _chargerRecettes();
   _bindCalNav();
@@ -43,8 +44,8 @@ export async function init() {
    RENDER
 ------------------------------------------------------- */
 export async function render() {
-  [_ofs, _commandes, _produits, _articles] = await Promise.all([
-    getAllOFs(), getCommandes(), getProduits(), getArticles(),
+  [_ofs, _commandes, _produits, _articles, _clients] = await Promise.all([
+    getAllOFs(), getCommandes(), getProduits(), getArticles(), getClients(),
   ]);
   await _chargerRecettes();
   _renderBadges();
@@ -453,9 +454,47 @@ async function _terminerFab(id) {
         c.statut = 'pret';
         const dejafac = await factureExistePourCommande(c.id);
         if (!dejafac) {
-          const tot    = (c.commande_lignes || []).reduce((s, l) => s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
-          const facRef = nextRef('FAC', []);
-          await createFacture({ ref: facRef, commande_id: c.id, client_nom: c.client_nom, montant_ht: tot, statut: 'facture' });
+          const tot = (c.commande_lignes || []).reduce((s, l) => s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
+
+          /* TVA multi-taux : priorité produit > tenant > 20 (aligné livraisons.js) */
+          let tauxFacture = 20;
+          try {
+            const tenant = await getTenant();
+            if (tenant && tenant.taux_tva != null) tauxFacture = Number(tenant.taux_tva);
+          } catch (_) {}
+
+          const lignesFigees = (c.commande_lignes || []).map(l => {
+            const pl = _produits.find(x => x.id === l.produit_id);
+            const tauxLigne = (pl && pl.taux_tva != null) ? Number(pl.taux_tva) : tauxFacture;
+            return {
+              produit_id:    l.produit_id,
+              produit_nom:   l.produit_nom,
+              quantite:      l.quantite,
+              prix_unitaire: l.prix_unitaire,
+              taux_tva:      tauxLigne,
+              total_ht:      l.total_ht || (l.quantite * l.prix_unitaire),
+            };
+          });
+          const tauxLignes = lignesFigees.filter(l => l.total_ht > 0).map(l => l.taux_tva);
+          if (tauxLignes.length > 0) tauxFacture = Math.max(...tauxLignes);
+
+          const client = c.client_id
+            ? _clients.find(x => x.id === c.client_id)
+            : _clients.find(x => x.nom === c.client_nom);
+
+          const facRef = await nextRefServeur('FAC');
+          const fac = await createFacture({
+            ref:            facRef,
+            commande_id:    c.id,
+            client_id:      client ? client.id : (c.client_id || null),
+            client_nom:     c.client_nom,
+            siret_client:   client?.siret || '',
+            adresse_client: client?.adresse || '',
+            montant_ht:     tot,
+            taux_tva:       tauxFacture,
+            statut:         'facture',
+          });
+          await createFactureLignes(fac.id, lignesFigees);
         }
       }
     }
@@ -598,7 +637,7 @@ async function _savePlanifier() {
         if (manque <= 0) continue;
         const doublon = await achatDoublonExiste(a.id, ref);
         if (doublon) continue;
-        const bcRef = nextRef('BC', await getAchats());
+        const bcRef = await nextRefServeur('BC');
         await createAchat({ ref: bcRef, article_id: a.id, article_nom: a.nom, quantite: Math.ceil(manque), prix_unitaire: a.prix, fournisseur: a.fournisseur || '', statut: 'brouillon', ref_commande: ref, notes: 'Auto OF ' + ref });
       }
     }

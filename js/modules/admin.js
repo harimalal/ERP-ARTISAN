@@ -306,7 +306,7 @@ function _editRow(type, id) {
       <div class="form-group"><label>Prix achat HT (€)</label><input type="number" id="er_prix" value="${a.prix}" step="0.001"></div>
       <div class="form-group"><label>Fournisseur</label><input id="er_fournisseur" value="${esc(a.fournisseur || '')}"></div>
       <div class="form-group"><label>Seuil alerte</label><input type="number" id="er_seuil" value="${a.seuil}"></div>
-      <div class="form-group"><label>Stock actuel</label><input type="number" id="er_stock" value="${a.stock}" step="0.01">
+      <div class="form-group"><label>Stock actuel</label><input type="number" id="er_stock" value="${a.stock}" step="0.01"></div>
       <div class="form-group"><label>Taux TVA (%)</label>
         <select id="er_tva">
           <option value="20" ${(a.taux_tva == null || a.taux_tva == 20) ? 'selected' : ''}>20% — standard</option>
