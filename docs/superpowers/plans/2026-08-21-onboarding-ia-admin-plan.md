@@ -1780,6 +1780,90 @@ git commit -m "feat(ia): durcissement prompt (definitions, exemples, une-ligne-u
 
 ---
 
+### Task 13: Verrou `_scanEnCours` jamais relâché en cas d'erreur (fix robustesse)
+
+Repéré en réfléchissant aux scénarios catastrophe avec l'utilisateur, pas par une revue de tâche : dans `_onFichiersDeposes` (js/modules/admin.js), `_scanEnCours = false` n'est présent qu'au retour anticipé (aucun fichier accepté) et à la toute fin de la fonction — tout le corps entre les deux (import direct des anciens modèles, lancement du scan IA, dédoublonnage, rendu de l'écran de validation) n'est protégé par aucun try/catch. Si `markOnboardingIAUtilise()`, `_deduplicquerLot`, ou toute autre étape lève une exception, `_scanEnCours` reste `true` indéfiniment — la zone de dépôt devient injoignable jusqu'à un rechargement de page, sans message d'erreur visible pour l'utilisateur.
+
+**Files:**
+- Modify: `js/modules/admin.js` (`_onFichiersDeposes`, actuellement lignes 934-978)
+
+**Interfaces:** aucune — modification purement interne à la fonction, aucune signature ne change.
+
+- [ ] **Step 1: Envelopper le corps de la fonction dans un try/catch/finally**
+
+Remplacer le corps de `_onFichiersDeposes` par :
+```js
+async function _onFichiersDeposes(fileList) {
+  if (_scanEnCours) return;
+  _scanEnCours = true;
+
+  try {
+    const fichiers = Array.from(fileList);
+    const TAILLE_MAX = 15 * 1024 * 1024;
+    const EXT_OK = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'xlsx', 'xls', 'csv'];
+
+    const rejetes = [];
+    const accepted = fichiers.filter(f => {
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (!EXT_OK.includes(ext)) { rejetes.push({ nom: f.name, raison: 'format non supporté' }); return false; }
+      if (f.size > TAILLE_MAX) { rejetes.push({ nom: f.name, raison: 'fichier trop volumineux (>15 Mo)' }); return false; }
+      return true;
+    });
+
+    if (rejetes.length) _afficherFichiersRejetes(rejetes);
+    if (!accepted.length) return;
+
+    const excelDirects = [];
+    const aScannerIA   = [];
+
+    for (const f of accepted) {
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (ext !== 'xlsx' && ext !== 'xls' && ext !== 'csv') { aScannerIA.push(f); continue; }
+      try {
+        const headers = await _lireHeadersFichier(f, ext);
+        const type = _detecterTypeModele(headers);
+        if (type) excelDirects.push({ file: f, type });
+        else aScannerIA.push(f);
+      } catch { aScannerIA.push(f); }
+    }
+
+    if (excelDirects.length) await _importerModelesConnus(excelDirects);
+
+    if (aScannerIA.length) {
+      const batchId = crypto.randomUUID();
+      _afficherProgressionScan(0, aScannerIA.length);
+      await _lancerScanLot(aScannerIA, batchId, (etat) => _afficherProgressionScan(etat.traites, etat.total, etat));
+      await _deduplicquerLot(batchId);
+      await _renderEcranValidation(batchId);
+    }
+  } catch (err) {
+    console.error('[admin] _onFichiersDeposes ERREUR:', err.message, err.stack);
+    showToast('⚠ Une erreur est survenue pendant le scan. Réessayez ou rechargez la page si le problème persiste.', 'warn');
+  } finally {
+    _scanEnCours = false;
+  }
+}
+```
+
+Le `finally` garantit que `_scanEnCours` repasse à `false` dans tous les cas — succès, rejet précoce, ou exception inattendue à n'importe quelle étape. Le `catch` ajoute au passage le logging Règle 6, absent jusqu'ici sur cette fonction, et un retour visible à l'utilisateur au lieu d'un échec silencieux.
+
+- [ ] **Step 2: Valider la syntaxe**
+
+Run: `node --check js/modules/admin.js`
+
+- [ ] **Step 3: Trace manuelle**
+
+Tracer : `markOnboardingIAUtilise()` lève une exception simulée (ex. Supabase indisponible) pendant `_lancerScanLot` → l'exception remonte jusqu'au `catch` de `_onFichiersDeposes` → toast d'erreur affiché, log console présent → `finally` remet `_scanEnCours = false` → un second dépôt de fichier juste après fonctionne normalement (pas de verrou bloqué). Écrire cette trace dans le rapport.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add js/modules/admin.js
+git commit -m "fix(admin): _scanEnCours toujours relache meme en cas d'erreur (try/finally)"
+```
+
+---
+
 ## Self-Review
 
 Couverture du spec : section 3 (architecture Option C) → Tâches 1, 2, 6. Section 4 (pipeline 4 étapes) → Tâches 4 (étape 1), 6 (étape 2), 5+7 (étape 3), 8 (étape 4). Section 5 (table staging) → Tâche 1. Section 6 (contrat fonction IA) → Tâche 3. Section 7 (garde-fous taille/format) → Tâche 6 Step 1 (`TAILLE_MAX`, `EXT_OK`). Section 8 (vérification schéma) → Tâche 1 Step 2. Section 9 (scénarios Règle 21B) → Tâche 10 Step 2. Section 10 (hors scope) → respecté, `_massImport` recettes/commandes non touché, `_dlTemplate` laissé en décision ouverte plutôt que supprimé unilatéralement.
