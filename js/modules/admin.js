@@ -783,11 +783,17 @@ function _normaliserNom(nom) {
     .replace(/\s+/g, ' ');
 }
 
-const _CHAMPS_CLES = {
-  client:      ['email', 'siret', 'tel'],
-  fournisseur: ['siret', 'email', 'iban'],
-  article:     ['ref'],
-  produit:     ['ref'],
+const _CLES_FORTES = {
+  client:      ['siret'],
+  fournisseur: ['siret', 'iban'],
+  article:     [],
+  produit:     [],
+};
+const _CLES_FAIBLES = {
+  client:      ['email', 'tel'],
+  fournisseur: ['email'],
+  article:     [],
+  produit:     [],
 };
 
 const _COLLECTIONS = { client: 'clients', fournisseur: 'fournisseurs', article: 'articles', produit: 'produits' };
@@ -801,7 +807,6 @@ function _matchEntiteExistante(entite, existants) {
   }
 
   const refCible = _normaliserNom(entite.champs.ref);
-  const clesType  = _CHAMPS_CLES[entite.type] || [];
 
   for (const existant of collection) {
     const refExistant = _normaliserNom(existant.ref);
@@ -809,19 +814,29 @@ function _matchEntiteExistante(entite, existants) {
       return { statut: 'existant', correspondance: existant };
     }
 
-    const champCleConfirme = clesType.some(champ => {
+    const cleForteConfirmee = (_CLES_FORTES[entite.type] || []).some(champ => {
       const v1 = _normaliserNom(entite.champs[champ]);
       const v2 = _normaliserNom(existant[champ]);
       return v1 && v2 && v1 === v2;
     });
 
-    if (champCleConfirme) {
+    if (cleForteConfirmee) {
       return { statut: 'existant', correspondance: existant };
     }
 
     const nomExistant = _normaliserNom(existant.nom);
     const nomProche    = nomCible && nomExistant && (nomCible === nomExistant || nomExistant.includes(nomCible) || nomCible.includes(nomExistant));
     if (!nomProche) continue;
+
+    const cleFaibleConfirmee = (_CLES_FAIBLES[entite.type] || []).some(champ => {
+      const v1 = _normaliserNom(entite.champs[champ]);
+      const v2 = _normaliserNom(existant[champ]);
+      return v1 && v2 && v1 === v2;
+    });
+
+    if (cleFaibleConfirmee) {
+      return { statut: 'existant', correspondance: existant };
+    }
 
     return { statut: 'ambigu', correspondance: existant };
   }
@@ -909,10 +924,6 @@ async function _scannerFichierIA(file, batchId, onProgress) {
 }
 
 async function _lancerScanLot(fichiers, batchId, onProgress) {
-  if (!(await getOnboardingIAUtilise())) {
-    await markOnboardingIAUtilise();
-  }
-
   let index = 0;
   let traites = 0;
   const total = fichiers.length;
@@ -969,8 +980,10 @@ async function _onFichiersDeposes(fileList) {
 
     if (aScannerIA.length) {
       const batchId = crypto.randomUUID();
+      const etaitOnboardingDejaUtilise = await getOnboardingIAUtilise();
       _afficherProgressionScan(0, aScannerIA.length);
       await _lancerScanLot(aScannerIA, batchId, (etat) => _afficherProgressionScan(etat.traites, etat.total, etat));
+      if (!etaitOnboardingDejaUtilise) await markOnboardingIAUtilise();
       await _deduplicquerLot(batchId);
       await _renderEcranValidation(batchId);
     }
@@ -980,6 +993,16 @@ async function _onFichiersDeposes(fileList) {
   } finally {
     _scanEnCours = false;
   }
+}
+
+function _normaliserDatesLigne(rows) {
+  return rows.map(row => {
+    const out = {};
+    for (const [k, v] of Object.entries(row)) {
+      out[k] = v instanceof Date ? v.toISOString().slice(0, 10) : v;
+    }
+    return out;
+  });
 }
 
 function _lireHeadersFichier(file, ext) {
@@ -1028,8 +1051,8 @@ function _lireOngletsFichier(file, ext) {
           const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
           const onglets = {};
           for (const nom of wb.SheetNames) {
-            const rows = XLSX.utils.sheet_to_json(wb.Sheets[nom], { defval: '', raw: false, dateNF: 'yyyy-mm-dd' });
-            if (rows.length) onglets[nom] = rows;
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[nom], { defval: '' });
+            if (rows.length) onglets[nom] = _normaliserDatesLigne(rows);
           }
           resolve(onglets);
         }
@@ -1141,15 +1164,20 @@ function _renderLigneValidation(item) {
 }
 
 async function _traiterActionValidation(itemId, action, batchId) {
-  const statut = action === 'confirmer' ? 'confirme' : 'ignore';
-  await updateImportScanItem(itemId, { statut });
-  await _renderEcranValidation(batchId);
+  try {
+    const statut = action === 'confirmer' ? 'confirme' : 'ignore';
+    await updateImportScanItem(itemId, { statut });
+    await _renderEcranValidation(batchId);
+  } catch (err) {
+    console.error('[admin] _traiterActionValidation ERREUR:', err.message, err.stack);
+    showToast('⚠ Action impossible, réessayez.', 'warn');
+  }
 }
 
 function _majBoutonConfirmer(items) {
   const btn = document.getElementById('importBtnConfirmer');
   if (!btn) return;
-  const enAttente = items.some(i => i.statut === 'a_creer' || i.statut === 'doublon_possible');
+  const enAttente = items.some(i => i.statut === 'doublon_possible' || (i.statut === 'a_creer' && i.confiance === 'basse'));
   btn.disabled = false;
   btn.style.opacity = '1';
   btn.textContent = enAttente ? 'Importer (les lignes en attente seront ignorées)' : 'Importer la sélection';
@@ -1159,53 +1187,62 @@ async function _confirmerImport(batchId) {
   const btn = document.getElementById('importBtnConfirmer');
   if (btn) { btn.disabled = true; btn.textContent = 'Import en cours…'; }
 
-  const items = await getImportScanItems(batchId);
-  const aImporter = items.filter(i => i.statut === 'a_creer' || i.statut === 'confirme');
+  try {
+    const items = await getImportScanItems(batchId);
+    const aImporter = items.filter(i => i.statut === 'confirme' || (i.statut === 'a_creer' && i.confiance !== 'basse'));
 
-  const counts = { clients: 0, fournisseurs: 0, articles: 0, produits: 0 };
-  const errors = [];
+    const counts = { clients: 0, fournisseurs: 0, articles: 0, produits: 0 };
+    const errors = [];
 
-  for (const item of aImporter) {
-    try {
-      if (item.type_entite === 'client' && item.champs.nom) {
-        await createClient({ nom: item.champs.nom, siret: item.champs.siret, email: item.champs.email, tel: item.champs.tel, adresse: item.champs.adresse, contact: item.champs.contact, cpt: item.champs.cpt, notes: item.champs.notes });
-        counts.clients++;
-      } else if (item.type_entite === 'fournisseur' && item.champs.nom) {
-        await createFournisseur({ nom: item.champs.nom, siret: item.champs.siret, contact: item.champs.contact, email: item.champs.email, tel: item.champs.tel, adresse: item.champs.adresse, iban: item.champs.iban, delai: item.champs.delai, categorie: (item.champs.categorie || '').toLowerCase() });
-        counts.fournisseurs++;
-      } else if (item.type_entite === 'article' && item.champs.ref && item.champs.nom) {
-        await createArticle({ ref: item.champs.ref, nom: item.champs.nom, categorie: (item.champs.categorie || 'autre').toLowerCase(), unite: item.champs.unite || 'unité', prix: parseFloat(String(item.champs.prix || '0').replace(',', '.')) || 0, fournisseur: item.champs.fournisseur || '', seuil: parseInt(item.champs.seuil || '0') || 0, stock: parseFloat(String(item.champs.stock || '0').replace(',', '.')) || 0 });
-        counts.articles++;
-      } else if (item.type_entite === 'produit' && item.champs.ref && item.champs.nom) {
-        await createProduit({ ref: item.champs.ref, nom: item.champs.nom, prix_vente: parseFloat(String(item.champs.prix || '0').replace(',', '.')) || 0, seuil: parseInt(item.champs.seuil || '0') || 0, stock: parseFloat(String(item.champs.stock || '0').replace(',', '.')) || 0 });
-        counts.produits++;
-      } else {
-        errors.push(`${item.type_entite} ignoré : champ obligatoire manquant`);
-        continue;
+    for (const item of aImporter) {
+      try {
+        if (item.type_entite === 'client' && item.champs.nom) {
+          await createClient({ nom: item.champs.nom, siret: item.champs.siret, email: item.champs.email, tel: item.champs.tel, adresse: item.champs.adresse, contact: item.champs.contact, cpt: item.champs.cpt, notes: item.champs.notes });
+          counts.clients++;
+        } else if (item.type_entite === 'fournisseur' && item.champs.nom) {
+          await createFournisseur({ nom: item.champs.nom, siret: item.champs.siret, contact: item.champs.contact, email: item.champs.email, tel: item.champs.tel, adresse: item.champs.adresse, iban: item.champs.iban, delai: item.champs.delai, categorie: (item.champs.categorie || '').toLowerCase() });
+          counts.fournisseurs++;
+        } else if (item.type_entite === 'article' && item.champs.ref && item.champs.nom) {
+          await createArticle({ ref: item.champs.ref, nom: item.champs.nom, categorie: (item.champs.categorie || 'autre').toLowerCase(), unite: item.champs.unite || 'unité', prix: parseFloat(String(item.champs.prix || '0').replace(',', '.')) || 0, fournisseur: item.champs.fournisseur || '', seuil: parseInt(item.champs.seuil || '0') || 0, stock: parseFloat(String(item.champs.stock || '0').replace(',', '.')) || 0 });
+          counts.articles++;
+        } else if (item.type_entite === 'produit' && item.champs.ref && item.champs.nom) {
+          await createProduit({ ref: item.champs.ref, nom: item.champs.nom, prix_vente: parseFloat(String(item.champs.prix || '0').replace(',', '.')) || 0, seuil: parseInt(item.champs.seuil || '0') || 0, stock: parseFloat(String(item.champs.stock || '0').replace(',', '.')) || 0 });
+          counts.produits++;
+        } else {
+          errors.push(`${item.type_entite} ignoré : champ obligatoire manquant`);
+          continue;
+        }
+        await updateImportScanItem(item.id, { statut: 'confirme' });
+      } catch (err) {
+        errors.push(`${item.type_entite} ${item.champs.nom || item.champs.ref} : ${err.message}`);
       }
-      await updateImportScanItem(item.id, { statut: 'confirme' });
-    } catch (err) {
-      errors.push(`${item.type_entite} ${item.champs.nom || item.champs.ref} : ${err.message}`);
     }
-  }
 
-  await deleteImportScanItems(batchId);
+    if (!errors.length) {
+      await deleteImportScanItems(batchId);
+      closeModal('modalImportMasse');
+    }
 
-  if (btn) { btn.disabled = false; btn.textContent = 'Importer la sélection'; }
-  closeModal('modalImportMasse');
-  _renderArticles(); _renderProduits(); _renderClients(); _renderFournisseurs();
+    _renderArticles(); _renderProduits(); _renderClients(); _renderFournisseurs();
 
-  const total = Object.values(counts).reduce((s, v) => s + v, 0);
-  if (errors.length) {
-    showToast(`⚠ ${total} importés, ${errors.length} erreur(s). Voir console.`, 'warn');
-    errors.forEach(e => console.warn('[ImportIA]', e));
-  } else {
-    showToast(`✅ Import : ${counts.clients} clients, ${counts.fournisseurs} fournisseurs, ${counts.articles} articles, ${counts.produits} produits.`);
-  }
+    const total = Object.values(counts).reduce((s, v) => s + v, 0);
+    if (errors.length) {
+      showToast(`⚠ ${total} importés, ${errors.length} erreur(s). Rien n'est perdu, corrigez et relancez l'import. Voir console.`, 'warn');
+      errors.forEach(e => console.warn('[ImportIA]', e));
+      await _renderEcranValidation(batchId);
+    } else {
+      showToast(`✅ Import : ${counts.clients} clients, ${counts.fournisseurs} fournisseurs, ${counts.articles} articles, ${counts.produits} produits.`);
+    }
 
-  const entities = Object.entries(counts).filter(([, v]) => v > 0).map(([k]) => k);
-  if (entities.length) {
-    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'import_ia', entities } }));
+    const entities = Object.entries(counts).filter(([, v]) => v > 0).map(([k]) => k);
+    if (entities.length) {
+      document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'import_ia', entities } }));
+    }
+  } catch (err) {
+    console.error('[admin] _confirmerImport ERREUR:', err.message, err.stack);
+    showToast('⚠ Une erreur est survenue pendant l\'import. Réessayez.', 'warn');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Importer la sélection'; }
   }
 }
 
@@ -1361,7 +1398,7 @@ function _lireLignesFichier(file, ext) {
         } else {
           const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
           const ws = wb.Sheets[wb.SheetNames[0]];
-          resolve(XLSX.utils.sheet_to_json(ws, { defval: '', raw: false, dateNF: 'yyyy-mm-dd' }));
+          resolve(_normaliserDatesLigne(XLSX.utils.sheet_to_json(ws, { defval: '' })));
         }
       } catch (err) { reject(err); }
     };

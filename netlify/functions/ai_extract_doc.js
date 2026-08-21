@@ -75,6 +75,12 @@ async function verifierSession(token, supabase) {
   return user;
 }
 
+async function resoudreTenantDepuisUser(userId, supabase) {
+  const { data, error } = await supabase.from('users').select('tenant_id').eq('id', userId).single();
+  if (error || !data) throw new Error('Utilisateur introuvable');
+  return data.tenant_id;
+}
+
 async function resoudreQuota(tenantId, supabase) {
   const { data: tenant, error: tErr } = await supabase
     .from('tenants')
@@ -134,6 +140,8 @@ Si le contenu fourni est un export tableur (une ligne = une suite de paires colo
 
 Les noms de colonnes du fichier tableur peuvent différer des noms de champs attendus (ex : "Raison sociale" → nom, "Tél" → tel, "N° SIRET" → siret, une colonne "Fournisseur" en en-tête ne signifie pas forcément que la ligne EST un fournisseur). Fais la correspondance sémantique toi-même, sans jamais inventer une valeur si la correspondance est trop incertaine.
 
+Pour le champ categorie (article et fournisseur), utilise uniquement l'une de ces 5 valeurs exactes : emballage, matiere, ingredient, fourniture, autre — jamais une autre formulation, même si le document utilise un mot différent (ex : "verrerie" → "emballage", "matières premières" → "matiere", "consommables" → "fourniture"). Si aucune de ces 5 valeurs ne correspond clairement, utilise "autre".
+
 Exemples concrets :
 1) Onglet tableur "Clients" avec 3 lignes (nom: Boulangerie Martin | email: contact@martin.fr ; nom: Épicerie Dupuis | tel: 0611223344 ; nom: Café des Arts | adresse: 5 rue de la Paix) → 3 entités type "client" séparées, une par ligne, confiance haute si les champs sont clairs.
 2) Un bon de livraison scanné mentionnant "Livré à : Boulangerie Martin" puis un tableau de 4 articles avec quantités → 1 entité "client" (Boulangerie Martin) + 4 entités "article", toutes avec la même page_source.
@@ -187,12 +195,18 @@ function parseReponseIA(rawText) {
 
 // Force les champs bruts renvoyés par le modèle sur le contrat exact
 // CHAMPS_PAR_TYPE[type] : clé absente du modèle → '', clé hors contrat → supprimée.
+const CATEGORIES_VALIDES = ['emballage', 'matiere', 'ingredient', 'fourniture', 'autre'];
+
 function whitelisterChamps(type, champsRaw) {
   const cles = CHAMPS_PAR_TYPE[type];
   const out  = {};
   for (const cle of cles) {
     const v = champsRaw[cle];
     out[cle] = v == null ? '' : String(v).trim();
+  }
+  if ((type === 'article' || type === 'fournisseur') && out.categorie) {
+    const normalisee = out.categorie.toLowerCase();
+    out.categorie = CATEGORIES_VALIDES.includes(normalisee) ? normalisee : (type === 'article' ? 'autre' : '');
   }
   return out;
 }
@@ -266,8 +280,9 @@ export default async function handler(req) {
 
   try {
     const supabase = getSupabaseAdmin();
-    await verifierSession(token, supabase);
-    const quota = await resoudreQuota(tenantId, supabase);
+    const user = await verifierSession(token, supabase);
+    const tenantIdReel = await resoudreTenantDepuisUser(user.id, supabase);
+    const quota = await resoudreQuota(tenantIdReel, supabase);
 
     const anthropic = new Anthropic();
     const prompt    = buildPrompt();
@@ -285,7 +300,7 @@ export default async function handler(req) {
     const { entites, avertissements: avertissementsDrop } = nettoyerEntites(parsed.entites);
 
     if (!quota.hors_quota) {
-      await incrementerQuota(tenantId, quota.mois, quota.appels, tokensUsed, supabase);
+      await incrementerQuota(tenantIdReel, quota.mois, quota.appels, tokensUsed, supabase);
     }
 
     return new Response(JSON.stringify({
