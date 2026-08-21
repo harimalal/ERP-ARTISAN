@@ -1131,12 +1131,18 @@ async function _renderEcranValidation(batchId) {
 
   const parType = { client: [], fournisseur: [], article: [], produit: [] };
   for (const item of items) parType[item.type_entite]?.push(item);
+  for (const arr of Object.values(parType)) {
+    arr.sort((a, b) => (a.champs.nom || a.champs.ref || '').localeCompare(b.champs.nom || b.champs.ref || '', 'fr', { sensitivity: 'base' }));
+  }
 
-  el.innerHTML = Object.entries(parType).filter(([, arr]) => arr.length).map(([type, arr]) => `
+  el.innerHTML = Object.entries(parType).filter(([, arr]) => arr.length).map(([type, arr]) => {
+    const nbDoublons = arr.filter(i => i.statut === 'doublon_possible').length;
+    return `
     <div style="margin-top:10px;">
-      <div style="font-weight:600;font-size:12.5px;margin-bottom:6px;">${_LABELS_TYPE[type]} détectés : ${arr.length}</div>
+      <div style="font-weight:600;font-size:12.5px;margin-bottom:6px;">${_LABELS_TYPE[type]} détectés : ${arr.length}${nbDoublons ? ` — ${nbDoublons} doublon(s) possible(s)` : ''}</div>
       ${arr.map(item => _renderLigneValidation(item)).join('')}
-    </div>`).join('') || '<p style="font-size:12.5px;color:var(--ink-muted);">Aucune entité détectée dans ce lot.</p>';
+    </div>`;
+  }).join('') || '<p style="font-size:12.5px;color:var(--ink-muted);">Aucune entité détectée dans ce lot.</p>';
 
   el.querySelectorAll('[data-action]').forEach(btn => {
     btn.addEventListener('click', () => _traiterActionValidation(btn.dataset.itemId, btn.dataset.action, batchId));
