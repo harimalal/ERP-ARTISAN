@@ -14,7 +14,8 @@ import {
   getFournisseurs, createFournisseur, updateFournisseur, deleteFournisseur,
   getCommandes, createCommande, getAchats, getFactures, getAllOFs,
   getMouvements, addMouvement,
-  createImportScanItem, getOnboardingIAUtilise, markOnboardingIAUtilise,
+  createImportScanItem, getImportScanItems, updateImportScanItem,
+  getOnboardingIAUtilise, markOnboardingIAUtilise,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, stockStatus, badgeCmd, showToast,
@@ -970,6 +971,43 @@ function _lireHeadersFichier(file, ext) {
     if (ext === 'csv') reader.readAsText(file, 'UTF-8');
     else reader.readAsArrayBuffer(file);
   });
+}
+
+/* -------------------------------------------------------
+   APPLICATION DU DÉDOUBLONNAGE SUR UN LOT (Étape 3)
+------------------------------------------------------- */
+async function _deduplicquerLot(batchId) {
+  const [clients, fournisseurs, articles, produits] = await Promise.all([
+    _clients.length ? _clients : getClients(),
+    _fournisseurs.length ? _fournisseurs : getFournisseurs(),
+    _articles.length ? _articles : getArticles(),
+    _produits.length ? _produits : getProduits(),
+  ]);
+  const existants = { clients, fournisseurs, articles, produits };
+
+  const items = await getImportScanItems(batchId);
+  const dejaTraites = { clients: [], fournisseurs: [], articles: [], produits: [] };
+
+  for (const item of items) {
+    const cible = { type: item.type_entite, champs: item.champs };
+    const contreExistants = _matchEntiteExistante(cible, existants);
+    const contreLot        = contreExistants.statut === 'nouveau'
+      ? _matchEntiteExistante(cible, dejaTraites)
+      : { statut: 'nouveau', correspondance: null };
+
+    let statut = 'a_creer';
+    let doublonDeId = null;
+
+    if (contreExistants.statut === 'existant') { statut = 'deja_existant'; doublonDeId = contreExistants.correspondance.id; }
+    else if (contreExistants.statut === 'ambigu') { statut = 'doublon_possible'; doublonDeId = contreExistants.correspondance.id; }
+    else if (contreLot.statut !== 'nouveau') { statut = 'doublon_possible'; }
+
+    await updateImportScanItem(item.id, { statut, doublon_de_id: doublonDeId });
+
+    if (statut === 'a_creer') {
+      dejaTraites[_COLLECTIONS[item.type_entite] || (item.type_entite + 's')].push({ id: item.id, nom: item.champs.nom, ref: item.champs.ref, email: item.champs.email, siret: item.champs.siret, iban: item.champs.iban });
+    }
+  }
 }
 
 /* -------------------------------------------------------
