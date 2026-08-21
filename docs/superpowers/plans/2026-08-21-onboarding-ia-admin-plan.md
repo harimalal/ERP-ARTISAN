@@ -1990,6 +1990,297 @@ git commit -m "fix(admin): statut importe distinct de confirme - evite la duplic
 
 ---
 
+### Task 16: Retours UX du premier test réel — tri, compteurs, ménage des boutons Admin
+
+Demandé par l'utilisateur après son premier test réel complet.
+
+**Files:**
+- Modify: `js/modules/admin.js` (`_renderEcranValidation`)
+- Modify: `app.html` (bouton principal, 2 boutons IA morts)
+
+**Interfaces:** aucune — modifications purement visuelles/internes, aucune signature de fonction ne change.
+
+- [ ] **Step 1: Tri alphabétique + compteur de doublons dans l'écran de validation**
+
+Dans `js/modules/admin.js`, trouver `_renderEcranValidation` :
+```js
+async function _renderEcranValidation(batchId) {
+  const items = (await getImportScanItems(batchId)).filter(i => i.statut !== 'importe');
+  const el = document.getElementById('importValidation');
+  if (!el) return;
+  el.style.display = 'block';
+  el.dataset.batchId = batchId;
+
+  const parType = { client: [], fournisseur: [], article: [], produit: [] };
+  for (const item of items) parType[item.type_entite]?.push(item);
+
+  el.innerHTML = Object.entries(parType).filter(([, arr]) => arr.length).map(([type, arr]) => `
+    <div style="margin-top:10px;">
+      <div style="font-weight:600;font-size:12.5px;margin-bottom:6px;">${_LABELS_TYPE[type]} détectés : ${arr.length}</div>
+      ${arr.map(item => _renderLigneValidation(item)).join('')}
+    </div>`).join('') || '<p style="font-size:12.5px;color:var(--ink-muted);">Aucune entité détectée dans ce lot.</p>';
+
+  el.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => _traiterActionValidation(btn.dataset.itemId, btn.dataset.action, batchId));
+  });
+
+  _majBoutonConfirmer(items);
+}
+```
+Remplacer par :
+```js
+async function _renderEcranValidation(batchId) {
+  const items = (await getImportScanItems(batchId)).filter(i => i.statut !== 'importe');
+  const el = document.getElementById('importValidation');
+  if (!el) return;
+  el.style.display = 'block';
+  el.dataset.batchId = batchId;
+
+  const parType = { client: [], fournisseur: [], article: [], produit: [] };
+  for (const item of items) parType[item.type_entite]?.push(item);
+  for (const arr of Object.values(parType)) {
+    arr.sort((a, b) => (a.champs.nom || a.champs.ref || '').localeCompare(b.champs.nom || b.champs.ref || '', 'fr', { sensitivity: 'base' }));
+  }
+
+  el.innerHTML = Object.entries(parType).filter(([, arr]) => arr.length).map(([type, arr]) => {
+    const nbDoublons = arr.filter(i => i.statut === 'doublon_possible').length;
+    return `
+    <div style="margin-top:10px;">
+      <div style="font-weight:600;font-size:12.5px;margin-bottom:6px;">${_LABELS_TYPE[type]} détectés : ${arr.length}${nbDoublons ? ` — ${nbDoublons} doublon(s) possible(s)` : ''}</div>
+      ${arr.map(item => _renderLigneValidation(item)).join('')}
+    </div>`;
+  }).join('') || '<p style="font-size:12.5px;color:var(--ink-muted);">Aucune entité détectée dans ce lot.</p>';
+
+  el.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => _traiterActionValidation(btn.dataset.itemId, btn.dataset.action, batchId));
+  });
+
+  _majBoutonConfirmer(items);
+}
+```
+
+- [ ] **Step 2: Renommer le bouton principal**
+
+Dans `app.html`, ligne ~380, trouver :
+```html
+      <button class="btn btn-ghost" data-modal="modalImportMasse">Import Excel/CSV</button>
+```
+Remplacer par :
+```html
+      <button class="btn btn-ghost" data-modal="modalImportMasse">Import IA de vos données</button>
+```
+
+- [ ] **Step 3: Supprimer les 2 boutons IA morts (jamais câblés à aucun code JS — vérifié par grep avant cette tâche, aucun listener nulle part)**
+
+Dans `app.html`, carte "Mon entreprise" (~ligne 385-389), trouver :
+```html
+      <div style="display:flex;gap:7px;">
+        <button class="btn btn-ghost btn-sm" id="btnIAEntreprise">Mise à jour IA</button>
+        <button class="btn btn-primary btn-sm" id="btnSaveEntreprise">Enregistrer</button>
+      </div>
+```
+Remplacer par :
+```html
+      <div style="display:flex;gap:7px;">
+        <button class="btn btn-primary btn-sm" id="btnSaveEntreprise">Enregistrer</button>
+      </div>
+```
+
+Carte "Fournisseurs" (~ligne 442-446), trouver :
+```html
+      <div style="display:flex;gap:7px;">
+        <button class="btn btn-ghost btn-sm" id="btnIAFournisseur">Import IA</button>
+        <button class="btn btn-primary btn-sm" data-modal="modalNewFournisseur">+ Nouveau fournisseur</button>
+      </div>
+```
+Remplacer par :
+```html
+      <div style="display:flex;gap:7px;">
+        <button class="btn btn-primary btn-sm" data-modal="modalNewFournisseur">+ Nouveau fournisseur</button>
+      </div>
+```
+
+Avant de supprimer, grep `btnIAEntreprise` et `btnIAFournisseur` dans tout `js/` pour reconfirmer qu'aucun listener n'existe (déjà vérifié par le contrôleur, mais à revérifier par l'exécutant avant de livrer — Règle 13).
+
+- [ ] **Step 4: Valider**
+
+Run: `node --check js/modules/admin.js`. Pour app.html, relire la section modifiée pour confirmer que le HTML reste bien formé (balises équilibrées).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add js/modules/admin.js app.html
+git commit -m "feat(admin): tri alphabetique + compteur doublons validation, menage boutons IA morts"
+```
+
+---
+
+### Task 17: Outil "Supprimer les doublons" (Admin)
+
+Demandé par l'utilisateur après son premier test réel — plusieurs imports répétés ont créé des doublons visibles (noms identiques) qu'il a dû supprimer manuellement en base. Décision de sécurité du contrôleur, validée par l'utilisateur : pas de suppression automatique en un clic — écran de revue avec sélection, et la suppression réelle passe par les fonctions `delete*` existantes de `db.js`, qui échoueront proprement (contrainte de clé étrangère Postgres) si l'entité est déjà liée à une commande/un achat — pas de vérification de liaison réinventée côté JS, on s'appuie sur les contraintes réelles de la base.
+
+**Files:**
+- Modify: `app.html` (nouveau bouton dans la barre d'outils Admin, nouvelle modal `modalDoublons`)
+- Modify: `js/modules/admin.js` (nouvelle section, `init()`)
+
+**Interfaces:**
+- Consumes : `getClients`, `getFournisseurs`, `getArticles`, `getProduits`, `deleteClient`, `deleteFournisseur`, `deleteArticle`, `deleteProduit` (déjà exportées par `db.js`), `_normaliserNom` (Tâche 5, déjà présente dans `admin.js`).
+- Produces : `_ouvrirSuppressionDoublons()`, `_supprimerDoublonsSelection()` — nouvelles fonctions internes, pas consommées par d'autres tâches.
+
+- [ ] **Step 1: Nouveau bouton dans la barre d'outils Admin**
+
+Dans `app.html`, juste après le bouton renommé de la Tâche 16 (~ligne 380) :
+```html
+      <button class="btn btn-ghost" data-modal="modalImportMasse">Import IA de vos données</button>
+      <button class="btn btn-ghost" id="btnSupprimerDoublons">Supprimer les doublons</button>
+```
+
+- [ ] **Step 2: Nouvelle modal, juste après la modal `#modalImportMasse` existante**
+
+```html
+<div class="modal-overlay" id="modalDoublons"><div class="modal modal-lg">
+  <div class="modal-hdr"><span class="modal-hdr-title">Doublons détectés</span><button class="modal-close" data-close="modalDoublons">×</button></div>
+  <div style="padding:16px;max-height:70vh;overflow-y:auto;">
+    <div id="doublonsListe"></div>
+  </div>
+  <div class="form-actions between" style="padding:12px 16px;">
+    <button class="btn btn-ghost" data-close="modalDoublons">Fermer</button>
+    <button class="btn btn-primary" id="doublonsBtnSupprimer" disabled style="opacity:.5;">Supprimer la sélection</button>
+  </div>
+</div></div>
+```
+(reprendre le style réel de la modal `#modalImportMasse` existante pour `.modal-hdr`/`.form-actions` — lire son markup actuel avant d'écrire celui-ci pour matcher exactement les classes déjà en place, ne pas réinventer un style différent).
+
+- [ ] **Step 3: Logique de détection et de suppression dans `js/modules/admin.js`**
+
+Ajouter, dans une nouvelle section après le code de la Tâche 15 :
+```js
+/* -------------------------------------------------------
+   SUPPRESSION DES DOUBLONS
+------------------------------------------------------- */
+const _LABELS_TYPE_DOUBLON = { client: 'Client', fournisseur: 'Fournisseur', article: 'Article', produit: 'Produit' };
+
+function _grouperDoublons(collection) {
+  const groupes = {};
+  for (const item of collection) {
+    const cle = _normaliserNom(item.nom);
+    if (!cle) continue;
+    if (!groupes[cle]) groupes[cle] = [];
+    groupes[cle].push(item);
+  }
+  return Object.values(groupes).filter(g => g.length > 1);
+}
+
+function _trierParAnciennete(groupe) {
+  return [...groupe].sort((a, b) => {
+    const da = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const db = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return da - db;
+  });
+}
+
+async function _ouvrirSuppressionDoublons() {
+  const [clients, fournisseurs, articles, produits] = await Promise.all([
+    getClients(), getFournisseurs(), getArticles(), getProduits(),
+  ]);
+
+  const parType = {
+    client:      _grouperDoublons(clients),
+    fournisseur: _grouperDoublons(fournisseurs),
+    article:     _grouperDoublons(articles),
+    produit:     _grouperDoublons(produits),
+  };
+
+  const el = document.getElementById('doublonsListe');
+  if (!el) return;
+
+  const totalGroupes = Object.values(parType).reduce((s, g) => s + g.length, 0);
+  if (!totalGroupes) {
+    el.innerHTML = '<p style="font-size:12.5px;color:var(--ink-muted);">Aucun doublon détecté.</p>';
+  } else {
+    el.innerHTML = Object.entries(parType).filter(([, groupes]) => groupes.length).map(([type, groupes]) => `
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:600;font-size:12.5px;margin-bottom:6px;">${_LABELS_TYPE_DOUBLON[type]}s - ${groupes.length} groupe(s) de doublons</div>
+        ${groupes.map(groupe => {
+          const trie = _trierParAnciennete(groupe);
+          return `<div style="border:1px solid var(--ui-brd);border-radius:6px;padding:8px;margin-bottom:6px;">
+            <div style="font-size:12px;font-weight:600;margin-bottom:4px;">${esc(trie[0].nom)}</div>
+            ${trie.map((entite, i) => `
+              <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;padding:2px 0;">
+                <input type="checkbox" data-doublon-type="${type}" data-doublon-id="${entite.id}" ${i === 0 ? '' : 'checked'}>
+                <span>${i === 0 ? '(a garder par defaut) ' : ''}${esc(entite.email || entite.tel || entite.ref || entite.contact || '')} - cree le ${entite.created_at ? new Date(entite.created_at).toLocaleDateString('fr-FR') : 'date inconnue'}</span>
+              </label>`).join('')}
+          </div>`;
+        }).join('')}
+      </div>`).join('');
+  }
+
+  const btnSupprimer = document.getElementById('doublonsBtnSupprimer');
+  if (btnSupprimer) { btnSupprimer.disabled = !totalGroupes; btnSupprimer.style.opacity = totalGroupes ? '1' : '.5'; }
+  openModal('modalDoublons');
+}
+
+async function _supprimerDoublonsSelection() {
+  const btn = document.getElementById('doublonsBtnSupprimer');
+  if (btn) { btn.disabled = true; btn.textContent = 'Suppression…'; }
+
+  const cases = document.querySelectorAll('#doublonsListe input[type="checkbox"]:checked');
+  const suppressions = { client: deleteClient, fournisseur: deleteFournisseur, article: deleteArticle, produit: deleteProduit };
+  let reussies = 0;
+  const echecs = [];
+
+  for (const c of cases) {
+    const type = c.dataset.doublonType;
+    const id = c.dataset.doublonId;
+    try {
+      await suppressions[type](id);
+      reussies++;
+    } catch (err) {
+      echecs.push(`${type} : ${err.message}`);
+    }
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Supprimer la sélection'; }
+
+  if (echecs.length) {
+    showToast(`⚠ ${reussies} supprimé(s), ${echecs.length} impossible(s) — probablement lié(s) à des commandes/achats existants. Voir console.`, 'warn');
+    echecs.forEach(e => console.warn('[SuppressionDoublons]', e));
+  } else {
+    showToast(`✅ ${reussies} doublon(s) supprimé(s).`);
+    closeModal('modalDoublons');
+  }
+
+  _renderArticles(); _renderProduits(); _renderClients(); _renderFournisseurs();
+}
+```
+
+Dans `init()`, ajouter à côté des autres bindings :
+```js
+  document.getElementById('btnSupprimerDoublons')?.addEventListener('click', _ouvrirSuppressionDoublons);
+  document.getElementById('doublonsBtnSupprimer')?.addEventListener('click', _supprimerDoublonsSelection);
+```
+
+Vérifier avant d'écrire le code final que `deleteClient`/`deleteFournisseur`/`deleteArticle`/`deleteProduit` existent bien dans `db.js` avec la signature `(id)` (déjà confirmé par le contrôleur, à revérifier par l'exécutant) et qu'ils sont déjà importés dans `admin.js` (sinon les ajouter à l'import existant depuis `../db.js`).
+
+Vérifier également si les objets retournés par `getClients()`/`getFournisseurs()`/`getArticles()`/`getProduits()` contiennent réellement un champ `created_at` (`select('*')` dans `db.js`, donc présent si la colonne existe en base — vérifier par lecture du schéma si possible, sinon accepter que `_trierParAnciennete` retombe sur l'ordre de retour de l'API si `created_at` est absent partout, sans planter — le code déjà écrit gère ce cas via `a.created_at ? ... : 0`).
+
+- [ ] **Step 4: Valider la syntaxe**
+
+Run: `node --check js/modules/admin.js`
+
+- [ ] **Step 5: Trace manuelle**
+
+Tracer : 3 clients nommés "Café des Arts" en base (issus de tests répétés) → `_grouperDoublons` les regroupe en 1 groupe de 3 → `_trierParAnciennete` place le plus ancien en premier, décoché par défaut, les 2 autres cochés → clic "Supprimer la sélection" → 2 appels `deleteClient` → si l'un des 2 a une commande liée, `deleteClient` lève une erreur Postgres (contrainte FK) → capturée, comptée dans `echecs`, toast d'avertissement avec le détail en console, le doublon lié reste en base plutôt que de planter ou de casser la commande. Écrire cette trace dans le rapport.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add app.html js/modules/admin.js
+git commit -m "feat(admin): outil de suppression des doublons avec ecran de revue securise"
+```
+
+---
+
 ## Self-Review
 
 Couverture du spec : section 3 (architecture Option C) → Tâches 1, 2, 6. Section 4 (pipeline 4 étapes) → Tâches 4 (étape 1), 6 (étape 2), 5+7 (étape 3), 8 (étape 4). Section 5 (table staging) → Tâche 1. Section 6 (contrat fonction IA) → Tâche 3. Section 7 (garde-fous taille/format) → Tâche 6 Step 1 (`TAILLE_MAX`, `EXT_OK`). Section 8 (vérification schéma) → Tâche 1 Step 2. Section 9 (scénarios Règle 21B) → Tâche 10 Step 2. Section 10 (hors scope) → respecté, `_massImport` recettes/commandes non touché, `_dlTemplate` laissé en décision ouverte plutôt que supprimé unilatéralement.
