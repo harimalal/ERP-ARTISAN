@@ -118,18 +118,37 @@ async function incrementerQuota(tenantId, mois, appelsActuels, tokensUsed, supab
 function buildPrompt() {
   return `Tu es un assistant d'extraction de données pour une application ERP artisanale française.
 
-Analyse ce document et identifie TOUTES les entités qu'il contient parmi : client, fournisseur, article, produit.
+Analyse ce contenu et identifie TOUTES les entités qu'il contient parmi : client, fournisseur, article, produit.
+
+Définitions à respecter strictement :
+- client = une personne ou entreprise à qui l'artisan vend (facture, livre).
+- fournisseur = une personne ou entreprise à qui l'artisan achète (matière première, service) — un IBAN, un délai de livraison, ou une mention "commande vers"/"achat auprès de" signalent un fournisseur, pas un client.
+- article = une matière première ou un composant acheté à un fournisseur, entrant dans la fabrication.
+- produit = un article fini fabriqué par l'artisan, destiné à la vente.
+En cas de doute entre client et fournisseur sur un document sans contexte d'achat/vente explicite (ex : simple carte de visite), choisis confiance "basse" plutôt que de deviner le type.
+
 Un document peut contenir plusieurs entités de types différents (ex : un bon de livraison = 1 client + plusieurs articles).
 Un document peut contenir plusieurs documents logiques distincts (ex : plusieurs factures dans un seul PDF) — dans ce cas, indique la page_source de chaque entité pour les distinguer, ne fusionne jamais des informations venant de documents différents dans une seule entité.
+
+Si le contenu fourni est un export tableur (une ligne = une suite de paires colonne: valeur, éventuellement regroupées par onglet marqué "--- Onglet \\"nom\\" ---"), traite CHAQUE LIGNE comme une entité potentiellement distincte : un tableau de 50 lignes clients doit produire jusqu'à 50 entités séparées dans entites, jamais une seule entité agrégée. Chaque onglet peut contenir un type d'entité différent (ex : onglet "Clients" → entités client, onglet "Fournisseurs" → entités fournisseur) — déduis le type à partir des colonnes et du nom de l'onglet, pas seulement de sa position dans le fichier. Si plusieurs lignes semblent décrire la même entité (doublon apparent), signale-le dans avertissements plutôt que de les fusionner silencieusement. Dans ce cas (tableur), laisse page_source à null — la notion de page ne s'applique pas.
+
+Les noms de colonnes du fichier tableur peuvent différer des noms de champs attendus (ex : "Raison sociale" → nom, "Tél" → tel, "N° SIRET" → siret, une colonne "Fournisseur" en en-tête ne signifie pas forcément que la ligne EST un fournisseur). Fais la correspondance sémantique toi-même, sans jamais inventer une valeur si la correspondance est trop incertaine.
+
+Exemples concrets :
+1) Onglet tableur "Clients" avec 3 lignes (nom: Boulangerie Martin | email: contact@martin.fr ; nom: Épicerie Dupuis | tel: 0611223344 ; nom: Café des Arts | adresse: 5 rue de la Paix) → 3 entités type "client" séparées, une par ligne, confiance haute si les champs sont clairs.
+2) Un bon de livraison scanné mentionnant "Livré à : Boulangerie Martin" puis un tableau de 4 articles avec quantités → 1 entité "client" (Boulangerie Martin) + 4 entités "article", toutes avec la même page_source.
+3) Une carte de visite "Jean Dupont — Fournitures Boulangerie SARL — IBAN FR76..." sans contexte d'achat/vente → 1 entité "fournisseur" (l'IBAN et le nom d'entreprise orientent vers fournisseur plutôt que client), confiance moyenne si aucun autre signal ne confirme.
 
 Retourne UNIQUEMENT un objet JSON valide (sans backticks ni texte autour) au format suivant :
 ${SCHEMA_PROMPT}
 
 Règles strictes :
 - Ne jamais inventer de donnée absente du document. Champ absent → chaîne vide "".
-- Si le texte est flou, partiellement illisible, ou l'extraction incertaine → confiance "basse", jamais "haute" par défaut.
+- N'utilise jamais un type en dehors de client | fournisseur | article | produit. Si une entité ne correspond clairement à aucun des 4 types, ne l'ajoute pas dans entites avec un type approximatif : décris-la brièvement dans avertissements à la place, pour que rien ne disparaisse silencieusement.
+- Si le texte est flou, partiellement illisible, ou l'extraction incertaine → confiance "basse", jamais "haute" par défaut. Pour un contenu tableur, applique la même prudence si une valeur est incomplète, ambiguë entre deux champs possibles (ex : un nombre qui pourrait être un prix ou une quantité), ou si une ligne semble être un doublon ou une correction d'une autre ligne.
 - Si le document est totalement illisible ou vide → document_type_detecte: "illisible", entites: [].
 - SIRET : chiffres uniquement, sans espaces. IBAN : format standard (FR76...).
+- Si le document contient un grand nombre d'entités (tableur de plusieurs dizaines de lignes, PDF regroupant plusieurs dizaines de factures), garde extrait_source très court (moins de 12 mots) pour chaque entité, afin de ne jamais risquer de tronquer la réponse JSON.
 - Réponse en français.`;
 }
 
@@ -179,16 +198,28 @@ function whitelisterChamps(type, champsRaw) {
 }
 
 function nettoyerEntites(rawEntites) {
-  if (!Array.isArray(rawEntites)) return [];
-  return rawEntites
-    .filter(e => e && TYPES_VALIDES.includes(e.type) && e.champs && typeof e.champs === 'object')
-    .map(e => ({
+  const avertissements = [];
+  if (!Array.isArray(rawEntites)) return { entites: [], avertissements };
+
+  const entites = [];
+  for (const e of rawEntites) {
+    if (!e || !e.champs || typeof e.champs !== 'object') {
+      avertissements.push('Une entité mal formée a été ignorée (structure invalide).');
+      continue;
+    }
+    if (!TYPES_VALIDES.includes(e.type)) {
+      avertissements.push(`Une entité de type "${e.type}" non reconnu a été ignorée — vérifiez le document manuellement.`);
+      continue;
+    }
+    entites.push({
       type:           e.type,
       champs:         whitelisterChamps(e.type, e.champs),
       confiance:       ['haute', 'moyenne', 'basse'].includes(e.confiance) ? e.confiance : 'basse',
       page_source:     Number.isInteger(e.page_source) ? e.page_source : null,
       extrait_source:  typeof e.extrait_source === 'string' ? e.extrait_source.slice(0, 300) : '',
-    }));
+    });
+  }
+  return { entites, avertissements };
 }
 
 export default async function handler(req) {
@@ -244,14 +275,14 @@ export default async function handler(req) {
 
     const response = await anthropic.messages.create({
       model:      'claude-sonnet-5',
-      max_tokens: 2000,
+      max_tokens: 8000,
       messages:   [{ role: 'user', content }],
     });
 
     const rawText    = response.content.map(c => c.text || '').join('');
     const tokensUsed = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
-    const parsed      = parseReponseIA(rawText);
-    const entites      = nettoyerEntites(parsed.entites);
+    const parsed = parseReponseIA(rawText);
+    const { entites, avertissements: avertissementsDrop } = nettoyerEntites(parsed.entites);
 
     if (!quota.hors_quota) {
       await incrementerQuota(tenantId, quota.mois, quota.appels, tokensUsed, supabase);
@@ -261,7 +292,7 @@ export default async function handler(req) {
       ok: true,
       entites,
       document_type_detecte: parsed.document_type_detecte || 'autre',
-      avertissements: Array.isArray(parsed.avertissements) ? parsed.avertissements : [],
+      avertissements: [...(Array.isArray(parsed.avertissements) ? parsed.avertissements : []), ...avertissementsDrop],
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
   } catch (err) {

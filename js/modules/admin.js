@@ -846,13 +846,18 @@ async function _lireFichierBase64(file) {
   });
 }
 
-function _serialiserLignesTexte(rows, maxLignes = 300) {
-  if (!rows.length) return '(fichier vide, aucune ligne détectée)';
-  const tronque = rows.length > maxLignes;
-  const lignes = rows.slice(0, maxLignes).map(row =>
-    Object.entries(row).map(([k, v]) => `${k}: ${v}`).join(' | ')
-  );
-  return lignes.join('\n') + (tronque ? `\n… (${rows.length - maxLignes} lignes supplémentaires non incluses, tronqué pour rester dans la limite de contexte)` : '');
+function _serialiserLignesTexte(onglets, maxLignesParOnglet = 300) {
+  const noms = Object.keys(onglets);
+  if (!noms.length) return '(fichier vide, aucune ligne détectée)';
+  return noms.map(nom => {
+    const rows = onglets[nom];
+    const tronque = rows.length > maxLignesParOnglet;
+    const lignes = rows.slice(0, maxLignesParOnglet).map(row =>
+      Object.entries(row).map(([k, v]) => `${k}: ${v}`).join(' | ')
+    );
+    return `--- Onglet "${nom}" (${rows.length} ligne(s)) ---\n` + lignes.join('\n') +
+      (tronque ? `\n… (${rows.length - maxLignesParOnglet} lignes supplémentaires non incluses dans cet onglet)` : '');
+  }).join('\n\n');
 }
 
 const _EXT_TABULAIRE = ['xlsx', 'xls', 'csv'];
@@ -865,8 +870,8 @@ async function _scannerFichierIA(file, batchId, onProgress) {
     const payload = { extension, tenantId: getTenantId(), token: session.access_token };
 
     if (isTabulaire) {
-      const rows = await _lireLignesFichier(file, extension);
-      payload.texte = _serialiserLignesTexte(rows);
+      const onglets = await _lireOngletsFichier(file, extension);
+      payload.texte = _serialiserLignesTexte(onglets);
     } else {
       payload.fichier = await _lireFichierBase64(file);
     }
@@ -982,9 +987,46 @@ function _lireHeadersFichier(file, ext) {
           resolve(first.split(/[,;]/).map(h => h.trim().replace(/^"|"$/g, '')));
         } else {
           const wb = XLSX.read(e.target.result, { type: 'array' });
+          const ongletsAvecDonnees = wb.SheetNames.filter(nom => {
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[nom], { header: 1 });
+            return rows.length > 0;
+          });
+          if (ongletsAvecDonnees.length > 1) { resolve([]); return; }
           const ws = wb.Sheets[wb.SheetNames[0]];
           const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
           resolve(rows[0] || []);
+        }
+      } catch (err) { reject(err); }
+    };
+    reader.onerror = () => reject(new Error('Lecture fichier échouée'));
+    if (ext === 'csv') reader.readAsText(file, 'UTF-8');
+    else reader.readAsArrayBuffer(file);
+  });
+}
+
+function _lireOngletsFichier(file, ext) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        if (ext === 'csv') {
+          const lines   = String(e.target.result).split('\n').filter(l => l.trim());
+          const headers = lines[0].split(/[,;]/).map(h => h.trim().replace(/^"|"$/g, ''));
+          const rows = lines.slice(1).map(line => {
+            const vals = line.split(/[,;]/).map(v => v.trim().replace(/^"|"$/g, ''));
+            const obj  = {};
+            headers.forEach((h, i) => { obj[h] = vals[i] || ''; });
+            return obj;
+          });
+          resolve({ 'Fichier CSV': rows });
+        } else {
+          const wb = XLSX.read(e.target.result, { type: 'array' });
+          const onglets = {};
+          for (const nom of wb.SheetNames) {
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[nom], { defval: '' });
+            if (rows.length) onglets[nom] = rows;
+          }
+          resolve(onglets);
         }
       } catch (err) { reject(err); }
     };
