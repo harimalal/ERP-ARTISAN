@@ -30,6 +30,21 @@ const MOIS_COURANT = () => new Date().toISOString().slice(0, 7);
 
 const TYPES_VALIDES = ['client', 'fournisseur', 'article', 'produit'];
 
+// Contrat exact des champs par type d'entité — source unique de vérité,
+// réutilisée à la fois pour le texte du prompt IA (schemaLigne) et pour
+// le whitelist de nettoyerEntites() qui force ce contrat côté serveur.
+const CHAMPS_PAR_TYPE = {
+  client:      ['nom', 'siret', 'email', 'tel', 'adresse', 'contact', 'cpt', 'notes'],
+  fournisseur: ['nom', 'siret', 'contact', 'email', 'tel', 'adresse', 'iban', 'delai', 'categorie'],
+  article:     ['ref', 'nom', 'categorie', 'unite', 'prix', 'fournisseur', 'seuil', 'stock'],
+  produit:     ['ref', 'nom', 'prix', 'seuil', 'stock'],
+};
+
+function schemaLigne(type) {
+  const champs = CHAMPS_PAR_TYPE[type].map(c => `"${c}":""`).join(',');
+  return `${type.padEnd(11)} : {${champs}}`;
+}
+
 const SCHEMA_PROMPT = `{
   "document_type_detecte": "bon de commande | facture | bon de livraison | carte de visite | catalogue fournisseur | export tableur | illisible | autre",
   "entites": [
@@ -45,10 +60,7 @@ const SCHEMA_PROMPT = `{
 }
 
 Schémas de champs par type :
-client      : {"nom":"","siret":"","email":"","tel":"","adresse":"","contact":"","cpt":"","notes":""}
-fournisseur : {"nom":"","siret":"","contact":"","email":"","tel":"","adresse":"","iban":"","delai":"","categorie":""}
-article     : {"ref":"","nom":"","categorie":"","unite":"","prix":"","fournisseur":"","seuil":"","stock":""}
-produit     : {"ref":"","nom":"","prix":"","seuil":"","stock":""}`;
+${TYPES_VALIDES.map(schemaLigne).join('\n')}`;
 
 function getSupabaseAdmin() {
   const url = process.env.SUPABASE_URL;
@@ -146,13 +158,25 @@ function parseReponseIA(rawText) {
   return { document_type_detecte: 'illisible', entites: [], avertissements: ['Réponse IA non exploitable — vérifiez manuellement'] };
 }
 
+// Force les champs bruts renvoyés par le modèle sur le contrat exact
+// CHAMPS_PAR_TYPE[type] : clé absente du modèle → '', clé hors contrat → supprimée.
+function whitelisterChamps(type, champsRaw) {
+  const cles = CHAMPS_PAR_TYPE[type];
+  const out  = {};
+  for (const cle of cles) {
+    const v = champsRaw[cle];
+    out[cle] = v == null ? '' : String(v).trim();
+  }
+  return out;
+}
+
 function nettoyerEntites(rawEntites) {
   if (!Array.isArray(rawEntites)) return [];
   return rawEntites
     .filter(e => e && TYPES_VALIDES.includes(e.type) && e.champs && typeof e.champs === 'object')
     .map(e => ({
       type:           e.type,
-      champs:         Object.fromEntries(Object.entries(e.champs).map(([k, v]) => [k, v == null ? '' : String(v).trim()])),
+      champs:         whitelisterChamps(e.type, e.champs),
       confiance:       ['haute', 'moyenne', 'basse'].includes(e.confiance) ? e.confiance : 'basse',
       page_source:     Number.isInteger(e.page_source) ? e.page_source : null,
       extrait_source:  typeof e.extrait_source === 'string' ? e.extrait_source.slice(0, 300) : '',
