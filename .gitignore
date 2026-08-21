@@ -2,3 +2,5 @@
 .netlify
 .venv/
 .venv/
+
+.worktrees/
