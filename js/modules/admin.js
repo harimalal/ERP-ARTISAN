@@ -846,15 +846,35 @@ async function _lireFichierBase64(file) {
   });
 }
 
+function _serialiserLignesTexte(rows, maxLignes = 300) {
+  if (!rows.length) return '(fichier vide, aucune ligne détectée)';
+  const tronque = rows.length > maxLignes;
+  const lignes = rows.slice(0, maxLignes).map(row =>
+    Object.entries(row).map(([k, v]) => `${k}: ${v}`).join(' | ')
+  );
+  return lignes.join('\n') + (tronque ? `\n… (${rows.length - maxLignes} lignes supplémentaires non incluses, tronqué pour rester dans la limite de contexte)` : '');
+}
+
+const _EXT_TABULAIRE = ['xlsx', 'xls', 'csv'];
+
 async function _scannerFichierIA(file, batchId, onProgress) {
   const extension = file.name.split('.').pop().toLowerCase();
   try {
-    const fichierBase64 = await _lireFichierBase64(file);
     const session = await getSession();
+    const isTabulaire = _EXT_TABULAIRE.includes(extension);
+    const payload = { extension, tenantId: getTenantId(), token: session.access_token };
+
+    if (isTabulaire) {
+      const rows = await _lireLignesFichier(file, extension);
+      payload.texte = _serialiserLignesTexte(rows);
+    } else {
+      payload.fichier = await _lireFichierBase64(file);
+    }
+
     const resp = await fetch(API.aiExtractDoc, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fichier: fichierBase64, extension, tenantId: getTenantId(), token: session.access_token }),
+      body: JSON.stringify(payload),
     });
     const data = await resp.json();
 

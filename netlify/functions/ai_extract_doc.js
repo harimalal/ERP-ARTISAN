@@ -133,14 +133,22 @@ Règles strictes :
 - Réponse en français.`;
 }
 
-function buildContent(fichierBase64, extension, prompt) {
+const EXT_TABULAIRE = ['xlsx', 'xls', 'csv'];
+
+function buildContent({ fichier, texte }, extension, prompt) {
+  if (EXT_TABULAIRE.includes(extension)) {
+    return [
+      { type: 'text', text: `Voici le contenu brut d'un fichier tableur (${extension}), une ligne par ligne (colonne: valeur) :\n\n${texte}` },
+      { type: 'text', text: prompt },
+    ];
+  }
   const isImage   = ['png', 'jpg', 'jpeg', 'webp'].includes(extension);
   const mediaType = isImage
     ? `image/${extension === 'jpg' ? 'jpeg' : extension}`
     : 'application/pdf';
   const mediaBlock = isImage
-    ? { type: 'image',    source: { type: 'base64', media_type: mediaType, data: fichierBase64 } }
-    : { type: 'document', source: { type: 'base64', media_type: mediaType, data: fichierBase64 } };
+    ? { type: 'image',    source: { type: 'base64', media_type: mediaType, data: fichier } }
+    : { type: 'document', source: { type: 'base64', media_type: mediaType, data: fichier } };
   return [mediaBlock, { type: 'text', text: prompt }];
 }
 
@@ -198,17 +206,29 @@ export default async function handler(req) {
     });
   }
 
-  const { fichier, extension, tenantId, token } = body;
+  const { fichier, texte, extension, tenantId, token } = body;
 
-  if (!fichier || !extension || !tenantId || !token) {
-    return new Response(JSON.stringify({ ok: false, error: 'Champs manquants : fichier, extension, tenantId, token' }), {
+  if (!extension || !tenantId || !token) {
+    return new Response(JSON.stringify({ ok: false, error: 'Champs manquants : extension, tenantId, token' }), {
       status: 400, headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  const extOk = ['pdf', 'png', 'jpg', 'jpeg', 'webp'].includes(extension.toLowerCase());
+  const extOk = ['pdf', 'png', 'jpg', 'jpeg', 'webp', ...EXT_TABULAIRE].includes(extension.toLowerCase());
   if (!extOk) {
     return new Response(JSON.stringify({ ok: false, error: `Extension non supportée : ${extension}` }), {
+      status: 400, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const isTabulaire = EXT_TABULAIRE.includes(extension.toLowerCase());
+  if (isTabulaire && !texte) {
+    return new Response(JSON.stringify({ ok: false, error: 'Champ manquant : texte requis pour ce type de fichier' }), {
+      status: 400, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (!isTabulaire && !fichier) {
+    return new Response(JSON.stringify({ ok: false, error: 'Champ manquant : fichier requis pour ce type de fichier' }), {
       status: 400, headers: { 'Content-Type': 'application/json' },
     });
   }
@@ -220,7 +240,7 @@ export default async function handler(req) {
 
     const anthropic = new Anthropic();
     const prompt    = buildPrompt();
-    const content   = buildContent(fichier, extension.toLowerCase(), prompt);
+    const content   = buildContent({ fichier, texte }, extension.toLowerCase(), prompt);
 
     const response = await anthropic.messages.create({
       model:      'claude-sonnet-5',
