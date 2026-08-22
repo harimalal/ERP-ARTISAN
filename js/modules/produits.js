@@ -88,10 +88,12 @@ function _renderTable() {
     : _produits;
 
   document.getElementById('produitsTbody').innerHTML = liste.map(p => {
-    const cout  = p.cout || 0;
-    const prix  = p.prix_vente || p.prix || 0;
-    const marge = prix - cout;
-    const tx    = cout > 0 ? (marge / cout * 100).toFixed(0) : '—';
+    const cout    = p.cout || 0;
+    const prix    = p.prix_vente || p.prix || 0;
+    const marge   = prix - cout;
+    const margeTd = cout > 0
+      ? `<span style="color:var(--ui-green);font-weight:600">${fmt(marge)} € <span style="color:var(--ink-muted);font-weight:400;font-size:10px;">(${(marge / cout * 100).toFixed(0)}%)</span></span>`
+      : `<span style="color:var(--ink-muted);font-style:italic;font-size:11px;">à définir</span>`;
     return `<tr>
       <td class="td-ref">${esc(p.ref)}</td>
       <td class="td-bold">${esc(p.nom)}</td>
@@ -100,13 +102,11 @@ function _renderTable() {
       <td>${stockStatus(p.stock, p.seuil)}</td>
       <td style="font-weight:600">${fmt(prix)} €</td>
       <td>${fmt(cout)} €</td>
-      <td style="color:var(--ui-green);font-weight:600">
-        ${fmt(marge)} € <span style="color:var(--ink-muted);font-weight:400;font-size:10px;">(${tx}%)</span>
-      </td>
+      <td>${margeTd}</td>
       <td onclick="event.stopPropagation()" style="white-space:nowrap;">
-        <button class="btn btn-outline btn-sm" data-ref="${esc(p.ref)}" data-action="editer" title="Éditer">✏</button>
-        <button class="btn btn-outline btn-sm" data-ref="${esc(p.ref)}" data-action="produire" title="Planifier OF">▶</button>
-        <button class="btn btn-danger btn-xs" data-id="${esc(p.id)}" data-action="supprimer" title="Supprimer">✕</button>
+        <button class="btn-icon" data-ref="${esc(p.ref)}" data-action="editer" title="Éditer"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+        <button class="btn-icon" data-ref="${esc(p.ref)}" data-action="produire" title="Planifier un ordre de fabrication"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4V2M16 4V2M3 10h18"/></svg></button>
+        <button class="btn-icon" data-id="${esc(p.id)}" data-action="supprimer" title="Supprimer" style="color:var(--ui-red);border-color:#F0B4A8;"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
       </td>
     </tr>`;
   }).join('') || '<tr><td colspan="9" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun produit.</td></tr>';

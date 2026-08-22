@@ -128,7 +128,7 @@ function renderAlertes(articles) {
   _fixCardOverflow('dashAlerts');
 
   if (!al.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><p>Aucune alerte !</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><p>Aucune alerte !</p></div>';
     return;
   }
 
@@ -165,7 +165,7 @@ function renderStockProduits(produits) {
   _fixCardOverflow('dashProduits');
 
   if (!alertes.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><p>Tous les produits sont en stock.</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><p>Tous les produits sont en stock.</p></div>';
     return;
   }
 
@@ -191,7 +191,7 @@ function renderDernieresCommandes(commandes, produits) {
   const rec = [...commandes].slice(0, 8);
 
   if (!rec.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>Aucune commande.</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon neutral"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h9"/><polyline points="14 2 14 8 20 8"/></svg></div><p>Aucune commande.</p></div>';
     return;
   }
 
