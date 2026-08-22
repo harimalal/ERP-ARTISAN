@@ -383,34 +383,23 @@
       <button class="btn btn-ghost" id="btnSupprimerDoublons">Supprimer les doublons</button>
     </div>
   </div>
-  <div class="card" style="margin-bottom:14px;">
+  <div class="card clickable" id="cardEntreprise" style="margin-bottom:14px;">
     <div class="card-hdr">
       <span class="card-hdr-title">Mon entreprise</span>
-      <div style="display:flex;gap:7px;">
-        <button class="btn btn-primary btn-sm" id="btnSaveEntreprise">Enregistrer</button>
-      </div>
+      <span class="opt" style="font-size:11px;">Cliquer pour modifier</span>
     </div>
     <div class="form-grid" style="padding:16px;">
-      <div class="form-group"><label>Raison sociale</label><input id="me_raison" placeholder="Les Confitures du Sud"></div>
-      <div class="form-group"><label>SIRET</label><input id="me_siret" placeholder="000 000 000 00000"></div>
-      <div class="form-group"><label>N° TVA</label><input id="me_tva" placeholder="FR00 000000000"></div>
-      <div class="form-group"><label>Forme juridique</label>
-        <select id="me_forme">
-          <option value="EI">Entreprise Individuelle</option>
-          <option value="EIRL">EIRL</option>
-          <option value="SASU">SASU</option>
-          <option value="SARL">SARL</option>
-          <option value="SAS">SAS</option>
-          <option value="autre">Autre</option>
-        </select>
-      </div>
-      <div class="form-group full"><label>Adresse</label><input id="me_adresse" placeholder="1 chemin des Vergers, 47000 Agen"></div>
-      <div class="form-group"><label>Téléphone</label><input id="me_tel"></div>
-      <div class="form-group"><label>Email</label><input type="email" id="me_email"></div>
-      <div class="form-group"><label>Site web</label><input id="me_web"></div>
-      <div class="form-group full"><label>IBAN (factures)</label><input id="me_iban"></div>
-      <div class="form-group"><label>Conditions paiement</label><input id="me_cpt" placeholder="30 jours fin de mois"></div>
-      <div class="form-group"><label>Taux TVA par défaut (%)</label><input type="number" id="me_taux_tva" value="20" step="0.1" min="0" max="100"></div>
+      <div class="form-group"><label>Raison sociale</label><div class="ro-val" id="me_raison">—</div></div>
+      <div class="form-group"><label>SIRET</label><div class="ro-val" id="me_siret">—</div></div>
+      <div class="form-group"><label>N° TVA</label><div class="ro-val" id="me_tva">—</div></div>
+      <div class="form-group"><label>Forme juridique</label><div class="ro-val" id="me_forme">—</div></div>
+      <div class="form-group full"><label>Adresse</label><div class="ro-val" id="me_adresse">—</div></div>
+      <div class="form-group"><label>Téléphone</label><div class="ro-val" id="me_tel">—</div></div>
+      <div class="form-group"><label>Email</label><div class="ro-val" id="me_email">—</div></div>
+      <div class="form-group"><label>Site web</label><div class="ro-val" id="me_web">—</div></div>
+      <div class="form-group full"><label>IBAN (factures)</label><div class="ro-val" id="me_iban">—</div></div>
+      <div class="form-group"><label>Conditions paiement</label><div class="ro-val" id="me_cpt">—</div></div>
+      <div class="form-group"><label>Taux TVA par défaut (%)</label><div class="ro-val" id="me_taux_tva">—</div></div>
     </div>
   </div>
   <div class="card" style="margin-bottom:14px;">

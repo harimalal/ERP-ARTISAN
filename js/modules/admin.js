@@ -75,42 +75,22 @@ export async function render() {
    ENTREPRISE
    Fix I — recharger _tenant dans le cache après save
 ------------------------------------------------------- */
+const FORME_LABELS = { EI: 'Entreprise Individuelle', EIRL: 'EIRL', SASU: 'SASU', SARL: 'SARL', SAS: 'SAS', autre: 'Autre' };
+
 function _renderEntreprise() {
   const me = _tenant || {};
-  const set = (id, key) => { const el = document.getElementById(id); if (el) el.value = me[key] || ''; };
+  const set = (id, key) => { const el = document.getElementById(id); if (el) el.textContent = me[key] || '—'; };
   set('me_raison', 'nom'); set('me_siret', 'siret'); set('me_tva', 'tva');
   set('me_adresse', 'adresse'); set('me_tel', 'tel'); set('me_email', 'email');
   set('me_web', 'site'); set('me_iban', 'iban'); set('me_cpt', 'cpt_paiement');
   const forme = document.getElementById('me_forme');
-  if (forme && me.forme) forme.value = me.forme;
+  if (forme) forme.textContent = FORME_LABELS[me.forme] || '—';
   const tauxTva = document.getElementById('me_taux_tva');
-  if (tauxTva) tauxTva.value = (me.taux_tva != null ? me.taux_tva : 20);
+  if (tauxTva) tauxTva.textContent = (me.taux_tva != null ? me.taux_tva : 20) + ' %';
 }
 
 function _bindEntrepriseForm() {
-  document.getElementById('btnSaveEntreprise')?.addEventListener('click', async () => {
-    const data = {
-      nom:          document.getElementById('me_raison').value,
-      siret:        document.getElementById('me_siret').value,
-      tva:          document.getElementById('me_tva').value,
-      forme:        document.getElementById('me_forme').value,
-      adresse:      document.getElementById('me_adresse').value,
-      tel:          document.getElementById('me_tel').value,
-      email:        document.getElementById('me_email').value,
-      site:         document.getElementById('me_web').value,
-      iban:         document.getElementById('me_iban').value,
-      cpt_paiement: document.getElementById('me_cpt').value,
-      taux_tva:     parseFloat(document.getElementById('me_taux_tva')?.value) || 20,
-    };
-    try {
-      await updateTenant(data);
-      Object.assign(_tenant, data);
-      showToast('✅ Entreprise enregistrée.');
-    } catch (err) {
-      console.error('[admin] updateTenant ERREUR:', err.message, err);
-      showToast('❌ Erreur enregistrement entreprise.', 'error');
-    }
-  });
+  document.getElementById('cardEntreprise')?.addEventListener('click', () => _editRow('entreprise', 'entreprise'));
 }
 
 /* -------------------------------------------------------
@@ -290,8 +270,12 @@ function _editRow(type, id) {
     produit:     '🏷 Modifier le produit',
     client:      '👤 Modifier le client',
     fournisseur: '🏪 Modifier le fournisseur',
+    entreprise:  '🏢 Modifier mon entreprise',
   };
   document.getElementById('editRowTitle').textContent = labels[type] || 'Modifier';
+
+  const delBtn = document.getElementById('editRowDeleteBtn');
+  if (delBtn) delBtn.style.display = (type === 'entreprise') ? 'none' : '';
 
   let html = '<div class="form-grid" style="padding:0;">';
 
@@ -367,6 +351,29 @@ function _editRow(type, id) {
           <option value="fourniture" ${f.categorie === 'fourniture' ? 'selected' : ''}>Fourniture</option>
         </select>
       </div>`;
+  } else if (type === 'entreprise') {
+    const me = _tenant || {};
+    html += `
+      <div class="form-group"><label>Raison sociale</label><input id="er_raison" value="${esc(me.nom || '')}"></div>
+      <div class="form-group"><label>SIRET</label><input id="er_siret" value="${esc(me.siret || '')}"></div>
+      <div class="form-group"><label>N° TVA</label><input id="er_tva" value="${esc(me.tva || '')}"></div>
+      <div class="form-group"><label>Forme juridique</label>
+        <select id="er_forme">
+          <option value="EI"    ${me.forme === 'EI'    ? 'selected' : ''}>Entreprise Individuelle</option>
+          <option value="EIRL"  ${me.forme === 'EIRL'  ? 'selected' : ''}>EIRL</option>
+          <option value="SASU"  ${me.forme === 'SASU'  ? 'selected' : ''}>SASU</option>
+          <option value="SARL"  ${me.forme === 'SARL'  ? 'selected' : ''}>SARL</option>
+          <option value="SAS"   ${me.forme === 'SAS'   ? 'selected' : ''}>SAS</option>
+          <option value="autre" ${me.forme === 'autre' ? 'selected' : ''}>Autre</option>
+        </select>
+      </div>
+      <div class="form-group full"><label>Adresse</label><input id="er_adresse" value="${esc(me.adresse || '')}"></div>
+      <div class="form-group"><label>Téléphone</label><input id="er_tel" value="${esc(me.tel || '')}"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="er_email" value="${esc(me.email || '')}"></div>
+      <div class="form-group"><label>Site web</label><input id="er_web" value="${esc(me.site || '')}"></div>
+      <div class="form-group full"><label>IBAN (factures)</label><input id="er_iban" value="${esc(me.iban || '')}"></div>
+      <div class="form-group"><label>Conditions paiement</label><input id="er_cpt" value="${esc(me.cpt_paiement || '')}"></div>
+      <div class="form-group"><label>Taux TVA par défaut (%)</label><input type="number" id="er_taux_tva" value="${me.taux_tva != null ? me.taux_tva : 20}" step="0.1" min="0" max="100"></div>`;
   }
 
   html += '</div>';
@@ -431,6 +438,22 @@ async function _saveEditRow() {
         delai:     document.getElementById('er_delai')?.value.trim()     || '',
         categorie: document.getElementById('er_categorie')?.value        || '',
       });
+    } else if (_editType === 'entreprise') {
+      const data = {
+        nom:          document.getElementById('er_raison').value,
+        siret:        document.getElementById('er_siret').value,
+        tva:          document.getElementById('er_tva').value,
+        forme:        document.getElementById('er_forme').value,
+        adresse:      document.getElementById('er_adresse').value,
+        tel:          document.getElementById('er_tel').value,
+        email:        document.getElementById('er_email').value,
+        site:         document.getElementById('er_web').value,
+        iban:         document.getElementById('er_iban').value,
+        cpt_paiement: document.getElementById('er_cpt').value,
+        taux_tva:     parseFloat(document.getElementById('er_taux_tva')?.value) || 20,
+      };
+      await updateTenant(data);
+      Object.assign(_tenant, data);
     }
     closeModal('modalEditRow');
     await render();
