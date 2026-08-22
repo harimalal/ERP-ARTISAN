@@ -14,11 +14,15 @@ import {
   getFournisseurs, createFournisseur, updateFournisseur, deleteFournisseur,
   getCommandes, createCommande, getAchats, getFactures, getAllOFs,
   getMouvements, addMouvement,
+  createImportScanItem, getImportScanItems, updateImportScanItem, deleteImportScanItems,
+  getOnboardingIAUtilise, markOnboardingIAUtilise,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, stockStatus, badgeCmd, showToast,
   openModal, closeModal, filterTable, today, confirmDialog,
 } from '../ui.js';
+import { getSession, getTenantId } from '../auth.js';
+import { API } from '../config.js';
 
 /* Cache local */
 let _tenant       = {};
@@ -46,8 +50,11 @@ export async function init() {
   _bindFicheClientForm();
   _bindFicheFournisseurForm();
   _bindHistoriqueForm();
-  _bindImportMasse();
+  _bindImportIA();
+  _bindImportAvance();
   _bindSearchInputs();
+  document.getElementById('btnSupprimerDoublons')?.addEventListener('click', _ouvrirSuppressionDoublons);
+  document.getElementById('doublonsBtnSupprimer')?.addEventListener('click', _supprimerDoublonsSelection);
 }
 
 /* -------------------------------------------------------
@@ -736,103 +743,677 @@ function _telechargerCSV(contenu, nomFichier) {
 }
 
 /* -------------------------------------------------------
+   DÉTECTION DÉTERMINISTE DES ANCIENS MODÈLES
+   Si un fichier Excel/CSV matche déjà un modèle connu,
+   il saute l'IA — zéro risque, zéro coût.
+------------------------------------------------------- */
+const _MODELES_CONNUS = {
+  articles:     ['ref', 'nom', 'categorie', 'unite', 'prix', 'fournisseur', 'seuil', 'stock'],
+  produits:     ['ref', 'nom', 'prix', 'seuil', 'stock'],
+  clients:      ['nom', 'email', 'tel', 'adresse', 'notes'],
+  fournisseurs: ['nom', 'contact', 'email', 'tel', 'adresse', 'delai', 'categorie'],
+};
+
+function _normaliserHeader(h) {
+  return String(h || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function _detecterTypeModele(headers) {
+  const normalises = (headers || []).map(_normaliserHeader).sort();
+  for (const [type, colonnes] of Object.entries(_MODELES_CONNUS)) {
+    const attendu = [...colonnes].sort();
+    if (normalises.length === attendu.length && normalises.every((h, i) => h === attendu[i])) {
+      return type;
+    }
+  }
+  return null;
+}
+
+/* -------------------------------------------------------
+   DÉDOUBLONNAGE DÉTERMINISTE
+   Jamais laissé à l'IA — comparaison floue sur le nom,
+   confirmation par un champ clé (email/tel/siret/ref).
+------------------------------------------------------- */
+function _normaliserNom(nom) {
+  return String(nom || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
+const _CLES_FORTES = {
+  client:      ['siret'],
+  fournisseur: ['siret', 'iban'],
+  article:     [],
+  produit:     [],
+};
+const _CLES_FAIBLES = {
+  client:      ['email', 'tel'],
+  fournisseur: ['email'],
+  article:     [],
+  produit:     [],
+};
+
+const _COLLECTIONS = { client: 'clients', fournisseur: 'fournisseurs', article: 'articles', produit: 'produits' };
+
+function _matchEntiteExistante(entite, existants) {
+  const collection = existants[_COLLECTIONS[entite.type]] || [];
+  const nomCible    = _normaliserNom(entite.champs.nom);
+
+  if (!nomCible && entite.type !== 'article' && entite.type !== 'produit') {
+    return { statut: 'nouveau', correspondance: null };
+  }
+
+  const refCible = _normaliserNom(entite.champs.ref);
+
+  for (const existant of collection) {
+    const refExistant = _normaliserNom(existant.ref);
+    if ((entite.type === 'article' || entite.type === 'produit') && refCible && refExistant && refCible === refExistant) {
+      return { statut: 'existant', correspondance: existant };
+    }
+
+    const cleForteConfirmee = (_CLES_FORTES[entite.type] || []).some(champ => {
+      const v1 = _normaliserNom(entite.champs[champ]);
+      const v2 = _normaliserNom(existant[champ]);
+      return v1 && v2 && v1 === v2;
+    });
+
+    if (cleForteConfirmee) {
+      return { statut: 'existant', correspondance: existant };
+    }
+
+    const nomExistant = _normaliserNom(existant.nom);
+    const nomProche    = nomCible && nomExistant && (nomCible === nomExistant || nomExistant.includes(nomCible) || nomCible.includes(nomExistant));
+    if (!nomProche) continue;
+
+    const cleFaibleConfirmee = (_CLES_FAIBLES[entite.type] || []).some(champ => {
+      const v1 = _normaliserNom(entite.champs[champ]);
+      const v2 = _normaliserNom(existant[champ]);
+      return v1 && v2 && v1 === v2;
+    });
+
+    if (cleFaibleConfirmee) {
+      return { statut: 'existant', correspondance: existant };
+    }
+
+    return { statut: 'ambigu', correspondance: existant };
+  }
+
+  return { statut: 'nouveau', correspondance: null };
+}
+
+/* -------------------------------------------------------
+   SCAN IA — ORCHESTRATION (Étape 2)
+   Concurrence limitée, écriture progressive en staging
+   pour survivre à un incident pendant un lot long.
+------------------------------------------------------- */
+const _CONCURRENCE_MAX = 3;
+let _scanEnCours = false;
+
+async function _lireFichierBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = () => reject(new Error('Lecture fichier échouée : ' + file.name));
+    reader.readAsDataURL(file);
+  });
+}
+
+function _serialiserLignesTexte(onglets, maxLignesParOnglet = 300) {
+  const noms = Object.keys(onglets);
+  if (!noms.length) return '(fichier vide, aucune ligne détectée)';
+  return noms.map(nom => {
+    const rows = onglets[nom];
+    const tronque = rows.length > maxLignesParOnglet;
+    const lignes = rows.slice(0, maxLignesParOnglet).map(row =>
+      Object.entries(row).map(([k, v]) => `${k}: ${v}`).join(' | ')
+    );
+    return `--- Onglet "${nom}" (${rows.length} ligne(s)) ---\n` + lignes.join('\n') +
+      (tronque ? `\n… (${rows.length - maxLignesParOnglet} lignes supplémentaires non incluses dans cet onglet)` : '');
+  }).join('\n\n');
+}
+
+const _EXT_TABULAIRE = ['xlsx', 'xls', 'csv'];
+
+async function _scannerFichierIA(file, batchId, onProgress) {
+  const extension = file.name.split('.').pop().toLowerCase();
+  try {
+    const session = await getSession();
+    const isTabulaire = _EXT_TABULAIRE.includes(extension);
+    const payload = { extension, tenantId: getTenantId(), token: session.access_token };
+
+    if (isTabulaire) {
+      const onglets = await _lireOngletsFichier(file, extension);
+      payload.texte = _serialiserLignesTexte(onglets);
+    } else {
+      payload.fichier = await _lireFichierBase64(file);
+    }
+
+    const resp = await fetch(API.aiExtractDoc, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+
+    if (!data.ok) {
+      onProgress({ fichier: file.name, statut: 'echec', message: data.error });
+      return;
+    }
+
+    for (const entite of data.entites) {
+      await createImportScanItem({
+        batch_id:       batchId,
+        fichier_nom:    file.name,
+        page_source:    entite.page_source,
+        type_entite:    entite.type,
+        champs:         entite.champs,
+        confiance:      entite.confiance,
+        statut:         'a_creer',
+        extrait_source: entite.extrait_source,
+      });
+    }
+
+    onProgress({ fichier: file.name, statut: 'termine', nbEntites: data.entites.length, avertissements: data.avertissements });
+  } catch (err) {
+    console.error('[admin] _scannerFichierIA ERREUR:', err.message, err.stack);
+    onProgress({ fichier: file.name, statut: 'echec', message: err.message });
+  }
+}
+
+async function _lancerScanLot(fichiers, batchId, onProgress) {
+  let index = 0;
+  let traites = 0;
+  const total = fichiers.length;
+
+  async function _travailleur() {
+    while (index < fichiers.length) {
+      const i = index++;
+      await _scannerFichierIA(fichiers[i], batchId, (etat) => {
+        traites++;
+        onProgress({ ...etat, traites, total, pourcentage: Math.round((traites / total) * 100) });
+      });
+    }
+  }
+
+  const travailleurs = Array.from({ length: Math.min(_CONCURRENCE_MAX, fichiers.length) }, () => _travailleur());
+  await Promise.all(travailleurs);
+}
+
+async function _onFichiersDeposes(fileList) {
+  if (_scanEnCours) return;
+  _scanEnCours = true;
+
+  try {
+    const fichiers = Array.from(fileList);
+    const TAILLE_MAX = 15 * 1024 * 1024;
+    const EXT_OK = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'xlsx', 'xls', 'csv'];
+
+    const rejetes = [];
+    const accepted = fichiers.filter(f => {
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (!EXT_OK.includes(ext)) { rejetes.push({ nom: f.name, raison: 'format non supporté' }); return false; }
+      if (f.size > TAILLE_MAX) { rejetes.push({ nom: f.name, raison: 'fichier trop volumineux (>15 Mo)' }); return false; }
+      return true;
+    });
+
+    if (rejetes.length) _afficherFichiersRejetes(rejetes);
+    if (!accepted.length) return;
+
+    const excelDirects = [];
+    const aScannerIA   = [];
+
+    for (const f of accepted) {
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (ext !== 'xlsx' && ext !== 'xls' && ext !== 'csv') { aScannerIA.push(f); continue; }
+      try {
+        const headers = await _lireHeadersFichier(f, ext);
+        const type = _detecterTypeModele(headers);
+        if (type) excelDirects.push({ file: f, type });
+        else aScannerIA.push(f);
+      } catch { aScannerIA.push(f); }
+    }
+
+    if (excelDirects.length) await _importerModelesConnus(excelDirects);
+
+    if (aScannerIA.length) {
+      const batchId = crypto.randomUUID();
+      const etaitOnboardingDejaUtilise = await getOnboardingIAUtilise();
+      _afficherProgressionScan(0, aScannerIA.length);
+      await _lancerScanLot(aScannerIA, batchId, (etat) => _afficherProgressionScan(etat.traites, etat.total, etat));
+      if (!etaitOnboardingDejaUtilise) await markOnboardingIAUtilise();
+      await _deduplicquerLot(batchId);
+      await _renderEcranValidation(batchId);
+    }
+  } catch (err) {
+    console.error('[admin] _onFichiersDeposes ERREUR:', err.message, err.stack);
+    showToast('⚠ Une erreur est survenue pendant le scan. Réessayez ou rechargez la page si le problème persiste.', 'warn');
+  } finally {
+    _scanEnCours = false;
+  }
+}
+
+function _normaliserDatesLigne(rows) {
+  return rows.map(row => {
+    const out = {};
+    for (const [k, v] of Object.entries(row)) {
+      out[k] = v instanceof Date ? v.toISOString().slice(0, 10) : v;
+    }
+    return out;
+  });
+}
+
+function _lireHeadersFichier(file, ext) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        if (ext === 'csv') {
+          const first = String(e.target.result).split('\n')[0] || '';
+          resolve(first.split(/[,;]/).map(h => h.trim().replace(/^"|"$/g, '')));
+        } else {
+          const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+          const ongletsAvecDonnees = wb.SheetNames.filter(nom => {
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[nom], { header: 1 });
+            return rows.length > 0;
+          });
+          if (ongletsAvecDonnees.length > 1) { resolve([]); return; }
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+          resolve(rows[0] || []);
+        }
+      } catch (err) { reject(err); }
+    };
+    reader.onerror = () => reject(new Error('Lecture fichier échouée'));
+    if (ext === 'csv') reader.readAsText(file, 'UTF-8');
+    else reader.readAsArrayBuffer(file);
+  });
+}
+
+function _lireOngletsFichier(file, ext) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        if (ext === 'csv') {
+          const lines   = String(e.target.result).split('\n').filter(l => l.trim());
+          const headers = lines[0].split(/[,;]/).map(h => h.trim().replace(/^"|"$/g, ''));
+          const rows = lines.slice(1).map(line => {
+            const vals = line.split(/[,;]/).map(v => v.trim().replace(/^"|"$/g, ''));
+            const obj  = {};
+            headers.forEach((h, i) => { obj[h] = vals[i] || ''; });
+            return obj;
+          });
+          resolve({ 'Fichier CSV': rows });
+        } else {
+          const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+          const onglets = {};
+          for (const nom of wb.SheetNames) {
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[nom], { defval: '' });
+            if (rows.length) onglets[nom] = _normaliserDatesLigne(rows);
+          }
+          resolve(onglets);
+        }
+      } catch (err) { reject(err); }
+    };
+    reader.onerror = () => reject(new Error('Lecture fichier échouée'));
+    if (ext === 'csv') reader.readAsText(file, 'UTF-8');
+    else reader.readAsArrayBuffer(file);
+  });
+}
+
+/* -------------------------------------------------------
+   APPLICATION DU DÉDOUBLONNAGE SUR UN LOT (Étape 3)
+------------------------------------------------------- */
+async function _deduplicquerLot(batchId) {
+  const [clients, fournisseurs, articles, produits] = await Promise.all([
+    _clients.length ? _clients : getClients(),
+    _fournisseurs.length ? _fournisseurs : getFournisseurs(),
+    _articles.length ? _articles : getArticles(),
+    _produits.length ? _produits : getProduits(),
+  ]);
+  const existants = { clients, fournisseurs, articles, produits };
+
+  const items = await getImportScanItems(batchId);
+  const dejaTraites = { clients: [], fournisseurs: [], articles: [], produits: [] };
+
+  for (const item of items) {
+    const cible = { type: item.type_entite, champs: item.champs };
+    const contreExistants = _matchEntiteExistante(cible, existants);
+    const contreLot        = contreExistants.statut === 'nouveau'
+      ? _matchEntiteExistante(cible, dejaTraites)
+      : { statut: 'nouveau', correspondance: null };
+
+    let statut = 'a_creer';
+    let doublonDeId = null;
+
+    if (contreExistants.statut === 'existant') { statut = 'deja_existant'; doublonDeId = contreExistants.correspondance.id; }
+    else if (contreExistants.statut === 'ambigu') { statut = 'doublon_possible'; doublonDeId = contreExistants.correspondance.id; }
+    else if (contreLot.statut !== 'nouveau') { statut = 'doublon_possible'; }
+
+    await updateImportScanItem(item.id, { statut, doublon_de_id: doublonDeId });
+
+    if (statut === 'a_creer') {
+      dejaTraites[_COLLECTIONS[item.type_entite] || (item.type_entite + 's')].push({ id: item.id, nom: item.champs.nom, ref: item.champs.ref, email: item.champs.email, siret: item.champs.siret, iban: item.champs.iban });
+    }
+  }
+}
+
+/* -------------------------------------------------------
+   UI PROGRESSION + VALIDATION + IMPORT FINAL (Étape 4)
+------------------------------------------------------- */
+function _afficherFichiersRejetes(rejetes) {
+  const el = document.getElementById('importRejetes');
+  if (!el) return;
+  el.style.display = 'flex';
+  el.textContent = rejetes.map(r => `${r.nom} : ${r.raison}`).join(' • ');
+}
+
+function _afficherProgressionScan(traites, total, etat) {
+  const el = document.getElementById('importProgression');
+  if (!el) return;
+  el.style.display = 'block';
+  const pourcentage = total ? Math.round((traites / total) * 100) : 0;
+  el.innerHTML = `<div style="font-size:12px;margin-bottom:4px;">Scan en cours : ${traites}/${total} fichiers (${pourcentage}%)${etat?.fichier ? ' — ' + esc(etat.fichier) : ''}</div>
+    <div style="background:var(--ui-bg2);border-radius:4px;height:8px;overflow:hidden;"><div style="background:var(--ui-green);height:100%;width:${pourcentage}%;transition:width .2s;"></div></div>`;
+}
+
+const _LABELS_TYPE = { client: 'Clients', fournisseur: 'Fournisseurs', article: 'Articles', produit: 'Produits' };
+
+async function _renderEcranValidation(batchId) {
+  const items = (await getImportScanItems(batchId)).filter(i => i.statut !== 'importe');
+  const el = document.getElementById('importValidation');
+  if (!el) return;
+  el.style.display = 'block';
+  el.dataset.batchId = batchId;
+
+  const parType = { client: [], fournisseur: [], article: [], produit: [] };
+  for (const item of items) parType[item.type_entite]?.push(item);
+  for (const arr of Object.values(parType)) {
+    arr.sort((a, b) => (a.champs.nom || a.champs.ref || '').localeCompare(b.champs.nom || b.champs.ref || '', 'fr', { sensitivity: 'base' }));
+  }
+
+  el.innerHTML = Object.entries(parType).filter(([, arr]) => arr.length).map(([type, arr]) => {
+    const nbDoublons = arr.filter(i => i.statut === 'doublon_possible').length;
+    return `
+    <div style="margin-top:10px;">
+      <div style="font-weight:600;font-size:12.5px;margin-bottom:6px;">${_LABELS_TYPE[type]} détectés : ${arr.length}${nbDoublons ? ` — ${nbDoublons} doublon(s) possible(s)` : ''}</div>
+      ${arr.map(item => _renderLigneValidation(item)).join('')}
+    </div>`;
+  }).join('') || '<p style="font-size:12.5px;color:var(--ink-muted);">Aucune entité détectée dans ce lot.</p>';
+
+  el.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => _traiterActionValidation(btn.dataset.itemId, btn.dataset.action, batchId));
+  });
+
+  _majBoutonConfirmer(items);
+}
+
+function _renderLigneValidation(item) {
+  const enAttente  = item.statut === 'doublon_possible' || (item.confiance === 'basse');
+  const dejaConnu  = item.statut === 'deja_existant';
+  const couleur    = dejaConnu ? 'var(--ink-muted)' : enAttente ? 'var(--ui-orange, #c77)' : 'var(--ui-green)';
+  const nomAffiche = item.champs.nom || item.champs.ref || '(sans nom)';
+
+  return `<div data-item-row="${item.id}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border-left:3px solid ${couleur};margin-bottom:4px;font-size:12px;">
+    <div>
+      <strong>${esc(nomAffiche)}</strong>
+      <span style="color:var(--ink-muted);margin-left:6px;">confiance ${item.confiance}${dejaConnu ? ' — déjà existant' : ''}${item.statut === 'doublon_possible' ? ' — doublon possible' : ''}</span>
+    </div>
+    ${dejaConnu ? '' : `<div style="display:flex;gap:4px;">
+      <button class="btn btn-outline btn-sm" data-item-id="${item.id}" data-action="confirmer">✓</button>
+      <button class="btn btn-outline btn-sm" data-item-id="${item.id}" data-action="ignorer">✗</button>
+    </div>`}
+  </div>`;
+}
+
+async function _traiterActionValidation(itemId, action, batchId) {
+  try {
+    const statut = action === 'confirmer' ? 'confirme' : 'ignore';
+    await updateImportScanItem(itemId, { statut });
+    await _renderEcranValidation(batchId);
+  } catch (err) {
+    console.error('[admin] _traiterActionValidation ERREUR:', err.message, err.stack);
+    showToast('⚠ Action impossible, réessayez.', 'warn');
+  }
+}
+
+function _majBoutonConfirmer(items) {
+  const btn = document.getElementById('importBtnConfirmer');
+  if (!btn) return;
+  const enAttente = items.some(i => i.statut === 'doublon_possible' || (i.statut === 'a_creer' && i.confiance === 'basse'));
+  btn.disabled = false;
+  btn.style.opacity = '1';
+  btn.textContent = enAttente ? 'Importer (les lignes en attente seront ignorées)' : 'Importer la sélection';
+}
+
+async function _confirmerImport(batchId) {
+  const btn = document.getElementById('importBtnConfirmer');
+  if (btn) { btn.disabled = true; btn.textContent = 'Import en cours…'; }
+
+  try {
+    const items = await getImportScanItems(batchId);
+    const aImporter = items.filter(i => i.statut === 'confirme' || (i.statut === 'a_creer' && i.confiance !== 'basse'));
+
+    const counts = { clients: 0, fournisseurs: 0, articles: 0, produits: 0 };
+    const errors = [];
+
+    for (const item of aImporter) {
+      try {
+        if (item.type_entite === 'client' && item.champs.nom) {
+          await createClient({ nom: item.champs.nom, siret: item.champs.siret, email: item.champs.email, tel: item.champs.tel, adresse: item.champs.adresse, contact: item.champs.contact, cpt: item.champs.cpt, notes: item.champs.notes });
+          counts.clients++;
+        } else if (item.type_entite === 'fournisseur' && item.champs.nom) {
+          await createFournisseur({ nom: item.champs.nom, siret: item.champs.siret, contact: item.champs.contact, email: item.champs.email, tel: item.champs.tel, adresse: item.champs.adresse, iban: item.champs.iban, delai: item.champs.delai, categorie: (item.champs.categorie || '').toLowerCase() });
+          counts.fournisseurs++;
+        } else if (item.type_entite === 'article' && item.champs.ref && item.champs.nom) {
+          await createArticle({ ref: item.champs.ref, nom: item.champs.nom, categorie: (item.champs.categorie || 'autre').toLowerCase(), unite: item.champs.unite || 'unité', prix: parseFloat(String(item.champs.prix || '0').replace(',', '.')) || 0, fournisseur: item.champs.fournisseur || '', seuil: parseInt(item.champs.seuil || '0') || 0, stock: parseFloat(String(item.champs.stock || '0').replace(',', '.')) || 0 });
+          counts.articles++;
+        } else if (item.type_entite === 'produit' && item.champs.ref && item.champs.nom) {
+          await createProduit({ ref: item.champs.ref, nom: item.champs.nom, prix_vente: parseFloat(String(item.champs.prix || '0').replace(',', '.')) || 0, seuil: parseInt(item.champs.seuil || '0') || 0, stock: parseFloat(String(item.champs.stock || '0').replace(',', '.')) || 0 });
+          counts.produits++;
+        } else {
+          errors.push(`${item.type_entite} ignoré : champ obligatoire manquant`);
+          continue;
+        }
+        await updateImportScanItem(item.id, { statut: 'importe' });
+      } catch (err) {
+        errors.push(`${item.type_entite} ${item.champs.nom || item.champs.ref} : ${err.message}`);
+      }
+    }
+
+    if (!errors.length) {
+      await deleteImportScanItems(batchId);
+      closeModal('modalImportMasse');
+    }
+
+    _renderArticles(); _renderProduits(); _renderClients(); _renderFournisseurs();
+
+    const total = Object.values(counts).reduce((s, v) => s + v, 0);
+    if (errors.length) {
+      showToast(`⚠ ${total} importés, ${errors.length} erreur(s). Rien n'est perdu, corrigez et relancez l'import. Voir console.`, 'warn');
+      errors.forEach(e => console.warn('[ImportIA]', e));
+      await _renderEcranValidation(batchId);
+    } else {
+      showToast(`✅ Import : ${counts.clients} clients, ${counts.fournisseurs} fournisseurs, ${counts.articles} articles, ${counts.produits} produits.`);
+    }
+
+    const entities = Object.entries(counts).filter(([, v]) => v > 0).map(([k]) => k);
+    if (entities.length) {
+      document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'import_ia', entities } }));
+    }
+  } catch (err) {
+    console.error('[admin] _confirmerImport ERREUR:', err.message, err.stack);
+    showToast('⚠ Une erreur est survenue pendant l\'import. Réessayez.', 'warn');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Importer la sélection'; }
+  }
+}
+
+/* -------------------------------------------------------
    IMPORT EN MASSE (XLSX/CSV)
 ------------------------------------------------------- */
 let _massLoaded = {};
 
-function _bindImportMasse() {
-  const zones = [
-    { key: 'articles',     label: '📦 Articles',     fields: 'ref, nom, categorie, unite, prix, fournisseur, seuil, stock' },
-    { key: 'produits',     label: '🏷 Produits',      fields: 'ref, nom, prix, seuil, stock' },
-    { key: 'recettes',     label: '📖 Recettes',      fields: 'produit_ref, produit_nom, produit_prix, article_ref, quantite' },
-    { key: 'clients',      label: '👤 Clients',       fields: 'nom, email, tel, adresse, notes' },
-    { key: 'fournisseurs', label: '🏪 Fournisseurs',  fields: 'nom, contact, email, tel, adresse, delai, categorie' },
-    { key: 'commandes',    label: '📋 Commandes',     fields: 'commande_ref, client_nom, date_cmd, date_livraison, produit_ref, quantite, prix_unitaire' },
-  ];
+function _bindImportIA() {
+  const dropzone = document.getElementById('importDropzone');
+  const input    = document.getElementById('importFileInput');
+  if (!dropzone || !input) return;
 
-  const container = document.getElementById('massImportZones');
-  if (container) {
-    container.innerHTML = zones.map(z => `
-      <div style="border:1px solid var(--ui-brd);border-radius:7px;overflow:hidden;">
-        <div style="padding:9px 12px;background:var(--ui-bg2);display:flex;align-items:center;justify-content:space-between;gap:8px;">
-          <div>
-            <span style="font-weight:600;font-size:12.5px;">${z.label}</span>
-            <span style="font-size:10.5px;color:var(--ink-muted);margin-left:7px;">${z.fields}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:7px;">
-            <span id="mass${_cap(z.key)}Status" style="font-size:10.5px;color:var(--ink-muted);">Aucun</span>
-            <label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0;">Choisir
-              <input type="file" accept=".xlsx,.xls,.csv" style="display:none" data-type="${z.key}">
-            </label>
-          </div>
-        </div>
-        <div id="mass${_cap(z.key)}Preview" style="display:none;padding:6px 12px;font-size:11px;color:var(--ink-muted);border-top:1px solid var(--rule);"></div>
-      </div>`).join('');
+  dropzone.addEventListener('click', () => input.click());
+  input.addEventListener('change', (e) => _onFichiersDeposes(e.target.files));
 
-    container.querySelectorAll('input[type="file"]').forEach(input => {
-      input.addEventListener('change', (e) => _massLoad(e.target, e.target.dataset.type));
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = 'var(--ui-green)'; });
+  dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor = 'var(--ui-brd)'; });
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.style.borderColor = 'var(--ui-brd)';
+    if (e.dataTransfer.files.length) _onFichiersDeposes(e.dataTransfer.files);
+  });
+
+  document.getElementById('importBtnConfirmer')?.addEventListener('click', () => {
+    const batchId = document.getElementById('importValidation')?.dataset.batchId;
+    if (batchId) _confirmerImport(batchId);
+  });
+}
+
+/* -------------------------------------------------------
+   IMPORT AVANCÉ (recettes, commandes) — secours hors IA
+   Ces 2 types n'ont pas de détection automatique fiable
+   (lignes multiples par entité) ; on garde un accès direct
+   par modèle Excel/CSV, en dehors du pipeline IA.
+------------------------------------------------------- */
+function _bindImportAvance() {
+  const toggle = document.getElementById('importAvanceToggle');
+  const zone   = document.getElementById('importAvanceZone');
+  if (toggle && zone) {
+    toggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      zone.style.display = zone.style.display === 'none' ? '' : 'none';
     });
   }
 
-  ['articles', 'produits', 'recettes', 'clients', 'fournisseurs', 'commandes'].forEach(type => {
-    document.getElementById('dl' + _cap(type))?.addEventListener('click', () => _dlTemplate(type));
-  });
+  _bindImportAvanceZone('recettes', 'importAvanceRecettesZone', 'importAvanceRecettesInput', 'importAvanceRecettesNom');
+  _bindImportAvanceZone('commandes', 'importAvanceCommandesZone', 'importAvanceCommandesInput', 'importAvanceCommandesNom');
 
-  document.getElementById('massBtnImport')?.addEventListener('click', _massImport);
-}
-
-function _cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-
-function _massLoad(input, type) {
-  const f = input.files[0];
-  if (!f) return;
-  const ext    = f.name.split('.').pop().toLowerCase();
-  const reader = new FileReader();
-
-  reader.onload = (e) => {
-    try {
-      let rows = [];
-      if (ext === 'csv') {
-        const lines   = e.target.result.split('\n').filter(l => l.trim());
-        const headers = lines[0].split(/[,;]/).map(h => h.trim().replace(/^"|"$/g, ''));
-        rows = lines.slice(1).map(line => {
-          const vals = line.split(/[,;]/).map(v => v.trim().replace(/^"|"$/g, ''));
-          const obj  = {};
-          headers.forEach((h, i) => { obj[h] = vals[i] || ''; });
-          return obj;
-        });
-      } else {
-        const wb = XLSX.read(e.target.result, { type: 'array' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-      }
-
-      _massLoaded[type] = { rows, fileName: f.name };
-      const cap = _cap(type);
-      document.getElementById('mass' + cap + 'Status').textContent = rows.length + ' lignes';
-      document.getElementById('mass' + cap + 'Status').style.color = 'var(--ui-green)';
-      const prev = document.getElementById('mass' + cap + 'Preview');
-      if (prev) {
-        prev.style.display = 'block';
-        prev.textContent   = '✓ ' + rows.slice(0, 2).map(r => Object.values(r).slice(0, 4).join(' | ')).join(' • ') + (rows.length > 2 ? ' …' : '');
-      }
-      _massUpdateTotal();
-    } catch (err) {
-      const errEl = document.getElementById('massError');
-      if (errEl) { errEl.style.display = 'flex'; errEl.textContent = 'Erreur : ' + err.message; }
+  document.getElementById('massBtnImport')?.addEventListener('click', () => {
+    if (!_massLoaded.recettes && !_massLoaded.commandes) {
+      showToast('⚠ Sélectionne un fichier recettes ou commandes avant d\'importer.', 'warn');
+      return;
     }
-  };
-
-  if (ext === 'csv') reader.readAsText(f, 'UTF-8');
-  else reader.readAsArrayBuffer(f);
+    _massImport();
+  });
 }
 
-function _massUpdateTotal() {
-  const tot = Object.values(_massLoaded).reduce((s, v) => s + (v.rows ? v.rows.length : 0), 0);
-  const el  = document.getElementById('massTotalCount');
-  const btn = document.getElementById('massBtnImport');
-  if (el)  el.textContent = tot > 0 ? tot + ' lignes prêtes' : 'Aucune donnée';
-  if (btn) { btn.disabled = tot === 0; btn.style.opacity = tot > 0 ? '1' : '.5'; }
+function _bindImportAvanceZone(type, zoneId, inputId, nomId) {
+  const zone  = document.getElementById(zoneId);
+  const input = document.getElementById(inputId);
+  const nomEl = document.getElementById(nomId);
+  if (!zone || !input) return;
+
+  zone.addEventListener('click', () => input.click());
+  input.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) _chargerFichierAvance(type, file, nomEl);
+  });
+  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.style.borderColor = 'var(--ui-green)'; });
+  zone.addEventListener('dragleave', () => { zone.style.borderColor = 'var(--ui-brd)'; });
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.style.borderColor = 'var(--ui-brd)';
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) _chargerFichierAvance(type, file, nomEl);
+  });
+}
+
+async function _chargerFichierAvance(type, file, nomEl) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['xlsx', 'xls', 'csv'].includes(ext)) {
+    showToast('⚠ Format non supporté — xlsx, xls ou csv attendu.', 'warn');
+    return;
+  }
+  try {
+    const rows = await _lireLignesFichier(file, ext);
+    _massLoaded[type] = { rows };
+    if (nomEl) nomEl.textContent = `${file.name} (${rows.length} lignes)`;
+  } catch (err) {
+    showToast(`⚠ Lecture du fichier ${type} échouée : ${err.message}`, 'warn');
+  }
+}
+
+async function _importerModelesConnus(excelDirects) {
+  const counts = { clients: 0, fournisseurs: 0, articles: 0, produits: 0 };
+  const errors = [];
+
+  for (const { file, type } of excelDirects) {
+    const ext  = file.name.split('.').pop().toLowerCase();
+    const rows = await _lireLignesFichier(file, ext);
+
+    for (const r of rows) {
+      try {
+        if (type === 'clients') {
+          const nom = String(r.nom || r.Nom || '').trim();
+          if (!nom || _clients.find(c => c.nom === nom)) continue;
+          const created = await createClient({ nom, email: String(r.email || '').trim(), tel: String(r.tel || '').trim(), adresse: String(r.adresse || '').trim(), notes: String(r.notes || '').trim() });
+          _clients.push(created); counts.clients++;
+        } else if (type === 'fournisseurs') {
+          const nom = String(r.nom || r.Nom || '').trim();
+          if (!nom || _fournisseurs.find(f => f.nom === nom)) continue;
+          const created = await createFournisseur({ nom, contact: String(r.contact || '').trim(), email: String(r.email || '').trim(), tel: String(r.tel || '').trim(), adresse: String(r.adresse || '').trim(), delai: String(r.delai || '').trim(), categorie: String(r.categorie || '').trim().toLowerCase() });
+          _fournisseurs.push(created); counts.fournisseurs++;
+        } else if (type === 'articles') {
+          const ref = String(r.ref || '').trim();
+          const nom = String(r.nom || r.Nom || '').trim();
+          if (!ref || !nom || _articles.find(a => a.ref === ref)) continue;
+          const created = await createArticle({ ref, nom, categorie: String(r.categorie || 'autre').trim().toLowerCase(), unite: String(r.unite || 'unité').trim(), prix: parseFloat(String(r.prix || '0').replace(',', '.')) || 0, fournisseur: String(r.fournisseur || '').trim(), seuil: parseInt(r.seuil || '0') || 0, stock: parseFloat(String(r.stock || '0').replace(',', '.')) || 0 });
+          _articles.push(created); counts.articles++;
+        } else if (type === 'produits') {
+          const ref = String(r.ref || '').trim();
+          const nom = String(r.nom || r.Nom || '').trim();
+          if (!ref || !nom || _produits.find(p => p.ref === ref)) continue;
+          const created = await createProduit({ ref, nom, prix_vente: parseFloat(String(r.prix || '0').replace(',', '.')) || 0, seuil: parseInt(r.seuil || '0') || 0, stock: parseFloat(String(r.stock || '0').replace(',', '.')) || 0 });
+          _produits.push(created); counts.produits++;
+        }
+      } catch (err) { errors.push(`${type} : ${err.message}`); }
+    }
+  }
+
+  _renderArticles(); _renderProduits(); _renderClients(); _renderFournisseurs();
+  const total = Object.values(counts).reduce((s, v) => s + v, 0);
+  if (total) showToast(`✅ ${total} lignes importées directement (format déjà reconnu).`);
+  if (errors.length) errors.forEach(e => console.warn('[ImportModeleConnu]', e));
+  if (total) document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'import_ia', entities: Object.entries(counts).filter(([, v]) => v > 0).map(([k]) => k) } }));
+}
+
+function _lireLignesFichier(file, ext) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        if (ext === 'csv') {
+          const lines   = String(e.target.result).split('\n').filter(l => l.trim());
+          const headers = lines[0].split(/[,;]/).map(h => h.trim().replace(/^"|"$/g, ''));
+          resolve(lines.slice(1).map(line => {
+            const vals = line.split(/[,;]/).map(v => v.trim().replace(/^"|"$/g, ''));
+            const obj  = {};
+            headers.forEach((h, i) => { obj[h] = vals[i] || ''; });
+            return obj;
+          }));
+        } else {
+          const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          resolve(_normaliserDatesLigne(XLSX.utils.sheet_to_json(ws, { defval: '' })));
+        }
+      } catch (err) { reject(err); }
+    };
+    reader.onerror = () => reject(new Error('Lecture fichier échouée'));
+    if (ext === 'csv') reader.readAsText(file, 'UTF-8');
+    else reader.readAsArrayBuffer(file);
+  });
 }
 
 async function _massImport() {
@@ -840,32 +1421,6 @@ async function _massImport() {
   const errors  = [];
   const btn     = document.getElementById('massBtnImport');
   if (btn) { btn.disabled = true; btn.textContent = 'Import en cours…'; }
-
-  if (_massLoaded.articles) {
-    for (const r of _massLoaded.articles.rows) {
-      const ref = String(r.ref || '').trim();
-      const nom = String(r.nom || r.Nom || '').trim();
-      if (!ref || !nom) continue;
-      if (_articles.find(a => a.ref === ref)) continue;
-      try {
-        const created = await createArticle({ ref, nom, categorie: String(r.categorie || 'autre').trim().toLowerCase(), unite: String(r.unite || 'unité').trim(), prix: parseFloat(String(r.prix || '0').replace(',', '.')) || 0, fournisseur: String(r.fournisseur || '').trim(), seuil: parseInt(r.seuil || '0') || 0, stock: parseFloat(String(r.stock || '0').replace(',', '.')) || 0 });
-        _articles.push(created); counts.articles++;
-      } catch (err) { errors.push('Article ' + ref + ' : ' + err.message); }
-    }
-  }
-
-  if (_massLoaded.produits) {
-    for (const r of _massLoaded.produits.rows) {
-      const ref = String(r.ref || '').trim();
-      const nom = String(r.nom || r.Nom || '').trim();
-      if (!ref || !nom) continue;
-      if (_produits.find(p => p.ref === ref)) continue;
-      try {
-        const created = await createProduit({ ref, nom, prix_vente: parseFloat(String(r.prix || '0').replace(',', '.')) || 0, seuil: parseInt(r.seuil || '0') || 0, stock: parseFloat(String(r.stock || '0').replace(',', '.')) || 0 });
-        _produits.push(created); counts.produits++;
-      } catch (err) { errors.push('Produit ' + ref + ' : ' + err.message); }
-    }
-  }
 
   if (_massLoaded.recettes) {
     const articlesDB = _articles.length ? _articles : await getArticles();
@@ -895,30 +1450,6 @@ async function _massImport() {
         await saveRecette(produit.id, infos.lignes);
         counts.recettes++;
       } catch (err) { errors.push(`Recette ${prodRef} : ${err.message}`); }
-    }
-  }
-
-  if (_massLoaded.clients) {
-    for (const r of _massLoaded.clients.rows) {
-      const nom = String(r.nom || r.Nom || '').trim();
-      if (!nom) continue;
-      if (_clients.find(c => c.nom === nom)) continue;
-      try {
-        const created = await createClient({ nom, email: String(r.email || '').trim(), tel: String(r.tel || '').trim(), adresse: String(r.adresse || '').trim(), notes: String(r.notes || '').trim() });
-        _clients.push(created); counts.clients++;
-      } catch (err) { errors.push('Client ' + nom + ' : ' + err.message); }
-    }
-  }
-
-  if (_massLoaded.fournisseurs) {
-    for (const r of _massLoaded.fournisseurs.rows) {
-      const nom = String(r.nom || r.Nom || '').trim();
-      if (!nom) continue;
-      if (_fournisseurs.find(f => f.nom === nom)) continue;
-      try {
-        const created = await createFournisseur({ nom, contact: String(r.contact || '').trim(), email: String(r.email || '').trim(), tel: String(r.tel || '').trim(), adresse: String(r.adresse || '').trim(), delai: String(r.delai || '').trim(), categorie: String(r.categorie || '').trim().toLowerCase() });
-        _fournisseurs.push(created); counts.fournisseurs++;
-      } catch (err) { errors.push('Fournisseur ' + nom + ' : ' + err.message); }
     }
   }
 
@@ -986,3 +1517,104 @@ function _dlTemplate(type) {
   XLSX.utils.book_append_sheet(wb, ws, type);
   XLSX.writeFile(wb, 'arteasy_modele_' + type + '.xlsx');
 }
+
+export const _detecterTypeModeleTest = _detecterTypeModele;
+
+/* -------------------------------------------------------
+   SUPPRESSION DES DOUBLONS
+------------------------------------------------------- */
+const _LABELS_TYPE_DOUBLON = { client: 'Client', fournisseur: 'Fournisseur', article: 'Article', produit: 'Produit' };
+
+function _grouperDoublons(collection) {
+  const groupes = {};
+  for (const item of collection) {
+    const cle = _normaliserNom(item.nom);
+    if (!cle) continue;
+    if (!groupes[cle]) groupes[cle] = [];
+    groupes[cle].push(item);
+  }
+  return Object.values(groupes).filter(g => g.length > 1);
+}
+
+function _trierParAnciennete(groupe) {
+  return [...groupe].sort((a, b) => {
+    const da = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const db = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return da - db;
+  });
+}
+
+async function _ouvrirSuppressionDoublons() {
+  const [clients, fournisseurs, articles, produits] = await Promise.all([
+    getClients(), getFournisseurs(), getArticles(), getProduits(),
+  ]);
+
+  const parType = {
+    client:      _grouperDoublons(clients),
+    fournisseur: _grouperDoublons(fournisseurs),
+    article:     _grouperDoublons(articles),
+    produit:     _grouperDoublons(produits),
+  };
+
+  const el = document.getElementById('doublonsListe');
+  if (!el) return;
+
+  const totalGroupes = Object.values(parType).reduce((s, g) => s + g.length, 0);
+  if (!totalGroupes) {
+    el.innerHTML = '<p style="font-size:12.5px;color:var(--ink-muted);">Aucun doublon détecté.</p>';
+  } else {
+    el.innerHTML = Object.entries(parType).filter(([, groupes]) => groupes.length).map(([type, groupes]) => `
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:600;font-size:12.5px;margin-bottom:6px;">${_LABELS_TYPE_DOUBLON[type]}s - ${groupes.length} groupe(s) de doublons</div>
+        ${groupes.map(groupe => {
+          const trie = _trierParAnciennete(groupe);
+          return `<div style="border:1px solid var(--ui-brd);border-radius:6px;padding:8px;margin-bottom:6px;">
+            <div style="font-size:12px;font-weight:600;margin-bottom:4px;">${esc(trie[0].nom)}</div>
+            ${trie.map((entite, i) => `
+              <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;padding:2px 0;">
+                <input type="checkbox" data-doublon-type="${type}" data-doublon-id="${entite.id}" ${i === 0 ? '' : 'checked'}>
+                <span>${i === 0 ? '(a garder par defaut) ' : ''}${esc(entite.email || entite.tel || entite.ref || entite.contact || '')} - cree le ${entite.created_at ? new Date(entite.created_at).toLocaleDateString('fr-FR') : 'date inconnue'}</span>
+              </label>`).join('')}
+          </div>`;
+        }).join('')}
+      </div>`).join('');
+  }
+
+  const btnSupprimer = document.getElementById('doublonsBtnSupprimer');
+  if (btnSupprimer) { btnSupprimer.disabled = !totalGroupes; btnSupprimer.style.opacity = totalGroupes ? '1' : '.5'; }
+  openModal('modalDoublons');
+}
+
+async function _supprimerDoublonsSelection() {
+  const btn = document.getElementById('doublonsBtnSupprimer');
+  if (btn) { btn.disabled = true; btn.textContent = 'Suppression…'; }
+
+  const cases = document.querySelectorAll('#doublonsListe input[type="checkbox"]:checked');
+  const suppressions = { client: deleteClient, fournisseur: deleteFournisseur, article: deleteArticle, produit: deleteProduit };
+  let reussies = 0;
+  const echecs = [];
+
+  for (const c of cases) {
+    const type = c.dataset.doublonType;
+    const id = c.dataset.doublonId;
+    try {
+      await suppressions[type](id);
+      reussies++;
+    } catch (err) {
+      echecs.push(`${type} : ${err.message}`);
+    }
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Supprimer la sélection'; }
+
+  if (echecs.length) {
+    showToast(`⚠ ${reussies} supprimé(s), ${echecs.length} impossible(s) — probablement lié(s) à des commandes/achats existants. Voir console.`, 'warn');
+    echecs.forEach(e => console.warn('[SuppressionDoublons]', e));
+  } else {
+    showToast(`✅ ${reussies} doublon(s) supprimé(s).`);
+    closeModal('modalDoublons');
+  }
+
+  _renderArticles(); _renderProduits(); _renderClients(); _renderFournisseurs();
+}
+export const _matchEntiteExistanteTest = _matchEntiteExistante;
