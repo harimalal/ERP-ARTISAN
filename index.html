@@ -1,363 +1,1489 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ArtEasy — La commande arrive. La facture part. Vous n'avez rien tapé.</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEASY — L'outil fait pour les artisans fabricants</title>
 <meta name="description" content="ArtEasy lit vos commandes, suit votre stock, prépare vos factures — en un seul flux. Pensé pour les artisans transformateurs bio. Installation par le fondateur en 20 minutes, offre fondateur à vie.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
 <script defer data-domain="arteasy.fr" src="https://plausible.io/js/script.js"></script>
 <style>
-:root{
-  --tc:#C0632F; --tc-deep:#9A4A20; --tc-ink:#7A3A18;
-  --tc-soft:#F4E2D6; --tc-line:#E7C9B5;
-  --gold:#BE9540; --gold-soft:#F3E9D2;
-  --ink:#231D17; --ink-2:#544B40; --ink-3:#8A7F71;
-  --cream:#FBF7F1; --cream-2:#F3ECDF; --cream-3:#EAE0CF;
-  --paper:#FFFFFF; --line:#E7DECF; --line-2:#D8CCB6;
-  --night:#1E1A16; --night-2:#2A241D;
-  --ok:#2E7A54; --ok-soft:#E1EFE7;
-  --warn:#B0761E; --warn-soft:#F5EAD1;
-  --bad:#B23A2C; --bad-soft:#F5DED9;
-  --f-disp:"Bricolage Grotesque","Instrument Sans",system-ui,sans-serif;
-  --f-body:"Instrument Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-  --f-serif:"Newsreader",Georgia,"Times New Roman",serif;
-  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-  --shadow-s:0 1px 2px rgba(35,29,23,.05),0 6px 16px -8px rgba(35,29,23,.12);
-  --shadow-m:0 2px 6px rgba(35,29,23,.06),0 18px 40px -16px rgba(35,29,23,.22);
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --tc: #C0543A;          /* orange ARTEASY */
+    --tc-d: #9B3F28;
+    --tc-l: #E8846E;
+    --ink: #1A1410;
+    --ink-m: #3D2E26;
+    --ink-s: #7A6258;
+    --line: #EDE7DA;
+    --soft: #FAF6EE;        /* beige très clair pour alternance */
+    --beige: #F4EEE2;       /* beige un poil plus marqué */
+
+    /* pastels transparents pour étapes */
+    --c-red: rgba(229, 115, 115, .12);
+    --c-red-b: rgba(229, 115, 115, .35);
+    --c-red-d: #C0392B;
+    --c-blue: rgba(100, 149, 237, .14);
+    --c-blue-b: rgba(100, 149, 237, .38);
+    --c-blue-d: #2563EB;
+    --c-violet: rgba(155, 110, 200, .12);
+    --c-violet-b: rgba(155, 110, 200, .38);
+    --c-violet-d: #7C3AED;
+    --c-green: rgba(110, 190, 130, .14);
+    --c-green-b: rgba(110, 190, 130, .40);
+    --c-green-d: #16A34A;
+    --c-orange: rgba(245, 158, 60, .14);
+    --c-orange-b: rgba(245, 158, 60, .42);
+    --c-orange-d: #D97706;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    background: #fff;
+    line-height: 1.55;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* ARTEASY brand wordmark — clean upright sans, slightly extended */
+  .brand-wordmark {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 800;
+    letter-spacing: .12em;
+    font-style: normal;
+    text-transform: uppercase;
+  }
+  /* Editorial display font — UPRIGHT (no italic) per brief */
+  .display {
+    font-family: 'Fraunces', 'Times New Roman', serif;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    font-variation-settings: "opsz" 144;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 56px; background: #fff;
+    border-bottom: 1px solid var(--line);
+  }
+  .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+  .logo-mark {
+    width: 34px; height: 34px; background: var(--tc); border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 800; font-family: 'Manrope', sans-serif; font-size: 17px;
+  }
+  .logo-name { font-family: 'Manrope', sans-serif; font-weight: 800; letter-spacing: .14em; font-size: 16px; }
+  .logo-tag {
+    font-size: 10px; font-weight: 700; color: var(--tc);
+    background: rgba(192,84,58,.1);
+    padding: 3px 9px; border-radius: 20px; letter-spacing: 1.4px;
+  }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a { color: var(--ink-m); font-size: 14px; text-decoration: none; font-weight: 500; }
+  .nav-links a:hover { color: var(--tc); }
+  .nav-cta {
+    background: var(--tc); color: white; border: none;
+    padding: 11px 22px; border-radius: 8px;
+    font-weight: 600; font-size: 14px;
+    cursor: pointer; text-decoration: none;
+    transition: all .2s;
+  }
+  .nav-cta:hover { background: var(--tc-d); transform: translateY(-1px); }
+
+  /* SECTION shared — alternance blanc / beige */
+  section { padding: 36px 56px; }
+  .sec-white { background: #fff; }
+  .sec-beige { background: var(--soft); }
+  .sec-beige-strong { background: var(--beige); }
+  .section-inner { max-width: 1280px; margin: 0 auto; }
+
+  .section-head { text-align: center; margin-bottom: 32px; }
+  .section-head h2 {
+    font-family: 'Fraunces', serif;
+    font-style: normal;
+    font-size: clamp(34px, 4.2vw, 54px);
+    font-weight: 700;
+    line-height: 1.06;
+    letter-spacing: -.02em;
+    color: var(--ink);
+    max-width: 820px;
+    margin: 0 auto;
+  }
+  .section-head h2 .accent { color: var(--tc); font-style: normal; }
+  .section-head p {
+    font-size: 17px; color: var(--ink-s);
+    max-width: 580px; margin: 18px auto 0;
+    font-weight: 400; line-height: 1.6;
+  }
+  .section-eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 11px; font-weight: 700; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--tc);
+    margin-bottom: 22px; padding: 5px 12px;
+    background: rgba(192,84,58,.08); border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ============== HERO ============== */
+  .hero { padding: 44px 56px 28px; background: #fff; position: relative; overflow: hidden; }
+  .hero-grid {
+    display: grid; grid-template-columns: 1.05fr 1fr;
+    gap: 64px; align-items: start;
+    max-width: 1280px; margin: 0 auto;
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 11px; font-weight: 700; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--tc);
+    margin-bottom: 26px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .eyebrow::before { content: ''; width: 28px; height: 1px; background: var(--tc); }
+
+  .hero h1 {
+    font-family: 'Fraunces', serif; font-style: normal;
+    font-size: clamp(42px, 5.2vw, 68px);
+    font-weight: 700;
+    line-height: 1.02;
+    letter-spacing: -.025em;
+    margin-bottom: 14px; color: var(--ink);
+  }
+  .hero-rotator {
+    font-family: 'Fraunces', serif; font-style: normal;
+    font-size: clamp(42px, 5.2vw, 68px);
+    font-weight: 700;
+    color: var(--tc);
+    line-height: 1.02;
+    letter-spacing: -.025em;
+    margin-bottom: 30px;
+    min-height: 1.05em;
+    position: relative; display: inline-block;
+  }
+  .hero-rotator-word { display: inline-block; }
+  .hero-rotator-word.in { animation: wordIn .55s cubic-bezier(.2,.8,.2,1) both; }
+  .hero-rotator-word.out { animation: wordOut .35s cubic-bezier(.5,.05,.7,.2) both; }
+  @keyframes wordIn {
+    from { opacity: 0; transform: translateY(18px); filter: blur(6px); }
+    to { opacity: 1; transform: translateY(0); filter: blur(0); }
+  }
+  @keyframes wordOut {
+    from { opacity: 1; transform: translateY(0); filter: blur(0); }
+    to { opacity: 0; transform: translateY(-12px); filter: blur(4px); }
+  }
+
+  .hero-lead {
+    font-size: 18px; line-height: 1.65; color: var(--ink-m);
+    max-width: 510px; margin-bottom: 38px; font-weight: 400;
+  }
+  .hero-lead strong { color: var(--ink); font-weight: 700; }
+  .hero-lead .lead-products { display: block; margin-bottom: 6px; color: var(--ink-s); font-size: 16px; }
+  .hero-ctas { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin-bottom: 52px; }
+  .btn-primary {
+    background: var(--tc); color: white; border: none;
+    padding: 16px 28px; border-radius: 9px;
+    font-weight: 600; font-size: 15px;
+    cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: all .2s;
+    font-family: 'Manrope', sans-serif;
+  }
+  .btn-primary:hover { background: var(--tc-d); transform: translateY(-1px); box-shadow: 0 12px 30px rgba(192,84,58,.3); }
+  .btn-ghost { color: var(--ink); font-size: 15px; text-decoration: underline; text-underline-offset: 4px; font-weight: 500; }
+
+  .hero-metiers {
+    display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
+    padding-top: 24px; border-top: 1px solid var(--line);
+  }
+  .hero-metiers-label {
+    font-size: 11px; color: var(--ink-s);
+    text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .hero-metiers-list {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    font-size: 13px; color: var(--ink-m); font-weight: 500;
+  }
+
+  /* HERO STATS */
+  .hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 0; padding-top: 0; border-top: none; }
+  .hero-stat { display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center; }
+  .hs-num { font-family: 'Fraunces', serif; font-style: normal; font-size: 52px; font-weight: 800; letter-spacing: -.03em; line-height: 1; text-align: center; }
+  .hs-num-1 { color: var(--c-green-d); }
+  .hs-num-2 { color: var(--c-blue-d); }
+  .hs-num-3 { color: var(--c-violet-d); }
+  .hs-label { font-size: 16px; color: var(--ink-m); font-weight: 500; line-height: 1.4; }
+
+  /* HERO RIGHT — interface réelle */
+  .hero-visual { position: relative; }
+  .browser {
+    background: #fff; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 24px 60px rgba(26,20,16,.14), 0 0 0 1px var(--line);
+  }
+  .browser-bar {
+    background: #F8F4EC; padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .browser-dots { display: flex; gap: 5px; }
+  .browser-dots span { width: 10px; height: 10px; border-radius: 50%; }
+  .browser-url {
+    flex: 1; background: #fff; border: 1px solid var(--line);
+    border-radius: 4px; padding: 4px 10px; font-size: 11px; color: var(--ink-s);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .ai-badge {
+    position: absolute; top: -14px; right: -14px;
+    background: linear-gradient(135deg, #6D28D9, #9333EA);
+    color: #fff; padding: 8px 14px; border-radius: 10px;
+    font-size: 12px; font-weight: 700; letter-spacing: .4px;
+    box-shadow: 0 12px 28px rgba(109,40,217,.35);
+    display: flex; align-items: center; gap: 6px; z-index: 2;
+    font-family: 'Manrope', sans-serif;
+  }
+  .ai-badge::before { content: '✦'; font-size: 14px; }
+
+  /* ============== AVANT / APRÈS ============== */
+  .aa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .aa-col {
+    border-radius: 20px; padding: 48px 44px;
+    border: 1px solid var(--line); position: relative;
+  }
+  .aa-col-avant {
+    background: #ECE6D8;        /* gris-beige (encart gris) */
+    border: 1px solid #DCD3BF;
+  }
+  .aa-col-apres {
+    background: #fff;            /* encart APRÈS fond blanc */
+    border: 2px solid var(--tc);
+    color: var(--ink);
+  }
+  .aa-col-apres h3 { color: var(--ink); }
+  .aa-col-apres .aa-list li { color: var(--ink-m); }
+
+  .aa-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 800; letter-spacing: 2.5px;
+    text-transform: uppercase;
+    padding: 6px 14px; border-radius: 30px;
+    margin-bottom: 26px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .aa-tag-avant { background: rgba(26,20,16,.10); color: #4A3F36; }
+  .aa-tag-apres { background: var(--tc); color: #fff; }
+
+  .aa-col h3 {
+    font-family: 'Fraunces', serif; font-style: normal;
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 28px;
+    line-height: 1.15;
+    letter-spacing: -.02em;
+  }
+  .aa-col h3 .brand { font-family: 'Manrope', sans-serif; font-weight: 800; letter-spacing: .12em; font-size: 28px; vertical-align: 1px; }
+
+  .aa-list { list-style: none; display: flex; flex-direction: column; gap: 18px; }
+  .aa-list li {
+    display: flex; gap: 16px;
+    font-size: 17px;          /* TEXTE PLUS GRAND */
+    line-height: 1.5;
+    align-items: flex-start;
+    font-weight: 400;
+  }
+  .aa-col-avant .aa-list li { color: var(--ink-m); }
+  .aa-list li .ico {
+    width: 32px; height: 32px; min-width: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0; margin-top: 1px;
+  }
+  .aa-list-avant .ico { background: rgba(26,20,16,.10); }
+  .aa-list-apres .ico { background: rgba(192,84,58,.12); }
+
+  .aa-quote-bottom {
+    margin-top: 30px; padding: 18px 22px;
+    background: rgba(110, 190, 130, .14);     /* fond vert pastel */
+    border: 1px solid rgba(110, 190, 130, .35);
+    border-left: 4px solid #16A34A;
+    border-radius: 10px;
+    font-size: 18px; font-weight: 600;
+    color: #15803d;                            /* texte vert */
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+  }
+
+  /* ============== FLOW (ex-parcours) ============== */
+  .flow-headline {
+    text-align: center; margin-bottom: 60px;
+  }
+  .flow-headline .eyebrow-mini {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--tc); margin-bottom: 18px;
+    display: inline-block;
+    padding: 5px 12px; background: rgba(192,84,58,.08); border-radius: 6px;
+  }
+  .flow-headline h2 {
+    font-family: 'Fraunces', serif; font-style: normal;
+    font-weight: 700;
+    font-size: clamp(36px, 4.4vw, 56px);
+    line-height: 1.06;
+    letter-spacing: -.025em;
+    color: var(--ink);
+  }
+  .flow-headline h2 .l2 { display: block; }
+  .flow-headline .punchline {
+    display: block;
+    margin-top: 18px;
+    font-family: 'Fraunces', serif;
+    font-style: normal;
+    font-weight: 700;
+    font-size: clamp(28px, 3.4vw, 42px);
+    color: var(--tc);
+    letter-spacing: -.02em;
+    line-height: 1.1;
+  }
+
+  .flow-steps {
+    display: flex;
+    align-items: stretch;
+    gap: 28px;
+    margin-top: 12px;
+  }
+  .flow-step {
+    padding: 32px 24px 30px;
+    border-radius: 16px;
+    position: relative;
+    border: 1px solid;
+    transition: transform .25s ease, box-shadow .25s ease;
+  }
+  .flow-step:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(26,20,16,.08); }
+  .flow-step .num {
+    font-family: 'Fraunces', serif;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 5px;
+    background: rgba(255,255,255,.55);
+  }
+  .flow-step h4 {
+    font-family: 'Fraunces', serif; font-style: normal;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 4px;
+    letter-spacing: -.015em;
+    color: var(--ink);
+  }
+  .flow-step .label {
+    font-family: 'Fraunces', serif; font-style: normal;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -.015em;
+    margin-bottom: 18px;
+    text-transform: none;
+  }
+  .flow-step p {
+    font-size: 14px; color: var(--ink-m); line-height: 1.6; font-weight: 400;
+  }
+
+  /* Couleurs des 5 étapes */
+  .flow-step.s1 { background: var(--c-red);    border-color: var(--c-red-b); }
+  .flow-step.s1 .num,
+  .flow-step.s1 .label { color: var(--c-red-d); }
+  .flow-step.s2 { background: var(--c-blue);   border-color: var(--c-blue-b); }
+  .flow-step.s2 .num,
+  .flow-step.s2 .label { color: var(--c-blue-d); }
+  .flow-step.s3 { background: var(--c-violet); border-color: var(--c-violet-b); }
+  .flow-step.s3 .num,
+  .flow-step.s3 .label { color: var(--c-violet-d); }
+  .flow-step.s4 { background: var(--c-green);  border-color: var(--c-green-b); }
+  .flow-step.s4 .num,
+  .flow-step.s4 .label { color: var(--c-green-d); }
+  .flow-step.s5 { background: var(--c-orange); border-color: var(--c-orange-b); }
+  .flow-step.s5 .num,
+  .flow-step.s5 .label { color: var(--c-orange-d); }
+
+  /* ============== METIERS BAND ============== */
+  .metiers-band {
+    background: var(--soft);
+    padding: 38px 56px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .metiers-inner {
+    max-width: 1280px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    gap: 36px; flex-wrap: wrap; text-align: center;
+  }
+  .metiers-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--tc); padding: 8px 16px;
+    background: rgba(192,84,58,.10); border-radius: 30px;
+  }
+  .metiers-tagline {
+    font-family: 'Fraunces', serif; font-style: normal;
+    font-size: clamp(20px, 2vw, 26px);
+    font-weight: 600;
+    color: var(--ink-m);
+    letter-spacing: -.01em;
+  }
+  .metiers-tagline strong { color: var(--ink); font-weight: 800; }
+
+  /* ============== CTA FINAL ============== */
+  .final {
+    padding: 130px 56px;
+    text-align: center;
+    border-top: 1px solid var(--line);
+  }
+  .final-card {
+    max-width: 760px; margin: 0 auto;
+    padding: 64px 52px;
+    border: 1px solid var(--line);
+    border-radius: 28px;
+    background: #fff;
+    box-shadow: 0 30px 70px rgba(26,20,16,.08);
+  }
+  .pulse-dot {
+    display: inline-flex; align-items: center; gap: 12px;
+    font-size: 14px;             /* PLUS GRAND */
+    font-weight: 800;
+    letter-spacing: 2.4px;
+    color: var(--tc);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .pulse-dot::before {
+    content: ''; width: 10px; height: 10px; border-radius: 50%;
+    background: #4ade80; box-shadow: 0 0 8px rgba(74,222,128,.6);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%    { opacity: .55; transform: scale(1.35); }
+  }
+  .final h2 {
+    font-family: 'Fraunces', serif; font-style: normal;
+    font-size: clamp(36px, 4.5vw, 56px);
+    font-weight: 700;
+    line-height: 1.06;
+    letter-spacing: -.025em;
+    margin-bottom: 22px;
+  }
+  .final h2 .accent { color: var(--tc); display: inline-block; }
+  .final h2 .brand { font-family: 'Manrope', sans-serif; font-weight: 800; letter-spacing: .14em; font-size: .8em; color: var(--tc); }
+  .final-sub {
+    font-size: 19px;
+    color: var(--ink-m);
+    max-width: 540px;
+    margin: 0 auto 22px;
+    font-weight: 400;
+    line-height: 1.55;
+  }
+  .final-sub strong { color: var(--ink); font-weight: 700; }
+  .final p.fine {
+    font-size: 14px;
+    color: var(--ink-s);
+    margin: 0 auto 36px;
+    font-weight: 400;
+  }
+
+  footer {
+    background: #fff;
+    padding: 36px 56px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid var(--line);
+    font-size: 13px; color: var(--ink-s);
+    flex-wrap: wrap; gap: 16px;
+  }
+  footer .brand { font-family: 'Manrope', sans-serif; font-weight: 800; letter-spacing: .14em; color: var(--ink); }
+
+  @media (max-width: 980px) {
+    nav { padding: 14px 24px; }
+    .nav-links { display: none; }
+    .hero { padding: 56px 24px; }
+    .hero-grid { grid-template-columns: 1fr; gap: 48px; }
+    section { padding: 72px 24px; }
+    .aa-grid { grid-template-columns: 1fr; }
+    .flow-steps { grid-template-columns: 1fr 1fr; }
+    .testi-inner { grid-template-columns: 1fr; gap: 36px; }
+    .metiers-band { padding: 24px; }
+    footer { flex-direction: column; gap: 8px; text-align: center; padding: 24px; }
+  }
+  @media (max-width: 600px) {
+    .flow-steps { grid-template-columns: 1fr; }
+    section { padding: 48px 20px; }
+    .hero { padding: 36px 20px; }
+    .hero h1 { font-size: 36px; line-height: 1.05; }
+    .hero-rotator { font-size: 36px; line-height: 1.05; margin-bottom: 22px; }
+    .hero-lead { font-size: 16px; margin-bottom: 28px; }
+    .hero-ctas { gap: 12px; margin-bottom: 36px; }
+    .btn-primary { padding: 14px 22px; font-size: 14px; }
+    .hero-stats { grid-template-columns: 1fr 1fr; gap: 14px; }
+    .hs-num { font-size: 36px; }
+    .hs-label { font-size: 13px; }
+    .hc-carousel { min-height: 260px; aspect-ratio: 16/11; }
+    .section-head h2 { font-size: 28px; }
+    .section-head p { font-size: 15px; }
+    .aa-col { padding: 28px 20px; }
+    .aa-col h3 { font-size: 24px; margin-bottom: 20px; }
+    .aa-list li { font-size: 15px; gap: 12px; }
+    .aa-quote-bottom { font-size: 15px; padding: 14px 16px; }
+    .flow-headline h2 { font-size: 28px; }
+    .flow-headline .punchline { font-size: 22px; margin-top: 14px; }
+    .flow-step { padding: 24px 18px 22px; }
+    .flow-step h4, .flow-step .label { font-size: 22px; }
+    .flow-step p { font-size: 13px; }
+    .final { padding: 48px 20px; }
+    .final-card { padding: 36px 20px; border-radius: 20px; }
+    .final h2 { font-size: 28px; margin-bottom: 16px; }
+    .final-sub { font-size: 16px; margin-bottom: 18px; }
+    .final p.fine { font-size: 13px; margin-bottom: 24px; }
+    nav { padding: 12px 16px; }
+    .nav-cta { padding: 9px 16px; font-size: 13px; }
+  }
+
+    .scrolling-badges-section { background: white; padding: 60px 40px; margin: 60px 0; position: relative; overflow: hidden; }
+    .scrolling-badges-container { display: flex; gap: 16px; animation: scroll-badges 25s linear infinite; will-change: transform; }
+    .badge-chip { display: flex; align-items: center; gap: 8px; padding: 12px 18px; background: rgba(255,255,255,0.6); border-radius: 24px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.08); white-space: nowrap; flex-shrink: 0; }
+    .badge-chip::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    .badge-dashboard { color: #16a34a; } .badge-stock { color: #2563eb; } .badge-commande { color: #9333ea; } .badge-facturation { color: #dc2626; } .badge-production { color: #ea580c; } .badge-bon { color: #f59e0b; } .badge-recette { color: #0891b2; } .badge-genai { color: #7c3aed; } .badge-integration { color: #06b6d4; }
+    @keyframes scroll-badges { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .scrolling-badges-section::before, .scrolling-badges-section::after { content: ''; position: absolute; top: 0; width: 80px; height: 100%; z-index: 10; pointer-events: none; }
+    .scrolling-badges-section::before { left: 0; background: linear-gradient(90deg, white 0%, transparent 100%); }
+    .scrolling-badges-section::after { right: 0; background: linear-gradient(270deg, white 0%, transparent 100%); }
+
+    .scrolling-badges-section { background: rgb(248, 244, 236); padding: 12px 40px; margin: 0; position: relative; overflow: hidden; }
+    .scrolling-badges-container { display: flex; gap: 16px; animation: scroll-badges 25s linear infinite; will-change: transform; }
+    .badge-chip { display: flex; align-items: center; gap: 8px; padding: 12px 18px; background: rgba(255,255,255,0.6); border-radius: 24px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.08); white-space: nowrap; flex-shrink: 0; }
+    .badge-chip::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    .badge-dashboard { color: #16a34a; } .badge-stock { color: #2563eb; } .badge-commande { color: #9333ea; } .badge-facturation { color: #dc2626; } .badge-production { color: #ea580c; } .badge-bon { color: #f59e0b; } .badge-recette { color: #0891b2; } .badge-genai { color: #7c3aed; } .badge-integration { color: #06b6d4; }
+    @keyframes scroll-badges { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .scrolling-badges-section::before, .scrolling-badges-section::after { content: ''; position: absolute; top: 0; width: 80px; height: 100%; z-index: 10; pointer-events: none; }
+    .scrolling-badges-section::before { left: 0; background: linear-gradient(90deg, rgb(248,244,236) 0%, transparent 100%); }
+    .scrolling-badges-section::after { right: 0; background: linear-gradient(270deg, rgb(248,244,236) 0%, transparent 100%); } 15% { opacity: 1; } 85% { opacity: 1; } 100% { left: calc(100% - 10px); opacity: 0; } }
+
+    .flow-step { position: relative; }
+    /* Connecteur droit horizontal */
+    .flow-step:not(:last-of-type)::before {
+      content: '';
+      position: absolute;
+      top: 49px;
+      right: -28px;
+      width: 56px;
+      height: 2px;
+      background: rgba(192,84,58,0.4);
+      z-index: 1;
+      pointer-events: none;
+    }
+    /* Point animé : 1 cycle global de 12s pour 4 connecteurs (3s par segment) */
+    .flow-step:not(:last-of-type)::after {
+      content: '';
+      position: absolute;
+      top: 45px;
+      right: 28px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #C0543A;
+      box-shadow: 0 0 10px rgba(192,84,58,0.8);
+      z-index: 2;
+      animation: connector-dot 4s linear infinite;
+      pointer-events: none;
+      opacity: 0;
+    }
+    /* Décalage par étape : un seul point visible à la fois */
+    .flow-step.s1::after { animation-delay: 0s; }
+    .flow-step.s2::after { animation-delay: 1s; }
+    .flow-step.s3::after { animation-delay: 2s; }
+    .flow-step.s4::after { animation-delay: 3s; }
+    @keyframes connector-dot {
+      0%   { right: 28px;  opacity: 0; }
+      1%   { right: 28px;  opacity: 1; }
+      24%  { right: -28px; opacity: 1; }
+      25%  { right: -28px; opacity: 0; }
+      100% { right: -28px; opacity: 0; }
+    }
+
+    /* === HERO CAROUSEL : 7 dashboards défilants === */
+    .hc-carousel { position: relative; width: 100%; aspect-ratio: 16/12; min-height: 480px; }
+    .hc-slide { position: absolute; inset: 0; opacity: 0; transform: translateX(20px); transition: opacity 0.8s ease, transform 0.8s ease; pointer-events: none; }
+    .hc-slide.active { opacity: 1; transform: translateX(0); pointer-events: auto; z-index: 2; } .hero-visual .ai-badge { z-index: 100 !important; }
+    .hc-slide .browser { height: 100%; display: flex; flex-direction: column; }
+    .hc-slide .hc-content { padding: 18px 20px; background: #fff; flex: 1; overflow: hidden; }
+    .hc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .hc-title { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 700; color: #1A1410; }
+    .hc-subtitle { font-size: 10.5px; color: #9CA3AF; margin-top: 2px; }
+    .hc-badge { background: #C0543A; color: white; font-size: 9.5px; font-weight: 600; padding: 4px 9px; border-radius: 5px; white-space: nowrap; }
+    .hc-badge-ai { background: #7C3AED; }
+    .hc-badge-ok { background: #16A34A; }
+    .hc-section-title { font-size: 10px; font-weight: 700; color: #1A1410; letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 8px; }
+    .hc-alert { background: #FEF2F2; border: 1px solid #FECACA; border-radius: 7px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .hc-alert-text { font-size: 11px; color: #9B3F28; font-weight: 600; }
+    .hc-kpis { display: grid; gap: 8px; margin-bottom: 12px; }
+    .hc-kpis.cols-3 { grid-template-columns: repeat(3,1fr); }
+    .hc-kpis.cols-4 { grid-template-columns: repeat(4,1fr); }
+    .hc-kpi { border: 1px solid #e6dfd0; border-radius: 7px; padding: 10px; }
+    .hc-kpi-label { font-size: 8px; color: #9CA3AF; font-weight: 700; letter-spacing: .5px; }
+    .hc-kpi-num { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 800; color: #1A1410; margin-top: 3px; }
+    .hc-kpi-sub { font-size: 8.5px; margin-top: 2px; }
+    .hc-cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .hc-box { border: 1px solid #e6dfd0; border-radius: 7px; padding: 10px 12px; }
+    .hc-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #F5F0E8; font-size: 10.5px; color: #3D2E26; }
+    .hc-row:last-child { border-bottom: 0; }
+    .hc-tag { padding: 2px 6px; border-radius: 3px; font-size: 8.5px; font-weight: 600; }
+    .hc-cmd-status { padding: 2px 7px; border-radius: 3px; font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+    .hc-st-new { background: #DBEAFE; color: #1E40AF; }
+    .hc-st-prod { background: #FEF3C7; color: #92400E; }
+    .hc-st-ship { background: #DCFCE7; color: #166534; }
+    .hc-st-paid { background: #E0E7FF; color: #3730A3; }
+    .hc-st-plan { background: #DBEAFE; color: #1E40AF; }
+    .hc-st-cours { background: #FEF3C7; color: #92400E; }
+    .hc-st-fab { background: #D1FAE5; color: #065F46; }
+    .hc-st-livre { background: #DCFCE7; color: #14532D; }
+    /* IA */
+    .hc-ia-doc { background: linear-gradient(135deg, #F5F3FF, #EDE9FE); border: 2px dashed #7C3AED; border-radius: 7px; padding: 14px; margin-bottom: 12px; }
+    .hc-ia-doc-icon { font-size: 22px; margin-bottom: 6px; }
+    .hc-ia-doc-name { font-size: 12px; font-weight: 600; color: #5B21B6; }
+    .hc-ia-doc-status { font-size: 10px; color: #7C3AED; margin-top: 3px; }
+    .hc-ia-progress { height: 4px; background: #EDE9FE; border-radius: 2px; margin-top: 10px; overflow: hidden; }
+    .hc-ia-progress-bar { height: 100%; width: 85%; background: linear-gradient(90deg, #7C3AED, #C0543A); border-radius: 2px; }
+    .hc-ia-extracted { background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 12px; }
+    .hc-ia-field { display: flex; justify-content: space-between; padding: 3px 0; font-size: 10.5px; }
+    .hc-ia-field-label { color: #15803D; font-weight: 600; }
+    .hc-ia-field-value { color: #1A1410; font-weight: 500; text-align: right; }
+    /* Stock */
+    .hc-stock-bar { width: 100%; height: 5px; background: #F5F0E8; border-radius: 3px; overflow: hidden; margin-top: 3px; }
+    .hc-stock-bar-fill { height: 100%; border-radius: 3px; }
+    .hc-stock-low { background: #DC2626; width: 15%; }
+    .hc-stock-mid { background: #F59E0B; width: 40%; }
+    .hc-stock-ok { background: #16A34A; width: 75%; }
+    /* BC */
+    .hc-bc { background: #F8F4EC; border-radius: 7px; padding: 12px; margin-bottom: 10px; }
+    .hc-bc-line { display: flex; justify-content: space-between; padding: 5px 0; font-size: 10.5px; border-bottom: 1px solid rgba(0,0,0,0.06); }
+    .hc-bc-total { display: flex; justify-content: space-between; padding-top: 8px; margin-top: 8px; border-top: 2px solid #C0543A; font-weight: 700; font-size: 12px; color: #1A1410; }
+    .hc-btn-row { display: flex; gap: 6px; }
+    .hc-btn-validate { flex: 1; padding: 9px; background: #16A34A; color: white; border: none; border-radius: 5px; font-weight: 600; font-size: 11px; cursor: default; }
+    .hc-btn-edit { padding: 9px 14px; background: #fff; color: #666; border: 1px solid #e6dfd0; border-radius: 5px; font-size: 11px; cursor: default; }
+    /* Planning hebdo */
+    .hc-week-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; margin-bottom: 12px; }
+    .hc-week-day { background: #F8F4EC; border-radius: 5px; padding: 6px 3px; min-height: 80px; display: flex; flex-direction: column; gap: 3px; }
+    .hc-week-day-header { text-align: center; padding-bottom: 3px; border-bottom: 1px solid rgba(0,0,0,0.08); margin-bottom: 3px; }
+    .hc-week-day-name { font-family: 'JetBrains Mono', monospace; font-size: 7.5px; color: #9CA3AF; text-transform: uppercase; font-weight: 700; }
+    .hc-week-day-num { font-family: 'Fraunces', serif; font-size: 12px; font-weight: 700; color: #1A1410; margin-top: 1px; }
+    .hc-week-day.today .hc-week-day-num { color: #C0543A; }
+    .hc-week-cmd { font-size: 7.5px; padding: 2px 3px; border-radius: 3px; font-weight: 600; text-align: center; line-height: 1.1; }
+    /* Facture */
+    .hc-invoice { border: 2px solid #e6dfd0; border-radius: 7px; padding: 14px; background: linear-gradient(135deg, #FFFEFB, #FAF6EE); }
+    .hc-invoice-header { display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #e6dfd0; }
+    .hc-invoice-num { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #9CA3AF; }
+    .hc-invoice-amount { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 800; color: #C0543A; }
+    .hc-invoice-status { display: inline-flex; align-items: center; gap: 5px; background: #DCFCE7; color: #15803D; padding: 3px 8px; border-radius: 5px; font-size: 9.5px; font-weight: 700; margin-top: 6px; }
+    .hc-invoice-line { display: flex; justify-content: space-between; padding: 4px 0; font-size: 10.5px; }
+    .hc-invoice-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 12px; font-size: 9px; }
+    .hc-invoice-tags span { padding: 2px 7px; border-radius: 3px; font-weight: 600; }
+    /* Indicateurs */
+    .hc-indicators { display: flex; justify-content: center; gap: 6px; margin-top: 14px; }
+    .hc-indicator { width: 24px; height: 3px; border-radius: 2px; background: rgba(192,84,58,0.2); transition: all 0.3s ease; cursor: pointer; }
+    .hc-indicator.active { background: #C0543A; width: 36px; }
+
+
+/* ====== SECTION SLIDESHOW (iframe) ====== */
+.slideshow-section {
+  background: var(--soft);
+  padding: 96px 56px;
 }
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--cream);color:var(--ink);font-family:var(--f-body);
-  font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
-h1,h2,h3,h4{font-family:var(--f-disp);font-weight:700;line-height:1.1;margin:0;text-wrap:balance;letter-spacing:-.015em}
-p{margin:0}
-img{max-width:100%}
-a{color:inherit}
-button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
-:focus-visible{outline:2.5px solid var(--tc);outline-offset:3px;border-radius:3px}
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.slideshow-headline {
+  text-align: center;
+  max-width: 900px;
+  margin: 0 auto 48px;
+}
+.slideshow-headline .eyebrow-mini {
+  display: inline-block;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--tc);
+  margin-bottom: 18px;
+}
+.slideshow-headline h2 {
+  font-family: 'Fraunces', serif;
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ink);
+  letter-spacing: -.5px;
+}
+.slideshow-headline h2 .l2 {
+  display: block;
+  color: var(--tc);
+  margin-top: 4px;
+  font-size: 36px;
+}
+.slideshow-frame-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 16px 60px rgba(0,0,0,.16), 0 4px 12px rgba(0,0,0,.08);
+  background: #c8c0b8;
+  aspect-ratio: 16 / 10;
+}
+.slideshow-frame-wrap iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.slideshow-swipe-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.95);
+  border: 2px solid var(--tc);
+  color: var(--tc);
+  cursor: pointer;
+  z-index: 5;
+  box-shadow: 0 6px 20px rgba(0,0,0,.18);
+  transition: all .2s;
+}
+.slideshow-swipe-btn:hover {
+  background: var(--tc);
+  color: #fff;
+  transform: translateY(-50%) scale(1.08);
+  box-shadow: 0 8px 26px rgba(192,84,58,.35);
+}
+.slideshow-arrow-left { left: 20px; }
+.slideshow-arrow-right { right: 20px; }
+.slideshow-swipe-btn .arrow { font-size: 26px; line-height: 1; font-weight: 700; }
+.slideshow-cta {
+  text-align: center;
+  margin-top: 32px;
+}
+@media (max-width: 760px) {
+  .slideshow-section { padding: 64px 20px; }
+  .slideshow-frame-wrap { aspect-ratio: 4 / 5; }
+  .slideshow-headline h2,
+  .slideshow-headline h2 .l2 { font-size: 28px; }
+  .slideshow-swipe-btn { width: 44px; height: 44px; }
+  .slideshow-arrow-left { left: 10px; }
+  .slideshow-arrow-right { right: 10px; }
+  .slideshow-swipe-btn .arrow { font-size: 20px; }
+}
 
-.wrap{max-width:1140px;margin:0 auto;padding:0 22px}
-.narrow{max-width:760px;margin:0 auto;padding:0 22px}
+/* ====== SECTION OFFRE LANCEMENT ====== */
+.offre-section {
+  background: var(--beige);
+  padding: 96px 56px;
+}
+.offre-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+.offre-head {
+  text-align: center;
+  margin-bottom: 56px;
+}
+.offre-head h2 {
+  font-family: 'Fraunces', serif;
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ink);
+  letter-spacing: -.5px;
+}
+.offre-head h2 .l2 {
+  display: block;
+  color: var(--tc);
+  margin-top: 4px;
+  font-size: 36px;
+}
+.offre-grid {
+  display: grid;
+  grid-template-columns: 1.2fr .9fr;
+  gap: 38px;
+  align-items: stretch;
+}
+.offre-benefits {
+  background: #fff;
+  border-radius: 16px;
+  padding: 44px 40px;
+  border: 1px solid var(--line);
+}
+.offre-benefits-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  padding: 6px 14px;
+  border-radius: 30px;
+}
+.offre-tag-green {
+  background: rgba(22, 163, 74, .6);
+  color: #fff;
+}
+.offre-benefits-title {
+  font-family: 'Fraunces', serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 26px;
+  line-height: 1.2;
+}
+.offre-benefits ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.offre-benefits li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-m);
+}
+.offre-benefits li::before {
+  content: '';
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  border-radius: 50%;
+  background: #16A34A;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, .3);
+}
+.offre-benefits li strong { color: var(--ink); font-weight: 600; }
 
-.cta{display:inline-flex;align-items:center;gap:10px;background:var(--tc);color:#fff;
-  font-family:var(--f-disp);font-weight:600;font-size:17px;letter-spacing:-.01em;
-  padding:16px 26px;border-radius:12px;text-decoration:none;box-shadow:var(--shadow-m);
-  transition:transform .12s ease,background .15s ease}
-.cta:hover{background:var(--tc-deep);transform:translateY(-1px)}
-.cta .arw{transition:transform .15s ease}
-.cta:hover .arw{transform:translateX(3px)}
-.cta-sub{font-size:13.5px;color:var(--ink-3);margin-top:10px}
-.cta-sub b{color:var(--ink-2);font-weight:600}
+.offre-pricecard {
+  background: #fff;
+  color: var(--ink);
+  border-radius: 16px;
+  padding: 44px 36px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 32px rgba(0,0,0,.06);
+}
+.offre-pricecard::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(22,163,74,.10) 0%, transparent 70%);
+  pointer-events: none;
+}
+.offre-pricecard-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 18px;
+  border-radius: 30px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 26px;
+}
+.offre-tag-red {
+  background: rgba(192, 57, 43, .6);
+  color: #fff;
+}
+.offre-pricecard-tag::before {
+  content: '';
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 8px rgba(255,255,255,.7);
+  animation: pulse-white-offre 2s infinite;
+}
+@keyframes pulse-white-offre {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .6; transform: scale(1.3); }
+}
+.offre-price-main {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(72px, 9vw, 108px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -3px;
+  color: #16A34A;
+  position: relative;
+  margin-bottom: 6px;
+}
+.offre-price-life {
+  position: relative;
+  font-family: 'Fraunces', serif;
+  font-size: clamp(34px, 4vw, 44px);
+  font-weight: 800;
+  letter-spacing: 6px;
+  color: #16A34A;
+  margin-top: 2px;
+  line-height: 1;
+}
+.offre-price-old {
+  position: relative;
+  font-size: 19px;
+  font-weight: 500;
+  color: var(--ink-s);
+  margin-top: 22px;
+  text-decoration: line-through;
+  text-decoration-color: rgba(122, 98, 88, .6);
+  letter-spacing: .3px;
+}
+.offre-price-target {
+  position: relative;
+  font-size: 14px;
+  color: var(--ink-m);
+  margin-top: 18px;
+  line-height: 1.5;
+  max-width: 280px;
+}
+.offre-price-target strong { color: var(--ink); font-weight: 700; }
+.offre-pricecard .btn-primary {
+  position: relative;
+  margin-top: 30px;
+  width: 100%;
+  justify-content: center;
+}
+.offre-fineprint {
+  text-align: center;
+  margin-top: 32px;
+  font-size: 13px;
+  color: var(--ink-s);
+  line-height: 1.6;
+}
+.offre-fineprint strong { color: var(--ink); font-weight: 600; }
 
-.eyebrow{font-family:var(--f-mono);font-size:12px;font-weight:500;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--tc-deep)}
+@media (max-width: 880px) {
+  .offre-section { padding: 72px 20px; }
+  .offre-head h2,
+  .offre-head h2 .l2 { font-size: 28px; }
+  .offre-grid { grid-template-columns: 1fr; gap: 22px; }
+  .offre-benefits { padding: 32px 24px; }
+  .offre-pricecard { padding: 36px 24px; }
+}
 
-.places{display:inline-flex;align-items:center;gap:9px;font-family:var(--f-mono);font-size:13px;
-  color:var(--ink-2);background:var(--gold-soft);border:1px solid var(--gold);
-  padding:6px 12px;border-radius:999px}
-.places .dot{width:8px;height:8px;border-radius:50%;background:var(--tc);animation:pulse 2.4s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+/* ====== SECTION FAQ ====== */
+.faq-section {
+  background: #fff;
+  padding: 96px 56px;
+  border-top: 1px solid var(--line);
+}
+.faq-inner {
+  max-width: 820px;
+  margin: 0 auto;
+}
+.faq-head {
+  text-align: center;
+  margin-bottom: 48px;
+}
+.faq-head h2 {
+  font-family: 'Fraunces', serif;
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--tc);
+  letter-spacing: -.5px;
+}
+.faq-head h2 .l2 {
+  display: block;
+  color: var(--ink);
+  margin-top: 4px;
+  font-size: 36px;
+}
+.faq-list { display: flex; flex-direction: column; gap: 10px; }
+.faq-item {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color .2s;
+}
+.faq-item.open { border-color: rgba(192,84,58,.4); }
+.faq-q {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  transition: color .2s;
+}
+.faq-q:hover { color: var(--tc); }
+.faq-q-icon {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 300;
+  color: var(--ink-s);
+  transition: all .25s;
+}
+.faq-item.open .faq-q-icon {
+  background: var(--tc);
+  border-color: var(--tc);
+  color: #fff;
+  transform: rotate(45deg);
+}
+.faq-a {
+  display: none;
+  padding: 0 24px 22px;
+  font-size: 14.5px;
+  color: var(--ink-s);
+  line-height: 1.7;
+}
+.faq-item.open .faq-a { display: block; }
+@media (max-width: 760px) {
+  .faq-section { padding: 64px 20px; }
+  .faq-head h2,
+  .faq-head h2 .l2 { font-size: 28px; }
+}
+  /* ============== HERO TRUST ROW (ajouté) ============== */
+  .hero-trust { display: flex; gap: 20px; flex-wrap: wrap; margin-top: -34px; margin-bottom: 52px; font-size: 13px; color: var(--ink-s); }
+  .hero-trust span { display: flex; align-items: center; gap: 6px; }
 
-.faq details{border-bottom:1px solid var(--line);padding:16px 0}
-.faq summary{font-family:var(--f-disp);font-weight:600;font-size:17px;cursor:pointer;list-style:none;
-  display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
-.faq summary::-webkit-details-marker{display:none}
-.faq summary::after{content:"+";font-family:var(--f-mono);color:var(--tc);flex:none;font-size:20px;line-height:1}
-.faq details[open] summary::after{content:"–"}
-.faq details p{margin-top:10px;color:var(--ink-2);font-size:15.5px}
+  /* ============== OFFRE — échelle des paliers (ajouté) ============== */
+  .offre-tiers { display: flex; gap: 8px; width: 100%; margin-top: 22px; position: relative; }
+  .offre-tier { flex: 1; border: 1px solid var(--line); border-radius: 10px; padding: 10px 6px; text-align: center; }
+  .offre-tier.is-current { border-color: #16A34A; background: rgba(22,163,74,.06); }
+  .offre-tier .ot-p { display: block; font-family: 'Fraunces', serif; font-weight: 800; font-size: 18px; color: var(--ink); }
+  .offre-tier.is-current .ot-p { color: #16A34A; }
+  .offre-tier .ot-s { display: block; font-size: 9.5px; color: var(--ink-s); margin-top: 2px; }
+  @media (max-width: 600px) { .hero-trust { margin-top: -10px; flex-direction: column; gap: 8px; } }
 
-.v-a{background:var(--cream)}
-.v-a .a-hero{padding:64px 0 40px}
-.v-a .a-hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
-@media (max-width:900px){.v-a .a-hero-grid{grid-template-columns:1fr;gap:36px}}
-.v-a h1{font-size:clamp(2.1rem,5.2vw,3.5rem);margin:16px 0 18px}
-.v-a .a-sub{font-size:19px;color:var(--ink-2);max-width:34ch}
-.v-a .a-cta-wrap{margin-top:28px}
-.v-a .a-trust{display:flex;gap:18px;flex-wrap:wrap;margin-top:26px;font-size:13px;color:var(--ink-3)}
-.v-a .a-trust span{display:flex;align-items:center;gap:7px}
-.v-a .a-trust svg{width:15px;height:15px;color:var(--ok)}
-
-.demoflow{background:var(--paper);border:1px solid var(--line);border-radius:18px;
-  box-shadow:var(--shadow-m);padding:20px;position:relative;overflow:hidden}
-.demoflow .df-bar{display:flex;gap:6px;margin-bottom:16px}
-.demoflow .df-bar i{width:10px;height:10px;border-radius:50%;background:var(--cream-3)}
-.demoflow .df-stage{min-height:236px;position:relative}
-.demoflow .df-card{position:absolute;inset:0;opacity:0;transform:translateY(8px);
-  transition:opacity .5s ease,transform .5s ease}
-.demoflow .df-card.show{opacity:1;transform:none}
-.df-label{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ink-3);display:flex;align-items:center;gap:8px;margin-bottom:12px}
-.df-label .d{width:8px;height:8px;border-radius:50%;background:var(--tc)}
-.df-row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:14px}
-.df-row:last-child{border-bottom:none}
-.df-row .q{font-family:var(--f-mono);color:var(--ink-2)}
-.df-row .ok{color:var(--ok)}
-.df-row .no{color:var(--bad)}
-.df-hand{font-family:var(--f-serif);font-style:italic;font-size:16px;color:var(--ink-2);line-height:1.7}
-.df-invoice{border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--cream)}
-.df-invoice .fi-top{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-3);font-family:var(--f-mono)}
-.df-invoice .fi-total{font-family:var(--f-disp);font-weight:700;font-size:26px;margin-top:8px}
-.df-invoice .fi-badge{display:inline-block;margin-top:8px;background:var(--ok-soft);color:var(--ok);
-  font-size:12px;font-family:var(--f-mono);padding:3px 9px;border-radius:999px}
-.df-punch{margin-top:14px;font-family:var(--f-disp);font-weight:600;font-size:17px;color:var(--tc-deep)}
-.demoflow .df-track{display:flex;gap:6px;margin-top:16px}
-.demoflow .df-track i{flex:1;height:3px;border-radius:2px;background:var(--cream-3)}
-.demoflow .df-track i.act{background:var(--tc)}
-
-.v-a section{padding:56px 0}
-.v-a .sec-h{font-size:clamp(1.5rem,3.5vw,2.1rem);margin-bottom:8px}
-.v-a .sec-lead{color:var(--ink-2);max-width:52ch;margin-bottom:32px}
-.v-a .replace{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-@media (max-width:760px){.v-a .replace{grid-template-columns:1fr}}
-.v-a .replace .rc{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px}
-.v-a .replace .rc .old{font-family:var(--f-mono);font-size:12px;color:var(--ink-3);text-decoration:line-through;text-decoration-color:var(--tc)}
-.v-a .replace .rc h4{font-size:16px;margin:6px 0}
-.v-a .replace .rc p{font-size:14px;color:var(--ink-2)}
-.v-a .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;counter-reset:st}
-@media (max-width:820px){.v-a .steps{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:480px){.v-a .steps{grid-template-columns:1fr}}
-.v-a .steps .stp{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px}
-.v-a .steps .stp::before{counter-increment:st;content:counter(st);font-family:var(--f-mono);
-  font-size:12px;color:#fff;background:var(--tc);width:24px;height:24px;border-radius:7px;
-  display:grid;place-items:center;margin-bottom:12px}
-.v-a .steps .stp h4{font-size:15px;margin-bottom:5px}
-.v-a .steps .stp p{font-size:13.5px;color:var(--ink-2)}
-.v-a .dash{background:var(--night);color:var(--cream);border-radius:18px;padding:28px;box-shadow:var(--shadow-m)}
-.v-a .dash .dh{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#B7A98F;margin-bottom:18px}
-.v-a .dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-@media (max-width:700px){.v-a .dash-grid{grid-template-columns:1fr}}
-.v-a .dash-grid .dc{background:var(--night-2);border:1px solid #3A332A;border-radius:12px;padding:16px}
-.v-a .dash-grid .dc .k{font-family:var(--f-mono);font-size:11px;color:#B7A98F;text-transform:uppercase;letter-spacing:.05em}
-.v-a .dash-grid .dc .v{font-family:var(--f-disp);font-weight:700;font-size:24px;margin-top:6px}
-.v-a .dash-grid .dc.alert .v{color:#E88A6A}
-.v-a .offer{background:var(--tc-soft);border:1px solid var(--tc-line);border-radius:20px;padding:36px}
-.v-a .offer-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center}
-@media (max-width:820px){.v-a .offer-grid{grid-template-columns:1fr;gap:24px}}
-.v-a .offer .price{font-family:var(--f-disp);font-weight:700;font-size:clamp(2.4rem,6vw,3.4rem);line-height:1}
-.v-a .offer .price s{font-size:1rem;color:var(--ink-3);font-weight:400;display:block;margin-bottom:4px}
-.v-a .offer ul{list-style:none;padding:0;margin:16px 0 0;display:flex;flex-direction:column;gap:9px}
-.v-a .offer li{display:flex;gap:9px;font-size:15px}
-.v-a .offer li svg{width:17px;height:17px;color:var(--tc);flex:none;margin-top:3px}
-.v-a .guarantee{background:var(--paper);border:1px dashed var(--line-2);border-radius:12px;padding:16px;font-size:14px;color:var(--ink-2);margin-top:18px}
-.v-a .founder{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start}
-.v-a .founder .ph{width:66px;height:66px;border-radius:50%;background:var(--cream-3);border:1px solid var(--line);
-  display:grid;place-items:center;font-family:var(--f-disp);font-weight:700;color:var(--tc-deep);font-size:22px}
-.v-a .founder p{color:var(--ink-2);font-size:15.5px}
-.v-a .final{background:var(--night);color:var(--cream);border-radius:20px;padding:44px;text-align:center}
-.v-a .final h2{font-size:clamp(1.6rem,4vw,2.4rem);color:#fff;margin-bottom:14px}
-.v-a .final .cta{margin-top:8px}
-.v-a footer{padding:34px 0;text-align:center;font-size:12.5px;color:var(--ink-3);font-family:var(--f-mono)}
 </style>
 </head>
 <body>
 
-<div class="page on v-a" id="page-a">
-  <header class="a-hero"><div class="wrap"><div class="a-hero-grid">
+<!-- ============================ NAV ============================ -->
+<nav>
+  <a href="#" class="logo">
+    <div class="logo-mark">A</div>
+    <span class="logo-name" style="font-family: Tahoma; font-size: 28px">ARTEASY</span>
+    <span class="logo-tag">IA</span>
+  </a>
+  <div class="nav-links">
+    <span style="font-size: 24px; color: #C0543A; opacity: 0.6;">L'OUTIL TOUT-EN-UN FAIT POUR LES ARTISANS</span>
+  </div>
+  <a href="#login" class="nav-cta" style="margin-right: 12px; background: transparent; border: 1px solid var(--tc); color: var(--tc);">Se connecter</a>
+  <a href="#" class="nav-cta" data-cta>Réserver mon appel →</a>
+</nav>
+
+<!-- ============================ HERO ============================ -->
+<section class="hero sec-white" style="font-family: Tinos; background-color: rgb(248, 244, 236)">
+  <div class="hero-grid">
     <div>
-      <span class="eyebrow">Pour les artisans qui transforment</span>
-      <h1>La commande arrive. La facture part. Vous n'avez rien tapé.</h1>
-      <p class="a-sub">ArtEasy lit vos commandes, suit votre stock, prépare vos factures — en un seul flux. Installé par le fondateur en 20 minutes.</p>
-      <div class="a-cta-wrap">
-        <a class="cta" data-cta href="#offre-a">Réserver mon appel d'installation <span class="arw">→</span></a>
-        <p class="cta-sub">20 min en visio · <b>gratuit</b> · vos données importées pendant l'appel</p>
+      <h1>Artisans,<br>toute votre activité</h1>
+      <div class="hero-rotator" id="rotator">
+        <span class="hero-rotator-word in">centralisée.</span>
       </div>
-      <div class="a-trust">
-        <span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 10l4 4 8-9"/></svg> Hébergé en Europe, RGPD</span>
-        <span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 10l4 4 8-9"/></svg> Garantie 30 jours remboursé</span>
-        <span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 10l4 4 8-9"/></svg> Sans carte bancaire</span>
+      <p class="hero-lead">
+        <span class="lead-products">Confitures, savons, cosmétiques, bijoux, jouets…</span>
+        <strong>L'outil tout-en-un</strong> qui s'occupe des commandes, du stock,<br>de la production et des factures pendant que vous créez.
+      </p>
+      <div class="hero-ctas">
+        <a href="#" class="btn-primary" data-cta>Réserver mon appel d'installation →</a>
+        <a href="#flow" class="btn-ghost">Voir l'outil</a>
       </div>
-    </div>
-    <div class="demoflow" aria-hidden="true">
-      <div class="df-bar"><i></i><i></i><i></i></div>
-      <div class="df-stage" id="dfStage">
-        <div class="df-card" data-step="0">
-          <div class="df-label"><span class="d"></span> Commande reçue · Magasin Bio du Cours</div>
-          <p class="df-hand">« Bonjour, pour jeudi : 12 abricot, 6 figue, 12 poire vanille, et rajoutez 4 cassis si possible. Merci ! »</p>
+      <div class="hero-trust">
+        <span>&#10003; Garantie 30 jours remboursé</span>
+        <span>&#10003; Installation par le fondateur, 20 min</span>
+        <span>&#10003; Sans carte bancaire pour réserver</span>
+      </div>
+      
+
+      <!-- HERO STATS -->
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hs-num hs-num-1">6h</div>
+          <div class="hs-label">gagnées par semaine,<br>en moyenne</div>
         </div>
-        <div class="df-card" data-step="1">
-          <div class="df-label"><span class="d"></span> Lecture automatique</div>
-          <div class="df-row"><span class="q">Confiture abricot 230g</span><span>12 &nbsp;<span class="ok">✓</span></span></div>
-          <div class="df-row"><span class="q">Confiture figue 230g</span><span>6 &nbsp;<span class="ok">✓</span></span></div>
-          <div class="df-row"><span class="q">Confiture poire vanille 230g</span><span>12 &nbsp;<span class="ok">✓</span></span></div>
-          <div class="df-row"><span class="q">Confiture cassis 230g</span><span>4 &nbsp;<span class="ok">✓</span></span></div>
+        <div class="hero-stat">
+          <div class="hs-num hs-num-2">0</div>
+          <div class="hs-label">facture oubliée,
+
+rupture de stock</div>
         </div>
-        <div class="df-card" data-step="2">
-          <div class="df-label"><span class="d"></span> Stock &amp; alertes</div>
-          <div class="df-row"><span class="q">Pots verre 230g</span><span class="ok">stock OK</span></div>
-          <div class="df-row"><span class="q">Couvercle 70mm</span><span class="no">150 / 200 &nbsp;⚠</span></div>
-          <div class="df-row"><span class="q">Étiquettes</span><span class="ok">stock OK</span></div>
-          <p class="df-punch">Prévenu avant la production, pas pendant.</p>
-        </div>
-        <div class="df-card" data-step="3">
-          <div class="df-label"><span class="d"></span> Facture</div>
-          <div class="df-invoice">
-            <div class="fi-top"><span>F-2026-014</span><span>Magasin Bio du Cours</span></div>
-            <div class="fi-total">184,20 €</div>
-            <span class="fi-badge">Envoyée</span>
-          </div>
-          <p class="df-punch">Vous n'avez rien tapé.</p>
+        <div class="hero-stat">
+          <div class="hs-num hs-num-3">2</div>
+          <div class="hs-label">fois plus de&nbsp;
+commandes traitées</div>
         </div>
       </div>
-      <div class="df-track" id="dfTrack"><i></i><i></i><i></i><i></i></div>
     </div>
-  </div></div></header>
 
-  <section><div class="wrap">
-    <h2 class="sec-h">Ce que ça remplace</h2>
-    <p class="sec-lead">Trois endroits où la même information est recopiée, trois occasions de se tromper.</p>
-    <div class="replace">
-      <div class="rc"><span class="old">le carnet de réception</span><h4>La commande notée à la main</h4><p>Sur un cahier, un post-it, un coin de table. Illisible le lendemain.</p></div>
-      <div class="rc"><span class="old">l'Excel du soir</span><h4>Le report du soir</h4><p>21h, vous rouvrez l'ordinateur pour ressaisir la journée. Encore.</p></div>
-      <div class="rc"><span class="old">la facture Word</span><h4>La facture refaite à la main</h4><p>Modèle, lignes, total, export PDF, relance. 20 minutes à chaque fois.</p></div>
+    <!-- INTERFACE RÉELLE — dashboard Atelier Dupont -->
+    <div class="hero-visual">
+      <div class="ai-badge">IA Active</div>
+      <div class="hc-carousel" id="hcCarousel">
+        <div class="hc-slide active" data-name="01"><div class="browser"><div class="browser-bar"><div class="browser-dots"><span style="background:#FF5F57"></span><span style="background:#FFBD2E"></span><span style="background:#28C840"></span></div><div class="browser-url">arteasy.fr / dashboard</div></div><div class="hc-content"><div class="hc-header"><div><div class="hc-title">Tableau de bord</div><div class="hc-subtitle">Vendredi 3 avril · mis à jour il y a 2 min</div></div></div><div class="hc-alert"><span class="hc-alert-text">⚠ Stock critique : Chocolat noir 70% — 2,1 kg restants</span><span class="hc-badge">Bon préparé →</span></div><div class="hc-kpis cols-4"><div class="hc-kpi"><div class="hc-kpi-label">CA AUJOURD'HUI</div><div class="hc-kpi-num">1 840 €</div><div class="hc-kpi-sub" style="color:#15803d;">↑ +23%</div></div><div class="hc-kpi"><div class="hc-kpi-label">COMMANDES</div><div class="hc-kpi-num">12</div><div class="hc-kpi-sub" style="color:#9CA3AF;">3 à fabriquer</div></div><div class="hc-kpi"><div class="hc-kpi-label">FACTURES</div><div class="hc-kpi-num">9</div><div class="hc-kpi-sub" style="color:#6D28D9;">Auto IA</div></div><div class="hc-kpi"><div class="hc-kpi-label">RUPTURES</div><div class="hc-kpi-num" style="color:#C0543A;">1</div><div class="hc-kpi-sub" style="color:#C0543A;">Alerte</div></div></div><div class="hc-cols2"><div class="hc-box"><div class="hc-section-title">📦 Stocks critiques</div><div class="hc-row">Chocolat noir 70%<span class="hc-tag" style="background:#FEE2E2;color:#9B3F28;">⚠ 2,1 kg</span></div><div class="hc-row">Praliné noisette<span class="hc-tag" style="background:#FEF3C7;color:#92400E;">↓ 450 g</span></div><div class="hc-row">Beurre cacao<span class="hc-tag" style="background:#DCFCE7;color:#166534;">✓ OK</span></div></div><div class="hc-box"><div class="hc-section-title">📅 Production du jour</div><div class="hc-row">Ganaches ×40<span class="hc-tag" style="background:#EDE9FE;color:#6D28D9;">IA planifié</span></div><div class="hc-row">Tablettes ×25<span class="hc-tag" style="background:#EDE9FE;color:#6D28D9;">IA planifié</span></div><div class="hc-row">Truffes ×60<span style="font-size:9px;color:#7A6258;">En cours</span></div></div></div></div></div></div>
+        <div class="hc-slide" data-name="02"><div class="browser"><div class="browser-bar"><div class="browser-dots"><span style="background:#FF5F57"></span><span style="background:#FFBD2E"></span><span style="background:#28C840"></span></div><div class="browser-url">arteasy.fr / commandes</div></div><div class="hc-content"><div class="hc-header"><div><div class="hc-title">Commandes clients</div><div class="hc-subtitle">23 commandes ce mois · CA 4 280 €</div></div><span class="hc-badge">+ Nouvelle commande</span></div><div class="hc-kpis cols-3"><div class="hc-kpi"><div class="hc-kpi-label">EN ATTENTE</div><div class="hc-kpi-num" style="color:#1E40AF;">5</div></div><div class="hc-kpi"><div class="hc-kpi-label">EN COURS</div><div class="hc-kpi-num" style="color:#92400E;">7</div></div><div class="hc-kpi"><div class="hc-kpi-label">EXPÉDIÉES</div><div class="hc-kpi-num" style="color:#166534;">11</div></div></div><div class="hc-box"><div class="hc-section-title">🛒 Commandes récentes</div><div class="hc-row"><span><strong>CMD-1042</strong> · La Cave de Pascal · 6 articles</span><span class="hc-cmd-status hc-st-new">Nouvelle</span></div><div class="hc-row"><span><strong>CMD-1041</strong> · Épicerie Lou · 3 articles</span><span class="hc-cmd-status hc-st-prod">Production</span></div><div class="hc-row"><span><strong>CMD-1040</strong> · Fnac Lyon · 12 articles</span><span class="hc-cmd-status hc-st-prod">Production</span></div><div class="hc-row"><span><strong>CMD-1039</strong> · Boutique Nice · 4 articles</span><span class="hc-cmd-status hc-st-ship">Expédiée</span></div><div class="hc-row"><span><strong>CMD-1038</strong> · Marché Provence · 8 articles</span><span class="hc-cmd-status hc-st-paid">Payée</span></div><div class="hc-row"><span><strong>CMD-1037</strong> · Hôtel Negresco · 6 articles</span><span class="hc-cmd-status hc-st-paid">Payée</span></div></div></div></div></div>
+        <div class="hc-slide" data-name="03"><div class="browser"><div class="browser-bar"><div class="browser-dots"><span style="background:#FF5F57"></span><span style="background:#FFBD2E"></span><span style="background:#28C840"></span></div><div class="browser-url">arteasy.fr / commande / analyse-ia</div></div><div class="hc-content"><div class="hc-header"><div><div class="hc-title">Analyse IA — Commande Cave Pascal</div><div class="hc-subtitle">L'IA lit le bon de commande et remplit tout</div></div><span class="hc-badge hc-badge-ai">✦ IA</span></div><div class="hc-ia-doc"><div class="hc-ia-doc-icon">📄</div><div class="hc-ia-doc-name">commande-cave-pascal-april-2026.pdf</div><div class="hc-ia-doc-status">Analysé · 6 lignes détectées</div><div class="hc-ia-progress"><div class="hc-ia-progress-bar"></div></div></div><div class="hc-ia-extracted"><div class="hc-section-title" style="color:#15803D;">✓ DONNÉES EXTRAITES PAR L'IA</div><div class="hc-ia-field"><span class="hc-ia-field-label">Client</span><span class="hc-ia-field-value">La Cave de Pascal</span></div><div class="hc-ia-field"><span class="hc-ia-field-label">Date livraison</span><span class="hc-ia-field-value">12 avril 2026</span></div><div class="hc-ia-field"><span class="hc-ia-field-label">Tablettes 70% × 8</span><span class="hc-ia-field-value">→ Article PROD-014</span></div><div class="hc-ia-field"><span class="hc-ia-field-label">Ganaches × 12</span><span class="hc-ia-field-value">→ Article PROD-021</span></div><div class="hc-ia-field"><span class="hc-ia-field-label">Truffes × 24</span><span class="hc-ia-field-value">→ Article PROD-008</span></div><div class="hc-ia-field" style="margin-top:6px;border-top:1px solid #BBF7D0;padding-top:6px;"><span class="hc-ia-field-label">Total HT</span><span class="hc-ia-field-value" style="font-weight:700;">386,00 €</span></div></div></div></div></div>
+        <div class="hc-slide" data-name="04"><div class="browser"><div class="browser-bar"><div class="browser-dots"><span style="background:#FF5F57"></span><span style="background:#FFBD2E"></span><span style="background:#28C840"></span></div><div class="browser-url">arteasy.fr / stock</div></div><div class="hc-content"><div class="hc-header"><div><div class="hc-title">Gestion du stock</div><div class="hc-subtitle">42 articles · 3 alertes actives</div></div><span class="hc-badge">+ Réception</span></div><div class="hc-kpis cols-3"><div class="hc-kpi"><div class="hc-kpi-label">VALEUR STOCK</div><div class="hc-kpi-num">8 420 €</div></div><div class="hc-kpi"><div class="hc-kpi-label">RUPTURES</div><div class="hc-kpi-num" style="color:#DC2626;">1</div></div><div class="hc-kpi"><div class="hc-kpi-label">À COMMANDER</div><div class="hc-kpi-num" style="color:#F59E0B;">3</div></div></div><div class="hc-box"><div class="hc-section-title">📦 Niveaux de stock</div><div class="hc-row" style="display:block;padding:8px 0;"><div style="display:flex;justify-content:space-between;font-size:11px;"><span>Chocolat noir 70%</span><span style="color:#DC2626;font-weight:700;">2,1 / 15 kg</span></div><div class="hc-stock-bar"><div class="hc-stock-bar-fill hc-stock-low"></div></div></div><div class="hc-row" style="display:block;padding:8px 0;"><div style="display:flex;justify-content:space-between;font-size:11px;"><span>Praliné noisette</span><span style="color:#F59E0B;font-weight:700;">450 / 1200 g</span></div><div class="hc-stock-bar"><div class="hc-stock-bar-fill hc-stock-mid"></div></div></div><div class="hc-row" style="display:block;padding:8px 0;"><div style="display:flex;justify-content:space-between;font-size:11px;"><span>Beurre de cacao</span><span style="color:#16A34A;font-weight:700;">3,8 / 5 kg</span></div><div class="hc-stock-bar"><div class="hc-stock-bar-fill hc-stock-ok"></div></div></div><div class="hc-row" style="display:block;padding:8px 0;border:0;"><div style="display:flex;justify-content:space-between;font-size:11px;"><span>Sucre canne brut</span><span style="color:#16A34A;font-weight:700;">12 / 15 kg</span></div><div class="hc-stock-bar"><div class="hc-stock-bar-fill hc-stock-ok"></div></div></div></div></div></div></div>
+        <div class="hc-slide" data-name="05"><div class="browser"><div class="browser-bar"><div class="browser-dots"><span style="background:#FF5F57"></span><span style="background:#FFBD2E"></span><span style="background:#28C840"></span></div><div class="browser-url">arteasy.fr / fournisseurs / bc-en-cours</div></div><div class="hc-content"><div class="hc-header"><div><div class="hc-title">Bon de commande fournisseur</div><div class="hc-subtitle">Préparé automatiquement par l'IA · à valider</div></div><span class="hc-badge hc-badge-ai">✦ Auto</span></div><div class="hc-bc"><div style="display:flex;justify-content:space-between;margin-bottom:8px;"><div><div style="font-weight:700;font-size:12px;">BC-2026-042</div><div style="font-size:9.5px;color:#9CA3AF;">Fournisseur : Cacao Barry · Lyon</div></div><div style="font-size:9.5px;color:#9CA3AF;text-align:right;">Émission auto<br>03/04/2026</div></div><div class="hc-bc-line"><span>Chocolat noir 70% · 25 kg</span><span>187,50 €</span></div><div class="hc-bc-line"><span>Praliné noisette · 5 kg</span><span>92,00 €</span></div><div class="hc-bc-line"><span>Beurre de cacao · 3 kg</span><span>54,00 €</span></div><div class="hc-bc-line"><span>Boîtes kraft 250g · 200 unités</span><span>48,00 €</span></div><div class="hc-bc-total"><span>TOTAL HT</span><span>381,50 €</span></div></div><div class="hc-btn-row"><button class="hc-btn-validate">✓ Valider et envoyer</button><button class="hc-btn-edit">Modifier</button></div></div></div></div>
+        <div class="hc-slide" data-name="06"><div class="browser"><div class="browser-bar"><div class="browser-dots"><span style="background:#FF5F57"></span><span style="background:#FFBD2E"></span><span style="background:#28C840"></span></div><div class="browser-url">arteasy.fr / production / planning</div></div><div class="hc-content"><div class="hc-header"><div><div class="hc-title">Planification production</div><div class="hc-subtitle">Semaine 14 · du 07 au 13 avril 2026</div></div><span class="hc-badge hc-badge-ai">✦ IA optimisé</span></div><div class="hc-week-grid"><div class="hc-week-day today"><div class="hc-week-day-header"><div class="hc-week-day-name">Lun</div><div class="hc-week-day-num">07</div></div><div class="hc-week-cmd hc-st-cours">CMD-1041</div><div class="hc-week-cmd hc-st-cours">CMD-1042</div></div><div class="hc-week-day"><div class="hc-week-day-header"><div class="hc-week-day-name">Mar</div><div class="hc-week-day-num">08</div></div><div class="hc-week-cmd hc-st-plan">CMD-1043</div><div class="hc-week-cmd hc-st-plan">CMD-1044</div><div class="hc-week-cmd hc-st-plan">CMD-1045</div></div><div class="hc-week-day"><div class="hc-week-day-header"><div class="hc-week-day-name">Mer</div><div class="hc-week-day-num">09</div></div><div class="hc-week-cmd hc-st-plan">CMD-1046</div><div class="hc-week-cmd hc-st-plan">CMD-1047</div></div><div class="hc-week-day"><div class="hc-week-day-header"><div class="hc-week-day-name">Jeu</div><div class="hc-week-day-num">10</div></div><div class="hc-week-cmd hc-st-plan">CMD-1048</div><div class="hc-week-cmd hc-st-plan">CMD-1049</div><div class="hc-week-cmd hc-st-plan">CMD-1050</div></div><div class="hc-week-day"><div class="hc-week-day-header"><div class="hc-week-day-name">Ven</div><div class="hc-week-day-num">11</div></div><div class="hc-week-cmd hc-st-plan">CMD-1051</div><div class="hc-week-cmd hc-st-plan">CMD-1052</div></div><div class="hc-week-day"><div class="hc-week-day-header"><div class="hc-week-day-name">Sam</div><div class="hc-week-day-num">12</div></div><div class="hc-week-cmd hc-st-plan">CMD-1053</div></div><div class="hc-week-day"><div class="hc-week-day-header"><div class="hc-week-day-name">Dim</div><div class="hc-week-day-num">13</div></div><div style="font-size:8.5px;color:#9CA3AF;text-align:center;margin-top:6px;">Repos</div></div></div><div class="hc-box"><div class="hc-section-title">🛒 Commandes de la semaine</div><div class="hc-row"><span style="font-family:JetBrains Mono;font-size:9px;color:#9CA3AF;">CMD-1038</span> <strong>Marché Provence</strong><span class="hc-cmd-status hc-st-livre">Livrée</span></div><div class="hc-row"><span style="font-family:JetBrains Mono;font-size:9px;color:#9CA3AF;">CMD-1039</span> <strong>Boutique Nice</strong><span class="hc-cmd-status hc-st-fab">Fabriquée</span></div><div class="hc-row"><span style="font-family:JetBrains Mono;font-size:9px;color:#9CA3AF;">CMD-1041</span> <strong>Épicerie Lou</strong><span class="hc-cmd-status hc-st-cours">En cours</span></div><div class="hc-row"><span style="font-family:JetBrains Mono;font-size:9px;color:#9CA3AF;">CMD-1043</span> <strong>Hôtel Negresco</strong><span class="hc-cmd-status hc-st-plan">Planifiée</span></div></div></div></div></div>
+        <div class="hc-slide" data-name="07"><div class="browser"><div class="browser-bar"><div class="browser-dots"><span style="background:#FF5F57"></span><span style="background:#FFBD2E"></span><span style="background:#28C840"></span></div><div class="browser-url">arteasy.fr / facture / FAC-2026-089</div></div><div class="hc-content"><div class="hc-header"><div><div class="hc-title">Génération facture automatique</div><div class="hc-subtitle">Envoyée et payée en 1 clic après livraison</div></div><span class="hc-badge hc-badge-ok">✓ Envoyée</span></div><div class="hc-invoice"><div class="hc-invoice-header"><div><div class="hc-invoice-num">FACTURE FAC-2026-089</div><div style="font-size:12px;font-weight:700;margin-top:3px;">La Cave de Pascal</div><div style="font-size:9.5px;color:#9CA3AF;">12 rue des Halles · 13001 Marseille</div></div><div style="text-align:right;"><div class="hc-invoice-amount">386,00 €</div><div class="hc-invoice-status">✓ Payée le 04/04</div></div></div><div class="hc-invoice-line"><span>Tablettes 70% × 8</span><span>112,00 €</span></div><div class="hc-invoice-line"><span>Ganaches assortiment × 12</span><span>156,00 €</span></div><div class="hc-invoice-line"><span>Truffes cacao × 24</span><span>118,00 €</span></div><div class="hc-invoice-line" style="border-top:1px solid #e6dfd0;padding-top:6px;margin-top:6px;font-weight:700;font-size:12px;color:#1A1410;"><span>Total HT</span><span>386,00 €</span></div><div class="hc-invoice-tags"><span style="background:#EDE9FE;color:#6D28D9;">✦ PDF généré IA</span><span style="background:#DCFCE7;color:#15803D;">✓ Envoyée par email</span><span style="background:#DBEAFE;color:#1E40AF;">SEPA</span></div></div></div></div></div>
+      </div>
+      <div class="hc-indicators" id="hcIndicators"></div>
     </div>
-  </div></section>
+  </div>
+</section>
 
-  <section><div class="wrap">
-    <h2 class="sec-h">Le parcours, en vrai</h2>
-    <p class="sec-lead">Une commande entre une seule fois. Elle devient tout le reste, toute seule.</p>
-    <div class="steps">
-      <div class="stp"><h4>La commande arrive</h4><p>Photo, PDF ou email. Vous la déposez dans ArtEasy.</p></div>
-      <div class="stp"><h4>L'IA la lit</h4><p>Les produits et les quantités se remplissent en quelques secondes.</p></div>
-      <div class="stp"><h4>Le stock réagit</h4><p>Déduction automatique, alerte si un emballage va manquer.</p></div>
-      <div class="stp"><h4>La facture part</h4><p>Générée depuis la livraison. Suivi des paiements et relances inclus.</p></div>
+<!-- ============================ BADGES ============================ -->
+<section class="scrolling-badges-section">
+  <div class="scrolling-badges-container">
+    <div class="badge-chip badge-dashboard">Dashboard</div>
+    <div class="badge-chip badge-stock">Stock</div>
+    <div class="badge-chip badge-commande">Commande Article</div>
+    <div class="badge-chip badge-facturation">Facturation</div>
+    <div class="badge-chip badge-production">Production</div>
+    <div class="badge-chip badge-bon">Bon de Commande</div>
+    <div class="badge-chip badge-recette">Recette</div>
+    <div class="badge-chip badge-genai">Génération IA</div>
+    <div class="badge-chip badge-integration">Intégration IA</div>
+    <div class="badge-chip badge-dashboard">Dashboard</div>
+    <div class="badge-chip badge-stock">Stock</div>
+    <div class="badge-chip badge-commande">Commande Article</div>
+    <div class="badge-chip badge-facturation">Facturation</div>
+    <div class="badge-chip badge-production">Production</div>
+    <div class="badge-chip badge-bon">Bon de Commande</div>
+    <div class="badge-chip badge-recette">Recette</div>
+    <div class="badge-chip badge-genai">Génération IA</div>
+    <div class="badge-chip badge-integration">Intégration IA</div>
+  </div>
+</section>
+
+<!-- ============================ FLOW (100% AUTOMATISÉE) ============================ -->
+<section id="flow" class="sec-white">
+  <div class="section-inner">
+    <div class="flow-headline">
+      <span class="eyebrow-mini">Le parcours d'une commande</span>
+      <h2 style="font-size: 36px">
+        Votre activité 100% automatisée,
+        <span class="l2" style="font-size: 36px; color: inherit; display: block; margin-top: 4px;">de la commande à la facturation</span>
+      </h2>
+      <div class="punchline" style="font-family: Fraunces; font-size: 36px">tout s'enchaîne en 1 clic</div>
     </div>
-  </div></section>
-
-  <section><div class="wrap">
-    <h2 class="sec-h">Ce que vous voyez le matin</h2>
-    <p class="sec-lead">Un écran, 30 secondes. Fini la chasse aux informations au démarrage de journée.</p>
-    <div class="dash">
-      <div class="dh">Tableau de bord · lundi</div>
-      <div class="dash-grid">
-        <div class="dc alert"><div class="k">Alertes stock</div><div class="v">3 articles</div></div>
-        <div class="dc"><div class="k">Factures à relancer</div><div class="v">4 · 825 €</div></div>
-        <div class="dc"><div class="k">Production du jour</div><div class="v">2 OF</div></div>
+    <div class="flow-steps">
+      <div class="flow-step s1">
+        <span class="num">01</span>
+        <div class="label">Commande</div>
+        <h4 style="color: rgb(26, 20, 16)">reçue</h4>
+        <p>Téléphone, mail, marché, e-shop : tout converge. L'IA lit les pièces jointes et remplit le bon de commande pour vous.</p>
+      </div>
+      
+      <div class="flow-step s2">
+        <span class="num">02</span>
+        <div class="label">Stock</div>
+        <h4>vérifié</h4>
+        <p>Ingrédients, contenants, étiquettes — déduction automatique. Alerte préventive avant la rupture.</p>
+      </div>
+      
+      <div class="flow-step s3">
+        <span class="num">03</span>
+        <div class="label">Production</div>
+        <h4>lancée</h4>
+        <p>Recette intégrée, ordre de fabrication généré, lot tracé. Conformité BPF, EN71, INCI selon votre métier.</p>
+      </div>
+      
+      <div class="flow-step s4">
+        <span class="num">04</span>
+        <div class="label">Livraison</div>
+        <h4 style="margin: 0px 0px 4px">programmée</h4>
+        <p>Bon de livraison, étiquettes, planning : tout préparé pour le départ.</p>
+      </div>
+      
+      <div class="flow-step s5">
+        <span class="num">05</span>
+        <div class="label">Facture</div>
+        <h4>payée</h4>
+        <p>PDF aux normes, envoi auto à la livraison, relance auto. Suivi des encaissements en un coup d'œil.</p>
       </div>
     </div>
-  </div></section>
+  </div>
+</section>
+<!-- ============================ SLIDESHOW VIDEO DEMO ============================ -->
+<section class="slideshow-section" id="demo">
+  <div class="slideshow-headline">
+    <h2>Comment ça marche?<span class="l2">Toutes les fonctionnalités en détails</span></h2>
+  </div>
+  <div class="slideshow-frame-wrap">
+    <iframe id="arteasy-slideshow-iframe" src="/arteasy-slideshow.html" title="ARTEASY — Démonstration interactive" loading="lazy" allowfullscreen></iframe>
+    <button type="button" class="slideshow-swipe-btn slideshow-arrow-left" data-slide-action="prev" aria-label="Slide précédente"><span class="arrow">←</span></button>
+    <button type="button" class="slideshow-swipe-btn slideshow-arrow-right" data-slide-action="next" aria-label="Slide suivante"><span class="arrow">→</span></button>
+  </div>
+  <div class="slideshow-cta">
+    <a href="#" class="btn-primary" data-cta>Réserver mon appel d'installation →</a>
+  </div>
+</section>
 
-  <section id="offre-a"><div class="wrap">
-    <div class="offer"><div class="offer-grid">
-      <div>
-        <span class="eyebrow">Offre fondateur</span>
-        <div class="price"><s>≈ 947 € / an ailleurs</s>97 € <span style="font-size:1.1rem;font-weight:500">à vie</span></div>
-        <p style="color:var(--ink-2);margin-top:6px">Palier 1 · <b data-places-left>—</b> places sur <span data-places-total>6</span>. Puis 147 €, puis 197 €.</p>
-        <div class="places" style="margin-top:14px"><span class="dot"></span> On ne rouvre jamais un palier fermé</div>
-        <div class="guarantee"><b>Garantie 30 jours remboursé, sans question.</b> Et si je n'arrive pas à importer vos données proprement pendant l'installation, vous ne payez rien tant que ce n'est pas réglé.</div>
-      </div>
-      <div>
-        <ul>
-          <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 10l4 4 8-9"/></svg> L'outil complet, tous les modules, pour toujours</li>
-          <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 10l4 4 8-9"/></svg> Installation en visio par le fondateur (20 min)</li>
-          <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 10l4 4 8-9"/></svg> Import de vos données (produits, clients, stock) fait pour vous</li>
-          <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 10l4 4 8-9"/></svg> Presets métier : plan comptable et catalogue pré-configurés</li>
-          <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 10l4 4 8-9"/></svg> Support WhatsApp direct avec le fondateur pendant 60 jours</li>
+<!-- ============================ AVANT / APRÈS ============================ -->
+<section id="avant-apres" class="sec-white">
+  <div class="section-inner">
+    <div class="section-head">
+      <div class="section-eyebrow">Avant — Après</div>
+      <h2 style="font-size: 36px">Vous perdiez un temps fou!<br><span class="accent">C'est fini</span></h2>
+    </div>
+    <div class="aa-grid">
+      <!-- AVANT (encart gris) -->
+      <div class="aa-col aa-col-avant" style="background-color: rgb(236, 230, 216)">
+        <div class="aa-tag aa-tag-avant" style="background-color: rgb(192, 57, 43); color: rgb(255, 255, 255)">Avant</div>
+        <h3 style="font-family: Tahoma; color: rgb(192, 57, 43)">Avant <span class="brand" style="background-color: rgb(236, 230, 216); color: rgb(192, 57, 43)">ARTEASY</span></h3>
+        <ul class="aa-list aa-list-avant">
+          <li><span class="ico">📞</span><span>Commande par téléphone, SMS ou Messenger. Vous notez sur un coin de table.</span></li>
+          <li><span class="ico">🔍</span><span>Vous vérifiez votre stock à la main. Ou pas. Rupture surprise. Client mécontent.</span></li>
+          <li><span class="ico">🔥</span><span>Vous relancez la production en catastrophe. La facture, elle, attendra demain.</span></li>
+          <li><span class="ico">🌙</span><span>Le soir, vous ressaisissez tout dans Excel. Encore.</span></li>
+          <li><span class="ico">😩</span><span>Vous ne savez pas vraiment ce qui est rentable, ni combien vous gagnez.</span></li>
         </ul>
-        <div style="margin-top:22px"><a class="cta" data-cta href="#">Réserver mon appel <span class="arw">→</span></a>
-        <p class="cta-sub">En échange : vous l'utilisez pour de vrai et vous me dites ce qui cloche.</p></div>
       </div>
-    </div></div>
-  </div></section>
-
-  <section><div class="wrap" style="max-width:760px">
-    <h2 class="sec-h">Questions</h2>
-    <div class="faq" data-faq></div>
-  </div></section>
-
-  <section><div class="wrap" style="max-width:760px">
-    <div class="founder">
-      <div class="ph">H</div>
-      <div>
-        <span class="eyebrow">Le fondateur</span>
-        <p style="margin-top:8px" data-founder></p>
+      <!-- APRÈS (encart orange) -->
+      <div class="aa-col aa-col-apres">
+        <div class="aa-tag aa-tag-apres" style="background-color: rgb(22, 163, 74)">Avec</div>
+        <h3><span style="color:#16a34a">Avec <span class="brand" style="font-family: Tahoma">ARTEASY</span></span></h3>
+        <ul class="aa-list aa-list-apres">
+          <li><span class="ico">📦</span><span>Une commande arrive. L'IA lit la quantité, déduit le stock, alerte si un produit manque.</span></li>
+          <li><span class="ico">📋</span><span>Le bon de commande fournisseur est généré tout seul. Vous validez en un clic.</span></li>
+          <li><span class="ico">📅</span><span>Le planning de production s'ajuste en temps réel.</span></li>
+          <li><span class="ico">📄</span><span>À la sortie d'atelier, la facture est déjà prête et envoyée.</span></li>
+          <li><span class="ico">😌</span><span>À la fin, vous n'avez rien tapé.</span></li>
+        </ul>
+        <div class="aa-quote-bottom">« Vous n'avez rien tapé. Rien. »</div>
       </div>
     </div>
-  </div></section>
-
-  <section><div class="wrap">
-    <div class="final">
-      <h2>20 minutes. À la fin, soit ça tourne sur votre activité, soit on s'est dit au revoir.</h2>
-      <a class="cta" data-cta href="#" style="background:#fff;color:var(--tc-deep)">Réserver mon appel d'installation <span class="arw">→</span></a>
-      <p class="cta-sub" style="color:#C9BCA6">Gratuit · sans carte bancaire · <b style="color:#fff">le paiement se fait après, si vous êtes convaincu</b></p>
+  </div>
+</section>
+<!-- ============================ OFFRE DE LANCEMENT ============================ -->
+<section id="final" class="offre-section">
+  <div class="offre-inner">
+    <div class="offre-head">
+      <h2>Offre fondateur<span class="l2">3 paliers, places réellement limitées</span></h2>
     </div>
-  </div></section>
+    <div class="offre-grid">
+      <div class="offre-benefits">
+        <div class="offre-benefits-eyebrow offre-tag-green">Ce que vous obtenez</div>
+        <div class="offre-benefits-title">Rejoignez les artisans fondateurs</div>
+        <ul>
+          <li><span><strong>L'outil complet</strong>, tous les modules, pour toujours</span></li>
+          <li><span><strong>Installation en visio par le fondateur</strong> (20 minutes)</span></li>
+          <li><span><strong>Import de vos données</strong> (produits, clients, stock) fait pour vous</span></li>
+          <li><span><strong>Presets métier</strong> : plan comptable et catalogue pré-configurés</span></li>
+          <li><span><strong>Support WhatsApp direct</strong> avec le fondateur pendant 60 jours</span></li>
+          <li><span><strong>Garantie 30 jours</strong> remboursé, sans question</span></li>
+        </ul>
+      </div>
+      <div class="offre-pricecard">
+        <div class="offre-pricecard-tag offre-tag-red"><span data-places-left>—</span> places sur <span data-places-total>6</span> au palier en cours</div>
+        <div class="offre-price-main" data-price-main>97€</div>
+        <div class="offre-price-life">À VIE</div>
+        <div class="offre-price-old">≈ 947€/an ailleurs</div>
+        <div class="offre-tiers">
+          <div class="offre-tier is-current" data-tier="1"><span class="ot-p">97€</span><span class="ot-s">Palier 1 · 6 places</span></div>
+          <div class="offre-tier" data-tier="2"><span class="ot-p">147€</span><span class="ot-s">Palier 2 · 6 places</span></div>
+          <div class="offre-tier" data-tier="3"><span class="ot-p">197€</span><span class="ot-s">Palier 3 · 8 places</span></div>
+        </div>
+        <div class="offre-price-target">On ne rouvre jamais un palier fermé.</div>
+        <a href="#" class="btn-primary" data-cta>Réserver mon appel d'installation →</a>
+      </div>
+    </div>
+    <div class="offre-fineprint">
+      <strong>Garantie 30 jours remboursé, sans question.</strong> Et si je n'arrive pas à importer vos données proprement pendant l'installation, vous ne payez rien tant que ce n'est pas réglé.<br>Installation faite par le fondateur en personne, pas un onboarding automatisé.
+    </div>
+  </div>
+</section>
 
-  <footer>ArtEasy · arteasy.fr · gestion pour artisans transformateurs · hébergement Europe, RGPD</footer>
+<!-- ============================ FAQ ============================ -->
+<section class="faq-section" id="faq">
+  <div class="faq-inner">
+    <div class="faq-head">
+      <h2>Questions<span class="l2">fréquemment posées</span></h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" type="button"><span>Je n'ai pas le temps d'apprendre un logiciel.</span><span class="faq-q-icon">+</span></button>
+        <div class="faq-a">C'est pour ça que je fais l'installation moi-même, en visio. J'importe vos données pendant l'appel, vous n'avez rien à configurer. Et vous avez mon WhatsApp direct pendant 60 jours.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button"><span>Il se passe quoi pendant l'appel ?</span><span class="faq-q-icon">+</span></button>
+        <div class="faq-a">On regarde comment vous gérez aujourd'hui (5 min), je vous montre l'outil sur une de vos commandes, j'importe votre catalogue et vos clients, et vous décidez. Aucune préparation à faire.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button"><span>Ça marche pour mon métier ?</span><span class="faq-q-icon">+</span></button>
+        <div class="faq-a">Si vous achetez des matières, vous fabriquez, et vous vendez à des magasins ou sur des marchés&#8239;: oui. Confiture, jus, sirop, chocolat, savon, cosmétique, miel, conserves, biscuiterie, bière, kombucha.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button"><span>97€ à vie, c'est quoi le piège ?</span><span class="faq-q-icon">+</span></button>
+        <div class="faq-a">Aucun. C'est le tarif des 6 premiers artisans fondateurs. En échange, vous utilisez l'outil pour de vrai et vous me dites ce qui cloche. Le prix ne bougera jamais pour vous, même quand on passera en abonnement pour les nouveaux.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button"><span>Et si ça ne me convient pas ?</span><span class="faq-q-icon">+</span></button>
+        <div class="faq-a">30 jours pour être remboursé, sans avoir à vous justifier. Et si je n'arrive pas à importer vos données proprement pendant l'installation, vous ne payez rien tant que ce n'est pas réglé.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button"><span>Mes données sont-elles en sécurité ?</span><span class="faq-q-icon">+</span></button>
+        <div class="faq-a">Hébergement en Europe, chiffré, conforme RGPD. Vous pouvez tout exporter quand vous voulez.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button"><span>Combien de temps pour être opérationnel ?</span><span class="faq-q-icon">+</span></button>
+        <div class="faq-a">L'installation dure 20 minutes. Vous ressortez de l'appel avec l'outil qui tourne sur vos vraies données.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>ARTEASY&nbsp; L'outil fait pour les artisans fabricants</div>
+  <div>
 </div>
+</footer>
+
+<script>
+  // HERO ROTATOR — words appear one after the other, replacing the previous
+  (function() {
+    const words = ['centralisée.', 'automatisée.', 'optimisée.', "boostée à l'IA."];
+    const el = document.getElementById('rotator');
+    let i = 0;
+    function show(idx) {
+      const w = document.createElement('span');
+      w.className = 'hero-rotator-word in';
+      w.textContent = words[idx];
+      el.innerHTML = '';
+      el.appendChild(w);
+    }
+    function tick() {
+      const cur = el.querySelector('.hero-rotator-word');
+      if (cur) {
+        cur.classList.remove('in');
+        cur.classList.add('out');
+        setTimeout(() => {
+          i = (i + 1) % words.length;
+          show(i);
+        }, 350);
+      }
+    }
+    setTimeout(() => setInterval(tick, 2400), 1800);
+  })();
+</script>
+
+<script>
+(function() {
+  var slides = document.querySelectorAll('.hc-slide');
+  var indContainer = document.getElementById('hcIndicators');
+  if (!slides.length || !indContainer) return;
+  var current = 0;
+  slides.forEach(function(s, i) {
+    var ind = document.createElement('div');
+    ind.className = 'hc-indicator' + (i === 0 ? ' active' : '');
+    ind.addEventListener('click', function() { goTo(i); resetTimer(); });
+    indContainer.appendChild(ind);
+  });
+  var indicators = document.querySelectorAll('.hc-indicator');
+  function goTo(idx) {
+    slides[current].classList.remove('active');
+    indicators[current].classList.remove('active');
+    current = idx;
+    slides[current].classList.add('active');
+    indicators[current].classList.add('active');
+  }
+  function next() { goTo((current + 1) % slides.length); }
+  var timer = setInterval(next, 4000);
+  function resetTimer() { clearInterval(timer); timer = setInterval(next, 4000); }
+})();
+</script>
+
+<script>
+(function() {
+  // FAQ accordion - capture phase pour court-circuiter le click handler global
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.faq-q');
+    if (btn) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      var item = btn.closest('.faq-item');
+      if (item) item.classList.toggle('open');
+      return;
+    }
+    // Slideshow controls - postMessage vers iframe
+    var sbtn = e.target.closest('.slideshow-swipe-btn');
+    if (sbtn) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      var action = sbtn.getAttribute('data-slide-action');
+      var iframe = document.getElementById('arteasy-slideshow-iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({type: 'arteasy-slideshow-' + action}, '*');
+      }
+      return;
+    }
+  }, true); // capture phase
+})();
+</script>
 
 <script>
 "use strict";
-
 /* ============ À CONFIGURER — en attente des vraies URLs (04/09) ============ */
 var CTA_URL = "https://cal.com/PLACEHOLDER-EN-ATTENTE-URL-REELLE";
 var SOLD_P1 = 0;
 var TOTAL_P1 = 6;
 /* ============================================================================= */
-
-var FAQ = [
- ["Je n'ai pas le temps d'apprendre un logiciel.","C'est pour ça que je fais l'installation moi-même, en visio. J'importe vos données pendant l'appel, vous n'avez rien à configurer. Et vous avez mon WhatsApp direct pendant 60 jours."],
- ["Il se passe quoi pendant l'appel ?","On regarde comment vous gérez aujourd'hui (5 min), je vous montre l'outil sur une de vos commandes, j'importe votre catalogue et vos clients, et vous décidez. Aucune préparation à faire."],
- ["Ça marche pour mon métier ?","Si vous achetez des matières, vous fabriquez, et vous vendez à des magasins ou sur des marchés : oui. Confiture, jus, sirop, chocolat, savon, cosmétique, miel, conserves, biscuiterie, bière, kombucha."],
- ["97 € à vie, c'est quoi le piège ?","Aucun. C'est le tarif des 6 premiers artisans fondateurs. En échange, vous utilisez l'outil pour de vrai et vous me dites ce qui cloche. Le prix ne bougera jamais pour vous, même quand on passera en abonnement pour les nouveaux."],
- ["Et si ça ne me convient pas ?","30 jours pour être remboursé, sans avoir à vous justifier. Et si je n'arrive pas à importer vos données proprement pendant l'installation, vous ne payez rien tant que ce n'est pas réglé."],
- ["Mes données sont en sécurité ?","Hébergement en Europe, chiffré, conforme RGPD. Vous pouvez tout exporter quand vous voulez."],
- ["Combien de temps pour être opérationnel ?","L'installation dure 20 minutes. Vous ressortez de l'appel avec l'outil qui tourne sur vos vraies données."]
-];
-var FAQ_A = [0,2,4,5];
-
-var FOUNDER = "Je m'appelle Hari. J'ai construit ArtEasy après avoir passé des journées entières dans des ateliers d'artisans — à les voir cuire le matin et ressaisir des commandes le soir. Je ne cherche pas 500 clients ce mois-ci. Je cherche 6 artisans qui utilisent vraiment l'outil et me disent tout ce qui ne va pas. Si c'est vous, réservez un créneau : on verra en 20 minutes si ça vous change la vie ou pas.";
-
-function faqInto(host,idx){
-  if(!host) return;
-  host.innerHTML = "";
-  idx.forEach(function(i){
-    var d=document.createElement("details");
-    var s=document.createElement("summary");s.textContent=FAQ[i][0];
-    var p=document.createElement("p");p.textContent=FAQ[i][1];
-    d.appendChild(s);d.appendChild(p);host.appendChild(d);
-  });
-}
-document.querySelectorAll("#page-a [data-faq]").forEach(function(h){faqInto(h,FAQ_A);});
-document.querySelectorAll("[data-founder]").forEach(function(e){e.textContent=FOUNDER;});
-
-/* ---- places counter ---- */
 var left = Math.max(0, TOTAL_P1 - SOLD_P1);
 document.querySelectorAll("[data-places-left]").forEach(function(e){e.textContent=left;});
 document.querySelectorAll("[data-places-total]").forEach(function(e){e.textContent=TOTAL_P1;});
-
-/* ---- CTA wiring ---- */
-function wireCTA(){
-  document.querySelectorAll(".page.on [data-cta]").forEach(function(a){
-    var sep = CTA_URL.indexOf("?")>-1 ? "&" : "?";
-    a.setAttribute("href", CTA_URL + sep + "utm_source=landing-a&utm_medium=landing&utm_campaign=sprint10");
-  });
-}
-wireCTA();
-
-/* ---- demo animation ---- */
-var demoTimer=null, demoStep=0;
-var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
-function paintDemo(){
-  var cards=document.querySelectorAll("#dfStage .df-card");
-  var bars=document.querySelectorAll("#dfTrack i");
-  cards.forEach(function(c){c.classList.toggle("show", +c.dataset.step===demoStep);});
-  bars.forEach(function(b,i){b.classList.toggle("act", i<=demoStep);});
-}
-function startDemo(){
-  if(!document.getElementById("dfStage")) return;
-  stopDemo();
-  if(reduce){ demoStep=3; paintDemo(); return; }
-  demoStep=0; paintDemo();
-  demoTimer=setInterval(function(){
-    demoStep=(demoStep+1)%4; paintDemo();
-  },2300);
-}
-function stopDemo(){ if(demoTimer){clearInterval(demoTimer);demoTimer=null;} }
-startDemo();
+document.querySelectorAll("[data-cta]").forEach(function(a){
+  var sep = CTA_URL.indexOf("?")>-1 ? "&" : "?";
+  a.setAttribute("href", CTA_URL + sep + "utm_source=landing&utm_medium=landing&utm_campaign=sprint10");
+});
 </script>
+
 </body>
 </html>
