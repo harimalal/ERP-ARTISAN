@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merci — ArtEasy</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap">
+<script defer data-domain="arteasy.fr" src="https://plausible.io/js/script.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --tc: #C0543A; --tc-d: #9B3F28; --ink: #1A1410; --ink-m: #3D2E26; --ink-s: #7A6258;
+    --line: #EDE7DA; --soft: #FAF6EE;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+    color: var(--ink); background: var(--soft); line-height: 1.6;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 40px 20px;
+  }
+  .card {
+    max-width: 560px; width: 100%; background: #fff; border: 1px solid var(--line);
+    border-radius: 20px; padding: 52px 44px; box-shadow: 0 30px 70px rgba(26,20,16,.08);
+    text-align: center;
+  }
+  .check {
+    width: 60px; height: 60px; border-radius: 50%; background: #16A34A; color: #fff;
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;
+    font-size: 28px; font-weight: 800;
+  }
+  h1 {
+    font-family: 'Fraunces', serif; font-weight: 800; font-size: 30px; line-height: 1.15;
+    letter-spacing: -.02em; margin-bottom: 22px; color: var(--ink);
+  }
+  p { font-size: 16px; color: var(--ink-m); margin-bottom: 18px; }
+  p:last-of-type { margin-bottom: 0; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; background: var(--tc); color: #fff;
+    font-family: 'Manrope', sans-serif; font-weight: 600; font-size: 15px;
+    padding: 14px 26px; border-radius: 9px; text-decoration: none; margin: 8px 0 22px;
+    transition: background .2s, transform .2s;
+  }
+  .btn:hover { background: var(--tc-d); transform: translateY(-1px); }
+  .whatsapp {
+    font-size: 14px; color: var(--ink-s); border-top: 1px solid var(--line);
+    padding-top: 22px; margin-top: 8px;
+  }
+  .whatsapp a { color: var(--tc); font-weight: 600; text-decoration: none; }
+  .sign { margin-top: 24px; font-family: 'Fraunces', serif; font-weight: 700; font-size: 16px; color: var(--ink); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="check">&#10003;</div>
+    <h1>C'est fait. Bienvenue parmi les fondateurs d'ArtEasy.</h1>
+    <p>Prochaine étape&#8239;: on finit votre configuration ensemble. Si ce n'est pas déjà fait pendant l'appel, choisissez un créneau ici&#8239;:</p>
+    <a href="https://cal.com/reflex-ia-csktmb/30min" class="btn" data-cta>Réserver mon créneau d'installation →</a>
+    <p>D'ici là, préparez&#8239;: votre catalogue produits (Excel ou photo), votre liste clients, une commande récente type.</p>
+    <div class="whatsapp">
+      Une question&#8239;? Écrivez-moi directement sur WhatsApp&#8239;: <a href="https://wa.me/33666007134">06 66 00 71 34</a>. Je réponds vite.
+    </div>
+    <div class="sign">Hari, fondateur d'ArtEasy</div>
+  </div>
+</body>
+</html>

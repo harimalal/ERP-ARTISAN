@@ -22,6 +22,11 @@
   to = "/app.html"
   status = 200
 
+[[redirects]]
+  from = "/merci"
+  to = "/merci.html"
+  status = 200
+
 # Sécurité : headers sur toutes les pages
 [[headers]]
   for = "/*"
