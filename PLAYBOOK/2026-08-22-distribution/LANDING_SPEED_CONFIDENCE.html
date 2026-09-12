@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARTEASY — Facture + Commande pour Artisans</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Manrope:wght@400;500;600&display=swap">
+    <style>
+        :root {
+            --color-bg: #ffffff;
+            --color-fg: #0d0d0d;
+            --color-fg-secondary: #5a5a5a;
+            --color-border: #e8e8e8;
+            --color-accent: #ff6b2c;
+            --color-accent-dark: #ff4800;
+            --color-accent-light: #fff0eb;
+            --color-card-bg: #f8f8f8;
+            --color-secondary: #0d0d0d;
+
+            --type-display: "Space Grotesk", system-ui, sans-serif;
+            --type-body: "Manrope", system-ui, sans-serif;
+
+            --space-1: 0.5rem;
+            --space-2: 1rem;
+            --space-3: 1.5rem;
+            --space-4: 2rem;
+            --space-6: 3rem;
+            --space-8: 4rem;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --color-bg: #0d0d0d;
+                --color-fg: #ffffff;
+                --color-fg-secondary: #b0b0b0;
+                --color-border: #2a2a2a;
+                --color-accent: #ff7745;
+                --color-accent-dark: #ff5522;
+                --color-accent-light: #2a1810;
+                --color-card-bg: #1a1a1a;
+                --color-secondary: #ffffff;
+            }
+        }
+
+        :root[data-theme="dark"] {
+            --color-bg: #0d0d0d;
+            --color-fg: #ffffff;
+            --color-fg-secondary: #b0b0b0;
+            --color-border: #2a2a2a;
+            --color-accent: #ff7745;
+            --color-accent-dark: #ff5522;
+            --color-accent-light: #2a1810;
+            --color-card-bg: #1a1a1a;
+            --color-secondary: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--type-body);
+            color: var(--color-fg);
+            background: var(--color-bg);
+            line-height: 1.6;
+        }
+
+        /* HEADER */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-3) var(--space-4);
+            border-bottom: 1px solid var(--color-border);
+            position: sticky;
+            top: 0;
+            background: var(--color-bg);
+            z-index: 100;
+            background: rgba(13, 13, 13, 0.95);
+            backdrop-filter: blur(8px);
+        }
+
+        .logo {
+            font-family: var(--type-display);
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        nav {
+            display: flex;
+            gap: var(--space-4);
+            align-items: center;
+        }
+
+        nav a {
+            color: var(--color-fg);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        nav a:hover {
+            color: var(--color-accent);
+        }
+
+        .cta-header {
+            background: var(--color-accent);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .cta-header:hover {
+            background: var(--color-accent-dark);
+            transform: translateY(-2px);
+        }
+
+        /* HERO */
+        .hero {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-6);
+            align-items: center;
+            padding: var(--space-8) var(--space-4);
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .hero-content h1 {
+            font-family: var(--type-display);
+            font-size: 3.5rem;
+            line-height: 1.15;
+            margin-bottom: var(--space-3);
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+
+        .hero-highlight {
+            color: var(--color-accent);
+        }
+
+        .hero-content p {
+            font-size: 1.125rem;
+            color: var(--color-fg-secondary);
+            margin-bottom: var(--space-4);
+            line-height: 1.8;
+        }
+
+        .cta-group {
+            display: flex;
+            gap: var(--space-2);
+            align-items: center;
+        }
+
+        .cta-primary {
+            display: inline-block;
+            background: var(--color-accent);
+            color: white;
+            padding: var(--space-3) var(--space-6);
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: all 0.3s;
+            border: 2px solid var(--color-accent);
+        }
+
+        .cta-primary:hover {
+            background: var(--color-accent-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(255, 107, 44, 0.3);
+        }
+
+        .cta-secondary-link {
+            color: var(--color-accent);
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .cta-secondary-link:hover {
+            text-decoration: underline;
+        }
+
+        /* HERO VISUAL */
+        .hero-visual {
+            background: linear-gradient(135deg, var(--color-accent-light) 0%, transparent 100%);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            padding: var(--space-6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 450px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-visual::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 107, 44, 0.1) 0%, transparent 70%);
+            animation: glow 4s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(20px, -20px); }
+        }
+
+        .hero-visual-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .hero-visual-icon {
+            font-size: 5rem;
+            margin-bottom: var(--space-4);
+            display: block;
+        }
+
+        .hero-visual-text {
+            font-family: var(--type-display);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--color-fg);
+            margin-bottom: var(--space-2);
+        }
+
+        .hero-visual-subtext {
+            color: var(--color-fg-secondary);
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        /* STATS */
+        .stats {
+            background: var(--color-secondary);
+            color: white;
+            padding: var(--space-8) var(--space-4);
+        }
+
+        .stats-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--space-4);
+            text-align: center;
+        }
+
+        .stat {
+            padding: var(--space-4);
+        }
+
+        .stat-number {
+            font-family: var(--type-display);
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-bottom: var(--space-1);
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        /* TESTIMONIALS */
+        .testimonials {
+            padding: var(--space-8) var(--space-4);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-family: var(--type-display);
+            font-size: 2.5rem;
+            margin-bottom: var(--space-6);
+            text-align: center;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-4);
+        }
+
+        .testimonial {
+            background: var(--color-card-bg);
+            padding: var(--space-4);
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+            transition: all 0.3s;
+        }
+
+        .testimonial:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(255, 107, 44, 0.1);
+        }
+
+        .testimonial-text {
+            color: var(--color-fg);
+            margin-bottom: var(--space-3);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .testimonial-author {
+            font-weight: 700;
+            color: var(--color-fg);
+            font-size: 0.9rem;
+        }
+
+        .testimonial-role {
+            color: var(--color-accent);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* FEATURES */
+        .features {
+            padding: var(--space-8) var(--space-4);
+            background: var(--color-card-bg);
+            border-top: 1px solid var(--color-border);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-4);
+        }
+
+        .feature {
+            padding: var(--space-4);
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .feature:hover {
+            border-color: var(--color-accent);
+            box-shadow: 0 4px 16px rgba(255, 107, 44, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: var(--space-3);
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--color-accent-light);
+            border-radius: 8px;
+        }
+
+        .feature-title {
+            font-family: var(--type-display);
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: var(--space-1);
+            color: var(--color-fg);
+        }
+
+        .feature-desc {
+            color: var(--color-fg-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* PRICING */
+        .pricing {
+            padding: var(--space-8) var(--space-4);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-6);
+            margin-top: var(--space-6);
+        }
+
+        .pricing-card {
+            border: 2px solid var(--color-border);
+            border-radius: 12px;
+            padding: var(--space-5);
+            background: var(--color-card-bg);
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .pricing-card.featured {
+            border-color: var(--color-accent);
+            background: var(--color-accent-light);
+            transform: scale(1.05);
+        }
+
+        .pricing-badge {
+            position: absolute;
+            top: -12px;
+            right: 20px;
+            background: var(--color-accent);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .pricing-name {
+            font-family: var(--type-display);
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin-bottom: var(--space-2);
+            color: var(--color-fg);
+        }
+
+        .pricing-price {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-bottom: var(--space-1);
+        }
+
+        .pricing-desc {
+            color: var(--color-fg-secondary);
+            font-size: 0.9rem;
+            margin-bottom: var(--space-4);
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin-bottom: var(--space-4);
+        }
+
+        .pricing-features li {
+            padding: var(--space-2) 0;
+            border-bottom: 1px solid var(--color-border);
+            font-size: 0.9rem;
+            color: var(--color-fg);
+        }
+
+        .pricing-features li:before {
+            content: "✓ ";
+            color: var(--color-accent);
+            font-weight: 700;
+            margin-right: var(--space-1);
+        }
+
+        .pricing-cta {
+            display: block;
+            width: 100%;
+            background: var(--color-accent);
+            color: white;
+            border: none;
+            padding: var(--space-3);
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: var(--type-display);
+            font-size: 0.95rem;
+        }
+
+        .pricing-cta:hover {
+            background: var(--color-accent-dark);
+            transform: translateY(-2px);
+        }
+
+        /* FOOTER CTA */
+        .footer-cta {
+            background: linear-gradient(135deg, var(--color-secondary) 0%, rgba(0, 0, 0, 0.9) 100%);
+            color: white;
+            padding: var(--space-8) var(--space-4);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .footer-cta::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 107, 44, 0.1) 0%, transparent 70%);
+            animation: glow 4s ease-in-out infinite;
+        }
+
+        .footer-cta-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .footer-cta h2 {
+            font-family: var(--type-display);
+            font-size: 2.5rem;
+            margin-bottom: var(--space-3);
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .footer-cta p {
+            font-size: 1.1rem;
+            margin-bottom: var(--space-4);
+            opacity: 0.95;
+        }
+
+        .cta-final {
+            display: inline-block;
+            background: var(--color-accent);
+            color: white;
+            padding: var(--space-3) var(--space-6);
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.2s;
+        }
+
+        .cta-final:hover {
+            background: var(--color-accent-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(255, 107, 44, 0.4);
+        }
+
+        /* FOOTER */
+        footer {
+            background: var(--color-card-bg);
+            border-top: 1px solid var(--color-border);
+            padding: var(--space-4);
+            text-align: center;
+            color: var(--color-fg-secondary);
+            font-size: 0.85rem;
+        }
+
+        footer a {
+            color: var(--color-accent);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .hero {
+                grid-template-columns: 1fr;
+                padding: var(--space-4);
+            }
+
+            .hero-content h1 {
+                font-size: 2.2rem;
+            }
+
+            .stats-container,
+            .testimonials-grid,
+            .features-grid,
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pricing-card.featured {
+                transform: scale(1);
+            }
+
+            nav {
+                display: none;
+            }
+
+            header {
+                justify-content: center;
+            }
+
+            .cta-group {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .cta-primary {
+                width: 100%;
+                text-align: center;
+            }
+        }
+
+        /* ANIMATION */
+        @media (prefers-reduced-motion: no-preference) {
+            .hero-visual {
+                animation: slideInRight 0.8s ease-out;
+            }
+
+            .feature {
+                animation: fadeInUp 0.6s ease-out both;
+            }
+
+            .testimonial {
+                animation: fadeInUp 0.6s ease-out both;
+            }
+
+            @keyframes slideInRight {
+                from {
+                    opacity: 0;
+                    transform: translateX(40px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">ARTEASY</div>
+        <nav>
+            <a href="#stats">Traction</a>
+            <a href="#features">Fonctionnalités</a>
+            <a href="#pricing">Tarifs</a>
+            <a href="#" class="cta-header">Essai gratuit</a>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Factures en <span class="hero-highlight">30 secondes</span></h1>
+            <p>Pas d'Excel. Pas de calculatrice. Juste vous, votre commande, et une facture prête à envoyer. ARTEASY fait le reste automatiquement.</p>
+            <div class="cta-group">
+                <a href="#" class="cta-primary">Commencer gratuitement</a>
+                <a href="#" class="cta-secondary-link">Voir une démo →</a>
+            </div>
+        </div>
+
+        <div class="hero-visual">
+            <div class="hero-visual-content">
+                <span class="hero-visual-icon">⚡</span>
+                <div class="hero-visual-text">Vitesse. Clarté. Résultats.</div>
+                <div class="hero-visual-subtext">Pour les artisans qui n'ont pas le temps à perdre</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats" id="stats">
+        <div class="stats-container">
+            <div class="stat">
+                <div class="stat-number">4,200+</div>
+                <div class="stat-label">Artisans en confiance</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">890k</div>
+                <div class="stat-label">Factures en 2026</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">4.9/5</div>
+                <div class="stat-label">Satisfaction clients</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">15h</div>
+                <div class="stat-label">Gagnées par mois</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="testimonials">
+        <h2 class="section-title">Ils gagnent du temps</h2>
+        <div class="testimonials-grid">
+            <div class="testimonial">
+                <div class="testimonial-text">"Avant ARTEASY, je perdais 2h par jour en gestion administrative entre les commandes et les DLC. Aujourd'hui, c'est 10 minutes. La différence, c'est ma santé."</div>
+                <div class="testimonial-author">Antoine L.</div>
+                <div class="testimonial-role">Torréfacteur bio, Bretagne</div>
+            </div>
+            <div class="testimonial">
+                <div class="testimonial-text">"Mes clients pros disent que je suis plus réactive depuis que j'utilise ARTEASY. Les factures arrivent le jour même. Ça change tout."</div>
+                <div class="testimonial-author">Claire B.</div>
+                <div class="testimonial-role">Confiturière artisanale, IDF</div>
+            </div>
+            <div class="testimonial">
+                <div class="testimonial-text">"J'ai arrêté mon crayon et mon cahier de production. Maintenant, j'utilise mon téléphone. C'est plus simple, plus rapide, plus pro."</div>
+                <div class="testimonial-author">Hervé D.</div>
+                <div class="testimonial-role">Brasseur bio, Rhône-Alpes</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="features-container">
+            <h2 class="section-title">Tout ce que vous attendiez</h2>
+            <div class="features-grid">
+                <div class="feature">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-title">Tableau de bord</div>
+                    <div class="feature-desc">Un coup d'œil pour tout voir : revenu, impayés, en attente. Pas de recherche.</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">✏️</div>
+                    <div class="feature-title">Dévis → Facture</div>
+                    <div class="feature-desc">Un clic pour convertir un devis en commande. Un clic pour en faire une facture.</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🚀</div>
+                    <div class="feature-title">Envoi automatique</div>
+                    <div class="feature-desc">Programmez l'envoi. Vos clients reçoivent toujours à l'heure.</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📱</div>
+                    <div class="feature-title">Sur mobile aussi</div>
+                    <div class="feature-desc">Gérez tout depuis votre téléphone. L'atelier, c'est votre bureau maintenant.</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔒</div>
+                    <div class="feature-title">Sécurisé légalement</div>
+                    <div class="feature-desc">Conforme. Chiffré. Aucun risque. Vous êtes couvert.</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📈</div>
+                    <div class="feature-title">Rapports clairs</div>
+                    <div class="feature-desc">Exportez pour votre expert-comptable. Pas de feuille Excel à refaire.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="pricing" id="pricing">
+        <h2 class="section-title">Tarifs justes</h2>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <div class="pricing-name">Starter</div>
+                <div class="pricing-price">29€<span style="font-size: 0.8rem; color: var(--color-fg-secondary);">/mois</span></div>
+                <div class="pricing-desc">Parfait pour démarrer, sans engagement</div>
+                <ul class="pricing-features">
+                    <li>Jusqu'à 50 factures/mois</li>
+                    <li>1 utilisateur</li>
+                    <li>Support email</li>
+                    <li>Exports PDF</li>
+                </ul>
+                <button class="pricing-cta">Essayer gratuitement</button>
+            </div>
+
+            <div class="pricing-card featured">
+                <div class="pricing-badge">Plus populaire</div>
+                <div class="pricing-name">Pro</div>
+                <div class="pricing-price">79€<span style="font-size: 0.8rem; color: var(--color-fg-secondary);">/mois</span></div>
+                <div class="pricing-desc">Économisez 2 mois si vous payez à l'année</div>
+                <ul class="pricing-features">
+                    <li>Factures illimitées</li>
+                    <li>Jusqu'à 5 utilisateurs</li>
+                    <li>Support prioritaire</li>
+                    <li>Rapports complets</li>
+                    <li>Paiements en ligne</li>
+                    <li>Accès API</li>
+                </ul>
+                <button class="pricing-cta">Essayer gratuitement</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="footer-cta">
+        <div class="footer-cta-content">
+            <h2>Prêt à changer votre routine ?</h2>
+            <p>Essai complet gratuit pendant 7 jours. Pas de carte de crédit requise.</p>
+            <a href="#" class="cta-final">Créer mon compte</a>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 ARTEASY. La gestion simple pour les artisans. | <a href="#">Conditions</a> | <a href="#">Confidentialité</a></p>
+    </footer>
+</body>
+</html>

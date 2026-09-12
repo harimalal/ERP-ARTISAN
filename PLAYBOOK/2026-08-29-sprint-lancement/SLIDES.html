@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprint de lancement ArtEasy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  DECK PLAYBOOK — version "script YouTube pour la rétention"
+  Construit sur les principes de : Paddy Galloway (les 15 premières secondes, le
+  gap de curiosité), MrBeast (relancer la vidéo à chaque scène, ne jamais laisser
+  un temps mort), Ed Lawrence / Film Booth (accroche → promesse → boucles ouvertes
+  → payoffs, re-accrocher à chaque acte), Jenny Hoyos (phrases courtes, chaque
+  ligne appelle la suivante), Johnny Harris (montrer, pas raconter ; enjeu perso).
+  Chaque scène : un TITRE-accroche, une ligne de NARRATION (.vo), la preuve visuelle,
+  une BOUCLE OUVERTE (.loop) vers la scène suivante. Les termes techniques à retenir
+  sont isolés dans des encarts (.terme) — le reste est en langage courant.
+-->
+<style>
+  :root {
+    --ink: #16151C; --ink-soft: #55535F; --paper: #FAF9F6; --surface: #FFFFFF; --line: #E4E1DA;
+    --accent: #C0632F; --accent-soft: #F4E2D6;
+    --good: #1E8E5A; --good-soft: #E4F3EB; --warn: #B4700F; --warn-soft: #FBF0DD; --bad: #C4432C; --bad-soft: #FBE9E4;
+    --night: #131219; --night-surface: #1C1B26; --night-ink: #F2F0EA; --night-ink-soft: #A6A3B4; --night-line: #302E3E;
+    --night-accent: #E0885C; --night-accent-soft: rgba(224,136,92,.15); --night-good: #4ADE80; --night-good-soft: rgba(74,222,128,.12);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink); font-family: 'IBM Plex Sans', -apple-system, sans-serif; }
+  .display { font-family: 'Fraunces', Georgia, serif; text-wrap: balance; }
+  .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+
+  .deck { width: 100%; height: 100vh; position: relative; overflow: hidden; }
+  .slide {
+    position: absolute; inset: 0; display: none; flex-direction: column; justify-content: center;
+    padding: 7vh 9vw 10vh 12vw; opacity: 0; transform: translateY(10px) scale(.995);
+    transition: opacity .5s cubic-bezier(.2,.7,.3,1), transform .5s cubic-bezier(.2,.7,.3,1);
+    overflow-y: auto;
+  }
+  .slide.active { display: flex; opacity: 1; transform: none; z-index: 5; }
+  .slide.light { background: var(--paper); color: var(--ink); }
+  .slide.dark { background: var(--night); color: var(--night-ink); }
+  .slide.dark .ink-soft { color: var(--night-ink-soft); }
+  .light .ink-soft { color: var(--ink-soft); }
+
+  @keyframes riseIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .slide.active .eyebrow { animation: riseIn .5s cubic-bezier(.2,.8,.3,1) both; }
+  .slide.active h1, .slide.active h2 { animation: riseIn .55s cubic-bezier(.2,.8,.3,1) .07s both; }
+  .slide.active .vo { animation: riseIn .5s cubic-bezier(.2,.8,.3,1) .16s both; }
+  .slide.active > p { animation: riseIn .5s cubic-bezier(.2,.8,.3,1) .2s both; }
+  .slide.active .io-card { animation: riseIn .5s cubic-bezier(.2,.8,.3,1) .24s both; }
+  .slide.active .stat-grid > *, .slide.active .grid-4 > *, .slide.active .grid-2 > *,
+  .slide.active .timeline > *, .slide.active .control-split > *, .slide.active .checklist > li,
+  .slide.active .case-steps > .case-step { animation: riseIn .5s cubic-bezier(.2,.8,.3,1) both; }
+  .slide.active .stat-grid>*:nth-child(1), .slide.active .grid-4>*:nth-child(1), .slide.active .grid-2>*:nth-child(1),
+  .slide.active .timeline>*:nth-child(1), .slide.active .control-split>*:nth-child(1), .slide.active .checklist>li:nth-child(1),
+  .slide.active .case-steps>.case-step:nth-child(1) { animation-delay: .24s; }
+  .slide.active .stat-grid>*:nth-child(2), .slide.active .grid-4>*:nth-child(2), .slide.active .grid-2>*:nth-child(2),
+  .slide.active .timeline>*:nth-child(2), .slide.active .control-split>*:nth-child(2), .slide.active .checklist>li:nth-child(2),
+  .slide.active .case-steps>.case-step:nth-child(2) { animation-delay: .32s; }
+  .slide.active .stat-grid>*:nth-child(3), .slide.active .grid-4>*:nth-child(3), .slide.active .timeline>*:nth-child(3),
+  .slide.active .checklist>li:nth-child(3), .slide.active .case-steps>.case-step:nth-child(3) { animation-delay: .4s; }
+  .slide.active .stat-grid>*:nth-child(4), .slide.active .grid-4>*:nth-child(4), .slide.active .timeline>*:nth-child(4),
+  .slide.active .checklist>li:nth-child(4), .slide.active .case-steps>.case-step:nth-child(4) { animation-delay: .48s; }
+  .slide.active .stat-grid>*:nth-child(5), .slide.active .timeline>*:nth-child(5), .slide.active .checklist>li:nth-child(5) { animation-delay: .56s; }
+  .slide.active .checklist>li:nth-child(6), .slide.active .checklist>li:nth-child(7), .slide.active .checklist>li:nth-child(8),
+  .slide.active .stat-grid>*:nth-child(6) { animation-delay: .62s; }
+  .slide.active .terme { animation: riseIn .5s cubic-bezier(.2,.8,.3,1) .5s both; }
+  .slide.active .loop { animation: riseIn .5s cubic-bezier(.2,.8,.3,1) .66s both; }
+  @media (prefers-reduced-motion: reduce) { .slide, .slide * { animation: none !important; transition: none !important; } }
+
+  .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: .74rem; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .dark .eyebrow { color: var(--night-accent); }
+  .eyebrow .icon { width: 16px; height: 16px; }
+  .eyebrow .chap { opacity: .55; }
+
+  h1 { font-size: clamp(2.1rem, 4.6vw, 3.7rem); font-weight: 600; line-height: 1.05; margin: 0 0 18px; max-width: 19ch; }
+  h2 { font-size: clamp(1.7rem, 3.3vw, 2.6rem); font-weight: 600; line-height: 1.1; margin: 0 0 18px; max-width: 22ch; }
+  p { font-size: 1.02rem; line-height: 1.62; max-width: 60ch; margin: 0 0 12px; }
+  svg.icon { width: 22px; height: 22px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* la NARRATION — la voix de la "vidéo" */
+  .vo { font-size: 1.16rem; line-height: 1.58; max-width: 56ch; margin: 2px 0 8px; padding-left: 18px; border-left: 3px solid var(--accent); color: var(--ink); }
+  .dark .vo { border-left-color: var(--night-accent); color: var(--night-ink); }
+  .vo .vo-tag { display: block; font-family: 'IBM Plex Mono', monospace; font-size: .64rem; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 7px; }
+  .dark .vo .vo-tag { color: var(--night-accent); }
+  .vo strong { font-weight: 600; }
+
+  /* la BOUCLE OUVERTE vers la scène suivante */
+  .loop { margin-top: 26px; font-family: 'IBM Plex Mono', monospace; font-size: .8rem; letter-spacing: .01em; color: var(--accent); display: flex; align-items: baseline; gap: 9px; max-width: 52ch; }
+  .dark .loop { color: var(--night-accent); }
+  .loop::before { content: "↳"; font-size: 1rem; }
+
+  /* le TERME À RETENIR — la partie technique, isolée */
+  .terme { margin-top: 18px; border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 10px; padding: 13px 18px; max-width: 620px; background: var(--surface); }
+  .dark .terme { border-color: var(--night-line); border-left-color: var(--warn); background: var(--night-surface); }
+  .terme .t-label { font-family: 'IBM Plex Mono', monospace; font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; color: var(--warn); }
+  .terme .t-term { font-weight: 600; font-size: 1rem; margin: 3px 0 2px; }
+  .terme .t-def { font-size: .88rem; color: var(--ink-soft); line-height: 1.48; }
+  .dark .terme .t-def { color: var(--night-ink-soft); }
+  .terme + .terme { margin-top: 10px; }
+
+  .io-card { border: 1.5px solid var(--line); border-radius: 16px; padding: 22px 24px; background: var(--surface); max-width: 780px; margin-top: 8px; }
+  .dark .io-card { border-color: var(--night-line); background: var(--night-surface); }
+  .io-card .io-label { display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .dark .io-card .io-label { color: var(--night-accent); }
+  .io-card .io-body { font-size: .92rem; line-height: 1.65; color: var(--ink-soft); white-space: pre-wrap; }
+  .dark .io-card .io-body { color: var(--night-ink-soft); }
+  .io-card.mono-body .io-body { font-family: 'IBM Plex Mono', monospace; font-size: .8rem; line-height: 1.75; }
+
+  .rail { position: fixed; left: 32px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 50; }
+  .rail .tick { width: 5px; height: 16px; border-radius: 3px; background: rgba(120,116,140,.28); cursor: pointer; transition: background .25s, transform .25s; }
+  .rail .tick.active { background: var(--accent); transform: scaleY(1.2); }
+  .nav-buttons { position: fixed; bottom: 26px; right: 32px; display: flex; gap: 10px; z-index: 60; }
+  .nav-btn { font-family: 'IBM Plex Mono', monospace; font-size: .8rem; background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 9px 15px; border-radius: 999px; cursor: pointer; transition: border-color .2s, color .2s; }
+  body:has(.slide.dark.active) .nav-btn { border-color: var(--night-line); color: var(--night-ink); }
+  .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .nav-btn:disabled { opacity: .35; cursor: default; }
+  .counter { position: fixed; bottom: 28px; left: 56px; font-family: 'IBM Plex Mono', monospace; font-size: .78rem; color: var(--ink-soft); z-index: 60; }
+  body:has(.slide.dark.active) .counter { color: var(--night-ink-soft); }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; max-width: 980px; margin-top: 8px; }
+  .stat-card { border: 1px solid var(--line); border-radius: 14px; padding: 20px 18px; background: var(--surface); transition: transform .2s, box-shadow .2s; }
+  .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(20,18,30,.08); }
+  .dark .stat-card { border-color: var(--night-line); background: var(--night-surface); }
+  .stat-value { font-family: 'Fraunces', serif; font-size: 2.4rem; font-weight: 600; line-height: 1; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+  .stat-value.good { color: var(--good); }
+  .stat-label { font-size: .88rem; line-height: 1.4; color: var(--ink-soft); }
+  .dark .stat-label { color: var(--night-ink-soft); }
+  .stat-card.time { grid-column: span 2; }
+  .stat-card.time .stat-value { font-size: 2.9rem; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 940px; margin-top: 6px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; max-width: 940px; margin-top: 6px; }
+  .box { border: 1px solid var(--line); border-radius: 16px; padding: 20px; background: var(--surface); transition: transform .2s, box-shadow .2s; }
+  .box:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(20,18,30,.08); }
+  .dark .box { border-color: var(--night-line); background: var(--night-surface); }
+  .box h3 { font-size: 1rem; font-weight: 600; margin: 0 0 7px; }
+  .box p { font-size: .9rem; margin: 0; color: var(--ink-soft); }
+  .dark .box p { color: var(--night-ink-soft); }
+  .box ul { margin: 7px 0 0; padding-left: 17px; font-size: .85rem; line-height: 1.58; color: var(--ink-soft); }
+  .dark .box ul { color: var(--night-ink-soft); }
+  .box ul li { margin: 4px 0; }
+  .box .box-tag { font-family: 'IBM Plex Mono', monospace; font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+  .dark .box .box-tag { color: var(--night-accent); }
+
+  .timeline { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; max-width: 1120px; margin-top: 14px; }
+  .timeline::before { content: ''; position: absolute; top: 34px; left: 6%; right: 6%; height: 2px; background: linear-gradient(90deg, transparent, var(--night-accent) 10%, var(--night-accent) 90%, transparent); opacity: .32; }
+  .phase { position: relative; z-index: 1; border: 1px solid var(--night-line); border-radius: 13px; padding: 16px 14px; background: var(--night-surface); }
+  .phase-marker { width: 34px; height: 34px; border-radius: 50%; background: var(--night); border: 1.5px solid var(--night-accent); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+  .phase-marker svg { width: 16px; height: 16px; color: var(--night-accent); }
+  .phase-title { font-weight: 600; font-size: .86rem; margin-bottom: 5px; }
+  .phase-desc { font-size: .75rem; color: var(--night-ink-soft); line-height: 1.38; }
+  .phase-who { margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--night-line); font-family: 'IBM Plex Mono', monospace; font-size: .62rem; color: var(--night-ink-soft); text-transform: uppercase; }
+
+  .case-steps { position: relative; padding-left: 52px; max-width: 680px; margin-top: 12px; }
+  .case-steps::before { content: ''; position: absolute; left: 20px; top: 6px; bottom: 6px; width: 2px; background: var(--night-line); }
+  .case-step { position: relative; margin-bottom: 20px; }
+  .case-step:last-child { margin-bottom: 0; }
+  .case-num { position: absolute; left: -52px; top: 0; width: 36px; height: 36px; border-radius: 50%; background: var(--night); border: 1.5px solid var(--night-line); display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: .82rem; color: var(--night-ink-soft); }
+  .case-step.resolved .case-num { border-color: var(--night-good); color: var(--night-good); background: var(--night-good-soft); }
+  .case-title { font-weight: 600; font-size: .98rem; margin-bottom: 4px; }
+  .case-step.resolved .case-title { color: var(--night-good); }
+  .case-desc { font-size: .89rem; color: var(--night-ink-soft); line-height: 1.5; max-width: 58ch; }
+
+  .control-split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 900px; margin-top: 6px; }
+  .control-col { border-radius: 16px; padding: 20px 22px; background: var(--night-surface); }
+  .control-col h3 { font-size: 1rem; margin: 0 0 12px; display: flex; align-items: center; gap: 9px; }
+  .control-col ul { list-style: none; padding: 0; margin: 0; }
+  .control-col li { padding: 7px 0; font-size: .87rem; border-bottom: 1px solid rgba(255,255,255,.06); color: var(--night-ink-soft); }
+  .control-col li:last-child { border-bottom: none; }
+  .ratio-bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; max-width: 900px; margin: 20px 0 8px; border: 1px solid var(--night-line); }
+  .ratio-bar .r-you { background: var(--night-accent); width: 10%; }
+  .ratio-bar .r-ia { background: var(--night-surface); width: 90%; }
+  .ratio-legend { display: flex; gap: 22px; font-family: 'IBM Plex Mono', monospace; font-size: .76rem; color: var(--night-ink-soft); }
+  .ratio-legend b { color: var(--night-ink); }
+
+  .checklist { list-style: none; padding: 0; margin: 16px 0 0; max-width: 760px; }
+  .checklist li { display: flex; gap: 12px; padding: 9px 0; font-size: .97rem; border-bottom: 1px solid var(--night-line); align-items: flex-start; }
+  .checklist li:last-child { border-bottom: none; }
+  .checklist .icon { margin-top: 3px; color: var(--night-good); flex-shrink: 0; }
+  .checklist .icon.todo { color: var(--warn); }
+
+  @media (max-width: 820px) {
+    .slide { padding: 8vh 7vw 12vh 8vw; }
+    .stat-grid, .grid-4 { grid-template-columns: 1fr 1fr; }
+    .grid-2, .control-split { grid-template-columns: 1fr; }
+    .timeline { grid-template-columns: 1fr 1fr; } .timeline::before { display: none; }
+    .rail { display: none; }
+    .stat-card.time { grid-column: span 2; }
+  }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- 1 · COLD OPEN -->
+  <section class="slide dark active">
+    <div class="eyebrow"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>ArtEasy · le sprint <span class="chap">· 01</span></div>
+    <h1 class="display">On a construit une machine à vendre en une soirée.</h1>
+    <div class="vo">
+      <span class="vo-tag">Narration</span>
+      Zéro client. Zéro liste email. Une deadline : <strong>10 ventes en 30 jours</strong>. À la fin de la session, tout le système existait. Je te montre ce qu'il y a dedans — et le seul chiffre qui dira si ça marche.
+    </div>
+    <div class="loop">Mais d'abord : regarde ce qu'on m'a demandé de faire.</div>
+    <p class="ink-soft mono" style="margin-top:22px;font-size:.8rem;">29 août 2026 · Claude Code · lecture ~4 min</p>
+  </section>
+
+  <!-- 2 · LA COMMANDE (donnée d'entrée) -->
+  <section class="slide light">
+    <div class="eyebrow"><svg class="icon" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/><path d="M9 15l10-10M15 5h4v4"/></svg>La commande <span class="chap">· 02</span></div>
+    <h2>Voilà la demande. En entier, sans rien retoucher.</h2>
+    <div class="vo">
+      <span class="vo-tag">Narration</span>
+      Huit demandes, dans l'ordre où elles sont tombées. La question à te poser en lisant : comment on fait <strong>tout ça</strong> sans y passer la semaine ?
+    </div>
+    <div class="io-card mono-body">
+      <div class="io-label"><svg class="icon" style="width:13px;height:13px" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>Demandes reçues</div>
+      <div class="io-body">1. « on reprend arteasy. c'est quoi les next steps »
+2. « on lance toute la stratégie de distribution pour faire 10 ventes en 1 mois. meilleures stratégies acquisition, hack. fais appel aux meilleurs experts. »
+3. « pour chaque item, écris-moi tout ce que je dois dire : script, accroche DM, objections… les techniques les plus éprouvées. »
+4. « un onglet contenu : 30 jours de LinkedIn, calendrier sharp, j'ai juste à copier-coller. expert français, mindset growth. »
+5. « pareil pour toutes les plateformes. pour les salons : stand + démo en boucle sur une télé + affiche QR. crée la démo. »
+6. « lance la landing du lancement. objectif 10 % de conversion. experts landing / copywriting / design. 3 variantes. »
+7. « 3 autres variantes couleur/design totalement différentes, qui marquent, avec un détail signature ArtEasy. »
+8. « ajoute les landing dans le carnet, un onglet, et tout élément du plan pointe vers elles. »</div>
+    </div>
+    <div class="loop">La réponse tient en un mot : méthode. On y arrive scène 5.</div>
+  </section>
+
+  <!-- 3 · L'ENJEU (contexte) -->
+  <section class="slide dark">
+    <div class="eyebrow"><svg class="icon" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>L'enjeu <span class="chap">· 03</span></div>
+    <h2 class="display">Le produit marchait. Personne ne le savait.</h2>
+    <div class="vo">
+      <span class="vo-tag">Narration</span>
+      ArtEasy lit les commandes, alerte sur le stock, sort les factures. Sauf que : 0 client, une page qui dit encore « gratuit », rien pour encaisser. Ce qui manquait, c'était pas une fonctionnalité. C'était un moteur.
+    </div>
+    <div class="terme">
+      <div class="t-label">Terme à retenir</div>
+      <div class="t-term">Moteur de croissance répétable</div>
+      <div class="t-def">Pas une action one-shot (« je poste et je verrai »). Un système qu'on relance chaque jour : à qui parler, quoi dire, où les envoyer.</div>
+    </div>
+    <div class="loop">Et il y avait un piège. On l'a désamorcé dès la première minute.</div>
+  </section>
+
+  <!-- 4 · LE RECADRAGE -->
+  <section class="slide dark">
+    <div class="eyebrow"><svg class="icon" viewBox="0 0 24 24"><path d="M3 12h18M12 3v18"/></svg>Le recadrage <span class="chap">· 04</span></div>
+    <h2 class="display">Un vieux plan visait 100 ventes. On l'a divisé par 10.</h2>
+    <div class="vo">
+      <span class="vo-tag">Narration</span>
+      Il y avait un doc « Opération Cent » : 100 clients en 30 jours. Sur du trafic froid, c'est du fantasme. On a resserré à un chiffre tenable : <strong>10</strong>. Un objectif qu'on peut rater de peu — pas de beaucoup.
+    </div>
+    <div class="loop">Maintenant, la méthode. Quatre gestes, répétés à chaque livrable.</div>
+  </section>
+
+  <!-- 5 · LA MÉTHODE -->
+  <section class="slide light">
+    <div class="eyebrow"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3l3 6 6 1-4.5 4 1 6-5.5-3-5.5 3 1-6L3 10l6-1z"/></svg>La méthode <span class="chap">· 05</span></div>
+    <h2>Les 4 gestes qu'on répète à chaque fois</h2>
+    <div class="vo">
+      <span class="vo-tag">Narration</span>
+      C'est ça, la réponse à « comment on fait tout ça ». Pas de la vitesse de frappe. Une méthode qui empêche de partir dans le décor.
+    </div>
+    <div class="grid-4">
+      <div class="box">
+        <span class="box-tag">1 · Skill</span>
+        <h3>Un cadre imposé par type de tâche</h3>
+        <ul><li><b>/playbook</b> : ouvrir et clôturer la session</li><li><b>/brainstorming</b> : avant toute création, rien ne se code sans cadrage validé</li><li><b>artifact-design</b> : avant chaque page</li></ul>
+      </div>
+      <div class="box">
+        <span class="box-tag">2 · Décisions</span>
+        <h3>Toi, tu tranches — sur des choix fermés</h3>
+        <ul><li>Aux bascules : un panneau de questions à options</li><li>8 décisions : budget, temps, niche, prix, parrainage, paliers, salon, nom</li></ul>
+      </div>
+      <div class="box">
+        <span class="box-tag">3 · Experts</span>
+        <h3>Un conseil convoqué par domaine</h3>
+        <ul><li>2-3 profils réels par sujet</li><li>On garde 1-2 techniques concrètes de chacun, pas des noms</li></ul>
+      </div>
+      <div class="box">
+        <span class="box-tag">4 · Mémoire</span>
+        <h3>Une trace qui survit à la session</h3>
+        <ul><li>Chaque décision écrite dans un fichier du projet</li><li>Reprise sans re-expliquer</li></ul>
+      </div>
+    </div>
+    <div class="terme">
+      <div class="t-label">Terme à retenir</div>
+      <div class="t-term">Choix fermés</div>
+      <div class="t-def">On te présente des options tranchées, tu en choisis une. Ça évite le « fais au feeling » et ça verrouille la suite du plan.</div>
+    </div>
+    <div class="loop">Premier geste appliqué : le plan. Mais pas le plan que tu crois.</div>
+  </section>
+
+  <!-- 6 · BEAT 1 · LE PLAN -->
+  <section class="slide light">
+    <div class="eyebrow"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>Livrable 1 · le plan <span class="chap">· 06</span></div>
+    <h2>D'abord le plan. Écrit à la minute près.</h2>
+    <div class="vo">
+      <span class="vo-tag">Narration</span>
+      Pas un plan « grandes lignes ». Un plan où, chaque jour de J1 à J30, tu sais quoi faire, à qui parler, et <strong>ce que tu dois dire — au mot près</strong>.
+    </div>
+    <div class="grid-2">
+      <div class="box">
+        <span class="box-tag">Objectif</span>
+        <h3>Transformer « faire 10 ventes » en gestes quotidiens</h3>
+        <p>Zéro zone d'ombre : pas de « et là je fais quoi ? » à 8 h du matin.</p>
+      </div>
+      <div class="box">
+        <span class="box-tag">Comment</span>
+        <h3>Brainstorming → décisions → experts → rédaction</h3>
+        <ul>
+          <li>8 questions tranchées avec toi avant d'écrire une ligne</li>
+          <li>Experts : Josh Braun &amp; Jason Bay (prospection), Sandler + NEPQ (découverte), Chris Voss, Hormozi, Jeb Blount (closing &amp; objections), Schwartz &amp; Wiebe (copy)</li>
+          <li>Doctrine, ICP, tunnel, cadence hebdo, budget, risques</li>
+        </ul>
+      </div>
+    </div>
+    <div class="terme">
+      <div class="t-label">Terme à retenir</div>
+      <div class="t-term">ICP — profil de client idéal</div>
+      <div class="t-def">Le client type, décrit assez précisément pour le reconnaître dans une liste. Ici : artisan transformateur bio, 20-150 commandes/mois, en croissance.</div>
+    </div>
+    <div class="terme">
+      <div class="t-label">Terme à retenir</div>
+      <div class="t-term">Tactical empathy (Chris Voss)</div>
+      <div class="t-def">Nommer l'émotion de l'autre à voix haute (« on dirait que… »), puis se taire après avoir posé la question qui compte.</div>
+    </div>
+    <div class="loop">Sauf qu'un plan dans un fichier, personne ne le rouvre. D'où le livrable 2.</div>
+  </section>
+
+  <!-- 7 · BEAT 2 · LE CARNET -->
+  <section class="slide light">
+    <div class="eyebrow"><svg class="icon" viewBox="0 0 24 24"><path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-7h6v7"/></svg>Livrable 2 · le carnet <span class="chap">· 07</span></div>
+    <h2>Le fichier que personne ne rouvre → l'appli qu'on ouvre chaque matin.</h2>
+    <div class="vo">
+      <span class="vo-tag">Narration</span>
+      On a transformé le plan en outil. Tu l'ouvres le matin : voilà ta checklist du jour, voilà le post à publier, voilà où en sont les ventes. Rien à chercher.
+    </div>
+    <div class="grid-2">
+      <div class="box">
+        <span class="box-tag">Objectif</span>
+        <h3>Un outil opérationnel, pas un document</h3>
+        <p>On le scanne et on l'utilise. On ne le « lit » pas de haut en bas.</p>
+      </div>
+      <div class="box">
+        <span class="box-tag">Comment</span>
+        <h3>artifact-design → système visuel → app à 6 onglets</h3>
+        <ul>
+          <li>Calibrage : tableau de bord, pas page marketing</li>
+          <li>État gardé dans le navigateur — l'avancement persiste</li>
+          <li>8 KPI calculés + entonnoir + anneau d'objectif + histogramme des ventes</li>
+        </ul>
+      </div>
+    </div>
+    <div class="terme">
+      <div class="t-label">Terme à retenir</div>
+      <div class="t-term">Indicateur avancé (leading indicator)</div>
+      <div class="t-def">Un chiffre qui prédit les ventes 1 à 2 semaines à l'avance : nombre de touches envoyées, taux de réponse, appels bookés. On pilote là-dessus, pas sur le résultat.</div>
+    </div>
+    <div class="loop">Reste le nerf de la guerre : le contenu. 40 pièces, prêtes.</div>
+  </section>
+
+  <!-- 8 · BEAT 3 · LE CONTENU -->
+  <section class="slide light">
+    <div class="eyebrow"><svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16v12H8l-4 4z"/></svg>Livrable 3 · le contenu <span class="chap">· 08</span></div>
+    <h2>40 contenus écrits. Zéro « je poste quoi aujourd'hui ».</h2>
+    <div class="vo">
+      <span class="vo-tag">Narration</span>
+      31 posts LinkedIn. 9 Instagram. Le planning Facebook. Le kit salon complet. Tu copies, tu colles, tu publies. Le carnet te dit lequel, chaque jour.
+    </div>
+    <div class="grid-2">
+      <div class="box">
+        <span class="box-tag">Objectif</span>
+        <h3>Supprimer la friction de « quoi publier »</h3>
+        <p>Tout est calibré pour l'artisan cible et prêt à l'emploi.</p>
+      </div>
+      <div class="box">
+        <span class="box-tag">Comment</span>
+        <h3>Experts contenu FR → 5 piliers → 1 post = 1 idée</h3>
+        <ul>
+          <li>Nina Ramen (l'accroche fait mal ou intrigue), Thibault Louis (problème / agitation / solution), Grégoire Gambatto (hook contrarian), Scalezia (un enseignement par post)</li>
+          <li>Piliers : journal de sprint · valeur ICP · story · preuve · contrarian</li>
+          <li>Salon : Peter Cohan (Great Demo!) + Sandwich Video + règles de la vidéo muette en autoplay</li>
+        </ul>
+      </div>
+    </div>
+    <div class="terme">
+      <div class="t-label">Terme à retenir</div>
+      <div class="t-term">Boucle ouverte (open loop)</div>
+      <div class="t-def">Une accroche qui crée une question sans y répondre tout de suite. Le cerveau veut la fermer → il continue à lire. C'est le moteur de rétention, dans un post comme dans ce deck.</div>
+    </div>
+    <div class="loop">Pour envoyer les gens quelque part, il fallait une page. Une seule ? Non. Six.</div>
+  </section>
+
+  <!-- 9 · BEAT 4 · LA LANDING -->
+  <section class="slide light">
+    <div class="eyebrow"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>Livrable 4 · la landing <span class="chap">· 09</span></div>
+    <h2>Une page de vente. Puis six. Toutes avec le même mot d'ordre.</h2>
+    <div class="vo">
+      <span class="vo-tag">Narration</span>
+      Trois structures : démo, lettre, offre. Trois directions visuelles qui claquent : étiquette de bocal, schéma d'atelier, magazine. Et un fil rouge dans les six : la phrase <strong>« Vous n'avez rien tapé »</strong>, traitée différemment à chaque fois — un tampon, une ligne de terminal, un bandeau qui défile.
+    </div>
+    <div class="grid-2">
+      <div class="box">
+        <span class="box-tag">Objectif</span>
+        <h3>10 % de conversion sur trafic chaud</h3>
+        <p>Trafic chaud = quelqu'un qui a vu le sprint ou scanné le QR. Sur du froid : 2-4 %.</p>
+      </div>
+      <div class="box">
+        <span class="box-tag">Comment</span>
+        <h3>Experts landing → structure + design + découpe</h3>
+        <ul>
+          <li>Oli Gardner, Peep Laja, Harry Dry, Joanna Wiebe, Hormozi, Michael Aagaard</li>
+          <li>6 fichiers standalone déployables + un aperçu à switcher</li>
+        </ul>
+      </div>
+    </div>
+    <div class="terme">
+      <div class="t-label">Terme à retenir</div>
+      <div class="t-term">Attention ratio 1:1</div>
+      <div class="t-def">Un seul élément cliquable sur la page vers un seul objectif. Chaque lien ou bouton en plus divise l'attention et fait chuter la conversion.</div>
+    </div>
+    <div class="terme">
+      <div class="t-label">Terme à retenir</div>
+      <div class="t-term">Value stack</div>
+      <div class="t-def">Empiler tout ce qui est inclus, chaque ligne avec son prix « ailleurs » barré, avant d'annoncer le vrai prix. Le prix paraît petit à côté de la pile.</div>
+    </div>
+    <div class="loop">Mais entre l'idée et les six pages, il y a eu un moment où ça a failli déraper.</div>
+  </section>
+
+  <!-- 10 · LE MOMENT OÙ ÇA DÉRAPE (cas vécu) -->
+  <section class="slide dark">
+    <div class="eyebrow"><svg class="icon" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>Le grain de sable <span class="chap">· 10</span></div>
+    <h2 class="display">6 pages dans 1 fichier = 2 500 lignes. Ingérable.</h2>
+    <div class="vo">
+      <span class="vo-tag">Narration</span>
+      Le fichier combiné, super pour comparer côte à côte. Mais impossible à maintenir, et pas déployable tel quel. Il a fallu trancher, en direct.
+    </div>
+    <div class="case-steps">
+      <div class="case-step"><div class="case-num">1</div><div class="case-title">3 variantes dans un fichier + switcher</div><div class="case-desc">Pratique pour l'aperçu. Pas pour la mise en ligne.</div></div>
+      <div class="case-step"><div class="case-num">2</div><div class="case-title">Tu demandes : « séparées, plus 3 de plus »</div><div class="case-desc">6 pages dans un seul fichier — trop lourd pour l'éditer à la main.</div></div>
+      <div class="case-step"><div class="case-num">3</div><div class="case-title">Décision : garder l'aperçu, générer les fichiers</div><div class="case-desc">Un script extrait 6 pages standalone du fichier combiné, chacune vérifiée en syntaxe.</div></div>
+      <div class="case-step resolved"><div class="case-num"><svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M5 12l5 5L20 6"/></svg></div><div class="case-title">Résolu — 6 fichiers + 1 aperçu, une seule source</div><div class="case-desc">On maintient un fichier, on déploie six pages.</div></div>
+    </div>
+    <div class="loop">Ok. Au final, ça donne quoi — en chiffres qu'on peut vérifier ?</div>
+  </section>
+
+  <!-- 11 · LES CHIFFRES (résultats) -->
+  <section class="slide light">
+    <div class="eyebrow"><svg class="icon" viewBox="0 0 24 24"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>Les chiffres <span class="chap">· 11</span></div>
+    <h2>3 h 30. Pas une estimation — les horodatages des fichiers.</h2>
+    <div class="vo">
+      <span class="vo-tag">Narration</span>
+      Premier check du carnet à 19 h 11. Dernier livrable à 22 h 06. Entre les deux, tout ce qui suit.
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card time"><div class="stat-value">~3 h 30</div><div class="stat-label">temps réel de production (mtimes fichiers + fil de session)</div></div>
+      <div class="stat-card"><div class="stat-value good">4</div><div class="stat-label">livrables, tous vérifiables</div></div>
+      <div class="stat-card"><div class="stat-value">40+</div><div class="stat-label">contenus rédigés, prêts à publier</div></div>
+      <div class="stat-card"><div class="stat-value">6</div><div class="stat-label">landing pages (copy + design + code)</div></div>
+      <div class="stat-card"><div class="stat-value">8</div><div class="stat-label">décisions tranchées, verrouillées en mémoire</div></div>
+      <div class="stat-card"><div class="stat-value">~200 Ko</div><div class="stat-label">de matière produite</div></div>
+    </div>
+    <div class="loop">Reste une question qui fâche : qui a vraiment fait quoi ?</div>
+  </section>
+
+  <!-- 12 · QUI DÉCIDE QUOI (contrôle + ratio) -->
+  <section class="slide dark">
+    <div class="eyebrow"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>Le partage des rôles <span class="chap">· 12</span></div>
+    <h2 class="display">10 % toi. 90 % l'IA. Mais les 10 % commandent tout.</h2>
+    <div class="vo">
+      <span class="vo-tag">Narration</span>
+      En volume, l'IA a tout produit. Mais les 8 décisions — le prix, la niche, l'objectif — ont donné la direction. Change une décision, tu changes les 4 livrables.
+    </div>
+    <div class="control-split">
+      <div class="control-col" style="border:1px solid var(--night-accent);">
+        <h3><svg class="icon" viewBox="0 0 24 24" style="color:var(--night-accent)"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Toi</h3>
+        <ul><li>10 ventes, pas 100</li><li>Budget, temps, niche = transfo bio</li><li>97 € à vie, paliers réels, parrainage sans cash</li><li>100 % distant, nom public ArtEasy</li><li>Quelle landing pour quel trafic</li></ul>
+      </div>
+      <div class="control-col" style="border:1px solid var(--night-line);">
+        <h3><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="2"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>L'IA</h3>
+        <ul><li>Stratégie + tous les scripts, mot pour mot</li><li>Le carnet + le dashboard KPI</li><li>40+ contenus + storyboard démo + affiche</li><li>6 landing pages : copy, design, code, fichiers</li><li>La mémoire projet + ce deck</li></ul>
+      </div>
+    </div>
+    <div class="ratio-bar"><div class="r-you"></div><div class="r-ia"></div></div>
+    <div class="ratio-legend"><span><b>~10 %</b> toi · les décisions</span><span><b>~90 %</b> IA · la production</span></div>
+    <div class="loop">Concrètement, il te reste quoi à faire avant de lancer ?</div>
+  </section>
+
+  <!-- 13 · TA CHECKLIST (donnée de sortie) -->
+  <section class="slide dark">
+    <div class="eyebrow"><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 6"/></svg>Ta checklist <span class="chap">· 13</span></div>
+    <h2>Ce qui est fait. Ce qui dépend de toi maintenant.</h2>
+    <ul class="checklist">
+      <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 6"/></svg><span><b>Fait</b> — Plan maître jour par jour + tous les scripts</span></li>
+      <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 6"/></svg><span><b>Fait</b> — Carnet de sprint + dashboard KPI (état gardé dans le navigateur)</span></li>
+      <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 6"/></svg><span><b>Fait</b> — 31 posts LinkedIn + 9 Instagram + Facebook + kit salon</span></li>
+      <li><svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 6"/></svg><span><b>Fait</b> — 6 landing pages, fichiers séparés prêts à déployer</span></li>
+      <li><svg class="icon todo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/></svg><span><b>À toi</b> — Semaine 0 : 3 liens Stripe (97 / 147 / 197 €), agenda Cal.com, déployer une landing</span></li>
+      <li><svg class="icon todo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/></svg><span><b>À toi</b> — Dans la landing : le lien Cal.com, le compteur de places, le prénom du fondateur, une vraie capture pour la variante F</span></li>
+      <li><svg class="icon todo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/></svg><span><b>À toi</b> — Extraire la liste Agence Bio (~150 lignes), rejoindre les 12-15 groupes Facebook</span></li>
+      <li><svg class="icon todo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/></svg><span><b>À toi</b> — Choisir la landing par défaut d'arteasy.fr et celle du /salon</span></li>
+    </ul>
+    <div class="loop">Et là, le truc que personne ne te dit.</div>
+  </section>
+
+  <!-- 14 · LE TRUC QUE PERSONNE TE DIT -->
+  <section class="slide dark">
+    <div class="eyebrow"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Le vrai insight <span class="chap">· 14</span></div>
+    <h2 class="display">Tout ce système ne vaut rien sans les 20 premières minutes.</h2>
+    <div class="vo">
+      <span class="vo-tag">Narration</span>
+      Le plan, les scripts, le contenu, la page — c'est de la préparation. La préparation ne vend pas. Ce qui vend, c'est le premier appel de 20 minutes où tu installes l'outil devant l'artisan. Le reste, c'est juste ce qui te permet d'arriver à cet appel-là, encore et encore.
+    </div>
+    <div class="terme">
+      <div class="t-label">Terme à retenir</div>
+      <div class="t-term">Founder-led sales</div>
+      <div class="t-def">Le fondateur vend et onboarde lui-même, chaque client, tant qu'il n'y en a pas ~10. Pas scalable — mais c'est ce qui donne les retours qui construisent le produit.</div>
+    </div>
+    <div class="loop">Rappelle-toi le chiffre du début.</div>
+  </section>
+
+  <!-- 15 · CLÔTURE (callback + action) -->
+  <section class="slide dark">
+    <div class="eyebrow"><svg class="icon" viewBox="0 0 24 24"><path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-7h6v7"/></svg>ArtEasy · le sprint <span class="chap">· 15</span></div>
+    <h1 class="display">10 ventes. 30 jours. Le compteur démarre quand tu décroches.</h1>
+    <div class="vo">
+      <span class="vo-tag">Narration</span>
+      Le jour où Stripe est branché et le premier message parti, le sprint commence. Le carnet te dira quoi faire chaque matin. Le dashboard te dira si ça marche. Tu n'as plus qu'à décrocher.
+    </div>
+    <p class="ink-soft mono" style="margin-top:20px;font-size:.82rem;">Prochain épisode : la Semaine 0, en vrai.</p>
+  </section>
+
+</div>
+
+<div class="rail" id="rail"></div>
+<div class="counter" id="counter">01 / 15</div>
+<div class="nav-buttons">
+  <button class="nav-btn" id="prev">← préc.</button>
+  <button class="nav-btn" id="next">suiv. →</button>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const rail = document.getElementById('rail');
+  const counter = document.getElementById('counter');
+  let i = 0;
+  slides.forEach((_, idx) => {
+    const t = document.createElement('div');
+    t.className = 'tick' + (idx === 0 ? ' active' : '');
+    t.addEventListener('click', () => go(idx));
+    rail.appendChild(t);
+  });
+  const ticks = Array.from(rail.children);
+  counter.textContent = '01 / ' + String(slides.length).padStart(2, '0');
+  function go(n) {
+    if (n < 0 || n >= slides.length || n === i) return;
+    slides[i].classList.remove('active'); ticks[i].classList.remove('active');
+    i = n;
+    const incoming = slides[i];
+    incoming.classList.remove('active'); void incoming.offsetWidth; incoming.classList.add('active');
+    ticks[i].classList.add('active');
+    counter.textContent = String(i + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+    document.getElementById('prev').disabled = i === 0;
+    document.getElementById('next').disabled = i === slides.length - 1;
+    incoming.scrollTop = 0;
+  }
+  document.getElementById('next').addEventListener('click', () => go(i + 1));
+  document.getElementById('prev').addEventListener('click', () => go(i - 1));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(i + 1); }
+    if (e.key === 'ArrowLeft') go(i - 1);
+  });
+  document.getElementById('prev').disabled = true;
+</script>
+</body>
+</html>

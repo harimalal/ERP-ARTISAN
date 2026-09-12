@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARTEASY — ERP pour Artisans</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap">
+    <style>
+        :root {
+            --color-bg: #ffffff;
+            --color-fg: #1a1a1a;
+            --color-fg-secondary: #666666;
+            --color-border: #e5e5e5;
+            --color-accent: #2d8659;
+            --color-accent-light: #f0f8f4;
+            --color-card-bg: #fafafa;
+
+            --type-display: "Sora", system-ui, sans-serif;
+            --type-body: "Inter", system-ui, sans-serif;
+
+            --space-1: 0.5rem;
+            --space-2: 1rem;
+            --space-3: 1.5rem;
+            --space-4: 2rem;
+            --space-6: 3rem;
+            --space-8: 4rem;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --color-bg: #0d0d0d;
+                --color-fg: #f5f5f5;
+                --color-fg-secondary: #b0b0b0;
+                --color-border: #333333;
+                --color-accent: #4fb377;
+                --color-accent-light: #1a3d2a;
+                --color-card-bg: #1a1a1a;
+            }
+        }
+
+        :root[data-theme="dark"] {
+            --color-bg: #0d0d0d;
+            --color-fg: #f5f5f5;
+            --color-fg-secondary: #b0b0b0;
+            --color-border: #333333;
+            --color-accent: #4fb377;
+            --color-accent-light: #1a3d2a;
+            --color-card-bg: #1a1a1a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--type-body);
+            color: var(--color-fg);
+            background: var(--color-bg);
+            line-height: 1.6;
+        }
+
+        /* HEADER */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-4);
+            border-bottom: 1px solid var(--color-border);
+            position: sticky;
+            top: 0;
+            background: var(--color-bg);
+            z-index: 100;
+        }
+
+        .logo {
+            font-family: var(--type-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-fg);
+        }
+
+        nav {
+            display: flex;
+            gap: var(--space-4);
+            align-items: center;
+        }
+
+        nav a {
+            color: var(--color-fg);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        nav a:hover {
+            color: var(--color-accent);
+        }
+
+        .cta-header {
+            background: var(--color-accent);
+            color: white;
+            padding: var(--space-2) var(--space-3);
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: opacity 0.2s;
+        }
+
+        .cta-header:hover {
+            opacity: 0.9;
+        }
+
+        /* HERO */
+        .hero {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-6);
+            align-items: center;
+            padding: var(--space-8) var(--space-4);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero-content h1 {
+            font-family: var(--type-display);
+            font-size: 3rem;
+            line-height: 1.2;
+            margin-bottom: var(--space-3);
+            font-weight: 700;
+        }
+
+        .hero-content p {
+            font-size: 1.125rem;
+            color: var(--color-fg-secondary);
+            margin-bottom: var(--space-4);
+            line-height: 1.7;
+        }
+
+        .cta-primary {
+            display: inline-block;
+            background: var(--color-accent);
+            color: white;
+            padding: var(--space-3) var(--space-6);
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s;
+            border: 2px solid var(--color-accent);
+        }
+
+        .cta-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(45, 134, 89, 0.2);
+        }
+
+        .hero-visual {
+            background: var(--color-accent-light);
+            border-radius: 12px;
+            padding: var(--space-4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-mock {
+            width: 100%;
+            font-family: "Courier New", monospace;
+            font-size: 0.85rem;
+            color: var(--color-fg);
+            background: var(--color-card-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: var(--space-3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .dashboard-mock div {
+            margin-bottom: var(--space-2);
+        }
+
+        .mock-header {
+            font-weight: 600;
+            color: var(--color-accent);
+            margin-bottom: var(--space-3);
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: var(--space-2);
+        }
+
+        .mock-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mock-badge {
+            background: var(--color-accent);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* SOCIAL PROOF */
+        .social-proof {
+            background: var(--color-card-bg);
+            padding: var(--space-6) var(--space-4);
+            border-top: 1px solid var(--color-border);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .social-proof-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-4);
+            text-align: center;
+        }
+
+        .stat {
+            padding: var(--space-4);
+        }
+
+        .stat-number {
+            font-family: var(--type-display);
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-bottom: var(--space-1);
+        }
+
+        .stat-label {
+            color: var(--color-fg-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* TESTIMONIALS */
+        .testimonials {
+            padding: var(--space-8) var(--space-4);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-family: var(--type-display);
+            font-size: 2rem;
+            margin-bottom: var(--space-6);
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-4);
+        }
+
+        .testimonial {
+            background: var(--color-card-bg);
+            padding: var(--space-4);
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+        }
+
+        .testimonial-text {
+            color: var(--color-fg);
+            margin-bottom: var(--space-3);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .testimonial-author {
+            font-weight: 600;
+            color: var(--color-fg);
+            font-size: 0.9rem;
+        }
+
+        .testimonial-role {
+            color: var(--color-fg-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* FEATURES */
+        .features {
+            padding: var(--space-8) var(--space-4);
+            background: var(--color-card-bg);
+        }
+
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-6);
+        }
+
+        .feature {
+            padding: var(--space-4);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: var(--space-2);
+        }
+
+        .feature-title {
+            font-family: var(--type-display);
+            font-weight: 600;
+            font-size: 1.2rem;
+            margin-bottom: var(--space-1);
+            color: var(--color-fg);
+        }
+
+        .feature-desc {
+            color: var(--color-fg-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* PRICING */
+        .pricing {
+            padding: var(--space-8) var(--space-4);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-6);
+            margin-top: var(--space-6);
+        }
+
+        .pricing-card {
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            padding: var(--space-4);
+            background: var(--color-card-bg);
+        }
+
+        .pricing-card.featured {
+            border-color: var(--color-accent);
+            background: var(--color-accent-light);
+        }
+
+        .pricing-name {
+            font-family: var(--type-display);
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin-bottom: var(--space-2);
+            color: var(--color-fg);
+        }
+
+        .pricing-price {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-bottom: var(--space-1);
+        }
+
+        .pricing-desc {
+            color: var(--color-fg-secondary);
+            font-size: 0.9rem;
+            margin-bottom: var(--space-4);
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin-bottom: var(--space-4);
+        }
+
+        .pricing-features li {
+            padding: var(--space-2) 0;
+            border-bottom: 1px solid var(--color-border);
+            font-size: 0.9rem;
+            color: var(--color-fg);
+        }
+
+        .pricing-features li:before {
+            content: "✓ ";
+            color: var(--color-accent);
+            font-weight: 700;
+            margin-right: var(--space-1);
+        }
+
+        .pricing-cta {
+            display: block;
+            width: 100%;
+            background: var(--color-accent);
+            color: white;
+            border: none;
+            padding: var(--space-3);
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .pricing-cta:hover {
+            opacity: 0.9;
+        }
+
+        /* FOOTER CTA */
+        .footer-cta {
+            background: var(--color-accent);
+            color: white;
+            padding: var(--space-8) var(--space-4);
+            text-align: center;
+        }
+
+        .footer-cta h2 {
+            font-family: var(--type-display);
+            font-size: 2rem;
+            margin-bottom: var(--space-3);
+        }
+
+        .footer-cta p {
+            font-size: 1.1rem;
+            margin-bottom: var(--space-4);
+            opacity: 0.9;
+        }
+
+        .cta-secondary {
+            display: inline-block;
+            background: white;
+            color: var(--color-accent);
+            padding: var(--space-3) var(--space-6);
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .cta-secondary:hover {
+            transform: translateY(-2px);
+        }
+
+        /* FOOTER */
+        footer {
+            background: var(--color-card-bg);
+            border-top: 1px solid var(--color-border);
+            padding: var(--space-4);
+            text-align: center;
+            color: var(--color-fg-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .hero {
+                grid-template-columns: 1fr;
+                padding: var(--space-4);
+            }
+
+            .hero-content h1 {
+                font-size: 2rem;
+            }
+
+            .social-proof-container,
+            .testimonials-grid,
+            .features-grid,
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+
+            nav {
+                display: none;
+            }
+
+            header {
+                justify-content: center;
+            }
+        }
+
+        /* ANIMATION */
+        @media (prefers-reduced-motion: no-preference) {
+            .hero-visual {
+                animation: fadeInUp 0.8s ease-out;
+            }
+
+            .testimonial,
+            .feature {
+                animation: fadeInUp 0.6s ease-out both;
+            }
+
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">ARTEASY</div>
+        <nav>
+            <a href="#features">Fonctionnalités</a>
+            <a href="#pricing">Tarifs</a>
+            <a href="#contact">Contact</a>
+            <a href="#" class="cta-header">Essai gratuit</a>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Gagnez 15h par mois sur votre facturation</h1>
+            <p>ARTEASY automatise votre cycle complet : de la commande à la facture. Plus de feuilles Excel, plus de calculs manuels. Juste le travail qui compte.</p>
+            <a href="#" class="cta-primary">Essayer 7 jours gratuitement</a>
+        </div>
+
+        <div class="hero-visual">
+            <div class="dashboard-mock">
+                <div class="mock-header">📋 Mes Commandes</div>
+                <div class="mock-row">
+                    <span>COM-2026-0842</span>
+                    <span class="mock-badge">En cours</span>
+                </div>
+                <div class="mock-row">
+                    <span>COM-2026-0841</span>
+                    <span class="mock-badge">Livré</span>
+                </div>
+                <div class="mock-row">
+                    <span>COM-2026-0840</span>
+                    <span class="mock-badge">Facturé</span>
+                </div>
+                <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--color-border);">
+                    <div class="mock-header">💰 Totaux du mois</div>
+                    <div class="mock-row">
+                        <span>Chiffre d'affaires</span>
+                        <strong>24,500 €</strong>
+                    </div>
+                    <div class="mock-row">
+                        <span>En attente de paiement</span>
+                        <strong>3,200 €</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="social-proof">
+        <div class="social-proof-container">
+            <div class="stat">
+                <div class="stat-number">2,400+</div>
+                <div class="stat-label">Artisans utilisant ARTEASY</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">450k</div>
+                <div class="stat-label">Factures générées ce mois</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">4.8/5</div>
+                <div class="stat-label">Note moyenne (247 avis)</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="testimonials">
+        <h2 class="section-title">Ce que disent nos clients</h2>
+        <div class="testimonials-grid">
+            <div class="testimonial">
+                <div class="testimonial-text">"J'ai arrêté mon carnet de commandes en papier. Entre les pots à étiqueter et les commandes des marchés, ARTEASY me fait gagner 2h par jour. Rentabilisé en 2 mois."</div>
+                <div class="testimonial-author">Camille R.</div>
+                <div class="testimonial-role">Confiturière bio, Drôme</div>
+            </div>
+            <div class="testimonial">
+                <div class="testimonial-text">"Pour la première fois, je vois clair sur mes commandes de brasserie en attente et mes factures impayées aux cavistes. C'est simple, vraiment."</div>
+                <div class="testimonial-author">Yohann K.</div>
+                <div class="testimonial-role">Brasseur bio, Bretagne</div>
+            </div>
+            <div class="testimonial">
+                <div class="testimonial-text">"Mes clients pros reçoivent les factures plus vite. Mes paiements arrivent plus vite aussi. Tout le monde gagne."</div>
+                <div class="testimonial-author">Nadia M.</div>
+                <div class="testimonial-role">Confiserie artisanale bio, Occitanie</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="features-container">
+            <h2 class="section-title">Tout ce dont vous avez besoin</h2>
+            <div class="features-grid">
+                <div class="feature">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-title">Tableau de bord en temps réel</div>
+                    <div class="feature-desc">Visualisez vos revenus du jour, vos commandes en attente, vos factures impayées. Un coup d'œil pour tout savoir.</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">✏️</div>
+                    <div class="feature-title">Devis → Commande → Facture</div>
+                    <div class="feature-desc">Un processus fluide. Créez un devis, convertissez-le en commande, puis en facture. Pas de ressaisie.</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📱</div>
+                    <div class="feature-title">Accessible depuis votre téléphone</div>
+                    <div class="feature-desc">Gérez vos commandes sur le terrain. Photos, étiquettes, mises à jour en direct depuis le marché ou l'atelier.</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔐</div>
+                    <div class="feature-title">Vos données restent sécurisées</div>
+                    <div class="feature-desc">Chiffrement des données, conformité légale, sauvegardes quotidiennes. Dormez tranquille.</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📧</div>
+                    <div class="feature-title">Factures envoyées automatiquement</div>
+                    <div class="feature-desc">Programmez l'envoi. Vos clients reçoivent leurs factures à l'heure que vous voulez. Avec rappels auto.</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📈</div>
+                    <div class="feature-title">Rapports et statistiques</div>
+                    <div class="feature-desc">Chiffre d'affaires par mois, par client, par produit. Comprenez votre business en profondeur.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="pricing" id="pricing">
+        <h2 class="section-title">Choisissez votre formule</h2>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <div class="pricing-name">Starter</div>
+                <div class="pricing-price">29€<span style="font-size: 1rem; color: var(--color-fg-secondary);">/mois</span></div>
+                <div class="pricing-desc">Pour commencer, sans engagement</div>
+                <ul class="pricing-features">
+                    <li>Jusqu'à 50 factures/mois</li>
+                    <li>1 utilisateur</li>
+                    <li>Support email</li>
+                    <li>Exports PDF</li>
+                </ul>
+                <button class="pricing-cta">Commencer l'essai</button>
+            </div>
+
+            <div class="pricing-card featured">
+                <div class="pricing-name">Pro</div>
+                <div class="pricing-price">79€<span style="font-size: 1rem; color: var(--color-fg-secondary);">/mois</span></div>
+                <div class="pricing-desc">La plus populaire • Annuel = 2 mois gratuits</div>
+                <ul class="pricing-features">
+                    <li>Illimité de factures</li>
+                    <li>Jusqu'à 5 utilisateurs</li>
+                    <li>Support prioritaire</li>
+                    <li>Rapports détaillés</li>
+                    <li>Intégrations (Stripe, virement)</li>
+                </ul>
+                <button class="pricing-cta">Commencer l'essai</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="footer-cta" id="contact">
+        <h2>Prêt à reprendre 15h par mois ?</h2>
+        <p>Pas de carte de crédit requise. 7 jours d'accès complet gratuit.</p>
+        <a href="#" class="cta-secondary">Démarrer maintenant</a>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 ARTEASY. Tous droits réservés. | <a href="#" style="color: var(--color-accent); text-decoration: none;">Conditions</a> | <a href="#" style="color: var(--color-accent); text-decoration: none;">Confidentialité</a></p>
+    </footer>
+</body>
+</html>

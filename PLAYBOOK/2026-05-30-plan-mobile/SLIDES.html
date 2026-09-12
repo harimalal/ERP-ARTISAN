@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Plan 15 000€ — App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --a:#5B4FD9;--a-l:#EEE9FF;--a-m:#B8AFFE;
+  --r:#0B7B5B;--r-l:#E0F5ED;--r-m:#74D4B0;
+  --c:#C4521F;--c-l:#FFF0E8;--c-m:#F7B98A;
+  --ink:#0F0F0E;--ink2:#3A3A36;--muted:#8A8880;
+  --bg:#F7F5F0;--card:#FFFFFF;--border:#E2DFD6;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --safe-top:env(safe-area-inset-top,0px);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--ink)}
+
+/* ══════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════ */
+#app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;position:relative;overflow:hidden}
+
+/* SCREENS */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);will-change:transform;overflow:hidden}
+.screen.active{transform:translateX(0)}
+.screen.prev{transform:translateX(-30%)}
+
+/* TOP NAV */
+.topbar{flex-shrink:0;padding:calc(var(--safe-top) + 14px) 20px 12px;display:flex;align-items:center;justify-content:space-between;background:var(--bg);z-index:10}
+.topbar-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:.02em}
+.btn-back{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--muted);padding:6px 0;cursor:pointer;background:none;border:none}
+.btn-back svg{width:18px;height:18px}
+
+/* SCROLL AREA */
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--safe-bottom) + 80px)}
+.scroll::-webkit-scrollbar{display:none}
+
+/* ══════════════════════════════════════
+   SCREEN 0 — HOME / DASHBOARD
+══════════════════════════════════════ */
+.home-hero{padding:20px 20px 0;background:var(--bg)}
+.hero-label{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.hero-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;line-height:1.1;margin-bottom:4px}
+.hero-sub{font-size:13px;color:var(--muted)}
+
+/* GLOBAL PROGRESS */
+.global-ring{padding:20px;display:flex;align-items:center;gap:16px}
+.ring-wrap{position:relative;width:80px;height:80px;flex-shrink:0}
+.ring-wrap svg{transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--border);stroke-width:6}
+.ring-fill{fill:none;stroke:var(--ink);stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset .8s cubic-bezier(.4,0,.2,1)}
+.ring-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-pct{font-family:'Syne',sans-serif;font-size:15px;font-weight:800}
+.ring-days{font-size:9px;color:var(--muted);font-weight:500;margin-top:-2px}
+.ring-info{flex:1}
+.ring-info-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:2px}
+.ring-info-sub{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* TODAY CARD */
+.today-card{margin:0 16px 16px;border-radius:16px;padding:16px;cursor:pointer;position:relative;overflow:hidden;active:opacity:0.85}
+.today-card::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,.08);opacity:0;transition:opacity .15s}
+.today-card:active::before{opacity:1}
+.today-chip{font-family:'DM Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;opacity:.75;margin-bottom:6px}
+.today-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;line-height:1.3;margin-bottom:8px}
+.today-meta{font-size:12px;opacity:.8;margin-bottom:12px;line-height:1.4}
+.today-cta{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;background:rgba(255,255,255,.25);padding:7px 12px;border-radius:20px}
+
+/* PROJECT CARDS */
+.section-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:0 20px 10px}
+.proj-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:0 16px 16px}
+.proj-card{border-radius:14px;padding:14px 12px;cursor:pointer;transition:transform .15s;position:relative;overflow:hidden}
+.proj-card:active{transform:scale(.97)}
+.proj-name{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;margin-bottom:8px;line-height:1.2}
+.proj-rev{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;margin-bottom:4px}
+.proj-pct{font-size:10px;opacity:.7;margin-bottom:8px}
+.proj-bar{height:3px;background:rgba(0,0,0,.1);border-radius:2px;overflow:hidden}
+.proj-bar-fill{height:100%;background:rgba(0,0,0,.35);border-radius:2px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+
+/* PHASE MINI MAP */
+.phase-map{padding:0 16px 16px}
+.phase-row{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--card);border-radius:12px;margin-bottom:6px;cursor:pointer;border:1px solid var(--border);transition:all .15s}
+.phase-row:active{transform:scale(.98)}
+.phase-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.phase-dot-a{background:var(--a)}
+.phase-dot-r{background:var(--r)}
+.phase-dot-c{background:var(--c)}
+.phase-dot-done{background:#22c55e}
+.phase-dot-active{background:var(--ink)}
+.phase-dot-pending{background:var(--border)}
+.phase-info{flex:1}
+.phase-name{font-size:13px;font-weight:500}
+.phase-dates{font-size:11px;color:var(--muted);margin-top:1px}
+.phase-badge{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+
+/* RITUEL CARD */
+.rituel-card{margin:0 16px 16px;background:var(--ink);border-radius:16px;padding:18px;color:white}
+.rituel-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.rituel-item{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.rituel-item:last-child{border-bottom:none}
+.rituel-num{font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,.4);min-width:18px;padding-top:2px}
+.rituel-text{font-size:12px;line-height:1.5;color:rgba(255,255,255,.85)}
+.rituel-text strong{color:white}
+
+/* ══════════════════════════════════════
+   SCREEN 1 — CALENDRIER
+══════════════════════════════════════ */
+.cal-phases{padding:0 16px 16px}
+.cal-phase-block{margin-bottom:20px}
+.cal-phase-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:0 4px 10px;display:flex;align-items:center;gap:8px}
+.cal-phase-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-day{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:all .15s;border:1.5px solid transparent}
+.cal-day:active{transform:scale(.92)}
+.cal-day-num{font-size:11px;font-weight:600;line-height:1}
+.cal-day-dot{width:4px;height:4px;border-radius:50%;margin-top:2px}
+.cal-day.done{opacity:.6}
+.cal-day.done .cal-day-num{text-decoration:line-through}
+.cal-day.today{border-color:var(--ink)!important}
+.cal-day.pending{background:var(--bg)}
+.cal-day-a{background:var(--a-l);color:var(--a)}
+.cal-day-a .cal-day-dot{background:var(--a)}
+.cal-day-r{background:var(--r-l);color:var(--r)}
+.cal-day-r .cal-day-dot{background:var(--r)}
+.cal-day-c{background:var(--c-l);color:var(--c)}
+.cal-day-c .cal-day-dot{background:var(--c)}
+.cal-day-b{background:#F1EFE8;color:var(--ink2)}
+.cal-day-b .cal-day-dot{background:var(--ink2)}
+.cal-legend{display:flex;gap:12px;padding:0 4px 12px;flex-wrap:wrap}
+.cal-leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
+.cal-leg-dot{width:8px;height:8px;border-radius:50%}
+
+/* ══════════════════════════════════════
+   SCREEN 2 — DAY DETAIL
+══════════════════════════════════════ */
+.day-topbar{flex-shrink:0;padding:calc(var(--safe-top) + 10px) 16px 0;background:var(--bg)}
+.day-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.nav-arrow{width:38px;height:38px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;flex-shrink:0}
+.nav-arrow:active{transform:scale(.92)}
+.nav-arrow svg{width:16px;height:16px}
+.nav-center{text-align:center;flex:1}
+.nav-daynum{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.08em}
+.nav-date{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
+
+.day-header-card{margin:0 16px 0;border-radius:16px;padding:16px 18px;margin-bottom:1px}
+.day-h-project{font-family:'DM Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px;opacity:.75}
+.day-h-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.day-h-phase{font-size:11px;opacity:.7}
+
+/* PROGRESS DOTS */
+.day-progress{display:flex;gap:3px;flex-wrap:wrap;padding:12px 16px 4px}
+.dprog-dot{width:6px;height:6px;border-radius:50%;background:var(--border);transition:background .3s}
+.dprog-dot.done-a{background:var(--a)}
+.dprog-dot.done-r{background:var(--r)}
+.dprog-dot.done-c{background:var(--c)}
+.dprog-dot.done-b{background:var(--ink2)}
+.dprog-dot.current{background:var(--ink);box-shadow:0 0 0 2px rgba(15,15,14,.2)}
+
+/* SECTIONS */
+.day-section{padding:12px 16px 0}
+.sec-label{font-family:'DM Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.avant-box{background:var(--card);border-radius:12px;padding:14px;border:1px solid var(--border);border-left-width:3px}
+.avant-box.col-a{border-left-color:var(--a)}
+.avant-box.col-r{border-left-color:var(--r)}
+.avant-box.col-c{border-left-color:var(--c)}
+.avant-box.col-b{border-left-color:var(--ink2)}
+.avant-title{font-size:11px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.avant-text{font-size:13px;line-height:1.6;color:var(--ink2)}
+
+/* 5W */
+.fivew{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:12px 16px 0}
+.w-cell{background:var(--card);border-radius:10px;padding:10px 12px;border:1px solid var(--border)}
+.w-cell.span2{grid-column:span 2}
+.w-lbl{font-family:'DM Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.w-val{font-size:12px;font-weight:500;line-height:1.4}
+
+/* SESSION */
+.session-box{margin:12px 16px 0;background:var(--card);border-radius:12px;padding:14px;border:1px solid var(--border)}
+.session-text{font-size:13px;line-height:1.65;color:var(--ink2)}
+
+/* STEPS */
+.steps-list{padding:0 16px;margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.step-row{display:flex;align-items:flex-start;gap:10px;background:var(--card);border-radius:10px;padding:12px;border:1px solid var(--border);cursor:pointer;transition:all .2s}
+.step-row.checked{background:#F0FDF4;border-color:#86EFAC}
+.step-row.checked .step-text{text-decoration:line-through;color:var(--muted)}
+.step-cb{width:20px;height:20px;border-radius:6px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;margin-top:0px}
+.step-row.checked .step-cb{background:#22c55e;border-color:#22c55e}
+.step-num{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;color:var(--muted);min-width:18px;padding-top:2px;flex-shrink:0}
+.step-text{font-size:13px;line-height:1.5;flex:1}
+
+/* LIVRABLE */
+.livrable-box{margin:12px 16px 0;border-radius:12px;padding:14px;border:2px solid}
+.livrable-box.col-a{background:var(--a-l);border-color:var(--a-m)}
+.livrable-box.col-r{background:var(--r-l);border-color:var(--r-m)}
+.livrable-box.col-c{background:var(--c-l);border-color:var(--c-m)}
+.livrable-box.col-b{background:#F1EFE8;border-color:var(--border)}
+.livrable-lbl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+.livrable-lbl.col-a{color:var(--a)}
+.livrable-lbl.col-r{color:var(--r)}
+.livrable-lbl.col-c{color:var(--c)}
+.livrable-lbl.col-b{color:var(--ink2)}
+.livrable-text{font-size:13px;font-weight:500;line-height:1.5}
+
+/* APRES */
+.apres-box{margin:12px 16px 0;background:var(--ink);border-radius:12px;padding:14px;color:white}
+.apres-title{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.5;margin-bottom:6px}
+.apres-text{font-size:13px;line-height:1.6;opacity:.85}
+
+/* DONE BUTTON */
+.done-btn{margin:16px 16px 0;width:calc(100% - 32px);padding:16px;border-radius:14px;border:none;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.done-btn.col-a{background:var(--a);color:white}
+.done-btn.col-r{background:var(--r);color:white}
+.done-btn.col-c{background:var(--c);color:white}
+.done-btn.col-b{background:var(--ink);color:white}
+.done-btn.completed{background:#22c55e!important;color:white}
+.done-btn:active{transform:scale(.97)}
+
+/* ══════════════════════════════════════
+   BOTTOM TAB BAR
+══════════════════════════════════════ */
+.tabbar{flex-shrink:0;display:flex;background:var(--card);border-top:1px solid var(--border);padding:8px 0 calc(var(--safe-bottom) + 8px)}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:2px 0;transition:all .15s}
+.tab-item:active{transform:scale(.9)}
+.tab-icon{width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.tab-icon svg{width:20px;height:20px;stroke:var(--muted);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;transition:stroke .15s}
+.tab-label{font-size:9px;font-weight:500;color:var(--muted);letter-spacing:.03em;transition:color .15s}
+.tab-item.active .tab-icon svg{stroke:var(--ink)}
+.tab-item.active .tab-label{color:var(--ink);font-weight:700}
+
+/* ══════════════════════════════════════
+   TOAST
+══════════════════════════════════════ */
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:white;padding:10px 18px;border-radius:24px;font-size:13px;font-weight:500;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp .35s ease forwards}
+.fade-up-1{animation-delay:.05s;opacity:0}
+.fade-up-2{animation-delay:.1s;opacity:0}
+.fade-up-3{animation-delay:.15s;opacity:0}
+.fade-up-4{animation-delay:.2s;opacity:0}
+.fade-up-5{animation-delay:.25s;opacity:0}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- SCREENS -->
+  <div class="screen active" id="screen-home">
+    <div class="scroll" id="scroll-home"></div>
+  </div>
+  <div class="screen" id="screen-cal">
+    <div class="topbar">
+      <button class="btn-back" onclick="goHome()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M5 12l7-7M5 12l7 7"/></svg>
+        Accueil
+      </button>
+      <span class="topbar-title">Calendrier</span>
+      <span style="width:60px"></span>
+    </div>
+    <div class="scroll" id="scroll-cal"></div>
+  </div>
+  <div class="screen" id="screen-day">
+    <div class="day-topbar" id="day-topbar"></div>
+    <div class="scroll" id="scroll-day"></div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tabbar" id="tabbar">
+    <div class="tab-item active" onclick="showTab('home')" id="tab-home">
+      <div class="tab-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <span class="tab-label">Accueil</span>
+    </div>
+    <div class="tab-item" onclick="showTab('cal')" id="tab-cal">
+      <div class="tab-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <span class="tab-label">Calendrier</span>
+    </div>
+    <div class="tab-item" onclick="goToToday()" id="tab-today">
+      <div class="tab-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <span class="tab-label">Aujourd'hui</span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════
+// DATA
+// ══════════════════════════════════════
+const DAYS=[
+{ph:"Phase 1 · S1–S2",pr:"a",date:"Lun 1er juin",title:"Radiographie ARTEASY — offre & prix de lancement",
+avant:"Ouvre un doc vierge. Liste les 5 fonctionnalités clés de ton ERP. Durée max : 10 min. Ne pas aller sur LinkedIn.",
+w:{qui:"Toi",aqui:"Futurs clients artisans/TPE",quoi:"Page A4 offre de lancement",quand:"2h bloc complet",comment:"Value Prop Canvas simplifié"},
+session:"Rédiger la page offre de lancement : prix unique 350€, 3 bénéfices clés (gain de temps, moins d'erreurs, simplicité), 1 garantie de satisfaction. Format A4. Langue claire, pas de jargon technique.",
+steps:["Écrire 3 douleurs concrètes de l'artisan/TPE que tu résous","Rédiger 3 bénéfices mesurables (ex. '2h/semaine économisées')","Fixer le prix de lancement à 350€ et rédiger la garantie","Mettre en forme en PDF et sauvegarder"],
+livrable:"1 PDF 'Offre ARTEASY Lancement.pdf' — prix + bénéfices + garantie. Prêt à envoyer.",
+apres:"Ferme tout. Note sur papier 1 faille ou 1 doute identifié aujourd'hui.",
+target:"Offre de vente existante"},
+{ph:"Phase 1 · S1–S2",pr:"a",date:"Mar 2 juin",title:"Construire la liste de 50 prospects ARTEASY",
+avant:"Ouvre LinkedIn + Google Maps. Tape 'artisan [ta ville]' et 'TPE [secteur]'. 10 min de repérage.",
+w:{qui:"Toi",aqui:"Artisans/TPE locaux",quoi:"Fichier prospect 50 contacts",quand:"2h bloc continu",comment:"LinkedIn + Pages Jaunes + Google Maps"},
+session:"Constituer un tableau Google Sheets avec 50 contacts qualifiés. Colonnes : Prénom | Nom | Société | Secteur | LinkedIn URL | Email | Douleur probable.",
+steps:["Ouvrir Google Sheets, créer le tableau 6 colonnes","Rechercher sur LinkedIn : 'artisan' + 'gérant' + ta région","Compléter avec Pages Jaunes et Google Maps pour emails","Qualifier chaque contact : noter la douleur probable en 5 mots","Vérifier : 50 lignes complètes avant de fermer"],
+livrable:"Fichier Google Sheets '50_Prospects_ARTEASY' — 50 lignes complètes, partageable.",
+apres:"Si < 30 contacts, prévois 20 min supplémentaires demain matin.",
+target:"Pipeline prospect opérationnel"},
+{ph:"Phase 1 · S1–S2",pr:"a",date:"Mer 3 juin",title:"Rédiger & tester 3 messages de prospection",
+avant:"Relis les 10 premiers prospects. Identifie leur douleur commune. Note-la en 1 phrase.",
+w:{qui:"Toi",aqui:"Artisans/TPE de ta liste",quoi:"3 messages courts testés",quand:"1h rédaction + 1h test",comment:"Méthode AIDA courte"},
+session:"Rédiger 3 versions de message (5 lignes max) : Version A = douleur, Version B = gain de temps, Version C = concurrence. Pas de jargon ERP. Direct, humain, court.",
+steps:["Rédiger message A (angle douleur)","Rédiger message B (angle gain de temps)","Rédiger message C (angle concurrence)","Envoyer les 3 à 1 personne de confiance pour test","Choisir la version gagnante et la marquer"],
+livrable:"3 messages sauvegardés. Version A choisie pour J5.",
+apres:"Sa réaction instinctive compte — note-la.",
+target:"Armement de prospection prêt"},
+{ph:"Phase 1 · S1–S2",pr:"r",date:"Jeu 4 juin",title:"REFLEX IA — 1er article pilier SEO publié",
+avant:"Tape 3 requêtes IA sur Google. Note les 5 premiers résultats et leurs titres.",
+w:{qui:"Toi",aqui:"Internautes cherchant des outils IA",quoi:"Article 1200 mots avec liens affiliation",quand:"2h : 30min recherche + 90min rédac",comment:"Structure H1/H2/H3 + CTA"},
+session:"Rédiger et publier 1 article pilier 'Top 5 outils IA pour [secteur cible]'. Structure : intro + 5 sections outil + conclusion CTA. Minimum 2 liens affiliation actifs.",
+steps:["Choisir le mot-clé principal","Rédiger l'intro : poser le problème en 3 lignes","Rédiger les 5 sections outil avec lien affiliation","Rédiger la conclusion avec 1 CTA clair","Publier et vérifier que l'article est indexable"],
+livrable:"1 article publié, visible publiquement, avec minimum 2 liens affiliation cliquables.",
+apres:"Copie l'URL dans ton tracker.",
+target:"1er actif SEO en ligne"},
+{ph:"Phase 1 · S1–S2",pr:"a",date:"Ven 5 juin",title:"ARTEASY — 10 premiers messages envoyés",
+avant:"Relis les 3 messages testés J3. Confirme ta version A. Ouvre LinkedIn.",
+w:{qui:"Toi",aqui:"10 prospects de ta liste J2",quoi:"10 demandes de connexion + message",quand:"2h",comment:"LinkedIn, 1 par 1, personnalisé"},
+session:"Envoyer 10 messages de prospection personnalisés. Pour chaque : connexion LinkedIn + message avec prénom et secteur personnalisés. Jamais de copier-coller brut.",
+steps:["Ouvrir le fichier 50 prospects, choisir les 10 premiers","Pour chaque : envoyer demande de connexion avec note","Personnaliser : prénom + secteur + 1 phrase spécifique","Marquer dans le tracker : 'Envoyé J5 / Version A'","Fermer LinkedIn quand les 10 sont envoyés"],
+livrable:"10 messages envoyés. Tracker mis à jour avec date et version.",
+apres:"Note la date d'envoi J5. Vérifier les réponses dans 48h.",
+target:"1ère prospection active lancée"},
+{ph:"Phase 1 · S1–S2",pr:"c",date:"Sam 6 juin",title:"COSMETIC MANIA — identité de marque & bio",
+avant:"Ouvre Pinterest, tape 'cosmétiques maison'. Sauvegarde 10 images qui t'inspirent.",
+w:{qui:"Toi",aqui:"Femmes 25–40 passionnées cosmétiques naturels",quoi:"Identité visuelle + bio Instagram",quand:"2h",comment:"Canva + Pinterest pour inspiration"},
+session:"Définir l'identité complète : nom de compte, bio Instagram (150 caractères max, 1 promesse claire), palette 3 couleurs, 1 police, 3 templates Canva vierges.",
+steps:["Confirmer le nom de compte Instagram","Rédiger la bio : promesse + pour qui + appel à action","Choisir 3 couleurs sur Canva (teintes naturelles)","Créer 3 templates vierges réutilisables sur Canva","Remplir la bio sur le compte Instagram"],
+livrable:"Bio Instagram rédigée + palette 3 couleurs + 3 templates Canva sauvegardés.",
+apres:"Montre l'univers à 1 personne. Sa réaction instinctive compte.",
+target:"Identité COSMETIC MANIA posée"},
+{ph:"Phase 1 · S1–S2",pr:"b",date:"Dim 7 juin",title:"Bilan semaine 1 — ce qui marche, ce qui bloque",
+avant:"Ouvre ton tracker. Compte : messages envoyés, articles publiés, tâches cochées.",
+w:{qui:"Toi",aqui:"Toi-même",quoi:"Review hebdo écrite",quand:"1h matin",comment:"3 questions, pas dans la tête"},
+session:"Répondre par écrit à 3 questions : (1) Qu'est-ce qui a réellement avancé ? (2) Où ai-je perdu du temps ? (3) Qu'est-ce que je supprime la semaine prochaine ? Puis écrire les 3 priorités de S2.",
+steps:["Calculer le taux de complétion S1","Répondre Q1 : avancées réelles","Répondre Q2 : pertes de temps identifiées","Répondre Q3 : 1 chose à supprimer","Écrire les 3 priorités S2 sur post-it visible"],
+livrable:"Note bilan S1. 3 priorités S2 écrites. Taux de complétion calculé.",
+apres:"Colle les 3 priorités S2 là où tu travailles.",
+target:"Cap et rythme confirmés"},
+{ph:"Phase 1 · S1–S2",pr:"a",date:"Lun 8 juin",title:"ARTEASY — 10 relances + 10 nouveaux prospects",
+avant:"Vérifie tes notifications LinkedIn. Si quelqu'un a répondu positivement : priorité absolue.",
+w:{qui:"Toi",aqui:"10 anciens + 10 nouveaux prospects",quoi:"20 actions prospect",quand:"2h",comment:"Message relance 2 lignes + 10 nouveaux"},
+session:"Deux actions : (1) Relancer les 10 non-répondants J5 avec 2 lignes — question ouverte. (2) Envoyer 10 nouveaux messages. Si 0 réponse sur J5 : tester message version B.",
+steps:["Vérifier les réponses J5 — traiter en priorité","Rédiger le message de relance (2 lignes + question)","Envoyer 10 relances aux non-répondants J5","Envoyer 10 nouveaux messages (prospects 11–20)","Mettre à jour le tracker"],
+livrable:"20 actions dans le tracker. Tracker à jour.",
+apres:"Si 0 réponse sur 20 envois J5+J8 : changer de message dès demain.",
+target:"20 contacts actifs en pipeline"},
+{ph:"Phase 1 · S1–S2",pr:"r",date:"Mar 9 juin",title:"REFLEX IA — Article 2 + 3 programmes affiliation",
+avant:"Va sur les programmes d'affiliation de 3 outils IA. Note les taux de commission.",
+w:{qui:"Toi",aqui:"Lecteurs blog IA + programmes affiliation",quoi:"Article comparatif + inscriptions",quand:"2h",comment:"Rédaction + formulaires"},
+session:"Rédiger et publier l'article 2 : comparatif de 2 outils IA. En parallèle : s'inscrire aux programmes Notion, Jasper, ou Copy.ai. Intégrer les liens trackés.",
+steps:["Choisir 2 outils IA à comparer","Rédiger l'article comparatif 1000 mots avec tableau","S'inscrire à 3 programmes affiliation","Récupérer les liens trackés et les intégrer","Publier l'article 2 et vérifier les liens"],
+livrable:"Article 2 publié. 3 comptes affiliation créés avec liens trackés.",
+apres:"Vérifie que tes liens sont bien trackés dans le dashboard.",
+target:"Moteur affiliation activé"},
+{ph:"Phase 1 · S1–S2",pr:"c",date:"Mer 10 juin",title:"COSMETIC MANIA — 3 premiers posts publiés",
+avant:"Choisis 1 formule simple (ex: beurre de karité + huile). Note les étapes.",
+w:{qui:"Toi",aqui:"Passionnées cosmétiques naturels",quoi:"3 posts Instagram créés et publiés",quand:"2h création + publication",comment:"Canva + smartphone"},
+session:"Créer et publier 3 posts : Post 1 = recette carousel (5 slides). Post 2 = résultat avant/après. Post 3 = présentation du compte.",
+steps:["Préparer les photos smartphone (lumière naturelle)","Créer le carousel recette sur Canva","Créer le post résultat avec photo produit","Créer le post de présentation","Publier les 3 posts avec 30 hashtags chacun"],
+livrable:"3 posts publiés sur Instagram. Hashtags appliqués.",
+apres:"Publie le post 1 maintenant. Publier > perfection.",
+target:"Compte COSMETIC actif"},
+{ph:"Phase 1 · S1–S2",pr:"a",date:"Jeu 11 juin",title:"ARTEASY — Planifier les premières démos",
+avant:"Lis toutes les réponses LinkedIn reçues. Classe : intéressé / pas intéressé / neutre.",
+w:{qui:"Toi",aqui:"Prospects ayant répondu positivement",quoi:"Démos 20 min planifiées",quand:"2h",comment:"Calendly + message de proposition"},
+session:"Créer un lien Calendly pour des créneaux 20 min. Préparer 5 slides max de démo. Contacter tous les prospects positifs avec proposition de démo et lien Calendly.",
+steps:["Créer compte Calendly et configurer créneaux 20 min","Préparer la démo : 5 slides ou flow MVP","Rédiger le message de proposition avec lien Calendly","Envoyer à tous les répondants positifs","Noter les objections des répondants négatifs"],
+livrable:"Minimum 2 démos planifiées. Lien Calendly opérationnel.",
+apres:"Envoie un récap écrit à chaque personne ayant réservé.",
+target:"Premières démos dans l'agenda"},
+{ph:"Phase 1 · S1–S2",pr:"a",date:"Ven 12 juin",title:"ARTEASY — Conduire la démo & closing",
+avant:"Relis ton offre de lancement J1. Prépare ta réponse à 'c'est trop cher'.",
+w:{qui:"Toi",aqui:"Prospect en appel de démo",quoi:"Démo 15 min + closing direct",quand:"30 min par démo",comment:"Partage d'écran MVP, pas de PowerPoint"},
+session:"Démo en 3 temps : (1) 2 questions sur leur problème — 5 min. (2) MVP en live — 10 min. (3) Question closing : 'Est-ce que ça résout votre problème ?' + proposition d'achat. Si oui : facture dans l'heure.",
+steps:["Ouvrir le MVP en amont, tout vérifier","Démarrer par les questions : 'Comment gérez-vous X ?'","Montrer les 3 fonctionnalités clés","Poser la question de closing et se taire","Si accord : envoyer la facture via Stripe/PayPal dans l'heure"],
+livrable:"1 démo conduite. Réponse notée. Si vente : facture envoyée.",
+apres:"Note IMMÉDIATEMENT les objections entendues.",
+target:"1ère vente possible — 350€"},
+{ph:"Phase 1 · S1–S2",pr:"r",date:"Sam 13 juin",title:"REFLEX IA — Article 3 + maillage interne",
+avant:"Vérifie le trafic de tes 2 articles. Quel mot-clé a le plus de recherches ?",
+w:{qui:"Toi",aqui:"Internautes + Google",quoi:"Article 3 + liens internes",quand:"2h",comment:"1 mot-clé + 2 liens internes minimum"},
+session:"Rédiger et publier l'article 3. Ajouter des liens internes entre les 3 articles. Soumettre le sitemap dans Google Search Console.",
+steps:["Choisir le sujet article 3","Rédiger l'article 3 (1000 mots, 2 liens affiliation)","Ouvrir article 1 : ajouter liens vers 2 et 3","Ouvrir article 2 : ajouter liens vers 1 et 3","Soumettre le sitemap dans Google Search Console"],
+livrable:"3 articles publiés et liés. Sitemap soumis à Google Search Console.",
+apres:"Vérifie chaque lien interne cliquable.",
+target:"Socle SEO 3 articles maillés"},
+{ph:"Phase 1 · S1–S2",pr:"b",date:"Dim 14 juin",title:"Bilan S2 — calcul de trajectoire vers 15 000€",
+avant:"Ouvre ton tracker. Compte : prospects contactés, réponses, démos, ventes.",
+w:{qui:"Toi",aqui:"Toi-même",quoi:"Tableau conversion + projection",quand:"1h bilan + 1h planification",comment:"Chiffres réels uniquement"},
+session:"Construire le tableau de conversion S1–S2 et projeter : si tu maintiens ce rythme, combien de ventes à fin septembre ? Identifier le goulot d'étranglement.",
+steps:["Remplir le tableau de conversion avec les chiffres réels","Calculer le taux de réponse","Calculer le taux de closing","Projeter sur 12 semaines restantes","Identifier 1 action pour améliorer le maillon faible"],
+livrable:"Tableau de conversion S1–S2. Projection chiffrée. 1 action correctrice.",
+apres:"Projette où tu en seras à fin juin. Ajuste l'objectif S3.",
+target:"Trajectoire calibrée"},
+// S3
+{ph:"Phase 2 · S3",pr:"a",date:"Lun 15 juin",title:"ARTEASY — Scale à 20 prospects/jour",
+avant:"Optimise ton message avec les retours S1–S2. Identifie la version la plus efficace.",
+w:{qui:"Toi",aqui:"20 nouveaux artisans/TPE",quoi:"20 messages personnalisés",quand:"2h",comment:"PhantomBuster (14j gratuit)"},
+session:"Passer à 20 messages/jour en semi-automatisant. Installer PhantomBuster. Configurer et lancer la campagne.",
+steps:["Créer compte PhantomBuster (gratuit 14j)","Configurer le 'LinkedIn Message Sender'","Importer les 30 prochains prospects","Lancer la campagne (max 20/jour)","Vérifier les réponses en fin de session"],
+livrable:"20 messages envoyés. Taux de réponse calculé.",
+apres:"Si taux > 10% : maintenir. Si < 5% : changer de message.",
+target:"100 prospects/semaine"},
+{ph:"Phase 2 · S3",pr:"r",date:"Mar 16 juin",title:"REFLEX IA — Article pilier long (2000 mots)",
+avant:"Identifie le sujet IA le plus cherché. Vérifie avec Google Trends.",
+w:{qui:"Toi",aqui:"Professionnels adoptant l'IA",quoi:"Guide complet 5+ liens affiliation",quand:"2h",comment:"Structure pilier : intro + 5 sections + CTA"},
+session:"Rédiger et publier 1 article long 2000 mots sur un sujet IA à fort volume. 5+ liens affiliation. Partager sur LinkedIn.",
+steps:["Choisir le mot-clé longue traîne","Rédiger l'intro (5 lignes, problème clair)","Rédiger 5 sections avec liens affiliation","Créer un tableau comparatif","Publier et partager sur LinkedIn"],
+livrable:"1 article 2000 mots publié. 5 liens affiliation. Partagé LinkedIn.",
+apres:"Partage avec 1 phrase d'accroche personnelle.",
+target:"Article pilier à fort trafic organique"},
+{ph:"Phase 2 · S3",pr:"c",date:"Mer 17 juin",title:"COSMETIC MANIA — Calendrier éditorial 30 jours",
+avant:"Regarde les 10 comptes cosmétiques qui cartonnent. Note fréquence et formats.",
+w:{qui:"Toi",aqui:"Audience cosmétiques naturels",quoi:"Calendrier 30 posts + 10 épingles",quand:"2h",comment:"Google Sheets + Canva"},
+session:"Créer un calendrier éditorial 30 jours : 3 posts/semaine Instagram + 2 épingles/semaine Pinterest. Préparer 5 visuels.",
+steps:["Créer le tableau : Date | Thème | Format | Statut","Planifier 12 posts Instagram (3/semaine)","Planifier 8 épingles Pinterest (2/semaine)","Préparer les 5 premiers visuels Canva","Créer compte Pinterest Business si besoin"],
+livrable:"Calendrier 30 jours complet. 5 visuels prêts. Compte Pinterest Business.",
+apres:"Prépare 5 photos brutes pour la semaine suivante.",
+target:"Flux de contenu régulier et prévisible"},
+{ph:"Phase 2 · S3",pr:"a",date:"Jeu 18 juin",title:"ARTEASY — Traiter les réponses & démos",
+avant:"Ouvre LinkedIn. Classe les réponses : positif / négatif / neutre. Priorité aux positifs.",
+w:{qui:"Toi",aqui:"Prospects ayant répondu",quoi:"Démos planifiées + closing",quand:"2h",comment:"Calendly + partage d'écran"},
+session:"Traiter toutes les réponses. Positifs → démo Calendly. Neutres → question de qualification. Négatifs → noter l'objection. Conduire les démos planifiées.",
+steps:["Lire et classer toutes les réponses","Envoyer Calendly aux positifs","Envoyer question de qualification aux neutres","Conduire les démos (script J12)","Envoyer factures aux accords"],
+livrable:"Toutes les réponses traitées. Nouvelles démos planifiées. Ventes facturées.",
+apres:"Note les objections. Elles deviennent ta FAQ.",
+target:"Convertir le pipeline S1–S2"},
+{ph:"Phase 2 · S3",pr:"a",date:"Ven 19 juin",title:"ARTEASY — Prospection + suivi pipeline",
+avant:"Vérifie le pipeline. Qui attend depuis +3 jours ? Relance prioritaire.",
+w:{qui:"Toi",aqui:"20 nouveaux prospects",quoi:"20 messages + pipeline",quand:"2h",comment:"Semi-auto + tracker"},
+session:"Double action : 20 nouveaux messages + relancer les prospects en attente de décision depuis +3 jours.",
+steps:["Relancer les prospects en attente (+3 jours)","Lancer les 20 nouveaux messages","Mettre à jour le tracker","Préparer la démo du lendemain","Calculer les ventes de la semaine"],
+livrable:"20 messages envoyés. Tracker à jour. Ventes S3 calculées.",
+apres:"Compte les ventes cumulées.",
+target:"Accélération du pipeline"},
+{ph:"Phase 2 · S3",pr:"r",date:"Sam 20 juin",title:"REFLEX IA — Pinterest : 10 premières épingles",
+avant:"Crée le compte Pinterest Business si pas encore fait.",
+w:{qui:"Toi",aqui:"Internautes cherchant outils IA sur Pinterest",quoi:"10 épingles vers le blog",quand:"2h",comment:"Canva 1000×1500px"},
+session:"Créer 10 épingles Pinterest 1000×1500px pointant vers les articles du blog. Créer 1 tableau thématique IA.",
+steps:["Ouvrir Canva, créer template épingle vertical","Créer les 10 visuels avec titres percutants","Écrire les descriptions avec mots-clés","Publier dans le tableau thématique","Vérifier que chaque épingle pointe vers le bon article"],
+livrable:"10 épingles publiées. 1 tableau thématique. Analytics activés.",
+apres:"Vérifie que chaque épingle pointe vers ton blog.",
+target:"Trafic entrant depuis Pinterest"},
+{ph:"Phase 2 · S3",pr:"b",date:"Dim 21 juin",title:"Bilan S3 — ajustement de la machine",
+avant:"Ouvre le tracker. Compte tous les chiffres avant de démarrer.",
+w:{qui:"Toi",aqui:"Toi-même",quoi:"Bilan + ajustement stratégie",quand:"1h",comment:"Chiffres et faits"},
+session:"Bilan S3 : taux de réponse, taux de closing, goulot d'étranglement. 1 seul ajustement pour S4.",
+steps:["Remplir le tableau de conversion S3","Identifier le message/canal le plus efficace","Identifier le goulot principal","Décider 1 seul ajustement pour S4","Écrire les 3 priorités S4"],
+livrable:"Tableau conversion S3. 1 ajustement décidé. Priorités S4 notées.",
+apres:"Réécris les 3 priorités S4 sur un post-it visible.",
+target:"Machine de vente calibrée"},
+// S4
+{ph:"Phase 2 · S4",pr:"a",date:"Lun 22 juin",title:"ARTEASY — Page de vente simple opérationnelle",
+avant:"Relis tes objections notées après les démos. Elles deviennent les sections de ta page.",
+w:{qui:"Toi",aqui:"Prospects tièdes",quoi:"Page de vente avec bouton d'achat actif",quand:"2h",comment:"Carrd.co gratuit + Stripe/PayPal"},
+session:"Créer la page sur Carrd.co : Problème / Solution / Bénéfices / Prix / Bouton achat Stripe. Pas besoin qu'elle soit belle — claire et avec un bouton qui fonctionne.",
+steps:["Créer compte Carrd.co (gratuit)","H1 = résultat client, section problème, solution","Ajouter les 3 bénéfices clés","Intégrer le bouton de paiement Stripe/PayPal","Tester l'achat de bout en bout"],
+livrable:"URL de page de vente avec bouton d'achat actif et testé.",
+apres:"Envoie le lien à 3 personnes de confiance : 'Tu achètes ?'",
+target:"Lien de vente à envoyer aux prospects"},
+{ph:"Phase 2 · S4",pr:"a",date:"Mar 23 juin",title:"ARTEASY — Routine prospection 20/jour",
+avant:"Vérifier les réponses. Traiter les positifs en premier.",
+w:{qui:"Toi",aqui:"20 nouveaux prospects + répondants",quoi:"20 envois + démos",quand:"2h",comment:"Semi-auto + Calendly"},
+session:"Routine : 20 nouveaux messages + traitement des réponses + démos planifiées. Cette routine se répète chaque jour de S4.",
+steps:["Traiter toutes les réponses LinkedIn (15 min)","Envoyer 20 nouveaux messages","Conduire les démos planifiées","Envoyer les factures aux accords","Mettre à jour le tracker"],
+livrable:"20 messages envoyés. Démos conduites. Ventes facturées dans la journée.",
+apres:"Mise à jour tracker : ventes cumulées + pipeline actif.",
+target:"8–10 ventes cumulées"},
+{ph:"Phase 2 · S4",pr:"r",date:"Mer 24 juin",title:"REFLEX IA — Articles 4 & 5 publiés",
+avant:"Crée un template article réutilisable. Ça divise le temps par 2.",
+w:{qui:"Toi",aqui:"Internautes + moteurs",quoi:"2 articles 1000 mots chacun",quand:"2h (1h par article)",comment:"Template réutilisable"},
+session:"Rédiger et publier 2 articles avec le template. Article 4 : guide pratique IA. Article 5 : liste d'outils gratuits IA.",
+steps:["Écrire article 4 avec template (45 min)","Publier article 4 avec liens affiliation et internes","Écrire article 5 avec template (45 min)","Publier article 5 avec liens","Vérifier maillage interne entre tous les articles"],
+livrable:"Articles 4 et 5 publiés. Total : 5 articles avec maillage interne.",
+apres:"Soumets en indexation manuelle dans Search Console.",
+target:"5 articles = socle SEO solide"},
+{ph:"Phase 2 · S4",pr:"c",date:"Jeu 25 juin",title:"COSMETIC MANIA — 6 posts + 1ère interaction",
+avant:"Regarde les stats de tes 3 premiers posts. Quel format a le plus d'engagement ?",
+w:{qui:"Toi",aqui:"Abonnés et prospects Instagram",quoi:"3 posts + engagement actif",quand:"2h",comment:"Canva + Instagram + commentaires"},
+session:"Publier 3 nouveaux posts selon le calendrier. Passer 30 min à commenter 20 comptes similaires. Répondre à tous les commentaires reçus.",
+steps:["Créer 3 posts Canva (template J6)","Publier avec hashtags et description","Commenter 20 posts similaires (vrais commentaires)","Répondre à tous les commentaires reçus","Analyser : quel post a le plus d'impressions ?"],
+livrable:"3 posts publiés. 20 comptes commentés. Tous les commentaires traités.",
+apres:"Note le format qui a le mieux marché.",
+target:"Croissance organique des abonnés"},
+{ph:"Phase 2 · S4",pr:"a",date:"Ven 26 juin",title:"ARTEASY — Contacter 10 prescripteurs",
+avant:"Lister 5 comptables, 5 chambres de métiers, 3 fédérations artisanales.",
+w:{qui:"Toi",aqui:"Comptables + chambres de métiers",quoi:"10 messages partenariat",quand:"2h",comment:"Email + LinkedIn, commission 20%"},
+session:"Contacter 10 prescripteurs : 'Je cherche des partenaires prescripteurs pour un ERP artisans. Commission 20% par vente closée.'",
+steps:["Trouver 5 comptables spécialisés artisans","Trouver 3 chambres de métiers","Trouver 2 fédérations artisanales","Rédiger le message partenariat (5 lignes, commission claire)","Envoyer les 10 messages"],
+livrable:"10 messages partenariat envoyés. 1 réponse positive = jackpot.",
+apres:"Si 1 intéressé : c'est la priorité absolue de la semaine prochaine.",
+target:"Levier de distribution externe"},
+{ph:"Phase 2 · S4",pr:"b",date:"Sam 27 juin",title:"Bilan S4 — 1 mois de travail, où en es-tu ?",
+avant:"Ouvre le tracker. Prépare tous les chiffres depuis J1.",
+w:{qui:"Toi",aqui:"Toi-même",quoi:"Bilan mensuel + ajustement",quand:"2h",comment:"Chiffres réels + décision"},
+session:"Bilan 1 mois : ventes ARTEASY, revenus affiliation REFLEX IA, abonnés COSMETIC. Comparer à l'objectif : 12 ventes = 4200€.",
+steps:["Calculer les ventes cumulées ARTEASY","Vérifier les premiers clics/revenus affiliation","Compter les abonnés Instagram","Comparer à l'objectif : en avance / dans les temps / en retard","Décider 1 action corrective si nécessaire"],
+livrable:"Bilan mensuel chiffré. Décision de cap pour S5–S8.",
+apres:"Célèbre ce qui a marché. 1 mois constant mérite reconnaissance.",
+target:"10–12 ventes = ~3500€"},
+// S5
+{ph:"Phase 2 · S5",pr:"a",date:"Dim 28 juin",title:"ARTEASY — Routine prospection 20/jour",
+avant:"Vérifier les réponses du week-end. Traiter en priorité.",
+w:{qui:"Toi",aqui:"20 nouveaux prospects",quoi:"20 messages + réponses",quand:"2h",comment:"Routine quotidienne"},
+session:"Prospection pure : 20 nouveaux messages + traitement des réponses + 1 démo si planifiée.",
+steps:["Traiter toutes les réponses (15 min max)","Lancer les 20 messages","Conduire la démo si planifiée","Envoyer la facture si accord","Mettre à jour le tracker"],
+livrable:"20 messages. Tracker à jour. Ventes notées.",
+apres:"Calcul : combien de ventes restantes pour 15 000€ ?",
+target:"Rythme de croisière maintenu"},
+{ph:"Phase 2 · S5",pr:"r",date:"Lun 29 juin",title:"REFLEX IA — Articles 6 & 7 + analyse trafic",
+avant:"Ouvre Google Search Console. Quels articles commencent à apparaître ?",
+w:{qui:"Toi",aqui:"Google + lecteurs",quoi:"2 articles + analyse",quand:"2h",comment:"Template + Search Console"},
+session:"Publier articles 6 et 7. Analyser Search Console. Optimiser l'article le mieux classé.",
+steps:["Analyser Search Console (5 min)","Optimiser l'article le mieux classé (+200 mots)","Rédiger article 6 (45 min)","Rédiger article 7 (45 min)","Soumettre en indexation manuelle"],
+livrable:"Articles 6–7 publiés. 1 article existant optimisé.",
+apres:"Soumets les nouveaux articles en indexation.",
+target:"7 articles + premiers signaux SEO"},
+{ph:"Phase 2 · S5",pr:"c",date:"Mar 30 juin",title:"COSMETIC MANIA — Engagements & collaborations",
+avant:"Regarde tes stats. Quel est le taux d'engagement moyen ?",
+w:{qui:"Toi",aqui:"Comptes similaires + abonnés",quoi:"Engagement + 1ère collab",quand:"2h",comment:"DMs + commentaires ciblés"},
+session:"Commenter 30 comptes, répondre à tous les commentaires, envoyer 5 DMs pour collab ou mention croisée.",
+steps:["Commenter 30 posts de comptes cosmétiques","Répondre à tous tes commentaires et DMs","Identifier 5 comptes de taille similaire","Envoyer 5 DMs de proposition de collab","Publier 1 nouveau post"],
+livrable:"30 commentaires, 5 DMs envoyés, 1 post publié. Stats notées.",
+apres:"Note le format qui a le mieux marché.",
+target:"Croissance organique accélérée"},
+{ph:"Phase 2 · S5",pr:"a",date:"Mer 1 juil",title:"ARTEASY — Intégrer les témoignages clients",
+avant:"Compte tes clients actuels. Qui est le plus satisfait ? Il est appelé en premier.",
+w:{qui:"Toi",aqui:"Clients actuels",quoi:"Témoignages sur page + messages",quand:"2h",comment:"Email aux clients + Carrd"},
+session:"Contacter chaque client pour un témoignage de 3 phrases. Intégrer sur Carrd et dans les messages de prospection.",
+steps:["Rédiger l'email de demande (3 lignes)","Envoyer à tous les clients","Intégrer les témoignages sur Carrd.co","Ajouter 1 témoignage dans les messages","Relancer les non-répondants sous 48h"],
+livrable:"3 témoignages collectés. Page de vente mise à jour.",
+apres:"La preuve sociale réduit le risque perçu.",
+target:"Page de vente renforcée"},
+{ph:"Phase 2 · S5",pr:"r",date:"Jeu 2 juil",title:"REFLEX IA — Articles 8 & 9 + épingles Pinterest",
+avant:"Vérifie les épingles Pinterest S3. Quelles images ont le plus de clics ?",
+w:{qui:"Toi",aqui:"Google + Pinterest",quoi:"2 articles + 5 épingles",quand:"2h",comment:"Template + Canva"},
+session:"Publier articles 8 et 9. Créer 5 épingles vers les meilleurs articles.",
+steps:["Rédiger et publier article 8 (45 min)","Rédiger et publier article 9 (45 min)","Créer 5 épingles vers les articles les plus lus","Publier sur Pinterest","Analyser : quelle épingle a le plus de clics ?"],
+livrable:"Articles 8–9 publiés. 5 épingles Pinterest en ligne.",
+apres:"Duplique le format d'épingle qui clique le plus.",
+target:"9 articles + trafic Pinterest"},
+{ph:"Phase 2 · S5",pr:"b",date:"Ven 3 juil",title:"Bilan S5 — Pivot ou accélération ?",
+avant:"Prépare tous les chiffres des 5 semaines.",
+w:{qui:"Toi",aqui:"Toi-même",quoi:"Bilan S5 + décision",quand:"2h",comment:"Chiffres + décision courageuse"},
+session:"Bilan S5 : à ce stade 12–15 ventes ARTEASY. Si oui : accélérer. Si non : analyser le goulot.",
+steps:["Calculer les ventes ARTEASY (objectif : 12–15)","Vérifier les revenus affiliation","Compter les abonnés COSMETIC","Décision : continuer / pivoter / accélérer","Ébaucher le plan Phase 3"],
+livrable:"Bilan S5. Décision écrite. Plan Phase 3 ébauché.",
+apres:"Sans décision = dispersion garantie.",
+target:"12–15 ventes = 4200–5250€"},
+// Phase 3
+{ph:"Phase 3 · S6",pr:"a",date:"Sam 4 juil",title:"ARTEASY — Sprint closing : 20 ventes cumulées",
+avant:"Vérifie ton pipeline. Combien sont en attente depuis +7 jours ?",
+w:{qui:"Toi",aqui:"Prospects tièdes + clients",quoi:"Closing intensif + référence",quand:"2h/jour",comment:"Relance + témoignages + référence"},
+session:"Relancer TOUS les prospects ayant répondu mais pas acheté. Demander à chaque client 1 référence nominative.",
+steps:["Lister tous les prospects 'tiède'","Envoyer un message de relance avec question","Demander à chaque client 1 référence","Envoyer 20 nouveaux messages","Conduire toutes les démos"],
+livrable:"Toutes les relances envoyées. 3 références obtenues. Nouvelles démos planifiées.",
+apres:"Chaque vente = remerciement + témoignage dans l'heure.",
+target:"20 ventes cumulées = 7000€"},
+{ph:"Phase 3 · S6",pr:"r",date:"Dim 5 juil",title:"REFLEX IA — Articles 10 & 11 + optimisation",
+avant:"Search Console : quels articles ont beaucoup d'impressions mais peu de clics ?",
+w:{qui:"Toi",aqui:"Google + lecteurs existants",quoi:"2 articles + optimisation",quand:"2h",comment:"Template + Search Console"},
+session:"Publier articles 10 et 11. Optimiser le titre et la méta-description des 2 articles à fort CTR potentiel.",
+steps:["Identifier dans Search Console les articles à optimiser","Optimiser les titres H1 (plus accrocheurs)","Rédiger et publier article 10","Rédiger et publier article 11","Vérifier que les liens affiliation top articles sont cliquables"],
+livrable:"Articles 10–11 publiés. 2 articles existants optimisés. Total : 11 articles.",
+apres:"Les premiers revenus affiliation devraient apparaître ce mois-ci.",
+target:"11 articles + premiers revenus affiliation"},
+{ph:"Phase 3 · S6",pr:"c",date:"Lun 6 juil",title:"COSMETIC MANIA — Reels & format vidéo",
+avant:"Regarde 5 Reels cosmétiques. Note : durée, rythme, accroche des 3 premières secondes.",
+w:{qui:"Toi",aqui:"Nouveaux abonnés potentiels",quoi:"1er Reel de formule cosmétique",quand:"2h",comment:"Smartphone + CapCut gratuit"},
+session:"Créer et publier le 1er Reel : tutoriel 30–60 secondes. Accroche 3 premières secondes. Sous-titres. CTA vers guide en description.",
+steps:["Choisir la formule à filmer (simple + visuelle)","Filmer en lumière naturelle (étapes + résultat)","Monter sur CapCut : rythme dynamique, sous-titres, musique","Exporter et publier avec hashtags Reels","Analyser les vues dans les 24h"],
+livrable:"1 Reel publié. Sous-titres + musique + hashtags. Vues notées.",
+apres:"Si +500 vues en 24h : c'est ton nouveau format principal.",
+target:"Portée organique ×3 grâce aux Reels"},
+{ph:"Phase 3 · S7",pr:"a",date:"Mar 7 juil",title:"ARTEASY — Routine + partenaires prescripteurs",
+avant:"Vérifie les réponses prescripteurs S4. Si 1 positif : priorité absolue.",
+w:{qui:"Toi",aqui:"Prescripteurs + prospects",quoi:"20 messages + suivi prescripteurs",quand:"2h",comment:"LinkedIn + email"},
+session:"Double : 20 messages de prospection + relancer les prescripteurs et proposer un appel 15 min.",
+steps:["Traiter les réponses LinkedIn (15 min)","Relancer les prescripteurs non-répondants","Proposer appel 15 min aux intéressés","Envoyer 20 nouveaux messages","Conduire démos planifiées"],
+livrable:"20 messages envoyés. Prescripteurs relancés. 1 appel planifié si possible.",
+apres:"1 partenaire prescripteur = 5–10 ventes potentielles.",
+target:"Activer le canal prescripteurs"},
+{ph:"Phase 3 · S7",pr:"r",date:"Mer 8 juil",title:"REFLEX IA — Articles 12 & 13 + LinkedIn",
+avant:"Vérifie tes stats LinkedIn. Quel type de post a eu le plus de réactions ?",
+w:{qui:"Toi",aqui:"LinkedIn + Google",quoi:"2 articles + posts LinkedIn",quand:"2h",comment:"Template + rédaction LinkedIn"},
+session:"Rédiger et publier articles 12 et 13. Écrire 1 post LinkedIn par article (5 lignes max, question provocante + lien).",
+steps:["Rédiger article 12 avec template","Rédiger article 13 avec template","Publier les 2 articles","Post LinkedIn article 12 (5 lignes + lien)","Post LinkedIn article 13 (5 lignes + lien)"],
+livrable:"Articles 12–13 publiés. 2 posts LinkedIn publiés. Total : 13 articles.",
+apres:"Vérifie les clics affiliation de la semaine.",
+target:"13 articles + trafic LinkedIn"},
+{ph:"Phase 3 · S7",pr:"c",date:"Jeu 9 juil",title:"COSMETIC MANIA — 2ème Reel + croissance",
+avant:"Analyse les vues et abonnés gagnés avec le Reel 1.",
+w:{qui:"Toi",aqui:"Abonnés + Explore",quoi:"1 Reel + engagement actif",quand:"2h",comment:"CapCut + Instagram"},
+session:"Créer et publier Reel 2 en améliorant le Reel 1. Engagement actif sur 30 posts de la niche.",
+steps:["Analyser Reel 1 : vues, abonnés, commentaires","Appliquer 1 amélioration au Reel 2","Filmer, monter et publier le Reel 2","Commenter 30 posts de la niche","Répondre à tous les commentaires"],
+livrable:"Reel 2 publié. 30 commentaires. Abonnés cumulés notés.",
+apres:"À 500 abonnés qualifiés → penser à la vente du guide PDF.",
+target:"300–500 abonnés engagés"},
+{ph:"Phase 3 · S7",pr:"a",date:"Ven 10 juil",title:"ARTEASY — Affiner le pricing & offre groupée",
+avant:"Relis toutes les objections depuis J12. La plus fréquente est la clé.",
+w:{qui:"Toi",aqui:"Prospects hésitants",quoi:"Nouvelle offre groupée",quand:"2h",comment:"Analyse objections + Carrd update"},
+session:"Créer une offre groupée pour lever l'objection principale. Mettre à jour Carrd et le message de prospection.",
+steps:["Lister les 3 objections les plus fréquentes","Créer 1 offre groupée (ex: licence + formation à 450€)","Mettre à jour la page de vente Carrd","Mettre à jour le message de prospection","Tester la nouvelle offre sur 10 prospects"],
+livrable:"Nouvelle offre créée. Page de vente et message mis à jour.",
+apres:"Teste sur 10 prospects et compare le taux de closing.",
+target:"Augmenter le taux de closing"},
+{ph:"Phase 3 · S8",pr:"b",date:"Sam 11 juil",title:"Bilan S8 — Revenu cumulé & projection finale",
+avant:"Compile tous les chiffres depuis J1.",
+w:{qui:"Toi",aqui:"Toi-même",quoi:"Bilan 8 semaines + projection",quand:"2h",comment:"Chiffres + décision"},
+session:"Bilan 8 semaines : ~20 ventes (7000€), premiers revenus affiliation (200–500€), 500+ abonnés. Si oui : sprint final. Si non : identifier le levier prioritaire.",
+steps:["Calculer les revenus totaux cumulés","Comparer à l'objectif 7000€ à S8","Calculer les ventes restantes","Identifier le levier le plus rapide pour S9–S12","Écrire le plan Phase 4"],
+livrable:"Bilan 8 semaines. Revenus calculés. Plan Phase 4 rédigé.",
+apres:"15 000€ est atteignable si tu maintiens 4 semaines de plus.",
+target:"20 ventes = ~7000€ + 500€ affiliation"},
+{ph:"Phase 3 · S8",pr:"c",date:"Dim 12 juil",title:"COSMETIC MANIA — Lancer le guide PDF 19€",
+avant:"Sélectionne tes 5 meilleures formules testées.",
+w:{qui:"Toi",aqui:"Abonnées ayant engagé sur tes formules",quoi:"Guide PDF 20 pages en vente",quand:"2h",comment:"Canva PDF + Gumroad"},
+session:"Créer et vendre le guide PDF sur Gumroad à 19€. Publier l'annonce sur Stories.",
+steps:["Créer le PDF Canva : couverture + 5 formules (20 pages)","Créer compte Gumroad, uploader à 19€","Récupérer le lien Gumroad","Créer une Story Instagram d'annonce","Mettre à jour la bio Instagram avec le lien"],
+livrable:"Guide PDF en vente sur Gumroad. Lien en bio. Story d'annonce publiée.",
+apres:"Objectif : 20 ventes = 380€. Partage dans toutes tes Stories.",
+target:"1er produit digital COSMETIC vendu"},
+{ph:"Phase 3 · S8",pr:"a",date:"Lun 13 juil",title:"ARTEASY — Routine + appels prescripteurs",
+avant:"Prépare le brief : commission, process, support client.",
+w:{qui:"Toi",aqui:"Prescripteurs + prospects",quoi:"20 messages + appels prescripteurs",quand:"2h",comment:"Téléphone + LinkedIn"},
+session:"Conduire les appels prescripteurs : accord formel commission 20%. En parallèle : routine 20 messages.",
+steps:["Conduire les appels prescripteurs (15 min/appel)","Présenter le programme de commission","Envoyer l'accord par email après appel","Envoyer 20 messages prospection","Conduire les démos planifiées"],
+livrable:"1 accord prescripteur (ou en cours). 20 messages. Démos conduites.",
+apres:"1 prescripteur actif peut doubler tes ventes.",
+target:"1 canal de distribution externe activé"},
+{ph:"Phase 3 · S8",pr:"r",date:"Mar 14 juil",title:"REFLEX IA — Articles 14 & 15 + bilan affiliation",
+avant:"Ouvre tous tes dashboards affiliation. Compte les revenus.",
+w:{qui:"Toi",aqui:"Lecteurs + affiliation",quoi:"2 articles + check revenus",quand:"2h",comment:"Template + dashboards"},
+session:"Publier articles 14 et 15. Identifier les liens qui convertissent le mieux et les mettre en avant dans les top articles.",
+steps:["Vérifier clics et commissions affiliation","Identifier les 3 articles les plus visités","Optimiser les liens dans ces articles","Rédiger et publier article 14","Rédiger et publier article 15"],
+livrable:"Articles 14–15 publiés. Top articles optimisés avec liens performants.",
+apres:"Les premiers revenus affiliation réels devraient apparaître.",
+target:"15 articles + revenus affiliation cumulés"},
+// Phase 4
+{ph:"Phase 4 · S9",pr:"a",date:"Mer 15 juil",title:"ARTEASY — Offre limitée : -10% jusqu'au 31 août",
+avant:"Relance TOUS les prospects ayant répondu mais pas acheté.",
+w:{qui:"Toi",aqui:"Tous les prospects depuis J1",quoi:"Campagne de relance avec urgence",quand:"2h/jour",comment:"Email + LinkedIn + appel direct"},
+session:"Lancer la campagne finale : '-10% jusqu'au 31 août uniquement'. Pour les chauds : appel direct.",
+steps:["Extraire tous les prospects 'répondu mais pas acheté'","Rédiger le message de relance avec limite temporelle","Envoyer à tous les prospects tièdes","Appeler directement les plus chauds","Envoyer les factures dans l'heure"],
+livrable:"Campagne de relance lancée. Appels passés. Nouvelles ventes facturées.",
+apres:"Documente chaque objection → FAQ page de vente v2.",
+target:"25 ventes cumulées = 8750€"},
+{ph:"Phase 4 · S9",pr:"r",date:"Jeu 16 juil",title:"REFLEX IA — Articles 16 à 18 en batch",
+avant:"Search Console : quels sujets génèrent de l'intérêt sans article chez toi ?",
+w:{qui:"Toi",aqui:"Google + lecteurs",quoi:"3 articles en une session",quand:"2h (40 min/article)",comment:"Template ultra-optimisé"},
+session:"Session batch : 3 articles en 2h avec template rodé. Efficacité maximale.",
+steps:["Préparer 3 sujets et mots-clés (5 min)","Article 16 en 40 min","Article 17 en 40 min","Article 18 en 40 min","Publier les 3 et soumettre en indexation"],
+livrable:"Articles 16–18 publiés. Total : 18 articles.",
+apres:"Vérifie le trafic total du blog vs la semaine dernière.",
+target:"18 articles = trafic SEO en hausse visible"},
+{ph:"Phase 4 · S9",pr:"c",date:"Ven 17 juil",title:"COSMETIC MANIA — Sprint contenu + promo guide",
+avant:"Compte les ventes du guide depuis S8.",
+w:{qui:"Toi",aqui:"Abonnés Instagram",quoi:"3 posts + promo guide PDF",quand:"2h",comment:"Canva + Stories"},
+session:"3 posts promotionnels guide PDF (sans être agressif) : teaser formule + résultat + coulisse. Chaque post a un CTA discret.",
+steps:["Créer 3 posts Canva (teaser + résultat + coulisse)","CTA discret vers le guide dans chaque post","Publier les 3 posts avec hashtags","Créer 3 Stories avec sticker lien guide","Analyser les ventes après les Stories"],
+livrable:"3 posts. 3 Stories avec lien. Ventes guide notées.",
+apres:"Si le guide se vend bien → envisager guide 2 à 29€.",
+target:"20 ventes guide = 380€"},
+{ph:"Phase 4 · S9",pr:"b",date:"Sam 18 juil",title:"Bilan S9 — Compte à rebours final",
+avant:"Compile tous les revenus. Moment de vérité.",
+w:{qui:"Toi",aqui:"Toi-même",quoi:"Bilan S9 + compte à rebours",quand:"1h",comment:"Chiffres + calcul manque"},
+session:"Calculer exactement où tu en es. Montant exact manquant. Leviers les plus rapides pour les 3 semaines restantes.",
+steps:["Calculer les revenus totaux cumulés","Calculer le montant manquant pour 15 000€","Identifier le levier le plus rapide","Définir l'objectif S10–S12","Écrire le plan sprint final"],
+livrable:"Revenus cumulés. Montant manquant connu. Plan sprint final écrit.",
+apres:"Les 3 dernières semaines : focus total ARTEASY closing.",
+target:"8 500–9 000€ cumulés"},
+{ph:"Phase 4 · S10",pr:"a",date:"Dim 19 juil",title:"ARTEASY — Sprint closing téléphonique",
+avant:"Identifie les 10 prospects les plus chauds (répondu positivement, pas acheté).",
+w:{qui:"Toi",aqui:"10 prospects chauds non-closés",quoi:"10 appels directs",quand:"2h",comment:"Téléphone — le canal le plus efficace"},
+session:"10 appels directs. Script : 'Bonjour, vous aviez montré de l'intérêt pour ARTEASY. Votre situation a-t-elle évolué ?' Puis écoute.",
+steps:["Préparer la liste des 10 prospects chauds","Appels 1 à 5 (noter les réponses)","Pause 5 min entre chaque appel","Appels 6 à 10","Envoyer les factures aux accords dans l'heure"],
+livrable:"10 appels. Résultats notés. Factures envoyées.",
+apres:"L'appel convertit 3× plus que le message.",
+target:"2–3 ventes depuis les appels"},
+{ph:"Phase 4 · S10",pr:"r",date:"Lun 20 juil",title:"REFLEX IA — Optimisation top articles affiliation",
+avant:"Google Analytics : classe tes articles par visiteurs uniques.",
+w:{qui:"Toi",aqui:"Lecteurs existants",quoi:"Optimisation CTA affiliation",quand:"2h",comment:"Analytics + édition articles"},
+session:"Les 5 articles les plus visités : ajouter boutons CTA, encadrés de recommandation, tableaux avec liens.",
+steps:["Identifier les 5 articles les plus visités","Article 1 : ajouter bouton CTA dans le premier tiers","Article 2 : ajouter tableau comparatif avec liens","Articles 3–5 : ajouter encadrés recommandation","Vérifier que tous les liens fonctionnent"],
+livrable:"5 articles top trafic optimisés. CTA affiliation en place.",
+apres:"Ce travail peut doubler les revenus affiliation sans nouveau contenu.",
+target:"Doubler le taux de clic affiliation"},
+{ph:"Phase 4 · S10",pr:"a",date:"Mar 21 juil",title:"ARTEASY — 20 messages + gestion pipeline",
+avant:"Vérifie le pipeline. Qui attend depuis +5 jours ? Relance prioritaire.",
+w:{qui:"Toi",aqui:"Nouveaux prospects + pipeline",quoi:"20 messages + suivi complet",quand:"2h",comment:"Routine + tracker"},
+session:"Routine : 20 messages + gestion complète du pipeline. En Phase 4, chaque journée sans vente compte double.",
+steps:["Relancer les prospects en attente +5 jours","Envoyer 20 nouveaux messages","Conduire les démos","Envoyer les factures","Mettre à jour le tracker"],
+livrable:"20 messages. Tracker à jour. Ventes notées.",
+apres:"Compte à rebours : combien de ventes restantes ?",
+target:"3–4 ventes par semaine"},
+{ph:"Phase 4 · S10",pr:"r",date:"Mer 22 juil",title:"REFLEX IA — Articles 19 & 20 + bilan affiliation",
+avant:"Ouvre tous tes dashboards affiliation. Revenus totaux à ce jour.",
+w:{qui:"Toi",aqui:"Google + affiliation",quoi:"2 articles + bilan",quand:"2h",comment:"Template + dashboards"},
+session:"Publier articles 19 et 20. Bilan complet affiliation : revenus par programme. Mettre en avant les 2 meilleurs.",
+steps:["Calculer revenus par programme affiliation","Identifier les 2 programmes les plus rentables","Rédiger et publier article 19","Rédiger et publier article 20","Mettre en avant les 2 meilleurs dans les top articles"],
+livrable:"Articles 19–20 publiés. Bilan affiliation. 2 programmes mis en avant.",
+apres:"À 20 articles : 500–1000€/mois affiliation en régime.",
+target:"20 articles + 500€ affiliation cumulés"},
+{ph:"Phase 4 · S10",pr:"c",date:"Jeu 23 juil",title:"COSMETIC MANIA — Reel viral + guide promo",
+avant:"Regarde les Reels avec +10 000 vues dans ta niche. Qu'ont-ils en commun ?",
+w:{qui:"Toi",aqui:"Nouveaux abonnés potentiels",quoi:"Reel à fort potentiel viral",quand:"2h",comment:"CapCut + Instagram"},
+session:"Reel maximum viral : avant/après fort, musique trending, sous-titres accrocheurs dès la 1ère seconde. CTA vers guide.",
+steps:["Choisir la formule avec le plus fort effet visuel","Filmer : 3 secondes d'accroche forte","Monter : rythme cut rapide, musique trending","Sous-titres et CTA guide en description","Publier et surveiller les vues toutes les heures"],
+livrable:"Reel publié. Vues suivies. Abonnés notés.",
+apres:"Si +1000 vues en 24h : répondre à TOUS les commentaires.",
+target:"1000+ vues = croissance abonnés"},
+{ph:"Phase 4 · S11",pr:"a",date:"Ven 24 juil",title:"ARTEASY — Dernière campagne de prospection",
+avant:"Ces 2 semaines sont les dernières avant fin août.",
+w:{qui:"Toi",aqui:"20 nouveaux prospects ciblés",quoi:"20 messages + démos + closing",quand:"2h",comment:"Focus total"},
+session:"Dernière grande vague de prospection. 20 messages version gagnante, toutes les démos, closing en priorité.",
+steps:["Envoyer 20 messages version gagnante","Relancer tous les prospects tièdes","Conduire les démos (script rodé)","Fermer avec l'offre -10% limitée","Factures dans l'heure"],
+livrable:"20 messages. Démos conduites. Maximum de ventes closées.",
+apres:"Si pas 30 ventes, c'est maintenant ou jamais.",
+target:"30 ventes cumulées = 10 500€"},
+{ph:"Phase 4 · S11",pr:"r",date:"Sam 25 juil",title:"REFLEX IA — Articles 21 à 23 + analyse finale",
+avant:"Search Console : combien d'articles en position 1–10 sur Google ?",
+w:{qui:"Toi",aqui:"Google + lecteurs + affiliation",quoi:"3 articles + bilan SEO",quand:"2h",comment:"Batch + Search Console"},
+session:"Publier articles 21, 22, 23 en batch. Bilan SEO complet. Projeter les revenus affiliation.",
+steps:["Rédiger et publier articles 21, 22, 23 en batch","Analyser Search Console : positions, clics","Calculer le trafic mensuel total","Estimer les revenus affiliation mensuels","Projeter sur 6 mois"],
+livrable:"Articles 21–23 publiés. Bilan SEO. Projection affiliation.",
+apres:"À ce rythme : 500–2000€/mois passif en régime.",
+target:"23 articles + revenus affiliation visibles"},
+{ph:"Phase 4 · S11",pr:"c",date:"Dim 26 juil",title:"COSMETIC MANIA — Bilan + prochain guide",
+avant:"Ouvre Instagram Analytics et Gumroad. Compile ventes et abonnés.",
+w:{qui:"Toi",aqui:"Abonnés + clients guide",quoi:"Bilan COSMETIC + planning guide 2",quand:"2h",comment:"Analytics + Gumroad"},
+session:"Bilan COSMETIC : abonnés, engagement, ventes guide. Si 20+ guides vendus → créer guide 2 à 29€.",
+steps:["Calculer abonnés et taux d'engagement","Calculer ventes et revenus guide 1","Décider : lancer guide 2 en septembre","Si oui : définir sujet et prix","Rédiger les 5 premières pages si oui"],
+livrable:"Bilan COSMETIC. Décision guide 2 prise.",
+apres:"COSMETIC est un actif long terme. Ne pas brûler les étapes.",
+target:"500+ abonnés + 380€ guide 1"},
+{ph:"Phase 4 · S11",pr:"a",date:"Lun 27 juil",title:"ARTEASY — Sprint téléphonique 2",
+avant:"Identifie les 10 prospects qui n'ont pas dit non définitivement.",
+w:{qui:"Toi",aqui:"10 prospects chauds restants",quoi:"10 appels directs",quand:"2h",comment:"Téléphone"},
+session:"2ème sprint téléphonique : 10 appels directs. Objectif : 3–5 ventes.",
+steps:["Préparer la liste des 10 prospects","Appels 1 à 5 (noter les réponses)","Pause 5 min entre chaque appel","Appels 6 à 10","Envoyer les factures dans l'heure"],
+livrable:"10 appels. Résultats notés. Factures envoyées.",
+apres:"Les calls directs sont ton levier le plus puissant.",
+target:"3–5 ventes depuis ces appels"},
+{ph:"Phase 4 · S12",pr:"b",date:"Mar 28 juil",title:"Bilan S11 — combien manque-t-il ?",
+avant:"Compile tous les revenus à l'euro près.",
+w:{qui:"Toi",aqui:"Toi-même",quoi:"Bilan S11 + calcul final",quand:"1h",comment:"Chiffres uniquement"},
+session:"Revenus totaux cumulés. Montant exact manquant. Plan dernière semaine.",
+steps:["Calculer revenus ARTEASY","Calculer revenus REFLEX IA","Calculer revenus COSMETIC","Total - 15 000€ = manquant","Combien de ventes cette dernière semaine ?"],
+livrable:"Revenus totaux. Montant manquant. Plan dernière semaine écrit.",
+apres:"La dernière semaine est décisive. Toute l'énergie sur ARTEASY.",
+target:"12 000–13 000€ cumulés"},
+{ph:"Phase 4 · S12",pr:"a",date:"Mer 29 juil",title:"ARTEASY — Sprint final : closing intensif",
+avant:"C'est la dernière semaine. Uniquement closing du pipeline existant.",
+w:{qui:"Toi",aqui:"Tous les prospects restants",quoi:"Closing final toutes options",quand:"2h",comment:"Appels + messages + offre ultime"},
+session:"Sprint closing final : appeler, relancer, proposer. Paiement en 2 fois, garantie satisfait. Factures dans les minutes suivant chaque accord.",
+steps:["Appeler tous les prospects chauds restants","Proposer paiement en 2 fois si objection prix","Envoyer l'offre -10% aux hésitants","Contacter les prescripteurs pour dernières références","Envoyer toutes les factures dans l'heure"],
+livrable:"Tous les prospects contactés. Factures envoyées.",
+apres:"Chaque heure compte. Que du closing.",
+target:"+3–5 ventes cette semaine"},
+{ph:"Phase 4 · S12",pr:"r",date:"Jeu 30 juil",title:"REFLEX IA — Articles 24 & 25 + bilan final",
+avant:"Compile les revenus affiliation totaux depuis le début.",
+w:{qui:"Toi",aqui:"Google + affiliation",quoi:"2 derniers articles + bilan",quand:"2h",comment:"Template + dashboards"},
+session:"Publier articles 24 et 25. Bilan complet REFLEX IA : articles, trafic, revenus, projection 3 mois.",
+steps:["Rédiger et publier article 24","Rédiger et publier article 25","Calculer le trafic mensuel total","Calculer les revenus affiliation cumulés","Projeter les revenus sur 3 mois"],
+livrable:"25 articles publiés. Bilan REFLEX complet. Projection rédigée.",
+apres:"25 articles = actif solide. 500–2000€/mois passif.",
+target:"25 articles = 2000€ affiliation cumulés"},
+{ph:"Phase 4 · S12",pr:"a",date:"Ven 31 juil",title:"ARTEASY — Dernières ventes + références",
+avant:"Liste tous les prospects encore actifs. Classe par probabilité d'achat.",
+w:{qui:"Toi",aqui:"Derniers prospects + clients",quoi:"Closing final + références",quand:"2h",comment:"Appels directs"},
+session:"Dernier closing intensif. Pour les non-closés : 1 dernier appel. Pour les clients : 1 référence nominative.",
+steps:["Appeler tous les prospects chauds restants","Proposer toutes les options de closing","Contacter chaque client pour 1 référence","Appeler les références obtenues ce jour","Envoyer les dernières factures"],
+livrable:"Tous les prospects contactés. Références obtenues et appelées.",
+apres:"Août = clôture. Maintenir le rythme jusqu'au 31.",
+target:"Franchir 14 000€ fin juillet"},
+{ph:"Phase 4 · S12",pr:"b",date:"Sam 1 août",title:"🎯 BILAN FINAL — 15 000€ atteints ?",
+avant:"Compile TOUS les revenus avec les justificatifs.",
+w:{qui:"Toi",aqui:"Toi-même",quoi:"Bilan total 3 projets",quand:"2h",comment:"Chiffres + célébration + plan octobre"},
+session:"Bilan final complet. Revenus totaux réels. Documenter ce qui a fonctionné. Définir le plan octobre.",
+steps:["Calculer les revenus totaux : ARTEASY + REFLEX + COSMETIC","Comparer à l'objectif 15 000€","Documenter les 3 actions qui ont généré 80% des résultats","Documenter les 3 erreurs à ne pas répéter","Rédiger le plan octobre"],
+livrable:"Bilan total chiffré. Rapport de performance. Plan octobre rédigé.",
+apres:"Célèbre ce que tu as accompli. 84 jours de travail constant mérite une vraie reconnaissance.",
+target:"🎯 OBJECTIF FINAL : 15 000€"}
+];
+
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+const STATE_KEY='plan15k_state';
+let state={checked:{},daysDone:[],currentDay:0};
+function loadState(){try{const s=localStorage.getItem(STATE_KEY);if(s)state=JSON.parse(s)}catch(e){}}
+function saveState(){try{localStorage.setItem(STATE_KEY,JSON.stringify(state))}catch(e){}}
+loadState();
+
+// ══════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════
+const PROJ_COLORS={
+  a:{bg:'#EEE9FF',text:'#5B4FD9',name:'ARTEASY',card:'linear-gradient(135deg,#5B4FD9,#7B70F0)',dot:'done-a'},
+  r:{bg:'#E0F5ED',text:'#0B7B5B',name:'REFLEX IA',card:'linear-gradient(135deg,#0B7B5B,#1DAF80)',dot:'done-r'},
+  c:{bg:'#FFF0E8',text:'#C4521F',name:'COSMETIC',card:'linear-gradient(135deg,#C4521F,#E8732F)',dot:'done-c'},
+  b:{bg:'#F1EFE8',text:'#3A3A36',name:'BILAN',card:'linear-gradient(135deg,#3A3A36,#6B6A65)',dot:'done-b'}
+};
+function col(p){return `col-${p}`}
+function isDone(di){return state.daysDone.includes(di)}
+function stepsKey(di){return `steps_${di}`}
+function getStepsDone(di){return state.checked[stepsKey(di)]||[]}
+
+function totalSteps(){return DAYS.reduce((a,d)=>a+d.steps.length,0)}
+function stepsCompleted(){return Object.values(state.checked).reduce((a,arr)=>a+(arr||[]).filter(Boolean).length,0)}
+function overallPct(){return Math.round(stepsCompleted()/totalSteps()*100)}
+
+function projStats(pr){
+  const days=DAYS.filter((d,i)=>d.pr===pr);
+  const total=days.reduce((a,d)=>a+d.steps.length,0);
+  const done=days.reduce((a,d,_,__,di=DAYS.indexOf(d))=>{
+    return a+(getStepsDone(DAYS.indexOf(d)).filter(Boolean).length);
+  },0);
+  return {total,done,pct:total?Math.round(done/total*100):0};
+}
+
+// today = first non-done day
+function getTodayIdx(){
+  for(let i=0;i<DAYS.length;i++){if(!isDone(i))return i}
+  return DAYS.length-1;
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ══════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════
+let currentScreen='home';
+let activeTabBar='home';
+
+function showTab(name){
+  // update tabbar
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  activeTabBar=name;
+  if(name==='home'){showScreen('home');renderHome()}
+  else if(name==='cal'){showScreen('cal');renderCal()}
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>{
+    s.classList.remove('active','prev');
+  });
+  const s=document.getElementById('screen-'+id);
+  s.classList.add('active');
+  // If going to day, hide tabbar
+  document.getElementById('tabbar').style.display=id==='day'?'none':'flex';
+  currentScreen=id;
+}
+
+function goHome(){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active','prev'));
+  document.getElementById('screen-home').classList.add('active');
+  document.getElementById('tabbar').style.display='flex';
+  showTab('home');
+}
+
+function openDay(idx){
+  state.currentDay=idx;
+  saveState();
+  renderDayDetail(idx);
+  showScreen('day');
+}
+
+function goToToday(){
+  openDay(getTodayIdx());
+}
+
+// ══════════════════════════════════════
+// RENDER HOME
+// ══════════════════════════════════════
+function renderHome(){
+  const pct=overallPct();
+  const todayIdx=getTodayIdx();
+  const today=DAYS[todayIdx];
+  const tc=PROJ_COLORS[today.pr];
+  const circumference=2*Math.PI*34;
+  const offset=circumference-(pct/100)*circumference;
+  const doneCount=state.daysDone.length;
+
+  const aS=projStats('a'),rS=projStats('r'),cS=projStats('c');
+  // revenue projections
+  const aSales=Math.round(aS.pct/100*35);
+  const aRev=(aSales*350).toLocaleString('fr');
+  const rRev=Math.round(rS.pct/100*2000).toLocaleString('fr');
+  const cRev=Math.round(cS.pct/100*1000).toLocaleString('fr');
+
+  const html=`
+<div class="home-hero fade-up">
+  <div class="hero-label">Juin → Août 2026</div>
+  <div class="hero-title">Plan 15 000€</div>
+  <div class="hero-sub">84 jours · 3 projets · 2h/jour</div>
+</div>
+<div class="global-ring fade-up fade-up-1">
+  <div class="ring-wrap">
+    <svg width="80" height="80" viewBox="0 0 80 80">
+      <circle class="ring-bg" cx="40" cy="40" r="34"/>
+      <circle class="ring-fill" cx="40" cy="40" r="34"
+        stroke-dasharray="${circumference}"
+        stroke-dashoffset="${offset}"/>
+    </svg>
+    <div class="ring-label">
+      <span class="ring-pct">${pct}%</span>
+      <span class="ring-days">${doneCount}/84j</span>
+    </div>
+  </div>
+  <div class="ring-info">
+    <div class="ring-info-title">Progression globale</div>
+    <div class="ring-info-sub">${stepsCompleted()} étapes sur ${totalSteps()} complétées<br>${84-doneCount} jours restants</div>
+  </div>
+</div>
+<div class="today-card fade-up fade-up-2" style="background:${tc.card}" onclick="openDay(${todayIdx})">
+  <div class="today-chip">▶ AUJOURD'HUI · JOUR ${todayIdx+1}</div>
+  <div class="today-title">${today.title}</div>
+  <div class="today-meta">${today.date} · ${tc.name}</div>
+  <div class="today-cta">Commencer la session →</div>
+</div>
+<div class="section-title fade-up fade-up-3">Par projet</div>
+<div class="proj-cards fade-up fade-up-3">
+  <div class="proj-card" style="background:#EEE9FF" onclick="openDaysByProj('a')">
+    <div class="proj-name" style="color:#5B4FD9">ARTEASY</div>
+    <div class="proj-rev" style="color:#5B4FD9">${aRev}€</div>
+    <div class="proj-pct" style="color:#5B4FD9">${aS.pct}% fait</div>
+    <div class="proj-bar"><div class="proj-bar-fill" style="width:${aS.pct}%;background:#5B4FD9"></div></div>
+  </div>
+  <div class="proj-card" style="background:#E0F5ED" onclick="openDaysByProj('r')">
+    <div class="proj-name" style="color:#0B7B5B">REFLEX IA</div>
+    <div class="proj-rev" style="color:#0B7B5B">${rRev}€</div>
+    <div class="proj-pct" style="color:#0B7B5B">${rS.pct}% fait</div>
+    <div class="proj-bar"><div class="proj-bar-fill" style="width:${rS.pct}%;background:#0B7B5B"></div></div>
+  </div>
+  <div class="proj-card" style="background:#FFF0E8" onclick="openDaysByProj('c')">
+    <div class="proj-name" style="color:#C4521F">COSMETIC</div>
+    <div class="proj-rev" style="color:#C4521F">${cRev}€</div>
+    <div class="proj-pct" style="color:#C4521F">${cS.pct}% fait</div>
+    <div class="proj-bar"><div class="proj-bar-fill" style="width:${cS.pct}%;background:#C4521F"></div></div>
+  </div>
+</div>
+<div class="section-title fade-up fade-up-4">Phases</div>
+<div class="phase-map fade-up fade-up-4">
+  ${[
+    {name:'Phase 1 · S1–S2',dates:'1–14 juin',days:14,start:0},
+    {name:'Phase 2 · S3–S5',dates:'15 juin – 3 juil',days:21,start:14},
+    {name:'Phase 3 · S6–S8',dates:'4–14 juil',days:14,start:35},
+    {name:'Phase 4 · S9–S12',dates:'15 juil – 1er août',days:14,start:49}
+  ].map(ph=>{
+    const done=state.daysDone.filter(i=>i>=ph.start&&i<ph.start+ph.days).length;
+    const active=todayIdx>=ph.start&&todayIdx<ph.start+ph.days;
+    const allDone=done===ph.days;
+    const dotClass=allDone?'phase-dot-done':active?'phase-dot-active':'phase-dot-pending';
+    return`<div class="phase-row" onclick="showTab('cal')">
+      <div class="phase-dot ${dotClass}"></div>
+      <div class="phase-info">
+        <div class="phase-name">${ph.name}</div>
+        <div class="phase-dates">${ph.dates}</div>
+      </div>
+      <div class="phase-badge">${done}/${ph.days}j</div>
+    </div>`;
+  }).join('')}
+</div>
+<div class="section-title fade-up fade-up-5">🧠 Rituel de tenue sur la durée</div>
+<div class="rituel-card fade-up fade-up-5">
+  <div class="rituel-title">⚡ Le protocole des 84 jours</div>
+  ${[
+    ['01','<strong>Avant chaque session</strong> : ferme tout sauf l\'outil du jour. Timer 2h. Aucune exception.'],
+    ['02','<strong>1 seul livrable par jour.</strong> Pas 2. Pas 3. Le livrable doit exister physiquement à la fin.'],
+    ['03','<strong>Dimanche = bilan.</strong> 3 questions. Pas dans la tête — écrit. Toujours.'],
+    ['04','<strong>Si tu rates un jour</strong> : pas de rattrapage. Tu passes au lendemain. Pas de culpabilité, pas de double charge.'],
+    ['05','<strong>Le 80/20 absolu</strong> : ARTEASY = 60% de ton énergie. Tout le reste est secondaire.'],
+    ['06','<strong>Prospection ARTEASY</strong> = la tâche non-négociable. Avant tout le reste, chaque jour.'],
+    ['07','<strong>Mesure tout.</strong> Contactés / Réponses / Démos / Ventes. Chaque semaine. Sans données = navigation aveugle.'],
+    ['08','<strong>Le revenu vient des autres.</strong> Chaque jour sans action vers un prospect = journée perdue.']
+  ].map(([n,t])=>`<div class="rituel-item"><span class="rituel-num">${n}</span><span class="rituel-text">${t}</span></div>`).join('')}
+</div>
+<div style="height:8px"></div>`;
+  document.getElementById('scroll-home').innerHTML=html;
+}
+
+// ══════════════════════════════════════
+// RENDER CALENDAR
+// ══════════════════════════════════════
+function renderCal(){
+  const todayIdx=getTodayIdx();
+  const phases=[
+    {name:'Phase 1 · Fondations',days:DAYS.slice(0,14).map((_,i)=>i)},
+    {name:'Phase 2 · Prospection & traction',days:DAYS.slice(14,35).map((_,i)=>i+14)},
+    {name:'Phase 3 · Scale & revenus',days:DAYS.slice(35,49).map((_,i)=>i+35)},
+    {name:'Phase 4 · Sprint final',days:DAYS.slice(49).map((_,i)=>i+49)}
+  ];
+  let html=`
+<div style="padding:12px 20px 8px">
+  <div class="cal-legend">
+    <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#5B4FD9"></div>ARTEASY</div>
+    <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#0B7B5B"></div>REFLEX IA</div>
+    <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#C4521F"></div>COSMETIC</div>
+    <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#3A3A36"></div>Bilan</div>
+  </div>
+</div>
+<div class="cal-phases">`;
+  phases.forEach(ph=>{
+    html+=`<div class="cal-phase-block"><div class="cal-phase-title">${ph.name}</div><div class="cal-grid">`;
+    ph.days.forEach(di=>{
+      const d=DAYS[di];
+      const c=`cal-day-${d.pr}`;
+      const done=isDone(di)?'done':'';
+      const today=di===todayIdx?'today':'';
+      // day number in month
+      const dnum=di+1;
+      html+=`<div class="cal-day ${c} ${done} ${today}" onclick="openDay(${di})">
+        <span class="cal-day-num">${dnum}</span>
+        <div class="cal-day-dot"></div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  });
+  html+=`</div>`;
+  document.getElementById('scroll-cal').innerHTML=html;
+}
+
+// ══════════════════════════════════════
+// RENDER DAY DETAIL
+// ══════════════════════════════════════
+function renderDayDetail(idx){
+  const d=DAYS[idx];
+  const c=PROJ_COLORS[d.pr];
+  const colClass=`col-${d.pr}`;
+  const done=isDone(idx);
+  const stepsDone=getStepsDone(idx);
+  const allStepsDone=d.steps.every((_,i)=>stepsDone[i]);
+
+  // TOP NAV
+  const topHtml=`
+<div class="day-nav">
+  <button class="nav-arrow" onclick="goBackFromDay()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M5 12l7-7M5 12l7 7"/></svg>
+  </button>
+  <div class="nav-center">
+    <div class="nav-daynum">JOUR ${idx+1} / ${DAYS.length}</div>
+    <div class="nav-date">${d.date}</div>
+  </div>
+  <button class="nav-arrow" onclick="openDay(${Math.min(idx+1,DAYS.length-1)})" ${idx===DAYS.length-1?'style="opacity:.3;pointer-events:none"':''}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M14 5l7 7-7 7"/></svg>
+  </button>
+</div>`;
+  document.getElementById('day-topbar').innerHTML=topHtml;
+
+  // PROGRESS DOTS (all 84)
+  const dotsHtml=`<div class="day-progress">${DAYS.map((_,i)=>{
+    let cls='dprog-dot';
+    if(i===idx)cls+=' current';
+    else if(isDone(i))cls+=` ${PROJ_COLORS[DAYS[i].pr].dot}`;
+    return`<div class="${cls}"></div>`;
+  }).join('')}</div>`;
+
+  // HEADER CARD
+  const headerHtml=`
+<div class="day-header-card ${colClass}" style="background:${c.card}">
+  <div class="day-h-project" style="color:rgba(255,255,255,.8)">${c.name}</div>
+  <div class="day-h-title" style="color:white">${d.title}</div>
+  <div class="day-h-phase" style="color:rgba(255,255,255,.7)">${d.ph}</div>
+</div>`;
+
+  // STEPS
+  const stepsHtml=`
+<div class="day-section"><div class="sec-label">Étapes pas à pas</div></div>
+<div class="steps-list">${d.steps.map((s,i)=>{
+    const checked=stepsDone[i]?'checked':'';
+    return`<div class="step-row ${checked}" id="step-${idx}-${i}" onclick="toggleStep(${idx},${i})">
+      <span class="step-num">${String(i+1).padStart(2,'0')}</span>
+      <span class="step-text">${s}</span>
+      <div class="step-cb">${checked?'<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div>
+    </div>`;
+  }).join('')}</div>`;
+
+  const bodyHtml=`
+${dotsHtml}
+${headerHtml}
+<div class="day-section">
+  <div class="sec-label">Avant la session — 10 min</div>
+  <div class="avant-box ${colClass}">
+    <div class="avant-title" style="color:${c.text}">▶ Préparer</div>
+    <div class="avant-text">${d.avant}</div>
+  </div>
+</div>
+<div class="fivew">
+  <div class="w-cell"><div class="w-lbl">Qui</div><div class="w-val">${d.w.qui}</div></div>
+  <div class="w-cell"><div class="w-lbl">À qui</div><div class="w-val">${d.w.aqui}</div></div>
+  <div class="w-cell"><div class="w-lbl">Quand</div><div class="w-val">${d.w.quand}</div></div>
+  <div class="w-cell"><div class="w-lbl">Comment</div><div class="w-val">${d.w.comment}</div></div>
+  <div class="w-cell span2"><div class="w-lbl">Quoi</div><div class="w-val">${d.w.quoi}</div></div>
+</div>
+<div class="day-section">
+  <div class="sec-label">Session 2h</div>
+  <div class="session-box"><div class="session-text">${d.session}</div></div>
+</div>
+${stepsHtml}
+<div class="day-section">
+  <div class="sec-label">Livrable du jour</div>
+</div>
+<div class="livrable-box ${colClass}" style="margin:0 16px">
+  <div class="livrable-lbl ${colClass}">◆ À produire aujourd'hui</div>
+  <div class="livrable-text">${d.livrable}</div>
+</div>
+<div class="day-section">
+  <div class="sec-label">Après la session — 5 min</div>
+</div>
+<div class="apres-box">
+  <div class="apres-title">↩ Clôturer</div>
+  <div class="apres-text">${d.apres}</div>
+</div>
+<button class="done-btn ${colClass} ${done||allStepsDone?'completed':''}" id="done-btn-${idx}" onclick="markDone(${idx})">
+  ${done?'✓ Journée validée !':`${allStepsDone?'✓ Marquer comme terminée':'Marquer comme terminée'}`}
+</button>
+<div style="height:8px"></div>`;
+
+  document.getElementById('scroll-day').innerHTML=bodyHtml;
+  document.getElementById('scroll-day').scrollTop=0;
+}
+
+function goBackFromDay(){
+  showScreen(activeTabBar==='cal'?'cal':'home');
+  document.getElementById('tabbar').style.display='flex';
+  if(activeTabBar==='cal')renderCal();
+  else renderHome();
+}
+
+function toggleStep(di,si){
+  const key=stepsKey(di);
+  if(!state.checked[key])state.checked[key]=[];
+  state.checked[key][si]=!state.checked[key][si];
+  saveState();
+  // re-render step
+  const row=document.getElementById(`step-${di}-${si}`);
+  const d=DAYS[di];
+  const checked=state.checked[key][si];
+  row.className=`step-row ${checked?'checked':''}`;
+  row.querySelector('.step-cb').innerHTML=checked?'<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>':'';
+  row.querySelector('.step-text').style.textDecoration=checked?'line-through':'none';
+  // check if all done
+  const allDone=d.steps.every((_,i)=>state.checked[key][i]);
+  const btn=document.getElementById(`done-btn-${di}`);
+  if(allDone){btn.classList.add('completed');btn.textContent='✓ Toutes les étapes faites !';}
+  if(checked)showToast('Étape cochée ✓');
+}
+
+function markDone(idx){
+  if(!state.daysDone.includes(idx)){
+    state.daysDone.push(idx);
+    // also mark all steps
+    const key=stepsKey(idx);
+    if(!state.checked[key])state.checked[key]=[];
+    DAYS[idx].steps.forEach((_,i)=>state.checked[key][i]=true);
+    saveState();
+    const btn=document.getElementById(`done-btn-${idx}`);
+    btn.classList.add('completed');
+    btn.textContent='✓ Journée validée !';
+    showToast('🎯 Journée validée ! +1 vers 15 000€');
+    setTimeout(()=>{
+      const next=idx+1;
+      if(next<DAYS.length){
+        showToast(`→ Demain : ${DAYS[next].title.substring(0,30)}...`);
+      }
+    },2500);
+  }
+}
+
+function openDaysByProj(pr){
+  showTab('cal');
+  // scroll to first day of project
+  setTimeout(()=>{
+    const idx=DAYS.findIndex(d=>d.pr===pr);
+    openDay(idx);
+  },100);
+}
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+renderHome();
+</script>
+</body>
+</html>

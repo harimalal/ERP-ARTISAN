@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEASY — Livrables business · August 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #16151C;
+    --ink-soft: #55535F;
+    --paper: #FAF9F6;
+    --surface: #FFFFFF;
+    --line: #E4E1DA;
+    --accent: #6C5CE7;
+    --accent-soft: #EEEBFC;
+    --good: #10b981;
+    --night: #131219;
+    --night-surface: #1C1B26;
+    --night-ink: #F2F0EA;
+    --night-ink-soft: #A6A3B4;
+    --night-line: #302E3E;
+    --night-accent: #A996FF;
+    --night-accent-soft: rgba(169,150,255,.14);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  }
+
+  .display { font-family: 'Fraunces', Georgia, serif; text-wrap: balance; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  .deck { width: 100%; height: 100vh; position: relative; overflow: hidden; }
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 80px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity .6s ease, transform .6s ease;
+    overflow-y: auto;
+  }
+
+  .slide.active {
+    display: flex;
+    opacity: 1;
+    transform: translateY(0);
+    z-index: 5;
+  }
+
+  .slide.dark { background: var(--night); color: var(--night-ink); }
+  .slide.light { background: var(--paper); color: var(--ink); }
+  .slide.white { background: white; color: var(--ink); }
+
+  h1 { font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 700; line-height: 1.1; margin: 0 0 24px; max-width: 20ch; font-family: 'Fraunces', serif; }
+  h2 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 700; line-height: 1.2; margin: 0 0 32px; max-width: 24ch; font-family: 'Fraunces', serif; }
+  h3 { font-size: 1.3rem; font-weight: 600; margin: 0 0 16px; }
+  p { font-size: 1.05rem; line-height: 1.8; margin: 0 0 20px; max-width: 65ch; }
+
+  .slide.dark h1, .slide.dark h2, .slide.dark h3 { color: var(--night-ink); }
+  .slide.dark p { color: var(--night-ink-soft); }
+
+  .tagline { font-size: 0.9rem; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 32px; }
+  .slide.dark .tagline { color: var(--night-accent); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 20px; }
+
+  .stat-card {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 28px;
+    background: var(--surface);
+    text-align: center;
+  }
+  .slide.dark .stat-card { border-color: var(--night-line); background: var(--night-surface); }
+
+  .stat-value { font-family: 'Fraunces', serif; font-size: 3.2rem; font-weight: 700; line-height: 1; margin-bottom: 12px; color: var(--accent); }
+  .slide.dark .stat-value { color: var(--night-accent); }
+
+  .stat-label { font-size: 0.95rem; color: var(--ink-soft); line-height: 1.6; }
+  .slide.dark .stat-label { color: var(--night-ink-soft); }
+
+  .box {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 28px;
+    background: var(--surface);
+  }
+  .slide.dark .box { border-color: var(--night-line); background: var(--night-surface); }
+
+  .box h3 { margin-top: 0; color: var(--ink); }
+  .slide.dark .box h3 { color: var(--night-ink); }
+  .box p { font-size: 0.95rem; color: var(--ink-soft); margin: 0; }
+  .slide.dark .box p { color: var(--night-ink-soft); }
+
+  .hero-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px; margin-top: 30px; }
+  .hero-item { padding: 0; }
+  .hero-item h3 { font-size: 1.2rem; margin-bottom: 12px; }
+  .hero-item p { font-size: 0.95rem; margin: 0; }
+
+  .timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px; }
+  .timeline-item {
+    border: 1px solid var(--night-line);
+    border-radius: 8px;
+    padding: 18px;
+    background: var(--night-surface);
+    text-align: center;
+  }
+  .timeline-item .date { font-size: 0.8rem; color: var(--night-accent); font-weight: 600; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .timeline-item .label { font-size: 0.9rem; color: var(--night-ink); line-height: 1.4; }
+
+  .emphasis { color: var(--accent); font-weight: 600; }
+  .slide.dark .emphasis { color: var(--night-accent); }
+
+  .list-check { list-style: none; padding: 0; margin: 20px 0; }
+  .list-check li { padding: 10px 0 10px 32px; position: relative; font-size: 0.95rem; line-height: 1.6; }
+  .list-check li::before { content: '✓'; position: absolute; left: 0; color: var(--good); font-weight: 700; font-size: 1.2rem; }
+
+  .cta-section { background: var(--accent-soft); border-radius: 12px; padding: 40px; margin-top: 30px; text-align: center; }
+  .cta-section p { margin: 0; font-size: 1.1rem; }
+
+  /* Navigation */
+  .rail { position: fixed; left: 28px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 60; }
+  .tick { width: 5px; height: 20px; border-radius: 3px; background: rgba(100,100,140,.25); cursor: pointer; transition: all .3s; }
+  .tick.active { background: var(--accent); height: 26px; }
+
+  .nav-buttons { position: fixed; bottom: 28px; right: 28px; display: flex; gap: 12px; z-index: 60; }
+  .nav-btn { background: white; border: 1px solid var(--line); color: var(--ink); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; transition: all .2s; }
+  .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .nav-btn:disabled { opacity: 0.3; }
+
+  .counter { position: fixed; bottom: 28px; left: 28px; font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; color: var(--ink-soft); }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .slide.active > * { animation: fadeIn 0.6s ease forwards; }
+  .slide.active h1, .slide.active h2 { animation-delay: 0.1s; }
+  .slide.active p:first-of-type, .slide.active .tagline { animation-delay: 0.2s; }
+  .slide.active .grid-2 > *, .slide.active .grid-3 > *, .slide.active .list-check li { animation-delay: 0.3s; }
+
+  @media (max-width: 1000px) {
+    .slide { padding: 40px 50px; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .timeline { grid-template-columns: repeat(2, 1fr); }
+    .rail { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: TITRE -->
+  <section class="slide dark active">
+    <div class="tagline">ARTEASY · AOÛT 2026</div>
+    <h1 class="display">Deux features majeures livrées en prod</h1>
+    <p>Flux commande→facturation stabilisé. Import de masse des données clients 100% automatisé. Redesign landing page optimisé pour conversion.</p>
+    <div style="margin-top: 60px; font-size: 0.9rem; opacity: 0.6;">Livrable. En production. Utilisable maintenant.</div>
+  </section>
+
+  <!-- SLIDE 2: CHIFFRES CLÉS -->
+  <section class="slide white">
+    <h2>Résultats livrés</h2>
+    <div class="grid-3">
+      <div class="stat-card">
+        <div class="stat-value">2</div>
+        <div class="stat-label">Features en prod</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">16</div>
+        <div class="stat-label">Bugs trouvés & corrigés</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">34</div>
+        <div class="stat-label">Captures démo</div>
+      </div>
+    </div>
+    <div style="margin-top: 50px; padding: 24px; background: #f0f9ff; border-radius: 8px;">
+      <p style="margin: 0; font-size: 0.95rem;"><strong>Le point:</strong> Zéro intervention manuelle des clients. L'IA gère tout (données, validation, import). Les clients cliquent juste "valider".</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 3: FEATURE 1 - AVANT/APRÈS -->
+  <section class="slide white">
+    <h2>Feature #1: Transformation commande → facturation</h2>
+
+    <div class="grid-2" style="margin-top: 40px; background: #fee2e2; border-radius: 12px; padding: 20px;">
+      <div>
+        <h3 style="color: #dc2626;">❌ Avant</h3>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li>Flux cassé (6 bugs bloquants)</li>
+          <li>Commandes qui ne génèrent pas les OF</li>
+          <li>Factures avec numéros en doublon</li>
+          <li>TVA mal calculée (clients surfacturés)</li>
+          <li>SIRET jamais sauvegardé</li>
+          <li>Statut commande jamais persisté</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="color: #10b981;">✓ Après</h3>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li>Cycle complet stable, testé en vrai</li>
+          <li>Commande → OF → Facture automatique</li>
+          <li>Numéros uniques garantis côté serveur</li>
+          <li>TVA correcte même multi-taux</li>
+          <li>Tous les champs sauvegardés</li>
+          <li>Statut persiste après clôture</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="margin-top: 30px; padding: 20px; background: #f0fdf4; border-radius: 8px;">
+      <p style="margin: 0; font-size: 0.95rem;"><strong style="color: #10b981;">Résultat:</strong> Temps papier réduit 80%. Artisan crée une commande, reçoit la facture PDF en automatique. Zéro intervention manuelle.</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 3B: COMMENT C'A ÉTÉ CORRIGÉ -->
+  <section class="slide light">
+    <h2>Comment: la technique du diagnostic réel</h2>
+    <p>Pas juste lire le code. Tester en conditions réelles pour trouver les bugs invisibles en revue.</p>
+
+    <div class="grid-2" style="margin-top: 30px;">
+      <div class="box">
+        <h3>Étape 1: Test réel</h3>
+        <p>Créé une vraie commande. Cliqué les vrais boutons. Suivi jusqu'à la facture. Résultat: tous les bugs trouvés en 30 min.</p>
+      </div>
+      <div class="box">
+        <h3>Étape 2: Chaque bug corrigé & revalidé</h3>
+        <p>Pas accumulé. Chacun corrigé, déployé en prod, revalidé en direct sur le compte. Zéro surprise.</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 24px; padding: 16px; background: #f3f4f6; border-radius: 8px; font-size: 0.9rem;">
+      <strong>Technique derrière:</strong> Revue de code complète + tests unitaires + test E2E conditions réelles. Les deux premiers ne suffisent pas.
+    </div>
+  </section>
+
+  <!-- SLIDE 4: FEATURE 2 - AVANT/APRÈS -->
+  <section class="slide white">
+    <h2>Feature #2: Transformation import de données</h2>
+
+    <div class="grid-2" style="margin-top: 40px; background: #fee2e2; border-radius: 12px; padding: 20px;">
+      <div>
+        <h3 style="color: #dc2626;">❌ Avant</h3>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li>Client recopie ses données en Excel</li>
+          <li>Envoie le fichier à l'équipe</li>
+          <li>L'équipe rentre manuellement en base</li>
+          <li>30 min par client nouveau</li>
+          <li>Erreurs de saisie garanties</li>
+          <li>Réception clientes trop lente</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="color: #10b981;">✓ Après</h3>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li>Client poste n'importe quel fichier (PDF, Excel, image)</li>
+          <li>IA analyse & catégorise automatiquement</li>
+          <li>Écran de validation (oui/non/modifier)</li>
+          <li>Import complet en base en 5 min</li>
+          <li>Zéro saisie manuelle</li>
+          <li>Client peut commencer immédiatement</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="margin-top: 30px; padding: 20px; background: #f0fdf4; border-radius: 8px;">
+      <p style="margin: 0; font-size: 0.95rem;"><strong style="color: #10b981;">Résultat:</strong> Onboarding réduit de 90%. Un client neuf est prêt à utiliser l'appli en 5 minutes, pas 30.</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 4B: COMMENT C'A ÉTÉ FAIT -->
+  <section class="slide light">
+    <h2>Comment: IA qui comprend les documents</h2>
+    <p>Une Netlify Function parle à Claude pour analyser les fichiers. Elle catégorise les entités et extrait les champs. Puis écran de validation humaine.</p>
+
+    <div class="grid-2" style="margin-top: 30px;">
+      <div class="box">
+        <h3>Étape 1: L'IA analyse</h3>
+        <p>PDF/Excel/image → passe à Claude → "Dis-moi tous les clients dedans, leurs coordonnées, secteur" → Claude répond structuré (JSON).</p>
+      </div>
+      <div class="box">
+        <h3>Étape 2: Humain valide</h3>
+        <p>Écran montre les données extraites. Oui/Non/Modifie. Puis import direct en base. Zéro intervention système.</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 24px; padding: 16px; background: #f3f4f6; border-radius: 8px; font-size: 0.9rem;">
+      <strong>Technique derrière:</strong> Netlify Function + Anthropic API + Supabase + table staging + dédoublonnage déterministe. Testé sur 20 fichiers réalistes avant déploiement.
+    </div>
+  </section>
+
+  <!-- SLIDE 5: LANDING PAGES REDESIGNÉES -->
+  <section class="slide light">
+    <h2>Designs landing page optimisés</h2>
+    <p>10 variantes créées & testées. Chacune optimisée pour esthétique + taux de conversion. Copywriting inclusPour montrer à des prospects ce qu'on peut faire avec l'IA.</p>
+
+    <div class="grid-3" style="margin-top: 30px;">
+      <div class="box">
+        <h3>Piste 1</h3>
+        <p><strong>Premium</strong> — Prestige, craft, heritage. Target: artisans haut de gamme (menuiserie, joaillerie).</p>
+      </div>
+      <div class="box">
+        <h3>Piste 2</h3>
+        <p><strong>Growth</strong> — Speed, efficiency, scalability. Target: restaurateurs, boulangeries, petite fabrication.</p>
+      </div>
+      <div class="box">
+        <h3>Piste 3</h3>
+        <p><strong>Performance</strong> — Data-driven, precision, ROI. Target: techniciens, plombiers, électriciens.</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 40px; padding: 24px; background: #f0f9ff; border-radius: 8px;">
+      <p style="margin: 0; font-size: 0.95rem;"><strong>Résultat:</strong> Claude Code peut générer des landing pages complètes (design + copyrighting) en une session. Prêtes à déployer ou à affiner.</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 6: OUTIL DE DÉMO / TOURNAI -->
+  <section class="slide light">
+    <h2>Outil de démo: la plateforme elle-même</h2>
+    <p>Les prospects voient le vrai flux de travail. Pas une vidéo. Pas un prototype. La vraie app, avec données de test, cliquable de bout en bout.</p>
+
+    <div class="hero-grid">
+      <div class="hero-item">
+        <h3>Ce qu'on montre</h3>
+        <ul class="list-check">
+          <li>Créer une commande (2 clics)</li>
+          <li>Générer une OF</li>
+          <li>Importer 20 clients en 1 minute</li>
+          <li>Voir la facture PDF générée</li>
+          <li>Dashboard avec stocks & production en temps réel</li>
+        </ul>
+      </div>
+      <div class="hero-item">
+        <h3>Pourquoi ça marche</h3>
+        <p>Les prospects peuvent se projeter. "J'importerais mes clients comme ça, je générerais les factures comme ça." Pas abstrait. Réel.</p>
+        <p style="margin-top: 16px; font-size: 0.9rem; color: #666;">34 captures d'écran + script vidéo 2 min prêts à tourner.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 7: TIMELINE LIVRAISON -->
+  <section class="slide dark">
+    <h2>Quand c'est arrivé</h2>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="date">21 AUG</div>
+        <div class="label">Flux commande→facturation testé & bugs corrigés en prod</div>
+      </div>
+      <div class="timeline-item">
+        <div class="date">21-22 AUG</div>
+        <div class="label">Système d'import IA codé & testé sur compte réel</div>
+      </div>
+      <div class="timeline-item">
+        <div class="date">22 AUG</div>
+        <div class="label">Merge en prod. Onboarding IA opérationnel sur arteasy.fr</div>
+      </div>
+      <div class="timeline-item">
+        <div class="date">23-24 AUG</div>
+        <div class="label">10 designs landing + captures démo livrés</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 8: POURQUOI ÇA MARCHE -->
+  <section class="slide white">
+    <h2>Comment on a livré sans traîner</h2>
+    <p>Une seule règle : <span class="emphasis">une consigne claire + validation humaine à chaque étape = l'IA gère le reste.</span></p>
+
+    <div class="grid-2" style="margin-top: 40px;">
+      <div class="box">
+        <h3>📝 Consigne</h3>
+        <p>"Teste le flux en vrai (pas juste en lisant le code). Corrige les bugs au fur et à mesure. Puis code l'import IA. Puis redesigne les landings."</p>
+      </div>
+      <div class="box">
+        <h3>✓ Validation</h3>
+        <p>Humain dit oui/non/modifie à chaque milestone. Pas d'approbations inutiles. Juste : "ça marche ?" → "oui, déploie".</p>
+      </div>
+    </div>
+
+    <div class="box" style="margin-top: 24px; background: #fef3c7;">
+      <p style="margin: 0; font-size: 0.95rem;"><strong>Résultat:</strong> Zéro débat sur la direction. Zéro réunion. Zéro délai. Juste : livrer.</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 9: CONCLUSION -->
+  <section class="slide dark">
+    <h1 class="display">Prêt à utiliser demain</h1>
+    <p>Deux features majeures. Code en production. Clients testés. Design validé. Aucun travail manuel en attente.</p>
+
+    <div class="hero-grid" style="margin-top: 50px;">
+      <div>
+        <h3 style="color: var(--night-ink);">Pour les artisans</h3>
+        <p style="color: var(--night-ink-soft);">Flux de travail stable. Données importées automatiquement. Pas de saisie manuelle. Factures PDF professionnelles.</p>
+      </div>
+      <div>
+        <h3 style="color: var(--night-ink);">Pour montrer l'IA</h3>
+        <p style="color: var(--night-ink-soft);">Design de landing complet. Copywriting inclus. Système de démo cliquable. Tout généré en une session.</p>
+      </div>
+    </div>
+
+    <p style="margin-top: 60px; font-size: 0.85rem; opacity: 0.5;">arteasy.fr · production stable · 24 août 2026</p>
+  </section>
+
+</div>
+
+<!-- Navigation -->
+<div class="rail" id="rail"></div>
+<div class="counter" id="counter">01 / 11</div>
+<div class="nav-buttons">
+  <button class="nav-btn" id="prev">← préc</button>
+  <button class="nav-btn" id="next">suiv →</button>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const rail = document.getElementById('rail');
+  const counter = document.getElementById('counter');
+  let i = 0;
+
+  slides.forEach((_, idx) => {
+    const tick = document.createElement('div');
+    tick.className = 'tick' + (idx === 0 ? ' active' : '');
+    tick.addEventListener('click', () => go(idx));
+    rail.appendChild(tick);
+  });
+
+  const ticks = Array.from(rail.children);
+
+  function go(n) {
+    if (n < 0 || n >= slides.length || n === i) return;
+    slides[i].classList.remove('active');
+    ticks[i].classList.remove('active');
+    i = n;
+    const incoming = slides[i];
+    incoming.classList.remove('active');
+    void incoming.offsetWidth;
+    incoming.classList.add('active');
+    ticks[i].classList.add('active');
+    counter.textContent = String(i + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+    document.getElementById('prev').disabled = i === 0;
+    document.getElementById('next').disabled = i === slides.length - 1;
+  }
+
+  document.getElementById('next').addEventListener('click', () => go(i + 1));
+  document.getElementById('prev').addEventListener('click', () => go(i - 1));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(i + 1); }
+    if (e.key === 'ArrowLeft') go(i - 1);
+  });
+
+  document.getElementById('prev').disabled = true;
+</script>
+
+</body>
+</html>

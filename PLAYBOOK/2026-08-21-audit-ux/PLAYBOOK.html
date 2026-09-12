@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>ARTEASY — Audit UX &amp; Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1E1A16; --ink-light:#4A3C30; --ink-muted:#8A7E74;
+  --cream:#F7F3EC; --cream-dark:#EDE8DF;
+  --accent:#C8432B; --gold:#C8830A; --sage:#3D6B52; --blue:#4A7FA5;
+  --ui-bg2:#FAF7F2; --ui-brd:#EDE8DF; --ui-brd2:#DDD6C8; --ui-text3:#B5A99A;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);line-height:1.65;}
+.wrap{max-width:920px;margin:0 auto;padding:56px 24px 100px;}
+h1{font-family:'Libre Baskerville',serif;font-size:34px;line-height:1.2;margin:0 0 8px;}
+h2{font-family:'Libre Baskerville',serif;font-size:22px;margin:56px 0 16px;padding-top:20px;border-top:1px solid var(--ui-brd);}
+h2:first-of-type{border-top:none;padding-top:0;}
+h3{font-family:'Libre Baskerville',serif;font-size:16px;margin:26px 0 10px;}
+.kicker{color:var(--accent);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;}
+.lead{font-size:16px;color:var(--ink-light);max-width:680px;}
+p{margin:0 0 14px;font-size:14.5px;color:var(--ink-light);}
+.score-box{display:flex;align-items:center;gap:28px;background:#fff;border:1px solid var(--ui-brd);border-radius:16px;padding:28px 32px;margin:24px 0 30px;}
+.score-num{font-family:'Libre Baskerville',serif;font-size:64px;font-weight:700;color:var(--accent);line-height:1;}
+.score-num sub{font-size:22px;color:var(--ui-text3);font-family:'DM Sans',sans-serif;font-weight:600;}
+.score-note{font-size:13px;color:var(--ink-muted);max-width:520px;}
+table.breakdown{width:100%;border-collapse:collapse;margin:20px 0;font-size:13.5px;}
+table.breakdown th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#8A7A6C;padding:8px 12px;border-bottom:1px solid var(--ui-brd);}
+table.breakdown td{padding:11px 12px;border-bottom:1px solid var(--cream-dark);vertical-align:top;}
+table.breakdown td.num{font-family:'Libre Baskerville',serif;font-weight:700;font-size:16px;color:var(--ink);white-space:nowrap;}
+table.breakdown td.na{color:var(--ui-text3);font-style:italic;}
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:18px 0 24px;}
+.shots.full{grid-template-columns:1fr;}
+.shot{background:#fff;border:1px solid var(--ui-brd);border-radius:12px;overflow:hidden;}
+.shot img{display:block;width:100%;height:auto;border-bottom:1px solid var(--ui-brd);}
+.shot .cap{padding:10px 14px;font-size:11.5px;color:var(--ink-muted);}
+.finding{background:#fff;border:1px solid var(--ui-brd);border-left:4px solid var(--accent);border-radius:0 12px 12px 0;padding:16px 20px;margin-bottom:16px;}
+.finding.strength{border-left-color:var(--sage);}
+.finding h4{font-size:14px;margin:0 0 6px;}
+.finding p{margin:0;font-size:13.5px;}
+.tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 9px;border-radius:20px;margin-bottom:8px;}
+.tag.crit{background:#FCDDD8;color:#8A2010;}
+.tag.ok{background:#D8EDE3;color:#1E4A30;}
+.tag.gap{background:#FEF3D8;color:#7A5A00;}
+.after-link{display:block;background:var(--ink);color:var(--cream);border-radius:12px;padding:16px 20px;text-decoration:none;margin:10px 0;font-size:13.5px;}
+.after-link b{font-family:'Libre Baskerville',serif;font-size:15px;display:block;margin-bottom:2px;}
+ul{margin:0 0 14px;padding-left:20px;}
+li{font-size:14px;color:var(--ink-light);margin-bottom:6px;}
+.meta{font-size:12px;color:var(--ui-text3);margin-top:60px;padding-top:16px;border-top:1px solid var(--ui-brd);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">ARTEASY — Audit design &amp; UX — 21 août 2026</div>
+  <h1>Où en est vraiment l'interface d'ARTEASY</h1>
+  <p class="lead">Analyse basée sur le code source réel (CSS, structure des pages) et sur les captures d'écran réelles produites en conditions de production le 21 août 2026 — pas une évaluation générique.</p>
+
+  <h2>Note globale</h2>
+  <div class="score-box">
+    <div class="score-num">78<sub>/100</sub></div>
+    <div class="score-note">Moyenne sur ce qui a été réellement évalué : identité visuelle, architecture UX, cohérence de finition. L'accessibilité et la performance n'ont pas été mesurées — voir plus bas pourquoi ce chiffre n'inclut pas ces deux piliers.</div>
+  </div>
+
+  <table class="breakdown">
+    <thead><tr><th>Critère</th><th>Note</th><th>En bref</th></tr></thead>
+    <tbody>
+      <tr><td>Identité visuelle &amp; attractivité</td><td class="num">88</td><td>Palette papier/terracotta/sauge distinctive, pairing typographique Libre Baskerville + DM Sans, logo avec signature visuelle (relief à l'ombre portée).</td></tr>
+      <tr><td>Architecture UX &amp; clarté des parcours</td><td class="num">84</td><td>L'écran Commandes (pipeline de statuts + colonne Faisable) est au niveau d'un bon SaaS. Quelques parcours restent modaux à outrance.</td></tr>
+      <tr><td>Cohérence &amp; finition</td><td class="num">62</td><td>Bouton bleu générique sur la facture, affichage "(−%)" qui a l'air cassé, boutons IA morts trouvés et corrigés cette session.</td></tr>
+      <tr><td>Accessibilité</td><td class="num na">non noté</td><td>Aucune mesure réelle de contraste ni de navigation clavier faite dans cette session.</td></tr>
+      <tr><td>Performance</td><td class="num na">non noté</td><td>Aucune mesure Lighthouse / temps de chargement réel faite dans cette session.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Ce qui fonctionne déjà bien</h2>
+
+  <div class="finding strength">
+    <span class="tag ok">Force</span>
+    <h4>Une identité qui n'est pas un défaut générique</h4>
+    <p>Fond crème chaud, encre marron-noir, accent terracotta, vert sauge — cohérent avec un outil pour artisans, à l'opposé du bleu SaaS que la plupart des ERP utilisent par défaut. Le pairing Libre Baskerville (titres) / DM Sans (corps) donne un vrai caractère.</p>
+  </div>
+
+  <div class="shots">
+    <div class="shot"><img src="file:///home/radoraj/ERP%20ARTISAN/tour_modules_2026-08-21/00_dashboard.png" alt="Dashboard ARTEASY"><div class="cap">Dashboard — KPI colorés, sidebar groupée par section, hiérarchie claire.</div></div>
+    <div class="shot"><img src="file:///home/radoraj/ERP%20ARTISAN/tour_modules_2026-08-21/04_commandes.png" alt="Commandes ARTEASY"><div class="cap">Commandes — pipeline de statuts + colonne "Faisable" ligne par ligne. L'écran le plus abouti de l'application.</div></div>
+  </div>
+
+  <div class="finding strength">
+    <span class="tag ok">Force</span>
+    <h4>Des micro-détails soignés qui ne sautent pas aux yeux au premier coup d'œil</h4>
+    <p>Petites barres de progression sous chaque valeur de stock, libellés "(opt.)" sur les champs facultatifs des formulaires, toast de confirmation après enregistrement, ventilation de la TVA par taux sur la facture — ce sont des détails qu'on ne remarque que si on cherche, et qui font la différence en usage quotidien.</p>
+  </div>
+
+  <div class="shots">
+    <div class="shot"><img src="file:///home/radoraj/ERP%20ARTISAN/demo_video_2026-08-21/06_admin_nouveau_client_formulaire.png" alt="Formulaire nouveau client"><div class="cap">Formulaire Nouveau client — champs optionnels marqués clairement, toast de confirmation.</div></div>
+    <div class="shot"><img src="file:///home/radoraj/ERP%20ARTISAN/demo_video_2026-08-21/21_facture_pdf.png" alt="Facture PDF avant correctif"><div class="cap">Facture PDF — ventilation TVA correcte par taux (5,5 % / 20 %).</div></div>
+  </div>
+
+  <h2>Ce qui mérite d'être corrigé</h2>
+
+  <div class="finding">
+    <span class="tag crit">Cohérence</span>
+    <h4>Un bouton bleu générique sur l'écran que voit le client final</h4>
+    <p>La page de facture PDF utilise un bouton bleu standard pour "Imprimer / Enregistrer en PDF" — le seul endroit de toute l'application où cette couleur apparaît. Partout ailleurs, l'action principale est en noir encre. C'est justement l'écran qui sort de l'outil et atterrit chez le client.</p>
+  </div>
+
+  <div class="finding">
+    <span class="tag crit">Cohérence</span>
+    <h4>Un affichage qui ressemble à un bug</h4>
+    <p>Sur Produits Finis, la colonne Marge affiche littéralement "5,90 € (−%)" quand le coût de revient est à zéro — un tiret à la place d'un pourcentage, qui a l'air cassé plutôt qu'intentionnel.</p>
+  </div>
+
+  <div class="shots full">
+    <div class="shot"><img src="file:///home/radoraj/ERP%20ARTISAN/tour_modules_2026-08-21/03_produits_finis.png" alt="Produits Finis avant correctif"><div class="cap">Produits Finis — "(−%)" sur chaque ligne, icônes pause/lecture ambiguës pour l'action sur chaque produit.</div></div>
+  </div>
+
+  <div class="finding">
+    <span class="tag crit">Dette d'interface</span>
+    <h4>Des boutons qui ne faisaient plus rien depuis on ne sait combien de temps</h4>
+    <p>Deux boutons "Mise à jour IA" (fiche Mon entreprise) et "Import IA" (carte Fournisseurs) dans l'onglet Admin n'avaient plus aucun code branché derrière — trouvés et supprimés pendant cette même session. Le bouton principal d'import s'appelait "Import Excel/CSV" alors qu'il pilotait un tout autre système. Ce n'est probablement pas un cas isolé : c'est le symptôme d'une interface qui évolue plus vite que ses libellés.</p>
+  </div>
+
+  <div class="shots full">
+    <div class="shot"><img src="file:///home/radoraj/ERP%20ARTISAN/tour_modules_2026-08-21/08_admin.png" alt="Admin avant correctif"><div class="cap">Admin — le bouton "Mise à jour IA" (à côté d'Enregistrer) n'avait aucun code branché derrière. Corrigé cette session.</div></div>
+  </div>
+
+  <h2>Ce qui n'a pas été évalué</h2>
+
+  <ul>
+    <li><b>Accessibilité</b> — aucun ratio de contraste mesuré précisément, aucune navigation clavier testée. Un point à vérifier signalé : le libellé des KPI utilise une couleur beige-gris clair à 9px sur fond blanc, une combinaison qui échoue souvent aux tests de contraste standards.</li>
+    <li><b>Performance</b> — aucune mesure réelle de temps de chargement, de poids de page ou de score Lighthouse. Cette analyse s'appuie sur le code source et des captures d'écran statiques, pas sur un audit technique de vitesse.</li>
+  </ul>
+
+  <h2>Maquettes "après"</h2>
+  <p>Trois écrans retouchés selon les correctifs ci-dessus, plus 5 pistes de logo distinctes, générés dans le dossier du projet — pas une refonte, des retouches ciblées sur la charte existante.</p>
+  <a class="after-link" href="file:///home/radoraj/ERP%20ARTISAN/maquettes_ux_amelioration_2026-08-21/dashboard.html"><b>dashboard.html</b>États vides avec icône cohérente au lieu d'émoji</a>
+  <a class="after-link" href="file:///home/radoraj/ERP%20ARTISAN/maquettes_ux_amelioration_2026-08-21/produits_finis.html"><b>produits_finis.html</b>Marge corrigée, actions clarifiées avec interrupteur + tooltips</a>
+  <a class="after-link" href="file:///home/radoraj/ERP%20ARTISAN/maquettes_ux_amelioration_2026-08-21/facture_pdf.html"><b>facture_pdf.html</b>Bouton et en-tête aux couleurs de la marque</a>
+  <a class="after-link" href="file:///home/radoraj/ERP%20ARTISAN/maquettes_ux_amelioration_2026-08-21/logos_arteasy.html"><b>logos_arteasy.html</b>5 pistes de logo, avec démo à taille réduite pour chacune</a>
+
+  <div class="meta">Audit réalisé le 21 août 2026, à partir du code source d'ERP ARTISAN et des captures de <code>demo_video_2026-08-21/</code> et <code>tour_modules_2026-08-21/</code> (session du même jour). Fait partie du dossier playbook ARTEASY — voir SESSION_LOG.md pour le contexte complet de la session.</div>
+
+</div>
+</body>
+</html>

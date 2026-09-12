@@ -1,0 +1,601 @@
+<title>Opération Cent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --paper: #eef1e7;
+    --surface: #ffffff;
+    --surface-2: #e4e8da;
+    --ink: #1c2118;
+    --ink-soft: #565f4c;
+    --ink-faint: #7c8570;
+    --line: rgba(28,33,24,0.14);
+    --line-strong: rgba(28,33,24,0.26);
+    --amber: #b5551e;
+    --amber-soft: #dd8a4a;
+    --amber-wash: rgba(181,85,30,0.1);
+    --signal: #9c3128;
+    --signal-wash: rgba(156,49,40,0.1);
+    --bottle: #3c5a37;
+    --bottle-soft: #6f8f66;
+    --bottle-wash: rgba(60,90,55,0.1);
+    --shadow: 0 1px 2px rgba(28,33,24,0.06), 0 8px 24px -12px rgba(28,33,24,0.18);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14170f;
+      --surface: #1c2116;
+      --surface-2: #262c1d;
+      --ink: #eef1e6;
+      --ink-soft: #aab29c;
+      --ink-faint: #7c8570;
+      --line: rgba(238,241,230,0.13);
+      --line-strong: rgba(238,241,230,0.24);
+      --amber: #e08a45;
+      --amber-soft: #f0ab73;
+      --amber-wash: rgba(224,138,69,0.14);
+      --signal: #e2685a;
+      --signal-wash: rgba(226,104,90,0.14);
+      --bottle: #8bab7f;
+      --bottle-soft: #a9c49e;
+      --bottle-wash: rgba(139,171,127,0.14);
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 32px -16px rgba(0,0,0,0.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #14170f;
+    --surface: #1c2116;
+    --surface-2: #262c1d;
+    --ink: #eef1e6;
+    --ink-soft: #aab29c;
+    --ink-faint: #7c8570;
+    --line: rgba(238,241,230,0.13);
+    --line-strong: rgba(238,241,230,0.24);
+    --amber: #e08a45;
+    --amber-soft: #f0ab73;
+    --amber-wash: rgba(224,138,69,0.14);
+    --signal: #e2685a;
+    --signal-wash: rgba(226,104,90,0.14);
+    --bottle: #8bab7f;
+    --bottle-soft: #a9c49e;
+    --bottle-wash: rgba(139,171,127,0.14);
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 32px -16px rgba(0,0,0,0.6);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Manrope', -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  ::selection { background: var(--amber-wash); color: var(--ink); }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+  a { color: var(--amber); }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 24px 120px; }
+
+  h1, h2, h3 { font-family: 'Fraunces', Georgia, serif; text-wrap: balance; color: var(--ink); margin: 0; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Masthead ---------- */
+  .masthead {
+    padding: 72px 0 40px;
+    border-bottom: 1px solid var(--line);
+  }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 22px;
+    height: 2px;
+    background: var(--amber);
+    display: inline-block;
+  }
+  .masthead h1 {
+    font-size: clamp(2.6rem, 6vw, 4.2rem);
+    font-weight: 700;
+    line-height: 0.98;
+    letter-spacing: -0.01em;
+  }
+  .masthead .lede {
+    max-width: 620px;
+    margin-top: 22px;
+    font-size: 1.15rem;
+    color: var(--ink-soft);
+  }
+  .masthead .lede strong { color: var(--ink); font-weight: 700; }
+
+  .stat-strip {
+    margin-top: 44px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .stat {
+    padding: 18px 20px;
+    border-right: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .stat:last-child { border-right: none; }
+  .stat .k {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 8px;
+  }
+  .stat .v {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 1.3rem;
+    color: var(--ink);
+  }
+  .stat .v.amber { color: var(--amber); }
+
+  /* ---------- Sections ---------- */
+  section { padding: 56px 0; border-bottom: 1px solid var(--line); }
+  section:last-of-type { border-bottom: none; }
+
+  .sec-head { margin-bottom: 28px; }
+  .sec-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 16px;
+  }
+  .tag-doctrine { background: var(--surface-2); color: var(--ink-soft); }
+  .tag-filon { background: var(--bottle-wash); color: var(--bottle); }
+  .tag-trafic { background: var(--surface-2); color: var(--ink-soft); }
+  .tag-prix { background: var(--signal-wash); color: var(--signal); }
+  .tag-friction { background: var(--surface-2); color: var(--ink-soft); }
+  .tag-viral { background: var(--amber-wash); color: var(--amber); }
+  .tag-contenu { background: var(--surface-2); color: var(--ink-soft); }
+  .tag-plan { background: var(--amber-wash); color: var(--amber); }
+
+  section h2 { font-size: 1.8rem; font-weight: 600; }
+  .sec-intro { max-width: 660px; margin-top: 14px; color: var(--ink-soft); font-size: 1.02rem; }
+  .sec-intro strong { color: var(--ink); }
+
+  p { max-width: 660px; }
+
+  /* ---------- Doctrine ---------- */
+  .doctrine-grid {
+    margin-top: 28px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .doctrine-card { background: var(--surface); padding: 22px; }
+  .doctrine-card .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--amber);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .doctrine-card h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 8px; }
+  .doctrine-card p { font-size: 0.95rem; color: var(--ink-soft); margin: 0; max-width: none; }
+
+  /* ---------- Filon cards ---------- */
+  .filon-list { margin-top: 24px; display: flex; flex-direction: column; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .filon-item { background: var(--surface); padding: 20px 22px; display: grid; grid-template-columns: 210px 1fr; gap: 22px; }
+  .filon-item .name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.05rem; color: var(--ink); }
+  .filon-item .name .meta { display:block; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--ink-faint); font-weight: 400; margin-top: 6px; }
+  .filon-item .desc { font-size: 0.95rem; color: var(--ink-soft); }
+  .filon-item .desc strong { color: var(--ink); }
+  @media (max-width: 620px) {
+    .filon-item { grid-template-columns: 1fr; gap: 8px; }
+  }
+
+  /* ---------- Table ---------- */
+  .table-wrap { margin-top: 24px; overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+  table { width: 100%; border-collapse: collapse; min-width: 560px; background: var(--surface); }
+  th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--line); font-size: 0.92rem; vertical-align: top; }
+  th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    background: var(--surface-2);
+    font-weight: 600;
+  }
+  tr:last-child td { border-bottom: none; }
+  td strong { color: var(--ink); }
+  td.mono-cell { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--ink-soft); }
+
+  /* ---------- Pricing ladder ---------- */
+  .price-ladder { margin-top: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+  .price-card { border: 1px solid var(--line); border-radius: 8px; padding: 22px; background: var(--surface); position: relative; }
+  .price-card.active { border-color: var(--signal); box-shadow: var(--shadow); }
+  .price-card .tier { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+  .price-card .amount { font-family: 'Fraunces', serif; font-weight: 700; font-size: 2.1rem; margin-top: 10px; color: var(--ink); }
+  .price-card .amount .unit { font-family: 'Manrope'; font-size: 0.95rem; font-weight: 600; color: var(--ink-soft); }
+  .price-card .slots { margin-top: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--signal); }
+  .price-card .note { margin-top: 14px; font-size: 0.87rem; color: var(--ink-soft); }
+
+  .price-track { margin-top: 20px; height: 34px; border-radius: 6px; overflow: hidden; display: flex; border: 1px solid var(--line); }
+  .price-seg { display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--paper); }
+  .price-seg.s1 { background: var(--signal); flex-basis: 20%; }
+  .price-seg.s2 { background: var(--amber); flex-basis: 30%; }
+  .price-seg.s3 { background: var(--amber-soft); flex-basis: 50%; color: var(--ink); }
+  .price-track-label { margin-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--ink-faint); }
+
+  .anchor-line { margin-top: 22px; padding: 16px 18px; background: var(--surface-2); border-radius: 6px; font-size: 0.92rem; color: var(--ink-soft); }
+  .anchor-line strong { color: var(--ink); }
+  .anchor-line .strike { text-decoration: line-through; color: var(--ink-faint); }
+
+  /* ---------- Checklist ---------- */
+  .checklist { margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .check-item { background: var(--surface); padding: 18px 20px; display: flex; gap: 12px; align-items: flex-start; }
+  .check-item .mark { width: 18px; height: 18px; border: 1.5px solid var(--bottle); border-radius: 4px; flex-shrink: 0; margin-top: 2px; position: relative; }
+  .check-item .mark::after { content: ""; position: absolute; left: 4px; top: 1px; width: 5px; height: 9px; border: solid var(--bottle); border-width: 0 2px 2px 0; transform: rotate(40deg); }
+  .check-item .body h3 { font-size: 0.98rem; font-weight: 600; margin-bottom: 5px; }
+  .check-item .body p { font-size: 0.9rem; color: var(--ink-soft); margin: 0; max-width: none; }
+
+  /* ---------- Viral cards ---------- */
+  .viral-grid { margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 14px; }
+  .viral-card { border: 1px solid var(--line); border-radius: 8px; padding: 20px; background: var(--surface); }
+  .viral-card .tag { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--amber); margin-bottom: 10px; }
+  .viral-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 8px; }
+  .viral-card p { font-size: 0.92rem; color: var(--ink-soft); margin: 0; max-width: none; }
+
+  /* ---------- Week timeline ---------- */
+  .weeks { margin-top: 28px; display: flex; flex-direction: column; gap: 14px; }
+  .week-row { display: grid; grid-template-columns: 90px 1fr; gap: 20px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+  .week-num {
+    background: var(--surface-2);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 18px 8px;
+    border-right: 1px solid var(--line);
+  }
+  .week-num .w { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+  .week-num .n { font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.8rem; color: var(--ink); margin-top: 4px; }
+  .week-body { padding: 18px 22px 18px 0; }
+  .week-body .goal { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--bottle); margin-bottom: 8px; }
+  .week-body h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 8px; font-family: 'Fraunces', serif; }
+  .week-body ul { margin: 0; padding-left: 18px; font-size: 0.92rem; color: var(--ink-soft); }
+  .week-body li { margin-bottom: 4px; }
+  .week-body li strong { color: var(--ink); }
+
+  /* ---------- Direct take callout ---------- */
+  .callout {
+    margin-top: 28px;
+    border-left: 3px solid var(--signal);
+    background: var(--signal-wash);
+    border-radius: 0 6px 6px 0;
+    padding: 20px 24px;
+  }
+  .callout .lbl { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--signal); font-weight: 700; margin-bottom: 10px; }
+  .callout p { font-size: 0.96rem; color: var(--ink); margin: 0; max-width: none; }
+  .callout p strong { color: var(--signal); }
+
+  /* ---------- Verdict ---------- */
+  .verdict {
+    margin-top: 0;
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 10px;
+    padding: 40px;
+  }
+  .verdict .sec-tag { background: rgba(255,255,255,0.1); color: var(--amber-soft); }
+  .verdict h2 { color: var(--paper); }
+  .verdict-list { margin-top: 22px; display: flex; flex-direction: column; gap: 16px; }
+  .verdict-item { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.12); }
+  .verdict-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .verdict-item .n { font-family: 'JetBrains Mono', monospace; color: var(--amber-soft); font-weight: 700; font-size: 1rem; }
+  .verdict-item h3 { color: var(--paper); font-size: 1.02rem; font-weight: 600; margin-bottom: 5px; }
+  .verdict-item p { color: rgba(238,241,230,0.72); font-size: 0.92rem; margin: 0; max-width: none; }
+
+  footer { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--line); font-size: 0.82rem; color: var(--ink-faint); }
+  footer a { color: var(--ink-faint); text-decoration: underline; }
+  footer .src-list { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow">Plan d'exécution — ARTEASY</div>
+    <h1>Opération Cent</h1>
+    <p class="lede">30 jours pour <strong>100 clients payants</strong> sur un seul filon : producteurs bio artisanaux — confitures, boissons, confiseries. Un canal saturé à fond bat dix canaux testés à moitié.</p>
+
+    <div class="stat-strip">
+      <div class="stat"><div class="k">Objectif</div><div class="v amber mono">100 clients</div></div>
+      <div class="stat"><div class="k">Fenêtre</div><div class="v mono">30 jours</div></div>
+      <div class="stat"><div class="k">Filon</div><div class="v">Bio artisanal</div></div>
+      <div class="stat"><div class="k">Budget</div><div class="v mono">600 – 3 000 €</div></div>
+      <div class="stat"><div class="k">Doctrine</div><div class="v mono">5 / 95</div></div>
+    </div>
+  </div>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-tag tag-doctrine">La doctrine</span>
+      <h2>5% des canaux font 95% du résultat — on ne le sait juste pas à l'avance</h2>
+      <p class="sec-intro">Le 80/20 dit de prioriser. Ici on va plus loin : on teste vite et serré sur deux entrées, on tue celle qui ne parle pas dans les 5 à 7 premiers jours, et sur celle qui reste on met dix fois l'énergie qu'un concurrent mettrait en dispersant sur dix canaux. <strong>Un salon fait à fond, démo live et setup sur place, vaut plus que cinq salons où on distribue des flyers.</strong></p>
+    </div>
+    <div class="doctrine-grid">
+      <div class="doctrine-card">
+        <div class="num">01</div>
+        <h3>Un seul geste ferme la vente</h3>
+        <p>Pas d'essai gratuit qui traîne. Le setup se fait sur place ou le lendemain — le client sort de l'échange déjà en train d'utiliser l'outil.</p>
+      </div>
+      <div class="doctrine-card">
+        <div class="num">02</div>
+        <h3>Le canal se choisit sur le terrain</h3>
+        <p>Deux entrées testées semaine 1. Celle qui convertit gagne toute l'énergie des trois semaines suivantes. L'autre est coupée, pas prolongée par politesse.</p>
+      </div>
+      <div class="doctrine-card">
+        <div class="num">03</div>
+        <h3>Chaque client distribue avant de payer sa 1ère facture</h3>
+        <p>Témoignage filmé pendant le setup, parrainage activé le jour même. Le client n'est pas la fin du entonnoir, il est le début du suivant.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-tag tag-filon">Le filon</span>
+      <h2>Là où l'artisan bio est déjà obligé de passer</h2>
+      <p class="sec-intro">Pas besoin de le trouver au hasard dans la nature : il existe des points de passage administratifs et commerciaux où toute la cible se retrouve, sans qu'aucun tiers n'ait besoin de donner son accord.</p>
+    </div>
+    <div class="filon-list">
+      <div class="filon-item">
+        <div class="name">Annuaire Agence Bio<span class="meta">agencebio.org · API data.gouv.fr</span></div>
+        <div class="desc"><strong>~90 000 opérateurs bio recensés, dont plus de 61 000 fermes</strong> — nom, adresse, activités certifiées, produits. C'est une base de données publique, pas un partenariat à négocier : on filtre sur « transformation » (confiture, jus, confiserie) et on contacte en direct.</div>
+      </div>
+      <div class="filon-item">
+        <div class="name">Salon Marjolaine<span class="meta">7–11 nov 2026 · Parc Floral de Paris</span></div>
+        <div class="desc">Le plus gros salon grand public bio de France, organisé sous l'égide de Nature &amp; Progrès. Plusieurs centaines d'exposants, en majorité de petits transformateurs artisanaux. Terrain idéal pour démo live et setup sur place.</div>
+      </div>
+      <div class="filon-item">
+        <div class="name">Natexpo<span class="meta">28–29 sept 2026 · Eurexpo Lyon</span></div>
+        <div class="desc">Salon professionnel B2B du bio. Moins de volume grand public, mais des acheteurs et décideurs — utile pour amorcer des relais de distribution du produit, en dehors du sprint des 30 jours.</div>
+      </div>
+      <div class="filon-item">
+        <div class="name">FNAB &amp; Bienvenue à la Ferme<span class="meta">réseaux institutionnels — à consulter, pas à activer</span></div>
+        <div class="desc">FNAB : 13 groupes régionaux, ~10 000 fermes bio adhérentes. Bienvenue à la Ferme (Chambres d'agriculture) : plus de 9 000 fermes en vente directe référencées. Même leçon que pour les CMA : lent à activer en partenariat — utile en revanche comme annuaire public à consulter pour repérer qui transforme sa propre production.</div>
+      </div>
+      <div class="filon-item">
+        <div class="name">Groupes Facebook métier<span class="meta">confituriers, brasseurs bio, confiseurs artisanaux</span></div>
+        <div class="desc">C'est là qu'ils parlent tarification, DLC, étiquetage, entre eux, tous les jours. Zéro tiers à convaincre, présence immédiate.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-tag tag-trafic">Capture du trafic concurrent</span>
+      <h2>Intercepter ceux qui cherchent déjà une solution</h2>
+      <p class="sec-intro">Craftybase, Katana, Dolibarr, Axonaut, Sellsy sont déjà tapés dans Google par des artisans qui cherchent une alternative. On se positionne dessus au lieu de créer la demande à partir de zéro.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Concurrent</th><th>Mot-clé à intercepter</th><th>Canal</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Craftybase</strong></td><td class="mono-cell">alternative craftybase français</td><td>Page SEO comparative + Ads sur marque</td></tr>
+          <tr><td><strong>Katana MRP</strong></td><td class="mono-cell">katana mrp artisan alimentaire</td><td>Page SEO comparative</td></tr>
+          <tr><td><strong>Dolibarr</strong></td><td class="mono-cell">dolibarr trop compliqué artisan</td><td>Contenu FB groupes + SEO</td></tr>
+          <tr><td><strong>Axonaut / Sellsy</strong></td><td class="mono-cell">logiciel gestion artisan bio simple</td><td>Retargeting FB sur commentateurs actifs</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-tag tag-prix">Le levier prix</span>
+      <h2>Le pricing raconte le compte à rebours de l'objectif</h2>
+      <p class="sec-intro">Les paliers de prix montent avec le nombre de clients — la rareté est réelle, pas fabriquée. Chaque palier franchi devient lui-même un contenu à publier.</p>
+    </div>
+
+    <div class="price-ladder">
+      <div class="price-card active">
+        <div class="tier">Palier 1</div>
+        <div class="amount">97 €<span class="unit"> à vie</span></div>
+        <div class="slots">20 places</div>
+        <div class="note">Objectif : cas clients rapides, premiers témoignages filmés.</div>
+      </div>
+      <div class="price-card">
+        <div class="tier">Palier 2</div>
+        <div class="amount">147 €<span class="unit"> à vie</span></div>
+        <div class="slots">30 places suivantes</div>
+        <div class="note">Le bouche-à-oreille commence à porter, le prix suit.</div>
+      </div>
+      <div class="price-card">
+        <div class="tier">Palier 3</div>
+        <div class="amount">197 €<span class="unit"> à vie</span></div>
+        <div class="slots">50 places suivantes</div>
+        <div class="note">Toujours -50% vs le tarif standard 397€.</div>
+      </div>
+    </div>
+
+    <div class="price-track">
+      <div class="price-seg s1">20</div>
+      <div class="price-seg s2">30</div>
+      <div class="price-seg s3">50</div>
+    </div>
+    <div class="price-track-label">Compteur affiché en direct sur la landing : « X / 100 places restantes à ce tarif »</div>
+
+    <div class="anchor-line">
+      <strong>Ancrage :</strong> <span class="strike">947 €/an</span> en SaaS classique du secteur vs <strong>197 € à vie</strong> au pire des trois paliers. Garantie remboursé 30 jours, sans question. Option sans engagement pour les hésitants : 19 €/mois les 3 premiers mois avant bascule.
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-tag tag-friction">Zéro friction</span>
+      <h2>De l'inscription à la valeur en moins de 10 minutes</h2>
+      <p class="sec-intro">Chaque étape en trop entre « intéressé » et « signé » coûte des clients qu'on ne récupère jamais avec un canal saturé à fond.</p>
+    </div>
+    <div class="checklist">
+      <div class="check-item"><div class="mark"></div><div class="body"><h3>Setup fait pour eux</h3><p>Migration des données prise en charge en direct pendant l'appel — supprime l'objection « j'ai pas le temps d'apprendre ».</p></div></div>
+      <div class="check-item"><div class="mark"></div><div class="body"><h3>Presets par métier</h3><p>Plan comptable et catalogue déjà configurés pour confiture, boisson ou confiserie dès la première connexion.</p></div></div>
+      <div class="check-item"><div class="mark"></div><div class="body"><h3>Pas de CB à l'inscription</h3><p>La carte n'est demandée qu'à la fin du setup call, une fois la valeur vue et vécue.</p></div></div>
+      <div class="check-item"><div class="mark"></div><div class="body"><h3>Support WhatsApp direct</h3><p>Pas de ticket, pas de formulaire — les artisans vivent déjà sur WhatsApp.</p></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-tag tag-viral">Le moteur viral</span>
+      <h2>Chaque client signé devient une preuve publique en moins de 24h</h2>
+      <p class="sec-intro">On ne demande pas de témoignage trois semaines après — on le filme pendant le closing, à froid, quand l'émotion du gain de temps est encore là.</p>
+    </div>
+    <div class="viral-grid">
+      <div class="viral-card"><div class="tag">Preuve immédiate</div><h3>Témoignage filmé en direct</h3><p>30 secondes captées pendant le setup call. Un mois de contenu authentique généré à la vitesse du closing, pas après coup.</p></div>
+      <div class="viral-card"><div class="tag">Avant / après</div><h3>Le carnet contre le tableau de bord</h3><p>Capture de leur Excel ou carnet papier posée à côté du dashboard ARTEASY, en carrousel. Le contraste fait le travail de conviction.</p></div>
+      <div class="viral-card"><div class="tag">Parrainage actif</div><h3>100 € de crédit, activé le jour du setup</h3><p>Le parrain poste lui-même : « je viens de faire gagner X heures par semaine à [nom] ». La preuve sociale part du client, pas de la marque.</p></div>
+      <div class="viral-card"><div class="tag">Build in public</div><h3>Le compteur du sprint, publié chaque jour</h3><p>« Jour 12/30, 34 clients signés. » Ça crée son propre following et une pression positive pour les prospects qui regardent le compteur monter.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-tag tag-contenu">Contenu — 100% résolution</span>
+      <h2>Chaque sujet répond à une douleur précise, pas un thème générique</h2>
+      <p class="sec-intro">Zéro contenu marketing générique. Chaque post part d'une question que l'artisan se pose vraiment ce mois-ci.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Sujet</th><th>Douleur adressée</th><th>Canal / format</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Le vrai coût de revient d'un pot de confiture</strong></td><td>Sucre +30% en 2 ans, marges qui s'effondrent sans qu'on le voie</td><td class="mono-cell">Post long — groupes FB</td></tr>
+          <tr><td><strong>Étiquetage bio : 5 erreurs qui bloquent la vente en GMS</strong></td><td>Refus en rayon, mise en conformité tardive</td><td class="mono-cell">Carrousel — Instagram</td></tr>
+          <tr><td><strong>DLC et traçabilité : le tableau qu'un contrôle DGCCRF veut voir</strong></td><td>Peur du contrôle, paperasse dispersée</td><td class="mono-cell">Vidéo courte — TikTok/Reels</td></tr>
+          <tr><td><strong>Combien de temps tu perds vraiment le dimanche soir</strong></td><td>Compta faite le soir, sur la table de cuisine</td><td class="mono-cell">Témoignage — toutes plateformes</td></tr>
+          <tr><td><strong>Calculateur gratuit prix de revient confiture/sirop/bonbon</strong></td><td>Lead magnet — montre la douleur avant la solution</td><td class="mono-cell">Excel téléchargeable, email requis</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-tag tag-plan">Le plan</span>
+      <h2>Semaine par semaine</h2>
+      <p class="sec-intro">Deux canaux testés en semaine 1. Un seul survit et reçoit toute l'énergie à partir de la semaine 3.</p>
+    </div>
+
+    <div class="weeks">
+      <div class="week-row">
+        <div class="week-num"><div class="w">Semaine</div><div class="n">1</div></div>
+        <div class="week-body">
+          <div class="goal">Cumul visé : 5 – 10 clients</div>
+          <h3>Repérage &amp; infiltration</h3>
+          <ul>
+            <li>Rejoindre 8–10 groupes FB métier, poster du contenu valeur — <strong>zéro vente cette semaine</strong></li>
+            <li>Extraire et qualifier la liste Agence Bio, filtrée sur activité « transformation »</li>
+            <li>Contacter 10–15 micro-influenceurs bio / cuisine artisanale</li>
+            <li>Landing page pricing agressif + compteur en ligne, démo métier prête</li>
+          </ul>
+        </div>
+      </div>
+      <div class="week-row">
+        <div class="week-num"><div class="w">Semaine</div><div class="n">2</div></div>
+        <div class="week-body">
+          <div class="goal">Cumul visé : 30 – 40 clients</div>
+          <h3>Premier choc terrain</h3>
+          <ul>
+            <li>Présence salon (Marjolaine ou événement régional équivalent) — démo live, setup sur place</li>
+            <li>Premiers posts influenceurs publiés</li>
+            <li>Premiers témoignages filmés, parrainage activé</li>
+          </ul>
+        </div>
+      </div>
+      <div class="week-row">
+        <div class="week-num"><div class="w">Semaine</div><div class="n">3</div></div>
+        <div class="week-body">
+          <div class="goal">Cumul visé : 65 – 80 clients</div>
+          <h3>Doubler la mise</h3>
+          <ul>
+            <li>Identifier lequel des canaux convertit le mieux — terrain, influenceurs, ou FB organique</li>
+            <li><strong>Tout rediriger dessus</strong>, couper le reste sans regret</li>
+            <li>Passage au palier de prix 2</li>
+          </ul>
+        </div>
+      </div>
+      <div class="week-row">
+        <div class="week-num"><div class="w">Semaine</div><div class="n">4</div></div>
+        <div class="week-body">
+          <div class="goal">Cumul visé : 100 clients</div>
+          <h3>Dernière poussée</h3>
+          <ul>
+            <li>Palier de prix 3 — dernière fenêtre au tarif réduit</li>
+            <li>Push final concentré sur le seul canal qui a gagné</li>
+            <li>Bilan chiffré et décision du canal à saturer pour le mois 2</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="lbl">Mon avis direct</div>
+      <p>Le vrai risque de ce plan n'est ni le pricing ni le contenu — c'est <strong>ta bande passante</strong>. 100 setups white-glove en 30 jours, si ça se groupe en fin de sprint, c'est 3 à 4 setups par jour ouvré, tout seul. Prévois dès maintenant un fallback : une vidéo de setup autoguidée de 10 minutes à envoyer si le rythme dépasse ta capacité réelle — sinon c'est la friction qu'on vient de supprimer qui revient par la porte de derrière.</p>
+    </div>
+  </section>
+
+  <div class="verdict">
+    <span class="sec-tag">Verdict</span>
+    <h2>3 décisions cette semaine</h2>
+    <div class="verdict-list">
+      <div class="verdict-item">
+        <div class="n">01</div>
+        <div><h3>Extraire 50 contacts depuis l'annuaire Agence Bio</h3><p>Filtrés sur activité transformation. Coût : zéro. Attente : zéro. C'est la seule action de la liste qui ne dépend de personne d'autre.</p></div>
+      </div>
+      <div class="verdict-item">
+        <div class="n">02</div>
+        <div><h3>Verrouiller une présence terrain dans les 2-3 semaines</h3><p>Marjolaine en novembre est trop loin pour ce sprint — trouver un marché ou salon régional plus proche pour démarrer le terrain maintenant.</p></div>
+      </div>
+      <div class="verdict-item">
+        <div class="n">03</div>
+        <div><h3>Publier le pricing en paliers avec compteur, dès aujourd'hui</h3><p>Sans ancre de prix agressive et visible, le reste du plan tourne à vide — c'est la pièce qui débloque toutes les autres.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Sources vérifiées pour les données citées :
+    <div class="src-list">
+      <a href="https://www.agencebio.org/vos-outils/annuaire/" target="_blank" rel="noopener">Annuaire officiel — Agence Bio</a>
+      <a href="https://www.data.gouv.fr/dataservices/api-professionnels-bio" target="_blank" rel="noopener">API Professionnels Bio — data.gouv.fr</a>
+      <a href="https://www.salon-marjolaine.com/" target="_blank" rel="noopener">Salon Marjolaine</a>
+      <a href="https://natexpo.com/" target="_blank" rel="noopener">Natexpo</a>
+      <a href="https://www.fnab.org/" target="_blank" rel="noopener">FNAB — Fédération Nationale d'Agriculture Biologique</a>
+      <a href="https://www.produire-bio.fr/cest-quoi-la-bio/reseau-producteurs-bio/" target="_blank" rel="noopener">Bienvenue à la Ferme — réseau bio</a>
+    </div>
+  </footer>
+
+</div>

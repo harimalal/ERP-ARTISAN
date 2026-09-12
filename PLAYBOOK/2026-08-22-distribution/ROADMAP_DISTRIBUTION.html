@@ -1,0 +1,430 @@
+<title>Roadmap Distribution ARTEASY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FBF8F3; --bg-raised:#FFFFFF; --fg:#1A1410; --fg-2:#6B5D4F; --fg-3:#9A8C7A;
+  --border:#E4DBC9; --border-soft:#EFE8D9;
+  --accent:#C0543A; --accent-d:#9C4230; --accent-soft:#F3E4DD; --accent-soft-2:#FBEFE9;
+  --good:#16A34A; --good-soft:#E7F5EC;
+  --warn:#B5720A; --warn-soft:#FBF0DC;
+  --p1:#4A7FB5; --p1-soft:#E9F0F8;
+  --p2:#6B5FA8; --p2-soft:#EFEDF7;
+  --p3:#2E8B7C; --p3-soft:#E6F2EF;
+  --p4:#B5720A; --p4-soft:#FBF0DC;
+  --row-hi:#FCF6EF;
+  --shadow: 0 1px 2px rgba(26,20,16,.04), 0 8px 24px rgba(26,20,16,.06);
+  --font-display:'Fraunces',ui-serif,Georgia,serif;
+  --font-body:'Manrope',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#171310; --bg-raised:#1F1A15; --fg:#F3ECE2; --fg-2:#C4B7A5; --fg-3:#8D8071;
+    --border:#3A3128; --border-soft:#2C2620;
+    --accent:#E07A5A; --accent-d:#F0987A; --accent-soft:#3B241C; --accent-soft-2:#2E1E17;
+    --good:#4ADE80; --good-soft:#173226;
+    --warn:#F2B84B; --warn-soft:#332510;
+    --p1:#7CA6D6; --p1-soft:#1C2B3B;
+    --p2:#A79CD6; --p2-soft:#28243B;
+    --p3:#5FBBA8; --p3-soft:#152E2A;
+    --p4:#F2B84B; --p4-soft:#332510;
+    --row-hi:#24201A;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#171310; --bg-raised:#1F1A15; --fg:#F3ECE2; --fg-2:#C4B7A5; --fg-3:#8D8071;
+  --border:#3A3128; --border-soft:#2C2620;
+  --accent:#E07A5A; --accent-d:#F0987A; --accent-soft:#3B241C; --accent-soft-2:#2E1E17;
+  --good:#4ADE80; --good-soft:#173226;
+  --warn:#F2B84B; --warn-soft:#332510;
+  --p1:#7CA6D6; --p1-soft:#1C2B3B;
+  --p2:#A79CD6; --p2-soft:#28243B;
+  --p3:#5FBBA8; --p3-soft:#152E2A;
+  --p4:#F2B84B; --p4-soft:#332510;
+  --row-hi:#24201A;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.4);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);line-height:1.6;font-size:16px;-webkit-font-smoothing:antialiased;}
+::selection{background:var(--accent-soft);color:var(--accent-d);}
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px 120px;}
+
+header{padding:64px 32px 48px;border-bottom:1px solid var(--border);
+  background:radial-gradient(ellipse 900px 300px at 15% 0%, var(--accent-soft-2) 0%, transparent 65%);}
+.header-inner{max-width:1180px;margin:0 auto;}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-d);background:var(--accent-soft);padding:6px 14px;border-radius:20px;margin-bottom:22px;}
+.eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);}
+h1{font-family:var(--font-display);font-weight:600;font-size:clamp(2.1rem,4vw,3.1rem);line-height:1.08;letter-spacing:-.01em;text-wrap:balance;max-width:18ch;margin-bottom:20px;}
+h1 em{font-style:italic;color:var(--accent);}
+.dek{font-size:1.15rem;color:var(--fg-2);max-width:64ch;line-height:1.65;}
+
+section{padding:56px 0;border-bottom:1px solid var(--border-soft);}
+section:last-of-type{border-bottom:none;}
+.section-head{display:flex;align-items:baseline;gap:16px;margin-bottom:28px;}
+.section-num{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--fg-3);padding-top:6px;}
+.section-head h2{font-family:var(--font-display);font-weight:600;font-size:1.7rem;letter-spacing:-.01em;}
+.section-sub{color:var(--fg-2);max-width:72ch;margin-bottom:28px;font-size:1.02rem;}
+
+/* DECISION BANNER */
+.decision-banner{
+  background:var(--accent-soft-2); border:1px solid var(--accent-soft); border-radius:16px;
+  padding:32px 36px; box-shadow:var(--shadow);
+}
+.decision-banner .tag{font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent-d);margin-bottom:12px;display:block;}
+.decision-banner h3{font-family:var(--font-display);font-weight:600;font-size:1.4rem;margin-bottom:12px;letter-spacing:-.01em;}
+.decision-banner p{color:var(--fg-2);font-size:1rem;max-width:78ch;}
+.decision-banner p strong{color:var(--fg);}
+
+/* CHANNEL MATRIX */
+.table-scroll{overflow-x:auto;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);background:var(--bg-raised);}
+table{border-collapse:collapse;width:100%;min-width:900px;font-size:.88rem;}
+thead th{text-align:left;font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--fg-3);padding:16px 18px;border-bottom:2px solid var(--border);white-space:nowrap;background:var(--bg-raised);}
+tbody td{padding:16px 18px;border-bottom:1px solid var(--border-soft);vertical-align:top;color:var(--fg-2);line-height:1.5;}
+tbody th{text-align:left;padding:16px 18px;border-bottom:1px solid var(--border-soft);font-weight:700;color:var(--fg);white-space:nowrap;font-size:.85rem;}
+tbody tr:last-child td, tbody tr:last-child th{border-bottom:none;}
+tr.winner td, tr.winner th{background:var(--row-hi);}
+tr.winner th{color:var(--accent-d);}
+.score{display:inline-flex;gap:3px;}
+.score i{width:8px;height:8px;border-radius:50%;background:var(--border);display:inline-block;}
+.score i.on{background:var(--accent);}
+.rank{font-family:var(--font-mono);font-weight:700;font-size:.8rem;color:var(--fg-3);}
+tr.winner .rank{color:var(--accent-d);}
+.chip{display:inline-block;font-family:var(--font-mono);font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.02em;}
+.chip.now{background:var(--good-soft);color:var(--good);}
+.chip.later{background:var(--border-soft);color:var(--fg-3);}
+.chip.pause{background:var(--warn-soft);color:var(--warn);}
+
+/* TIMELINE */
+.timeline{position:relative;display:flex;flex-direction:column;gap:0;}
+.phase{position:relative;padding-left:56px;padding-bottom:44px;}
+.phase:last-child{padding-bottom:0;}
+.phase::before{
+  content:'';position:absolute;left:19px;top:44px;bottom:-2px;width:2px;
+  background:var(--border);
+}
+.phase:last-child::before{display:none;}
+.phase-dot{
+  position:absolute;left:0;top:2px;width:40px;height:40px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono);font-weight:700;font-size:13px;
+  border:2px solid var(--bg-raised);box-shadow:0 0 0 2px var(--border);
+  color:#fff;
+}
+.phase-card{background:var(--bg-raised);border:1px solid var(--border);border-radius:14px;padding:26px 28px;box-shadow:var(--shadow);}
+.phase-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:6px;}
+.phase-head h3{font-family:var(--font-display);font-weight:600;font-size:1.25rem;letter-spacing:-.01em;}
+.phase-when{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-3);letter-spacing:.03em;}
+.phase-channel{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:.85rem;font-weight:700;margin:8px 0 16px;
+  padding:6px 12px;border-radius:8px;
+}
+.phase-goal{color:var(--fg-2);font-size:.95rem;margin-bottom:16px;}
+.phase-actions{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:18px;}
+.phase-actions li{font-size:.9rem;color:var(--fg);padding-left:20px;position:relative;line-height:1.55;}
+.phase-actions li::before{content:'→';position:absolute;left:0;color:var(--accent);font-weight:700;}
+.phase-kpi{
+  display:flex;flex-wrap:wrap;gap:10px;padding-top:14px;border-top:1px dashed var(--border);
+}
+.kpi-pill{
+  font-family:var(--font-mono);font-size:11.5px;font-weight:600;
+  background:var(--bg);border:1px solid var(--border);color:var(--fg-2);
+  padding:6px 12px;border-radius:20px;
+}
+.kpi-pill b{color:var(--fg);}
+
+/* PATTERNS MAPPING */
+.pattern-grid{display:grid;grid-template-columns:1fr;gap:12px;}
+.pattern-row{
+  display:grid;grid-template-columns:280px 1fr;gap:24px;
+  background:var(--bg-raised);border:1px solid var(--border);border-radius:12px;
+  padding:20px 24px;box-shadow:var(--shadow);align-items:center;
+}
+.pattern-row .pname{font-weight:700;font-size:.92rem;color:var(--fg);}
+.pattern-row .pname span{display:block;font-family:var(--font-mono);font-size:10.5px;color:var(--accent-d);letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px;}
+.pattern-row .papply{font-size:.9rem;color:var(--fg-2);}
+.pattern-row .papply b{color:var(--fg);}
+
+/* VERDICT */
+.verdict-panel{background:linear-gradient(155deg, var(--accent-soft-2) 0%, var(--bg-raised) 60%);border:1px solid var(--border);border-radius:16px;padding:40px 44px;box-shadow:var(--shadow);}
+.verdict-panel h2{font-family:var(--font-display);font-weight:600;font-size:1.6rem;margin-bottom:18px;letter-spacing:-.01em;}
+.verdict-panel p{color:var(--fg-2);font-size:1rem;margin-bottom:14px;max-width:78ch;}
+.verdict-panel p:last-child{margin-bottom:0;}
+.verdict-panel strong{color:var(--fg);}
+.verdict-panel ol{margin:16px 0;padding-left:22px;color:var(--fg-2);}
+.verdict-panel ol li{margin-bottom:8px;}
+.verdict-panel ol li b{color:var(--fg);}
+
+a:focus-visible, button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+@media (max-width:860px){
+  .wrap{padding:0 18px 80px;}
+  header{padding:44px 18px 36px;}
+  .pattern-row{grid-template-columns:1fr;gap:8px;}
+  .verdict-panel{padding:28px 24px;}
+  .decision-banner{padding:24px 22px;}
+}
+</style>
+
+<header>
+  <div class="header-inner">
+    <span class="eyebrow">Roadmap distribution — validation à scale, 12 mois</span>
+    <h1>La distribution est le produit qu'il reste à <em>construire</em></h1>
+    <p class="dek">ARTEASY a un produit et un boulevard de positionnement (voir le benchmark). Ce qui manque n'est pas une fonctionnalité — c'est un moteur de croissance répétable. Roadmap concrète, phase par phase, ancrée sur l'ICP réel : l'artisan fabricant français.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="section-head"><span class="section-num">00</span><h2>La décision qui tranche</h2></div>
+    <div class="decision-banner">
+      <span class="tag">Canal principal recommandé — corrigé après relecture</span>
+      <h3>Communautés + terrain + parrainage — 100% sous contrôle, aucun tiers à convaincre</h3>
+      <p>Le levier institutionnel (CMA, fédérations) a un vrai potentiel de volume, mais une CMA est un établissement public : un email de partenariat venant d'une startup inconnue passe par un standard, un service com, une validation — <strong>lent à activer</strong>, pas rapide. Le classer comme moteur de traction à 2-6 mois était une erreur de calibrage. Le moteur court terme doit être ce qu'ARTEASY contrôle sans dépendre d'un tiers qui peut ghoster : <strong>communautés Facebook/Instagram par métier, présence terrain aux marchés de créateurs, parrainage dès les premiers utilisateurs actifs</strong>. Le levier CMA passe en pari de fond, à côté du SEO — testé en parallèle, sans jamais être le plan.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">—</span><h2>Comment tester avec 1 CMA cette semaine, sans attendre</h2></div>
+    <div class="decision-banner" style="background:var(--p1-soft);border-color:var(--border)">
+      <span class="tag" style="color:var(--p1)">Angle rapide, effort plafonné</span>
+      <p><strong>Ne propose pas un partenariat</strong> — c'est le chemin le plus lent qui existe avec un établissement public. Trois actions concrètes, plafonnées à 2 appels + 1 relance :</p>
+      <ol style="margin:14px 0 0 20px;color:var(--fg-2)">
+        <li style="margin-bottom:8px"><strong>Regarde leur calendrier public</strong> avant tout contact — la plupart des CMA listent déjà des "ateliers numériques", "permanences conseil" ou "salons des métiers d'art" où tes artisans cibles viennent physiquement. C'est une salle pleine de ton ICP qui existe déjà, sans négociation institutionnelle.</li>
+        <li style="margin-bottom:8px"><strong>Demande le conseiller entreprise</strong> qui suit les artisans de fabrication dans ta zone — pas le service communication. Ce sont des humains qui parlent à des artisans un par un toute la semaine.</li>
+        <li><strong>Cap à 3 semaines.</strong> 2 appels, 1 relance. Rien ne bouge → tu passes à autre chose, ça ne bloque aucune autre action de la Phase 1.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">01</span><h2>Matrice de priorisation des canaux</h2></div>
+    <p class="section-sub">7 canaux candidats, notés sur l'alignement avec l'ICP, le coût, la vitesse de signal et la défendabilité (moat). Score : ●●●●● = fort.</p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Rang</th><th>Canal</th><th>Alignement ICP</th><th>Coût</th><th>Vitesse de signal</th><th>Défendabilité</th><th>Statut</th></tr>
+        </thead>
+        <tbody>
+          <tr class="winner">
+            <td class="rank">#1</td>
+            <th>Communautés Facebook/Instagram par métier</th>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></td>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span> nul</td>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> rapide, 100% sous contrôle</td>
+            <td><span class="score"><i class="on"></i><i></i><i></i><i></i><i></i></span></td>
+            <td><span class="chip now">Phase 1 — validation</span></td>
+          </tr>
+          <tr class="winner">
+            <td class="rank">#2</td>
+            <th>Marchés / salons de créateurs (terrain)</th>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></td>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> faible</td>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> rapide, 100% sous contrôle</td>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span></td>
+            <td><span class="chip now">Phase 1 — validation</span></td>
+          </tr>
+          <tr class="winner">
+            <td class="rank">#3</td>
+            <th>Parrainage / ambassadeurs Fondateurs</th>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></td>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span> nul</td>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span> moyenne, dépend d'avoir des users actifs d'abord</td>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></td>
+            <td><span class="chip now">Phase 2 — maîtriser</span></td>
+          </tr>
+          <tr>
+            <td class="rank">#4</td>
+            <th>SEO contenu longue traîne</th>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></td>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> faible</td>
+            <td><span class="score"><i class="on"></i><i></i><i></i><i></i><i></i></span> très lente</td>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></td>
+            <td><span class="chip later">Fond continu, dès maintenant</span></td>
+          </tr>
+          <tr>
+            <td class="rank">#5</td>
+            <th>Partenariats CMA / fédérations métiers</th>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></td>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span> quasi nul</td>
+            <td><span class="score"><i class="on"></i><i></i><i></i><i></i><i></i></span> très lente — établissement public, gatekeepers</td>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></td>
+            <td><span class="chip later">Pari de fond, capé — pas un plan</span></td>
+          </tr>
+          <tr>
+            <td class="rank">#6</td>
+            <th>Micro-influence artisanat</th>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></td>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span> modéré</td>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> moyenne</td>
+            <td><span class="score"><i class="on"></i><i></i><i></i><i></i><i></i></span></td>
+            <td><span class="chip later">Phase 3</span></td>
+          </tr>
+          <tr>
+            <td class="rank">#7</td>
+            <th>Paid ads (Meta/Google)</th>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span></td>
+            <td><span class="score"><i></i><i></i><i></i><i></i><i></i></span> élevé</td>
+            <td><span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span> rapide</td>
+            <td><span class="score"><i></i><i></i><i></i><i></i><i></i></span></td>
+            <td><span class="chip pause">En pause — trop tôt</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">02</span><h2>Roadmap en 4 phases</h2></div>
+    <p class="section-sub">Un canal maîtrisé avant le suivant. Chaque phase a une seule question à trancher pour passer à la suivante.</p>
+
+    <div class="timeline">
+
+      <div class="phase">
+        <div class="phase-dot" style="background:var(--p1)">0</div>
+        <div class="phase-card">
+          <div class="phase-head"><h3>Fondations</h3><span class="phase-when">Semaines 0–2</span></div>
+          <div class="phase-channel" style="background:var(--p1-soft);color:var(--p1)">Tracking &amp; preuves, zéro acquisition</div>
+          <p class="phase-goal">Avant de faire du bruit, s'assurer de pouvoir mesurer ce qui marche. Le pire scénario n'est pas un canal qui échoue — c'est un canal qui marche sans qu'on sache lequel.</p>
+          <ul class="phase-actions">
+            <li>UTM systématiques sur tout lien partagé (DM, post, lien en bio, partenariat) — sans exception dès le premier message envoyé</li>
+            <li>Dashboard minimal : source de trafic → inscription → essai actif → rétention J7/J30</li>
+            <li>Réutiliser la démo filmée (25 captures cycle commande→facture, Session 1) comme preuve produit prête à montrer sans rien reconstruire</li>
+            <li>Rédiger le script d'interview de validation (douleur réelle vs. confort, budget temps actuel perdu, budget € déjà dépensé en tentative de solution)</li>
+          </ul>
+          <div class="phase-kpi"><span class="kpi-pill">Sortie : <b>tracking opérationnel</b> avant le 1er message d'outreach</span></div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-dot" style="background:var(--p3)">1</div>
+        <div class="phase-card">
+          <div class="phase-head"><h3>Validation sans budget</h3><span class="phase-when">Mois 0–2</span></div>
+          <div class="phase-channel" style="background:var(--p3-soft);color:var(--p3)">Outreach direct + communautés + terrain</div>
+          <p class="phase-goal">Confirmer le problème et la solution avec de vrais artisans, avant de scaler quoi que ce soit. Aucun budget média — uniquement du temps fondateur.</p>
+          <ul class="phase-actions">
+            <li>Rejoindre 15–20 groupes Facebook/Instagram spécifiques par métier (savonniers, chocolatiers, bijoutiers-créateurs, confituriers artisan France) — apporter de la valeur avant de mentionner ARTEASY</li>
+            <li>Repérage Instagram via hashtags de niche (#savonnerieartisanale #confitureartisanale #bijouxfaitmain #chocolatierartisanal) — DM personnalisés à 30–50 artisans, contextualisés sur leur activité réelle</li>
+            <li>Présence terrain à 2–3 marchés de créateurs / salons locaux pour interviews en face à face — la confiance construite en physique est irremplaçable à ce stade</li>
+            <li>1er contact avec une CMA régionale : proposer une intervention à un atelier "numérique pour artisans" existant plutôt que de créer un événement de zéro</li>
+          </ul>
+          <div class="phase-kpi">
+            <span class="kpi-pill">15+ <b>interviews</b> qualitatives</span>
+            <span class="kpi-pill">10 <b>utilisateurs actifs</b> réels</span>
+            <span class="kpi-pill">Rétention J30 <b>&gt;50–60%</b></span>
+            <span class="kpi-pill">3–5 <b>témoignages</b> exploitables</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-dot" style="background:var(--accent)">2</div>
+        <div class="phase-card">
+          <div class="phase-head"><h3>Maîtriser le canal principal</h3><span class="phase-when">Mois 2–6</span></div>
+          <div class="phase-channel" style="background:var(--accent-soft);color:var(--accent-d)">Parrainage entre pairs (+ SEO et CMA en fond continu, capé)</div>
+          <p class="phase-goal">Le canal qui a le mieux converti en Phase 1 (communautés ou terrain) reçoit toute l'énergie, densifié par le parrainage dès qu'il y a des utilisateurs actifs. SEO et CMA tournent en tâche de fond, sans jamais devenir le plan.</p>
+          <ul class="phase-actions">
+            <li>Lancer le programme "Ambassadeur Fondateur" : les Clients Fondateurs reçoivent un code de parrainage donnant 1–2 mois offerts au filleul et au parrain, avec kit de partage prêt à l'emploi</li>
+            <li>Doubler la présence sur le canal Phase 1 gagnant (communautés ou terrain) — plus de posts de valeur, plus de marchés, sur la base de ce qui a réellement converti, pas de ce qui semblait prometteur sur le papier</li>
+            <li>Product-led growth : une facture ou un visuel généré par ARTEASY porte une signature discrète ("Facturé avec ARTEASY") — le produit devient lui-même un canal passif</li>
+            <li>SEO en parallèle : 2–4 articles/mois sur des requêtes ultra-spécifiques nées des interviews Phase 1 (ex. "logiciel gestion savonnerie artisanale", "facturer quand on vend sur les marchés") — faible volume, faible concurrence, forte intention</li>
+            <li>CMA/fédérations en pari de fond capé : 2 appels + 1 relance par contact, jamais plus — voir l'encart dédié plus haut</li>
+          </ul>
+          <div class="phase-kpi">
+            <span class="kpi-pill"><b>Taux de parrainage</b> instrumenté</span>
+            <span class="kpi-pill">15–20 <b>articles SEO</b> publiés</span>
+            <span class="kpi-pill"><b>CAC</b> mesuré par canal</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-dot" style="background:var(--p2)">3</div>
+        <div class="phase-card">
+          <div class="phase-head"><h3>Diversification maîtrisée</h3><span class="phase-when">Mois 6–12</span></div>
+          <div class="phase-channel" style="background:var(--p2-soft);color:var(--p2)">2e canal, sans lâcher le 1er</div>
+          <p class="phase-goal">Le 1er canal est rentable et documenté. On ajoute — jamais on ne remplace — un 2e canal complémentaire, choisi selon ce qui aura le mieux marché en Phase 2.</p>
+          <ul class="phase-actions">
+            <li>Si les partenariats CMA convertissent bien → structurer en programme officiel (label, référencement dans l'annuaire des outils recommandés)</li>
+            <li>Si le parrainage porte fort → construire un vrai dashboard d'affiliation avec paliers de récompense</li>
+            <li>Paid ciblé uniquement en retargeting sur les visiteurs déjà touchés par le contenu SEO/communautaire — jamais en prospection froide à ce stade</li>
+            <li>Explorer un salon B2B plus large (Maison&amp;Objet, salon spécialisé cosmétique bio) en tant que partenaire d'un exposant plutôt qu'exposant seul — coût maîtrisé, crédibilité empruntée</li>
+          </ul>
+          <div class="phase-kpi">
+            <span class="kpi-pill">Canal 1 : <b>rentable et documenté</b></span>
+            <span class="kpi-pill">Canal 2 : <b>1er cycle testé</b></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-dot" style="background:var(--warn)">4</div>
+        <div class="phase-card">
+          <div class="phase-head"><h3>Scale</h3><span class="phase-when">Mois 12+</span></div>
+          <div class="phase-channel" style="background:var(--warn-soft);color:var(--warn)">SEO en pleine maturité + expansion francophone</div>
+          <p class="phase-goal">Le SEO planté en Phase 2 doit désormais porter ses fruits — c'est le sens de l'investir tôt. Évaluation d'un canal payant structuré seulement si le ratio CAC/LTV le permet.</p>
+          <ul class="phase-actions">
+            <li>Objectif : le trafic organique (SEO) représente 30–40%+ des nouvelles inscriptions</li>
+            <li>Introduire un canal payant structuré uniquement si CAC/LTV démontré sur les canaux 1 et 2 justifie l'investissement</li>
+            <li>Extension Belgique/Suisse francophone via les mêmes types de réseaux de confiance (fédérations locales), pas de nouveau playbook à réinventer</li>
+          </ul>
+          <div class="phase-kpi">
+            <span class="kpi-pill"><b>30–40%</b> inscriptions via SEO</span>
+            <span class="kpi-pill">Moteur de croissance <b>répétable</b></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">03</span><h2>Les 6 patterns appliqués concrètement</h2></div>
+    <p class="section-sub">Chaque principe traduit en décision opérationnelle dans cette roadmap — pas juste cité, appliqué.</p>
+    <div class="pattern-grid">
+      <div class="pattern-row">
+        <div class="pname"><span>Pattern 1</span>La distribution est le seul moat durable</div>
+        <div class="papply">Le parrainage entre pairs et la relation de confiance construite marché par marché sont <b>lents à répliquer par un concurrent</b> — une communauté d'artisans qui se recommandent ARTEASY entre eux vaut plus qu'une fonctionnalité copiable en 2 semaines.</div>
+      </div>
+      <div class="pattern-row">
+        <div class="pname"><span>Pattern 2</span>Validez sans (trop de) budget</div>
+        <div class="papply">Toute la Phase 1 (interviews, communautés, terrain) coûte du <b>temps fondateur, zéro média payant</b>. Le paid est explicitement mis en pause jusqu'à Phase 3.</div>
+      </div>
+      <div class="pattern-row">
+        <div class="pname"><span>Pattern 3</span>La confiance est la devise la plus rare</div>
+        <div class="papply">Canal #1 et #2 de la matrice sont <b>tous deux des canaux de confiance</b> (institution, pair) plutôt que de reach — cohérent avec un ICP qui achète sur recommandation, pas sur impression publicitaire.</div>
+      </div>
+      <div class="pattern-row">
+        <div class="pname"><span>Pattern 4</span>Le produit comme canal d'acquisition</div>
+        <div class="papply">La signature "Facturé avec ARTEASY" sur chaque facture générée (Phase 2) transforme <b>chaque client actif en point de contact passif</b> pour ses propres clients et pairs.</div>
+      </div>
+      <div class="pattern-row">
+        <div class="pname"><span>Pattern 5</span>Un canal à la fois</div>
+        <div class="papply">La matrice de priorisation tranche explicitement — <b>un seul canal "maîtriser" en Phase 2</b>, tous les autres en pause ou en fond continu. Pas de dispersion.</div>
+      </div>
+      <div class="pattern-row">
+        <div class="pname"><span>Pattern 6</span>Le SEO est un investissement long</div>
+        <div class="papply">Démarré <b>dès la Phase 2, pas en Phase 4</b> — précisément parce que c'est lent, il ne faut pas attendre que le canal principal soit mûr pour semer.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="verdict-panel">
+      <h2>Ce qui doit être décidé cette semaine</h2>
+      <p>Trois décisions concrètes, pas des pistes à explorer plus tard :</p>
+      <ol>
+        <li><b>Mettre en place le tracking UTM</b> avant le prochain message envoyé à un artisan — sans ça, tout signal des phases suivantes sera invérifiable.</li>
+        <li><b>Choisir 3 CMA ou fédérations métier précises</b> à contacter cette semaine (pas "explorer les partenariats" en général — trois noms, trois emails, cette semaine).</li>
+        <li><b>Fixer le seuil de sortie de Phase 1</b> maintenant, par écrit : combien d'interviews, quel taux de rétention J30, avant d'autoriser le passage en Phase 2. Sans seuil écrit à l'avance, la tentation sera de scaler un canal qui n'a pas encore prouvé qu'il tient.</li>
+      </ol>
+      <p>Le produit est prêt. La question n'est plus "est-ce que ça marche techniquement" — elle est "est-ce que la confiance d'un artisan sceptique peut être gagnée assez vite pour que la Phase 1 se termine avant l'épuisement du budget temps fondateur". C'est la seule métrique qui compte dans les huit prochaines semaines.</p>
+    </div>
+  </section>
+
+</div>

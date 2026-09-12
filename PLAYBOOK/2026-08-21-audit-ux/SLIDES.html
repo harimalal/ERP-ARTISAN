@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Onboarding IA — ARTEASY — Slides</title>
+<style>
+  :root { --bg: #0d0d0d; --bg2: #171717; --fg: #f5f5f5; --fg-muted: #9a9a9a; --accent: #ff6a00; --green: #3ddc84; --red: #ff5c5c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--fg); overflow: hidden; }
+  .slide { display: none; height: 100vh; padding: 7vh 9vw; flex-direction: column; justify-content: center; }
+  .slide.active { display: flex; }
+  .kicker { color: var(--accent); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 1rem; }
+  .slide h1 { font-size: 2.6rem; line-height: 1.15; margin: 0 0 1.2rem 0; }
+  .slide h1 .accent { color: var(--accent); }
+  .slide p.lead { font-size: 1.25rem; color: var(--fg-muted); max-width: 46rem; line-height: 1.5; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; margin-top: 1.5rem; max-width: 60rem; }
+  .card { background: var(--bg2); border-radius: 10px; padding: 1.4rem 1.6rem; }
+  .card h3 { margin: 0 0 0.5rem 0; font-size: 1.05rem; }
+  .card p { margin: 0; color: var(--fg-muted); font-size: 0.98rem; line-height: 1.45; }
+  .before h3 { color: var(--red); }
+  .after h3 { color: var(--green); }
+  ol.steps, ul.list { max-width: 50rem; font-size: 1.08rem; line-height: 1.7; color: var(--fg); padding-left: 1.4rem; }
+  ol.steps li b, ul.list li b { color: var(--accent); }
+  .stat-row { display: flex; gap: 2.2rem; margin-top: 1.8rem; flex-wrap: wrap; }
+  .stat { min-width: 9rem; }
+  .stat .num { font-size: 2.6rem; font-weight: 800; color: var(--accent); line-height: 1; }
+  .stat .label { color: var(--fg-muted); font-size: 0.92rem; margin-top: 0.35rem; }
+  .tag { display: inline-block; background: var(--bg2); border: 1px solid #2a2a2a; border-radius: 999px; padding: 0.3rem 0.8rem; font-size: 0.85rem; color: var(--fg-muted); margin: 0.2rem 0.4rem 0.2rem 0; }
+  .quote { font-size: 1.4rem; font-style: italic; color: var(--fg); border-left: 3px solid var(--accent); padding-left: 1.2rem; max-width: 42rem; line-height: 1.5; }
+  .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width .25s; }
+  .nav-hint { position: fixed; bottom: 1.2rem; right: 1.4rem; font-size: 0.78rem; opacity: 0.45; }
+  .idx { position: fixed; bottom: 1.2rem; left: 1.4rem; font-size: 0.78rem; opacity: 0.45; }
+</style>
+</head>
+<body>
+
+  <div class="progress" id="progress" style="width:0%"></div>
+
+  <section class="slide active" data-index="0">
+    <div class="kicker">ARTEASY — Session dev 21 août 2026</div>
+    <h1>Import de données : <span class="accent">de 2h de saisie</span> à un simple glisser-déposer</h1>
+    <p class="lead">Comment l'onboarding Admin d'ARTEASY est passé d'un import Excel à colonnes fixes à un import universel piloté par IA — sans changer l'architecture, en changeant uniquement la façon d'y faire entrer les données.</p>
+  </section>
+
+  <section class="slide" data-index="1">
+    <div class="kicker">Le problème</div>
+    <h1>On demandait à l'artisan de <span class="accent">devenir opérateur de saisie</span></h1>
+    <div class="grid2">
+      <div class="card before">
+        <h3>Avant</h3>
+        <p>6 fichiers Excel différents, un par type de donnée (clients, fournisseurs, articles, produits, recettes, commandes). Colonnes figées, zéro tolérance de format.</p>
+      </div>
+      <div class="card before">
+        <h3>Conséquence mesurée</h3>
+        <p>Plus de 2 heures de saisie pour un onboarding complet — testé et chronométré par l'utilisateur lui-même avant ce chantier.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" data-index="2">
+    <div class="kicker">La demande initiale</div>
+    <h1>Un seul geste : <span class="accent">déposer ce qu'on a déjà</span></h1>
+    <p class="lead">PDF, photo, Excel, peu importe le format. L'IA scanne, catégorise et importe automatiquement — l'utilisateur ne présélectionne jamais le type de document à l'avance.</p>
+    <div class="stat-row">
+      <div class="stat"><div class="num">1</div><div class="label">seul mode d'import</div></div>
+      <div class="stat"><div class="num">4</div><div class="label">types d'entités détectés : client, fournisseur, article, produit</div></div>
+      <div class="stat"><div class="num">~10%</div><div class="label">de clics humains attendus</div></div>
+    </div>
+  </section>
+
+  <section class="slide" data-index="3">
+    <div class="kicker">Architecture</div>
+    <h1>Le pipeline en <span class="accent">4 étapes</span></h1>
+    <ol class="steps">
+      <li><b>Tri déterministe</b> — fichier déjà conforme à un ancien modèle → import direct, zéro IA, zéro coût.</li>
+      <li><b>Scan IA</b> — un appel par fichier, catégorisation + extraction en une seule fois, même sur un classeur multi-onglets.</li>
+      <li><b>Dédoublonnage déterministe</b> — jamais laissé à l'IA, comparé à l'existant et au reste du lot déposé.</li>
+      <li><b>Validation humaine ciblée</b> — seuls les cas ambigus ou à confiance basse demandent un clic.</li>
+    </ol>
+  </section>
+
+  <section class="slide" data-index="4">
+    <div class="kicker">Décision d'architecture</div>
+    <h1>Résilience sans <span class="accent">sur-ingénierie</span></h1>
+    <p class="lead">Le navigateur pilote le scan, mais chaque résultat de fichier est écrit immédiatement en base — un incident réseau pendant un lot de 30 fichiers ne fait perdre que le fichier en cours, jamais le travail déjà fait.</p>
+    <p class="lead" style="margin-top:1rem;">Écarté volontairement : un vrai système de job serveur asynchrone — complexité disproportionnée pour un usage ponctuel (l'onboarding arrive une fois par client, pas au quotidien).</p>
+  </section>
+
+  <section class="slide" data-index="5">
+    <div class="kicker">Méthode de développement</div>
+    <h1>17 tâches, <span class="accent">un implémenteur + un reviewer</span> par tâche</h1>
+    <p class="lead">Chaque étape du pipeline a été développée par un agent frais, puis vérifiée indépendamment par un second agent avant d'être considérée terminée — sur une branche isolée, jamais directement sur le code de production.</p>
+    <div class="stat-row">
+      <div class="stat"><div class="num">17</div><div class="label">tâches complétées</div></div>
+      <div class="stat"><div class="num">28</div><div class="label">commits sur la branche</div></div>
+      <div class="stat"><div class="num">15</div><div class="label">fichiers touchés</div></div>
+    </div>
+  </section>
+
+  <section class="slide" data-index="6">
+    <div class="kicker">Ce que la revue de code a trouvé</div>
+    <h1>Une régression <span class="accent">détectée avant qu'elle ne parte en prod</span></h1>
+    <p class="quote">"Le premier scan gratuit d'un nouveau client ne s'appliquait en réalité jamais — marqué comme utilisé avant même le scan, pas après."</p>
+    <p class="lead" style="margin-top:1.3rem;">Trouvé par la revue finale de branche, sur le modèle le plus capable, avant tout déploiement — corrigé le jour même, avec re-vérification indépendante du correctif.</p>
+  </section>
+
+  <section class="slide" data-index="7">
+    <div class="kicker">Ce que le code seul n'aurait jamais vu</div>
+    <h1>Le premier test réel a trouvé <span class="accent">ce qu'aucune revue n'avait vu</span></h1>
+    <p class="quote">"Recliquer sur 'Importer' après un échec partiel recréait les données déjà importées avec succès."</p>
+    <p class="lead" style="margin-top:1.3rem;">20 fichiers de test générés pour un chocolatier fictif — cas ambigus, doublons volontaires, cellules Excel piégées. Le bug de duplication n'existait sur aucun cas simulé en code : il dépendait d'un vrai comportement utilisateur, imprévisible sur le papier.</p>
+  </section>
+
+  <section class="slide" data-index="8">
+    <div class="kicker">Sécurité des données</div>
+    <h1>Supprimer un doublon, <span class="accent">jamais en un clic aveugle</span></h1>
+    <p class="lead">L'outil de nettoyage des doublons ajouté après le premier test propose toujours un écran de revue, garde le plus ancien par défaut, et s'appuie sur les vraies contraintes de la base — si un doublon est déjà lié à une commande, la suppression échoue proprement plutôt que d'emporter des données liées.</p>
+  </section>
+
+  <section class="slide" data-index="9">
+    <div class="kicker">Avant / après</div>
+    <h1>Ce qui change <span class="accent">pour l'artisan</span></h1>
+    <div class="grid2">
+      <div class="card before">
+        <h3>Avant</h3>
+        <p>6 modèles Excel imposés. Format exact obligatoire. 2h+ de saisie manuelle.</p>
+      </div>
+      <div class="card after">
+        <h3>Après</h3>
+        <p>Glisser-déposer n'importe quel fichier existant, même en vrac. L'IA catégorise. Un clic seulement quand c'est vraiment ambigu.</p>
+      </div>
+    </div>
+    <p class="lead" style="margin-top:1.4rem;">L'architecture de l'administration n'a pas changé — mêmes fiches client, fournisseur, article, produit. Seule la porte d'entrée a changé.</p>
+  </section>
+
+  <section class="slide" data-index="10">
+    <div class="kicker">État actuel</div>
+    <h1>Code complet, <span class="accent">testé en réel</span>, pas encore fusionné</h1>
+    <div class="stat-row">
+      <div class="stat"><div class="num">17/17</div><div class="label">tâches validées</div></div>
+      <div class="stat"><div class="num">10</div><div class="label">bugs trouvés et corrigés</div></div>
+      <div class="stat"><div class="num">1</div><div class="label">PR ouverte, non mergée</div></div>
+    </div>
+    <p class="lead" style="margin-top:1.2rem;">Point ouvert à suivre dans le temps : le plafond de 30 fichiers par lot du premier scan gratuit — suffisant, ou à ajuster une fois des clients réels à gros volume connectés.</p>
+  </section>
+
+  <section class="slide" data-index="11">
+    <div class="kicker">Le principe à retenir</div>
+    <h1>Un logiciel s'adapte <span class="accent">à l'utilisateur</span>, pas l'inverse</h1>
+    <p class="lead">Quand un import de données impose son propre format à l'utilisateur, c'est le logiciel qui doit changer. L'IA rend ce genre de refonte possible aujourd'hui d'une façon qui n'existait pas il y a deux ans.</p>
+    <div style="margin-top:1.6rem;">
+      <span class="tag">Un seul mode d'import</span>
+      <span class="tag">Dédoublonnage déterministe</span>
+      <span class="tag">Validation humaine ciblée</span>
+      <span class="tag">Test réel avant merge</span>
+    </div>
+  </section>
+
+  <div class="nav-hint">← → ou espace pour naviguer</div>
+  <div class="idx"><span id="idxNow">1</span> / <span id="idxTotal"></span></div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  document.getElementById('idxTotal').textContent = total;
+  let current = 0;
+  function show(i) {
+    if (i < 0 || i >= total) return;
+    slides[current].classList.remove('active');
+    current = i;
+    slides[current].classList.add('active');
+    document.getElementById('idxNow').textContent = current + 1;
+    document.getElementById('progress').style.width = (((current + 1) / total) * 100) + '%';
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') show(current + 1);
+    if (e.key === 'ArrowLeft') show(current - 1);
+  });
+  show(0);
+</script>
+</body>
+</html>

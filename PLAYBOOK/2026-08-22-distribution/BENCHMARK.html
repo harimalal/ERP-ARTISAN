@@ -1,0 +1,662 @@
+<title>Benchmark ARTEASY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FBF8F3;
+  --bg-raised:#FFFFFF;
+  --fg:#1A1410;
+  --fg-2:#6B5D4F;
+  --fg-3:#9A8C7A;
+  --border:#E4DBC9;
+  --border-soft:#EFE8D9;
+  --accent:#C0543A;
+  --accent-d:#9C4230;
+  --accent-soft:#F3E4DD;
+  --accent-soft-2:#FBEFE9;
+  --good:#16A34A;
+  --good-soft:#E7F5EC;
+  --warn:#B5720A;
+  --warn-soft:#FBF0DC;
+  --bad:#B03A2E;
+  --bad-soft:#FBEAE7;
+  --row-hi:#FCF6EF;
+  --shadow: 0 1px 2px rgba(26,20,16,.04), 0 8px 24px rgba(26,20,16,.06);
+  --font-display:'Fraunces',ui-serif,Georgia,serif;
+  --font-body:'Manrope',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#171310;
+    --bg-raised:#1F1A15;
+    --fg:#F3ECE2;
+    --fg-2:#C4B7A5;
+    --fg-3:#8D8071;
+    --border:#3A3128;
+    --border-soft:#2C2620;
+    --accent:#E07A5A;
+    --accent-d:#F0987A;
+    --accent-soft:#3B241C;
+    --accent-soft-2:#2E1E17;
+    --good:#4ADE80;
+    --good-soft:#173226;
+    --warn:#F2B84B;
+    --warn-soft:#332510;
+    --bad:#F1897C;
+    --bad-soft:#37201C;
+    --row-hi:#24201A;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#171310;
+  --bg-raised:#1F1A15;
+  --fg:#F3ECE2;
+  --fg-2:#C4B7A5;
+  --fg-3:#8D8071;
+  --border:#3A3128;
+  --border-soft:#2C2620;
+  --accent:#E07A5A;
+  --accent-d:#F0987A;
+  --accent-soft:#3B241C;
+  --accent-soft-2:#2E1E17;
+  --good:#4ADE80;
+  --good-soft:#173226;
+  --warn:#F2B84B;
+  --warn-soft:#332510;
+  --bad:#F1897C;
+  --bad-soft:#37201C;
+  --row-hi:#24201A;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.4);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--bg);
+  color:var(--fg);
+  font-family:var(--font-body);
+  line-height:1.6;
+  font-size:16px;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--accent-soft);color:var(--accent-d);}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px 120px;}
+
+/* ===== HEADER ===== */
+header{
+  padding:64px 32px 48px;
+  border-bottom:1px solid var(--border);
+  background:
+    radial-gradient(ellipse 900px 300px at 15% 0%, var(--accent-soft-2) 0%, transparent 65%);
+}
+.header-inner{max-width:1180px;margin:0 auto;}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--font-mono);
+  font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--accent-d);
+  background:var(--accent-soft);
+  padding:6px 14px;border-radius:20px;
+  margin-bottom:22px;
+}
+.eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);}
+h1{
+  font-family:var(--font-display);
+  font-weight:600;
+  font-size:clamp(2.1rem,4vw,3.1rem);
+  line-height:1.08;
+  letter-spacing:-.01em;
+  text-wrap:balance;
+  max-width:16ch;
+  margin-bottom:20px;
+}
+h1 em{font-style:italic;color:var(--accent);}
+.dek{
+  font-size:1.15rem;
+  color:var(--fg-2);
+  max-width:62ch;
+  line-height:1.65;
+}
+.meta-row{
+  display:flex;gap:28px;flex-wrap:wrap;
+  margin-top:32px;
+  font-family:var(--font-mono);
+  font-size:12.5px;
+  color:var(--fg-3);
+}
+.meta-row b{color:var(--fg-2);font-weight:600;}
+
+/* ===== SECTION SCAFFOLD ===== */
+section{padding:56px 0;border-bottom:1px solid var(--border-soft);}
+section:last-of-type{border-bottom:none;}
+.section-head{
+  display:flex;align-items:baseline;gap:16px;
+  margin-bottom:28px;
+}
+.section-num{
+  font-family:var(--font-mono);
+  font-size:13px;font-weight:600;
+  color:var(--fg-3);
+  padding-top:6px;
+}
+.section-head h2{
+  font-family:var(--font-display);
+  font-weight:600;
+  font-size:1.7rem;
+  letter-spacing:-.01em;
+}
+.section-sub{
+  color:var(--fg-2);
+  max-width:70ch;
+  margin-bottom:28px;
+  font-size:1.02rem;
+}
+
+/* ===== EXEC SUMMARY ===== */
+.summary-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:20px;
+}
+.summary-card{
+  background:var(--bg-raised);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:24px;
+  box-shadow:var(--shadow);
+}
+.summary-card .tag{
+  font-family:var(--font-mono);
+  font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--accent-d);
+  margin-bottom:10px;
+  display:block;
+}
+.summary-card p{font-size:.95rem;color:var(--fg-2);}
+.summary-card p strong{color:var(--fg);font-weight:700;}
+
+/* ===== POSITIONING MAP ===== */
+.map-wrap{
+  background:var(--bg-raised);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:32px;
+  box-shadow:var(--shadow);
+  display:grid;
+  grid-template-columns:1fr 320px;
+  gap:36px;
+  align-items:center;
+}
+.map-svg{width:100%;height:auto;}
+.map-legend{display:flex;flex-direction:column;gap:14px;}
+.legend-item{display:flex;align-items:center;gap:10px;font-size:.9rem;}
+.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.legend-item b{font-weight:700;}
+.legend-item span{color:var(--fg-2);font-size:.82rem;}
+
+/* ===== COMPARISON TABLE ===== */
+.table-scroll{
+  overflow-x:auto;
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:var(--shadow);
+  background:var(--bg-raised);
+}
+table{
+  border-collapse:collapse;
+  width:100%;
+  min-width:1080px;
+  font-size:.88rem;
+}
+thead th{
+  text-align:left;
+  font-family:var(--font-mono);
+  font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--fg-3);
+  padding:16px 18px;
+  border-bottom:2px solid var(--border);
+  white-space:nowrap;
+  background:var(--bg-raised);
+  position:sticky;top:0;
+}
+thead th.col-arteasy{color:var(--accent-d);}
+tbody td{
+  padding:16px 18px;
+  border-bottom:1px solid var(--border-soft);
+  vertical-align:top;
+  color:var(--fg-2);
+  line-height:1.5;
+}
+tbody th{
+  text-align:left;
+  padding:16px 18px;
+  border-bottom:1px solid var(--border-soft);
+  font-weight:700;
+  color:var(--fg);
+  white-space:nowrap;
+  font-size:.85rem;
+}
+tbody tr:last-child td, tbody tr:last-child th{border-bottom:none;}
+td.col-arteasy, th.col-arteasy-row{
+  background:var(--row-hi);
+}
+td.col-arteasy{color:var(--fg);font-weight:500;}
+td strong{color:var(--fg);font-weight:700;}
+.col-arteasy{border-left:2px solid var(--accent-soft);border-right:2px solid var(--accent-soft);}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+
+/* ===== DEEP DIVE ===== */
+.dive{
+  display:grid;grid-template-columns:1fr;gap:18px;
+}
+.dive-block{
+  background:var(--bg-raised);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:26px 28px;
+  box-shadow:var(--shadow);
+}
+.dive-block h3{
+  font-family:var(--font-display);
+  font-weight:600;
+  font-size:1.15rem;
+  margin-bottom:12px;
+  display:flex;align-items:center;gap:10px;
+}
+.dive-block h3 .n{
+  font-family:var(--font-mono);
+  font-size:12px;font-weight:700;
+  color:var(--accent-d);
+  background:var(--accent-soft);
+  width:26px;height:26px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.dive-block p{color:var(--fg-2);font-size:.96rem;margin-bottom:10px;}
+.dive-block p:last-child{margin-bottom:0;}
+.dive-block .verdict{
+  margin-top:14px;
+  padding:14px 16px;
+  background:var(--accent-soft-2);
+  border-left:3px solid var(--accent);
+  border-radius:0 8px 8px 0;
+  font-size:.92rem;
+  color:var(--fg);
+}
+.dive-block .verdict b{color:var(--accent-d);}
+
+/* ===== DIFFERENTIATION GRID ===== */
+.diff-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.diff-card{
+  border-radius:12px;padding:24px;
+  border:1px solid var(--border);
+}
+.diff-card.moat{background:var(--good-soft);border-color:rgba(22,163,74,.25);}
+.diff-card.risk{background:var(--warn-soft);border-color:rgba(181,114,10,.25);}
+.diff-card h4{
+  font-family:var(--font-mono);
+  font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;
+}
+.diff-card.moat h4{color:var(--good);}
+.diff-card.risk h4{color:var(--warn);}
+.diff-card ul{list-style:none;display:flex;flex-direction:column;gap:12px;}
+.diff-card li{
+  font-size:.92rem;color:var(--fg);
+  padding-left:18px;position:relative;
+  line-height:1.5;
+}
+.diff-card li::before{
+  content:'';position:absolute;left:0;top:.55em;
+  width:6px;height:6px;border-radius:50%;
+}
+.diff-card.moat li::before{background:var(--good);}
+.diff-card.risk li::before{background:var(--warn);}
+.diff-card li b{font-weight:700;}
+
+/* ===== VERDICT PANEL ===== */
+.verdict-panel{
+  background:linear-gradient(155deg, var(--accent-soft-2) 0%, var(--bg-raised) 60%);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:40px 44px;
+  box-shadow:var(--shadow);
+}
+.verdict-panel h2{
+  font-family:var(--font-display);
+  font-weight:600;
+  font-size:1.6rem;
+  margin-bottom:18px;
+  letter-spacing:-.01em;
+}
+.verdict-panel p{color:var(--fg-2);font-size:1rem;margin-bottom:14px;max-width:76ch;}
+.verdict-panel p:last-child{margin-bottom:0;}
+.verdict-panel strong{color:var(--fg);}
+.verdict-panel .pull{
+  font-family:var(--font-display);
+  font-style:italic;
+  font-size:1.25rem;
+  color:var(--accent-d);
+  margin:20px 0;
+  line-height:1.4;
+}
+
+/* ===== SOURCES ===== */
+.sources{
+  font-size:.82rem;color:var(--fg-3);
+  display:flex;flex-wrap:wrap;gap:6px 18px;
+}
+.sources a{color:var(--fg-2);text-decoration:none;border-bottom:1px dotted var(--border);}
+.sources a:hover{color:var(--accent-d);border-color:var(--accent);}
+
+/* focus */
+a:focus-visible, button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+@media (max-width:860px){
+  .wrap{padding:0 18px 80px;}
+  header{padding:44px 18px 36px;}
+  .summary-grid{grid-template-columns:1fr;}
+  .map-wrap{grid-template-columns:1fr;padding:22px;}
+  .diff-grid{grid-template-columns:1fr;}
+  .verdict-panel{padding:28px 24px;}
+}
+@media (prefers-reduced-motion:no-preference){
+  .summary-card, .dive-block{transition:transform .2s ease, box-shadow .2s ease;}
+}
+</style>
+
+<header>
+  <div class="header-inner">
+    <span class="eyebrow">Benchmark concurrentiel — août 2026</span>
+    <h1>ARTEASY face au marché des outils pour <em>artisans fabricants</em></h1>
+    <p class="dek">Analyse comparative sur 7 dimensions — proposition de valeur, valeur perçue, features, positionnement, pricing, product-market fit et différenciation — face à 5 concurrents réels et au statu quo (Excel / papier).</p>
+    <div class="meta-row">
+      <span><b>Cible ARTEASY réelle&nbsp;:</b> artisans fabricants (confitures, savons, cosmétiques, bijoux, chocolats…)</span>
+      <span><b>Prix ARTEASY actuel&nbsp;:</b> 397€ à vie, offre Fondateur (20 places, 17 restantes)</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="section-head"><span class="section-num">00</span><h2>L'essentiel</h2></div>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <span class="tag">Le vrai concurrent</span>
+        <p>Ce n'est <strong>ni Craftybase ni Axonaut</strong>. C'est l'<strong>Excel + le carnet papier</strong> — la propre landing page d'ARTEASY le dit noir sur blanc ("le soir, vous ressaisissez tout dans Excel"). Le budget marketing doit convertir du statu quo, pas voler des parts à un concurrent SaaS.</p>
+      </div>
+      <div class="summary-card">
+        <span class="tag">L'angle mort du marché</span>
+        <p>Aucun concurrent identifié ne combine <strong>lecture IA de commande</strong> (photo/PDF/email) + <strong>planification production automatique</strong> pour ce segment précis. Craftybase fait le stock, Katana fait la MRP — personne ne fait les deux avec de l'IA en frontal pour un artisan seul.</p>
+      </div>
+      <div class="summary-card">
+        <span class="tag">Le risque prix</span>
+        <p>397€ à vie est un <strong>signal de confiance fort en phase bêta</strong>, mais intenable en soutien produit long terme face à des concurrents à 35-50€/mois. La bascule vers l'abonnement post-bêta est le vrai test de rétention.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">01</span><h2>Carte de positionnement</h2></div>
+    <p class="section-sub">Deux axes déterminent la vraie concurrence sur ce marché&nbsp;: la spécialisation pour l'artisanat de fabrication, et le niveau d'automatisation par IA. ARTEASY est aujourd'hui seul dans le quadrant supérieur droit.</p>
+    <div class="map-wrap">
+      <svg class="map-svg" viewBox="0 0 560 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Carte de positionnement: axe horizontal spécialisation artisan fabricant, axe vertical automatisation IA">
+        <!-- grid -->
+        <line x1="60" y1="20" x2="60" y2="380" stroke="var(--border)" stroke-width="1"/>
+        <line x1="60" y1="380" x2="540" y2="380" stroke="var(--border)" stroke-width="1"/>
+        <line x1="300" y1="20" x2="300" y2="380" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="4 5"/>
+        <line x1="60" y1="200" x2="540" y2="200" stroke="var(--border-soft)" stroke-width="1" stroke-dasharray="4 5"/>
+        <!-- axis labels -->
+        <text x="300" y="405" text-anchor="middle" fill="var(--fg-3)" font-family="JetBrains Mono" font-size="10.5" letter-spacing="0.3">SPÉCIALISATION ARTISAN FABRICANT →</text>
+        <text x="30" y="200" text-anchor="middle" fill="var(--fg-3)" font-family="JetBrains Mono" font-size="10.5" letter-spacing="0.3" transform="rotate(-90 30 200)">AUTOMATISATION IA →</text>
+
+        <!-- Statu quo -->
+        <circle cx="88" cy="360" r="9" fill="var(--fg-3)" opacity="0.5"/>
+        <text x="102" y="364" fill="var(--fg-2)" font-family="Manrope" font-size="12" font-weight="600">Excel / papier</text>
+
+        <!-- Dolibarr -->
+        <circle cx="150" cy="300" r="9" fill="#7C8B99"/>
+        <text x="164" y="304" fill="var(--fg-2)" font-family="Manrope" font-size="12" font-weight="600">Dolibarr</text>
+
+        <!-- Axonaut -->
+        <circle cx="180" cy="255" r="9" fill="#4A7FB5"/>
+        <text x="194" y="259" fill="var(--fg-2)" font-family="Manrope" font-size="12" font-weight="600">Axonaut</text>
+
+        <!-- Sellsy -->
+        <circle cx="165" cy="220" r="9" fill="#6B5FA8"/>
+        <text x="179" y="224" fill="var(--fg-2)" font-family="Manrope" font-size="12" font-weight="600">Sellsy</text>
+
+        <!-- Katana -->
+        <circle cx="330" cy="150" r="9" fill="#B5720A"/>
+        <text x="344" y="154" fill="var(--fg-2)" font-family="Manrope" font-size="12" font-weight="600">Katana MRP</text>
+
+        <!-- Craftybase -->
+        <circle cx="400" cy="180" r="9" fill="#2E8B7C"/>
+        <text x="414" y="184" fill="var(--fg-2)" font-family="Manrope" font-size="12" font-weight="600">Craftybase</text>
+
+        <!-- ARTEASY -->
+        <circle cx="460" cy="65" r="13" fill="var(--accent)" stroke="var(--bg-raised)" stroke-width="3"/>
+        <text x="460" y="45" text-anchor="middle" fill="var(--accent-d)" font-family="Fraunces" font-weight="700" font-size="15">ARTEASY</text>
+      </svg>
+      <div class="map-legend">
+        <div class="legend-item"><span class="legend-dot" style="background:var(--accent)"></span><div><b>ARTEASY</b><br><span>Seul acteur alliant spécialisation métier fine et IA de bout en bout.</span></div></div>
+        <div class="legend-item"><span class="legend-dot" style="background:#2E8B7C"></span><div><b>Craftybase</b><br><span>Le concurrent le plus proche sur la cible, sans l'automatisation IA.</span></div></div>
+        <div class="legend-item"><span class="legend-dot" style="background:#B5720A"></span><div><b>Katana MRP</b><br><span>Automatisation forte mais pensé pour du volume, pas l'artisan seul.</span></div></div>
+        <div class="legend-item"><span class="legend-dot" style="background:#4A7FB5"></span><div><b>Axonaut / Sellsy</b><br><span>Généralistes TPE/PME, aucune logique de production.</span></div></div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--fg-3)"></span><div><b>Statu quo</b><br><span>Le concurrent réel&nbsp;: 90%+ du marché aujourd'hui.</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">02</span><h2>Matrice comparative</h2></div>
+    <p class="section-sub">Faites défiler horizontalement pour voir tous les acteurs.</p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th class="col-arteasy">ARTEASY</th>
+            <th>Craftybase</th>
+            <th>Katana MRP</th>
+            <th>Axonaut</th>
+            <th>Sellsy</th>
+            <th>Dolibarr</th>
+            <th>Excel / papier</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>Cible</th>
+            <td class="col-arteasy">Artisans fabricants (confitures, savons, cosmétiques, bijoux, jouets, chocolats…)</td>
+            <td>Makers &amp; petits fabricants artisanaux (marché anglophone)</td>
+            <td>PME manufacturières multi-canal, volume élevé</td>
+            <td>TPE tous secteurs (artisans, agences, services)</td>
+            <td>PME 5-50 salariés, pipeline commercial</td>
+            <td>TPE/PME/indépendants tous secteurs</td>
+            <td>Tout le monde, par défaut</td>
+          </tr>
+          <tr>
+            <th>Prix d'entrée</th>
+            <td class="col-arteasy mono"><strong>397€ à vie</strong> (offre Fondateur, 20 places)</td>
+            <td class="mono">~49$/mois</td>
+            <td class="mono">299$/mois base → 747-1095$/mois réel avec modules</td>
+            <td class="mono">34,99€ HT/mois (dès 38,80€ engagement 3 ans)</td>
+            <td class="mono">49€/utilisateur/mois (min. 2 users)</td>
+            <td class="mono">0€ (open source)</td>
+            <td class="mono">0€ apparent</td>
+          </tr>
+          <tr>
+            <th>Modèle de pricing</th>
+            <td class="col-arteasy">Forfait à vie en bêta → abonnement annuel visé (947€/an référence)</td>
+            <td>Abonnement mensuel par paliers de volume</td>
+            <td>Abonnement + add-ons à la carte (traçabilité, prod, entrepôt)</td>
+            <td>Abonnement mensuel, dégressif à l'engagement</td>
+            <td>Abonnement par utilisateur et par palier fonctionnel</td>
+            <td>Gratuit / SaaS hébergé payant en option</td>
+            <td>Coût caché&nbsp;: temps + erreurs</td>
+          </tr>
+          <tr>
+            <th>Automatisation IA</th>
+            <td class="col-arteasy"><strong>OCR commande</strong> (photo/PDF/email), <strong>planning production auto</strong>, BC fournisseur auto, relances factures IA</td>
+            <td>Aucune — saisie manuelle + calcul de coût de revient automatique</td>
+            <td>Automatisation de workflow, pas de lecture de commande par IA</td>
+            <td>Automatisations basiques (relances, facturation récurrente)</td>
+            <td>Marketing automation, aucune logique de production</td>
+            <td>Aucune IA native</td>
+            <td>Aucune</td>
+          </tr>
+          <tr>
+            <th>Cœur fonctionnel</th>
+            <td class="col-arteasy">Commande → stock → production → facture, <strong>unifié en un seul flux</strong></td>
+            <td>Stock, traçabilité de lots, coût de revient (COGS)</td>
+            <td>MRP complet&nbsp;: multi-site, warehousing, ordres de fabrication</td>
+            <td>CRM + facturation + trésorerie généraliste</td>
+            <td>CRM + vente + facturation + marketing généraliste</td>
+            <td>ERP modulaire généraliste (config. à la carte)</td>
+            <td>Ce que vous voulez bien y mettre</td>
+          </tr>
+          <tr>
+            <th>Onboarding</th>
+            <td class="col-arteasy"><strong>30 min en visio</strong>, import des données fait par l'équipe ARTEASY</td>
+            <td>Autonome, documentation en ligne</td>
+            <td>Autonome, accompagnement payant en option</td>
+            <td>Autonome, support réactif (4,7/5 Trustpilot)</td>
+            <td>Autonome + accompagnement selon le palier</td>
+            <td>Autonome, intégrateur souvent nécessaire</td>
+            <td>Immédiat, zéro apprentissage</td>
+          </tr>
+          <tr>
+            <th>Complexité d'usage</th>
+            <td class="col-arteasy">Faible — pensé pour un non-technicien</td>
+            <td>Faible à moyenne</td>
+            <td>Moyenne à élevée (paramétrage MRP)</td>
+            <td>Faible</td>
+            <td>Moyenne (riche fonctionnellement)</td>
+            <td>Élevée (ERP généraliste à configurer)</td>
+            <td>Faible techniquement, élevée en charge mentale</td>
+          </tr>
+          <tr>
+            <th>Hébergement / conformité</th>
+            <td class="col-arteasy">Supabase UE, RGPD, chiffrement au repos et en transit</td>
+            <td>US</td>
+            <td>US/UE selon plan</td>
+            <td>France, plateforme agréée facturation électronique 2026</td>
+            <td>France</td>
+            <td>Self-hosted ou SaaS tiers</td>
+            <td>Sur le poste ou le comptoir de l'artisan</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">03</span><h2>Analyse par dimension</h2></div>
+    <div class="dive">
+
+      <div class="dive-block">
+        <h3><span class="n">1</span>Proposition de valeur</h3>
+        <p>ARTEASY vend une promesse précise et incarnée&nbsp;: <em>«&nbsp;une commande arrive, l'IA lit la quantité, déduit le stock, alerte si un produit manque&nbsp;»</em>, jusqu'à la facture qui part «&nbsp;sans que vous n'ayez rien tapé&nbsp;». C'est une promesse de <strong>délégation cognitive</strong>, pas juste de gain de temps.</p>
+        <p>Craftybase promet la <strong>maîtrise du coût de revient</strong> (COGS) — utile mais analytique, pas libérateur. Katana promet la <strong>fiabilité industrielle</strong> à volume. Axonaut et Sellsy promettent la <strong>centralisation administrative</strong> — un problème généraliste, pas spécifique au geste de fabrication.</p>
+        <div class="verdict">Aucun concurrent ne formule sa proposition de valeur autour de <b>«&nbsp;vous n'avez rien tapé&nbsp;»</b>. C'est un territoire de discours qu'ARTEASY peut posséder seul tant que la promesse tient techniquement en usage réel.</div>
+      </div>
+
+      <div class="dive-block">
+        <h3><span class="n">2</span>Valeur perçue</h3>
+        <p>La valeur perçue d'ARTEASY repose sur trois signaux forts&nbsp;: un <strong>onboarding humain</strong> (30 min en visio, import fait par l'équipe — l'artisan «&nbsp;ne touche à rien&nbsp;»), une <strong>rareté construite</strong> (17 places restantes sur 20), et un <strong>ancrage émotionnel</strong> («&nbsp;pendant que vous créez&nbsp;» oppose administratif et geste créatif).</p>
+        <p>Les concurrents généralistes (Axonaut, Sellsy) tirent leur valeur perçue de leur <strong>note publique</strong> (4,7/5 Trustpilot pour Axonaut, 8,7/10 pour Sellsy) et de leur ancienneté. Craftybase et Katana s'appuient sur des <strong>preuves fonctionnelles</strong> (traçabilité de lots, calculs automatiques) plutôt que sur une promesse émotionnelle.</p>
+        <div class="verdict">ARTEASY n'a <b>aucun avis public accumulé</b> à ce stade (produit en bêta) — sa valeur perçue actuelle tient uniquement à la mise en scène de l'offre. Le premier lot de témoignages clients réels sera le levier de crédibilité le plus rentable à activer.</div>
+      </div>
+
+      <div class="dive-block">
+        <h3><span class="n">3</span>Features</h3>
+        <p>ARTEASY couvre 8 modules&nbsp;: Dashboard, Stock, Achats, Import IA, Commandes, Production, Produits, Factures — un <strong>flux vertical complet</strong> propre à un métier de fabrication à la commande.</p>
+        <p>Craftybase est plus profond sur un point précis&nbsp;: la <strong>traçabilité de lots</strong> et le calcul de coût de revient détaillé — un vrai manque potentiel côté ARTEASY si des artisans (cosmétique, alimentaire) ont des obligations de traçabilité réglementaire. Katana dépasse largement en <strong>capacité multi-site/entrepôt</strong>, hors de portée d'un artisan solo mais pertinent si ARTEASY vise plus tard des ateliers à plusieurs employés. Dolibarr dépasse tout le monde en <strong>largeur fonctionnelle</strong> (RH, notes de frais, congés) au prix d'une configuration lourde.</p>
+        <div class="verdict">La largeur fonctionnelle n'est pas l'axe de bataille — la <b>profondeur sur le flux commande→facture</b> l'est. Seul angle mort réel à surveiller&nbsp;: la traçabilité de lots pour les artisans soumis à des obligations sanitaires (alimentaire, cosmétique).</div>
+      </div>
+
+      <div class="dive-block">
+        <h3><span class="n">4</span>Positionnement</h3>
+        <p>ARTEASY se positionne sur un <strong>segment de niche extrêmement précis</strong>&nbsp;: l'artisan qui fabrique à la main un produit physique et vend en direct ou via des canaux multiples (marché, e-shop, téléphone). Ni un positionnement «&nbsp;BTP&nbsp;» (plombier, électricien), ni un positionnement «&nbsp;tout TPE&nbsp;» comme Axonaut ou Sellsy.</p>
+        <p>Ce choix élimine la concurrence frontale avec les généralistes français (qui visent large) et avec les MRP lourds (qui visent le volume industriel). Il rapproche surtout ARTEASY de Craftybase — le seul acteur positionné sur exactement la même cible, mais sans présence ni discours en français.</p>
+        <div class="verdict">Craftybase n'a <b>aucune adaptation au marché francophone</b> (langue, RGPD mis en avant, facturation électronique française 2026). C'est l'ouverture de positionnement la plus nette&nbsp;: ARTEASY peut se revendiquer «&nbsp;le seul outil pensé et hébergé en France pour l'artisanat de fabrication&nbsp;».</div>
+      </div>
+
+      <div class="dive-block">
+        <h3><span class="n">5</span>Politique de pricing</h3>
+        <p>397€ à vie pour les 20 premiers, référencé contre un futur tarif de 947€/an, est une mécanique classique de <strong>lancement à rareté</strong> — elle sert à accélérer la validation produit et à créer des ambassadeurs à bas coût d'acquisition.</p>
+        <p>Comparé au marché&nbsp;: Axonaut démarre à 35€/mois (~420€/an), Sellsy à 49€/utilisateur/mois (~590€/an minimum à 2 utilisateurs), Craftybase à ~45€/mois (~540€/an). Le tarif de référence ARTEASY (947€/an) se positionne donc <strong>au-dessus</strong> de tous les généralistes français — cohérent avec une promesse IA plus riche, mais à justifier clairement une fois la bêta terminée.</p>
+        <div class="verdict">Le risque n'est pas le prix d'entrée (397€ est imbattable) — c'est <b>la marche entre la bêta gratuite/à vie et le tarif normal</b>. Sans palier intermédiaire annoncé à l'avance, la transition post-bêta est le moment de friction commerciale le plus probable.</div>
+      </div>
+
+      <div class="dive-block">
+        <h3><span class="n">6</span>Product-market fit</h3>
+        <p>Les signaux de PMF affichés sur la landing (6h gagnées/semaine en moyenne, 0 rupture de stock, 0 facture oubliée) suggèrent une <strong>validation qualitative en cours</strong>, mais restent auto-déclarés et non audités publiquement — normal en bêta, à objectiver dès que possible (nombre d'utilisateurs actifs, taux de rétention post-onboarding).</p>
+        <p>Le fait que la FAQ elle-même anticipe les objections attendues (spécialité d'artisan, sécurité des données, réversibilité, mode hors-ligne absent) montre une écoute déjà mature du client cible — signe positif de discovery produit, indépendamment du volume actuel.</p>
+        <div class="verdict">Le vrai test de PMF n'est pas «&nbsp;le produit plaît-il&nbsp;?&nbsp;» mais <b>«&nbsp;l'artisan continue-t-il de le préférer à Excel après 3 mois d'usage réel, une fois la nouveauté passée&nbsp;?&nbsp;»</b> — c'est la métrique à instrumenter en priorité avant de communiquer sur la traction.</div>
+      </div>
+
+      <div class="dive-block">
+        <h3><span class="n">7</span>Éléments de différenciation</h3>
+        <p>Trois différenciateurs structurels ressortent de la comparaison&nbsp;: la <strong>spécialisation métier extrême</strong> (aucun concurrent français ne cible spécifiquement l'artisanat de fabrication), l'<strong>IA appliquée au flux complet</strong> plutôt qu'à un seul maillon, et l'<strong>onboarding assisté par des humains</strong> plutôt qu'un self-service froid.</p>
+        <p>Le différenciateur le plus fragile est aussi le plus visible&nbsp;: la promesse IA. Elle est puissante en discours mais totalement dépendante de la qualité d'exécution réelle (taux d'erreur d'OCR, fiabilité du planning auto) — un concurrent avec une IA moins ambitieuse mais plus fiable pourrait gagner la confiance plus vite.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">04</span><h2>Moat &amp; risques</h2></div>
+    <div class="diff-grid">
+      <div class="diff-card moat">
+        <h4>◆ Avantages défendables</h4>
+        <ul>
+          <li><b>Seul acteur francophone</b> positionné exclusivement sur l'artisanat de fabrication — Craftybase n'a pas d'ancrage français.</li>
+          <li><b>IA de bout en bout</b> (commande → stock → production → facture) là où les concurrents automatisent un seul maillon.</li>
+          <li><b>Onboarding humain à froid</b> — import de données fait par l'équipe, différenciant contre le self-service pur des SaaS US.</li>
+          <li><b>Conformité RGPD/hébergement UE</b> mise en avant explicitement, un vrai critère pour un artisan méfiant du cloud US.</li>
+        </ul>
+      </div>
+      <div class="diff-card risk">
+        <h4>▲ Risques à surveiller</h4>
+        <ul>
+          <li><b>Fiabilité de l'IA en conditions réelles</b> — la promesse ne vaut que ce que vaut le taux d'erreur d'OCR/planning sur données variées.</li>
+          <li><b>Absence de mode hors-ligne</b> (assumée dans la FAQ) — un frein réel en atelier ou marché sans réseau fiable.</li>
+          <li><b>Pas de traçabilité de lots poussée</b> — un manque potentiel face aux obligations réglementaires alimentaire/cosmétique.</li>
+          <li><b>Transition pricing post-bêta non balisée</b> — le saut du tarif Fondateur au tarif normal est le point de friction commercial le plus probable.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="verdict-panel">
+      <h2>Verdict</h2>
+      <p>ARTEASY n'est pas en concurrence frontale avec Axonaut, Sellsy ou Dolibarr — ces outils jouent un jeu différent (généraliste, multi-secteur). Le seul concurrent réellement comparable sur le positionnement, <strong>Craftybase</strong>, n'a aucune présence francophone ni d'automatisation IA du flux de commande. Sur ce marché de niche, ARTEASY a un boulevard&nbsp;: la vraie bataille à gagner n'est pas contre un concurrent SaaS, c'est contre <strong>l'inertie du statu quo</strong> — Excel, le carnet, l'habitude.</p>
+      <p class="pull">« Le produit qui gagnera n'est pas celui qui a le plus de fonctionnalités, c'est celui que l'artisan sceptique décide un jour d'essayer plutôt que de rouvrir son fichier Excel. »</p>
+      <p>Trois priorités s'en dégagent&nbsp;: <strong>1)</strong> mesurer et publier la fiabilité réelle de l'IA (taux d'exactitude OCR, taux de plans de production corrects) avant de la mettre plus en avant encore dans le discours commercial&nbsp;; <strong>2)</strong> baliser publiquement la trajectoire de prix post-bêta pour ne pas fragiliser la confiance des Clients Fondateurs&nbsp;; <strong>3)</strong> évaluer si la traçabilité de lots doit devenir une feature core, en particulier si une part significative des utilisateurs vient de l'alimentaire ou de la cosmétique.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">—</span><h2>Sources</h2></div>
+    <div class="sources">
+      <a href="https://www.selecthub.com/p/manufacturing-inventory-software/craftybase/" target="_blank" rel="noopener">Craftybase — SelectHub</a>
+      <a href="https://www.softwareworld.co/software/craftybase-reviews/" target="_blank" rel="noopener">Craftybase — SoftwareWorld</a>
+      <a href="https://www.capterra.com/p/172888/Katana-MRP/pricing/" target="_blank" rel="noopener">Katana MRP — Capterra</a>
+      <a href="https://www.brahmin-solutions.com/blog/katana-pricing" target="_blank" rel="noopener">Katana MRP — Brahmin Solutions</a>
+      <a href="https://independant.io/avis/axonaut/" target="_blank" rel="noopener">Axonaut — Independant.io</a>
+      <a href="https://www.comparatif-facture-electronique.fr/axonaut-avis-test/" target="_blank" rel="noopener">Axonaut — Comparatif Facture Électronique</a>
+      <a href="https://independant.io/avis/sellsy/" target="_blank" rel="noopener">Sellsy — Independant.io</a>
+      <a href="https://comparateur-efacturation.fr/blog/sellsy-avis-tarifs-test-complet-2026" target="_blank" rel="noopener">Sellsy — Comparateur e-Facturation</a>
+      <a href="https://tool-advisor.fr/logiciel-erp/dolibarr/" target="_blank" rel="noopener">Dolibarr — Tool-Advisor</a>
+      <a href="https://sokeo.fr/comparatif-erp-open-source/" target="_blank" rel="noopener">Dolibarr — Sokeo</a>
+      <span>ARTEASY — analyse directe du code source (index.html, landing live)</span>
+    </div>
+  </section>
+
+</div>
