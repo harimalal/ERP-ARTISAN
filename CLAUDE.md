@@ -63,6 +63,29 @@ Avant de toucher au code : valider les 3 points clés (env vars Netlify, spec co
 
 ---
 
+## ÉTAT ACTUEL (2026-09-12)
+
+App live : https://arteasy.fr — ERP artisan production stable.
+Phase active : Distribution / Marketing / Vente (Sprint 10 ventes).
+Infra prête : landing arteasy.fr, Cal.com câblé (hari.arteasy/30min), Stripe (liens côté utilisateur), 200 prospects bio extraits.
+Mission précédente : MISSIONS/2026-09-04-rattrapage-semaine-0/ — LIVRÉE.
+Prochaine action : démarrer l'outreach sur les 200 prospects + suivi pipeline ventes.
+
+## CONVENTION SESSIONS/ (cloud + CLI)
+
+Chaque session crée un fichier SESSIONS/AAAA-MM-JJ-HHMM-[cloud|cli]-[slug].md
+Commité en fin de session avec tout le travail. Source de vérité unique.
+Remplace : Rapport_developpement_code_*.md (historique), SESSION_LOG.md (PLAYBOOK_IA)
+
+## TESTS
+
+Suite Python dans tests/ :
+- flux-complet.spec.py
+- import-ia-admin.spec.py  
+- reset-mdp.spec.py
+- tva-ui-check.spec.py
+Lancer avant tout déploiement de feature.
+
 ## FICHIERS DE RÉFÉRENCE
 
 @.claude/2_INSTRUCTIONS_ARCHITECTURE.md
