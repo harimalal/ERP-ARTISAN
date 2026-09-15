@@ -1260,8 +1260,14 @@ function setActiveNav(page) {
           });
           const ext = _iaFile.name.split('.').pop().toLowerCase();
           const ctx = document.getElementById('iaContext')?.value || '';
-          const produitsCache = produits.getProduitsCache?.() || [];
-          const clientsCache  = commandes.getClientsCache?.() || [];
+          let produitsCache = [], clientsCache = [];
+          try {
+            const { getProduits, getClients } = await import('/js/db.js');
+            [produitsCache, clientsCache] = await Promise.all([getProduits(), getClients()]);
+          } catch (_) {
+            produitsCache = produits.getProduitsCache?.() || [];
+            clientsCache  = commandes.getClientsCache?.() || [];
+          }
           const { data: { session } } = await (await import('/js/config.js')).supabase.auth.getSession();
           const { getTenantId } = await import('/js/auth.js');
           const resp = await fetch('/api/ai_analyse_bc', {
