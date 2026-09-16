@@ -1294,14 +1294,20 @@ function setActiveNav(page) {
           .replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
         const nom = norm(nomOriginal);
         if (!nom) return null;
+        const mots = nom.split(' ').filter(m => m.length > 2);
+        if (!mots.length) return null;
         let best = null, bestScore = 0;
         for (const p of produits) {
           const cand = norm(p.nom);
           if (cand === nom) return p;
-          const mots = nom.split(' ').filter(m => m.length > 2);
+          const candMots = cand.split(' ').filter(m => m.length > 2);
           const hits = mots.filter(m => cand.includes(m)).length;
-          const score = mots.length ? hits / mots.length : 0;
-          if (score > bestScore && score >= 0.6) { best = p; bestScore = score; }
+          /* Score de Dice : p\u00e9nalise les produits avec des mots en plus non
+             demand\u00e9s, pour ne pas confondre "Confiture Fraise" avec
+             "Confiture Fraise Framboise" (m\u00eame score de couverture sinon). */
+          const denom = mots.length + candMots.length;
+          const score = denom ? (2 * hits) / denom : 0;
+          if (score > bestScore && score >= 0.45) { best = p; bestScore = score; }
         }
         return best;
       }
