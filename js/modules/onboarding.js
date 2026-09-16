@@ -264,8 +264,10 @@ function _renderResultat(cat) {
   const el  = document.getElementById('ob-resultat-' + cat);
   if (!el) return;
 
-  const aCreer   = st.entites.filter(e => !e.doublon);
-  const doublons = st.entites.filter(e => e.doublon);
+  const aCreer        = st.entites.filter(e => !e.doublon);
+  const doublonsBase  = st.entites.filter(e => e.doublonType === 'base');
+  const doublonsLot   = st.entites.filter(e => e.doublonType === 'lot');
+  const totalDoublons = doublonsBase.length + doublonsLot.length;
   const anomalies = _agregerAnomalies(cat, st.entites);
   const totalManquants = anomalies.reduce((s, [, n]) => s + n, 0);
 
@@ -273,13 +275,23 @@ function _renderResultat(cat) {
     ? anomalies.map(([label, n]) => `${esc(label)} manquant : <strong>${n}</strong>`).join(' · ')
     : 'Aucun champ manquant.';
 
+  const detailDoublons = totalDoublons
+    ? [
+        doublonsBase.length ? `<strong>${doublonsBase.length}</strong> déjà dans votre espace` : null,
+        doublonsLot.length  ? `<strong>${doublonsLot.length}</strong> en double dans vos documents` : null,
+      ].filter(Boolean).join(' · ') + ' — écarté(s) automatiquement, rien ne sera créé en double.'
+    : '';
+
   el.innerHTML = `
     <div class="card" style="padding:20px;">
       <div class="ob-tiles">
+        <div class="ob-tile"><div class="ob-tile-num">${st.entites.length}</div><div class="ob-tile-lbl">détecté(s) au total</div></div>
         <div class="ob-tile"><div class="ob-tile-num">${aCreer.length}</div><div class="ob-tile-lbl">à créer</div></div>
-        <div class="ob-tile"><div class="ob-tile-num">${doublons.length}</div><div class="ob-tile-lbl">déjà en base</div></div>
+        <div class="ob-tile ${totalDoublons ? 'warn' : ''}"><div class="ob-tile-num">${totalDoublons}</div><div class="ob-tile-lbl">doublon(s) écarté(s)</div></div>
         <div class="ob-tile ${totalManquants ? 'warn' : ''}"><div class="ob-tile-num">${totalManquants}</div><div class="ob-tile-lbl">champs à compléter</div></div>
       </div>
+
+      ${totalDoublons ? `<div class="alert-box alert-info" style="margin-bottom:12px;"><span>ℹ</span><span>${detailDoublons}</span></div>` : ''}
 
       <div class="alert-box ${totalManquants ? 'alert-warn' : 'alert-info'}" style="margin-bottom:16px;">
         <span>${totalManquants ? '⚠' : 'ℹ'}</span>
@@ -330,8 +342,8 @@ function _ligne(cat, e, i) {
       placeholder="${v ? '' : 'manquant'}"
       style="width:100%;min-width:70px;border:none;background:transparent;font-size:12px;font-family:inherit;color:inherit;"></td>`;
   }).join('');
-  const statut = e.doublon
-    ? '<span class="badge badge-neutral">Déjà en base</span>'
+  const statut = e.doublonType === 'base' ? '<span class="badge badge-neutral">Déjà dans votre espace</span>'
+    : e.doublonType === 'lot' ? '<span class="badge badge-warn">En double dans vos documents</span>'
     : '<span class="badge badge-ok">À créer</span>';
   return `<tr>${cells}<td>${statut}</td><td><button class="btn-icon" data-suppr="${i}" title="Retirer">✕</button></td></tr>`;
 }
@@ -378,13 +390,21 @@ async function _extraire(cat) {
       (data.avertissements || []).forEach(a => console.warn('[onboarding]', file.name, a));
     }
 
-    /* Dédoublonnage : contre la base, puis à l'intérieur du lot. */
+    /* Dédoublonnage : contre la base, puis à l'intérieur du lot.
+       Les deux cas sont comptés séparément — "déjà chez vous" et
+       "en double dans vos documents" ne veulent pas dire la même
+       chose pour l'artisan qui relit le bilan. */
     const vues = [];
     st.entites = trouvees.map(ent => {
       const existant = _trouverExistant(cat, ent.champs, st.existants);
-      const dansLot  = _trouverExistant(cat, ent.champs, vues);
+      const dansLot  = existant ? null : _trouverExistant(cat, ent.champs, vues);
       if (!existant && !dansLot) vues.push(ent.champs);
-      return { champs: ent.champs, confiance: ent.confiance, doublon: Boolean(existant || dansLot) };
+      return {
+        champs: ent.champs,
+        confiance: ent.confiance,
+        doublon: Boolean(existant || dansLot),
+        doublonType: existant ? 'base' : (dansLot ? 'lot' : null),
+      };
     });
 
     st.analyse = true;
