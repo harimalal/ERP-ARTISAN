@@ -23,6 +23,11 @@
   status = 200
 
 [[redirects]]
+  from = "/import-donnees"
+  to = "/import-donnees.html"
+  status = 200
+
+[[redirects]]
   from = "/merci"
   to = "/merci.html"
   status = 200

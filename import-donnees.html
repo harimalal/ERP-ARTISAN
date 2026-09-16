@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEASY — Import de vos données</title>
+<meta name="supa-url" content="https://rynfsrsevgqyiycdscov.supabase.co">
+<meta name="supa-key" content="sb_publishable_g_gefc-Mrw1wgSC_F8nZlw_BAMix93k">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/layout.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  .ob-wrap     { max-width: 1180px; margin: 0 auto; padding: 32px 28px 60px; }
+  .ob-topbar   { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px; border-bottom: 1px solid var(--ui-brd); background: #fff; }
+  .ob-brand    { display: flex; align-items: center; gap: 12px; }
+  .ob-mark     { width: 36px; height: 36px; border-radius: 10px; background: var(--accent); display: flex; align-items: center; justify-content: center; color: #fff; font-family: 'Libre Baskerville', serif; font-weight: 700; font-size: 15px; }
+  .ob-tabs     { display: flex; align-items: center; padding: 0 20px; background: #fff; border-bottom: 1px solid var(--ui-brd); overflow-x: auto; }
+  .ob-tab      { display: flex; align-items: center; gap: 8px; padding: 12px 18px; font-size: 12.5px; font-weight: 600; color: var(--ink-muted); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
+  .ob-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .ob-tab-state  { width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; background: var(--ui-bg3); color: var(--ink-muted); flex-shrink: 0; }
+  .ob-tab-state.done { background: #D8EDE3; color: #1E4A30; }
+  .ob-panel    { display: none; }
+  .ob-panel.active { display: block; }
+  .ob-drop     { border: 2px dashed var(--ui-brd2); border-radius: 9px; padding: 26px 20px; text-align: center; cursor: pointer; background: var(--ui-bg2); transition: border-color .15s; }
+  .ob-drop.over { border-color: var(--accent); }
+  .ob-tiles    { display: flex; gap: 12px; margin-bottom: 14px; }
+  .ob-tile     { flex: 1; background: var(--ui-bg2); border-radius: 10px; padding: 12px 16px; }
+  .ob-tile.warn { background: var(--hdr-amber-bg); }
+  .ob-tile-num { font-family: 'Libre Baskerville', serif; font-size: 20px; font-weight: 700; color: var(--ink); }
+  .ob-tile-lbl { font-size: 10.5px; color: var(--ink-muted); }
+  .ob-missing  { background: #FCE8E5; color: #8A2010; font-style: italic; }
+  .ob-steps li { margin-bottom: 12px; font-size: 12.5px; color: var(--ui-text2); line-height: 1.55; }
+  .ob-steps li strong { color: var(--ink); font-size: 13px; }
+  .ob-lead     { font-size: 12.5px; color: var(--ink-light); line-height: 1.55; max-width: 760px; }
+</style>
+</head>
+<body>
+
+<div class="ob-topbar">
+  <div class="ob-brand">
+    <div class="ob-mark">AE</div>
+    <div>
+      <div style="font-family:'Libre Baskerville',serif;font-weight:700;font-size:15px;">ArtEasy — Configuration de votre espace</div>
+      <div style="font-size:11.5px;color:var(--ink-muted);">Import de vos données existantes</div>
+    </div>
+  </div>
+  <a href="/app" class="btn btn-ghost">← Retour au tableau de bord</a>
+</div>
+
+<div class="ob-tabs" id="obTabs">
+  <button class="ob-tab active" data-tab="procedure"><span class="ob-tab-state">i</span>Procédure</button>
+  <button class="ob-tab" data-tab="fournisseur"><span class="ob-tab-state" data-state="fournisseur">1</span>1 · Fournisseurs</button>
+  <button class="ob-tab" data-tab="client"><span class="ob-tab-state" data-state="client">2</span>2 · Clients</button>
+  <button class="ob-tab" data-tab="article"><span class="ob-tab-state" data-state="article">3</span>3 · Articles</button>
+  <button class="ob-tab" data-tab="recette"><span class="ob-tab-state" data-state="recette">4</span>4 · Recettes</button>
+</div>
+
+<div class="ob-wrap">
+
+  <!-- PROCÉDURE -->
+  <div class="ob-panel active" id="panel-procedure">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">Avant de commencer</div>
+    <h1 style="font-family:'Libre Baskerville',serif;font-size:26px;font-weight:700;margin:0 0 14px;">On va créer votre espace entreprise</h1>
+    <p style="font-size:14px;color:var(--ink-light);max-width:700px;line-height:1.65;margin:0 0 24px;"><strong>Rassembler toutes vos données pour pouvoir automatiser vos commandes clients, vos achats, votre plan de production et votre facturation.</strong></p>
+
+    <div style="max-width:700px;margin:0 0 24px;">
+      <p style="font-size:13px;color:var(--ui-text2);line-height:1.6;margin:0 0 8px;">Quatre catégories à traiter, un onglet chacune.</p>
+      <p style="font-size:14px;color:var(--ink);line-height:1.6;margin:0 0 8px;"><strong>Allez dans chaque onglet et importez vos documents.</strong></p>
+      <p style="font-size:13px;color:var(--ui-text2);line-height:1.6;margin:0 0 8px;">Dans chaque onglet : déposez vos documents, lancez l'extraction, vérifiez le résultat, validez.</p>
+      <p style="font-size:13px;color:var(--ui-text2);line-height:1.6;margin:0 0 8px;">Vous pouvez tout faire en parallèle ou en plusieurs fois.</p>
+      <p style="font-size:13px;color:var(--ui-text2);line-height:1.6;margin:0;">Vous pouvez vous arrêter et reprendre à tout moment — rien n'est perdu.</p>
+    </div>
+
+    <div class="alert-box alert-warn" style="margin-bottom:26px;max-width:760px;">
+      <span>⚠</span>
+      <span><strong>L'onglet Recettes doit être fait en dernier</strong> — il a besoin que Fournisseurs, Clients et Articles soient déjà validés. Sinon les recettes ne pourront pas trouver les bons articles, ça ne fonctionnera pas.</span>
+    </div>
+
+    <h2 style="font-family:'Libre Baskerville',serif;font-size:16px;font-weight:700;margin:0 0 14px;">Ce qu'il faut préparer, catégorie par catégorie</h2>
+    <ol class="ob-steps" style="padding-left:18px;max-width:820px;">
+      <li><strong>Fournisseurs</strong> — bon de commande envoyé, facture reçue, catalogue tarifaire. Champs recherchés : nom (obligatoire), contact, email, téléphone, adresse, SIRET, délai de livraison, catégorie.</li>
+      <li><strong>Clients</strong> — facture émise, bon de commande client, avec les coordonnées complètes. Champs recherchés : nom (obligatoire), email, téléphone, adresse, SIRET, notes.</li>
+      <li><strong>Articles</strong> — bon de commande fournisseur, bon d'achat. Champs recherchés : référence (obligatoire), nom (obligatoire), prix d'achat (obligatoire), catégorie, unité, fournisseur, seuil, stock.</li>
+      <li><strong>Recettes</strong> <span style="color:var(--ui-red);font-size:11px;">(en dernier)</span> — fiche technique, fichier de composition (Excel ou PDF) : produit, ingrédients, quantités ou pourcentages.</li>
+    </ol>
+
+    <button class="btn btn-primary" data-goto="fournisseur">Commencer par les fournisseurs →</button>
+  </div>
+
+  <!-- LES 4 CATÉGORIES — structure générée à l'identique, remplie par onboarding.js -->
+  <div class="ob-panel" id="panel-fournisseur"></div>
+  <div class="ob-panel" id="panel-client"></div>
+  <div class="ob-panel" id="panel-article"></div>
+  <div class="ob-panel" id="panel-recette"></div>
+
+</div>
+
+<div id="toastZone"></div>
+
+<script type="module">
+  import { initAuth } from '/js/auth.js';
+  import * as onboarding from '/js/modules/onboarding.js';
+
+  (async () => {
+    const ok = await initAuth();
+    if (!ok) { window.location.replace('/login'); return; }
+    onboarding.init();
+  })();
+</script>
+
+</body>
+</html>

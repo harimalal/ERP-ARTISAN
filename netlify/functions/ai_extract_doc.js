@@ -53,7 +53,8 @@ const SCHEMA_PROMPT = `{
       "champs": { /* voir schemas ci-dessous selon le type */ },
       "confiance": "haute | moyenne | basse",
       "page_source": nombre entier ou null,
-      "extrait_source": "courte citation du document justifiant l'extraction"
+      "extrait_source": "courte citation du document justifiant l'extraction",
+      "correspondance_existante": "nom ou référence EXACTE d'une entrée du catalogue existant qui désigne la même chose, ou null si c'est une nouveauté"
     }
   ],
   "avertissements": ["chaîne libre si quelque chose mérite l'attention de l'utilisateur"]
@@ -121,9 +122,20 @@ async function incrementerQuota(tenantId, mois, appelsActuels, tokensUsed, supab
     }, { onConflict: 'tenant_id,mois' });
 }
 
-function buildPrompt() {
-  return `Tu es un assistant d'extraction de données pour une application ERP artisanale française.
+/* Bloc de ciblage — utilisé par l'onboarding, qui envoie les documents
+   onglet par onglet et sait donc quel type il attend. Vide pour l'appel
+   historique (admin.js), qui reste en détection libre des 4 types. */
+function blocCategorieAttendue(categorie) {
+  if (!TYPES_VALIDES.includes(categorie)) return '';
+  return `
+CONTEXTE PRIORITAIRE : l'utilisateur a déposé ces documents dans la catégorie "${categorie}". Le type attendu est donc "${categorie}".
+Extrais en priorité les entités de ce type. Si le document contient aussi des entités d'un autre type, extrais-les quand même (elles ne seront pas perdues), mais ne force jamais une entité vers "${categorie}" si elle n'en est manifestement pas une.
+`;
+}
 
+function buildPrompt(categorieAttendue) {
+  return `Tu es un assistant d'extraction de données pour une application ERP artisanale française.
+${blocCategorieAttendue(categorieAttendue)}
 Analyse ce contenu et identifie TOUTES les entités qu'il contient parmi : client, fournisseur, article, produit.
 
 Définitions à respecter strictement :
@@ -152,6 +164,7 @@ ${SCHEMA_PROMPT}
 
 Règles strictes :
 - Ne jamais inventer de donnée absente du document. Champ absent → chaîne vide "".
+- Si un catalogue existant t'est fourni plus haut, compare chaque entité extraite à ce catalogue et remplis correspondance_existante : d'abord par référence exacte quand elle existe, sinon par comparaison de dénomination (accents, casse, abréviations et mots en plus ignorés — "Massilly" correspond à "Massilly Conservor"). Ne renvoie une correspondance que si tu es réellement confiant, sinon null. Ne renvoie JAMAIS une référence qui n'est pas littéralement dans le catalogue fourni : inventer une référence est pire que d'en renvoyer aucune.
 - N'utilise jamais un type en dehors de client | fournisseur | article | produit. Si une entité ne correspond clairement à aucun des 4 types, ne l'ajoute pas dans entites avec un type approximatif : décris-la brièvement dans avertissements à la place, pour que rien ne disparaisse silencieusement.
 - Si le texte est flou, partiellement illisible, ou l'extraction incertaine → confiance "basse", jamais "haute" par défaut. Pour un contenu tableur, applique la même prudence si une valeur est incomplète, ambiguë entre deux champs possibles (ex : un nombre qui pourrait être un prix ou une quantité), ou si une ligne semble être un doublon ou une correction d'une autre ligne.
 - Si le document est totalement illisible ou vide → document_type_detecte: "illisible", entites: [].
@@ -162,9 +175,24 @@ Règles strictes :
 
 const EXT_TABULAIRE = ['xlsx', 'xls', 'csv'];
 
-function buildContent({ fichier, texte }, extension, prompt) {
+/* Catalogue existant du tenant — placé en TÊTE du message et marqué
+   cache_control : c'est le préfixe stable réutilisé d'un document à
+   l'autre pendant une session d'import, donc facturé plein tarif une
+   seule fois au lieu d'une fois par document. */
+function blocCatalogue(catalogue) {
+  if (!catalogue || typeof catalogue !== 'string' || !catalogue.trim()) return null;
+  return {
+    type: 'text',
+    text: `CATALOGUE DÉJÀ EN BASE (pour repérer les correspondances et les doublons — ne rien inventer en dehors de cette liste) :\n\n${catalogue.slice(0, 120000)}`,
+    cache_control: { type: 'ephemeral' },
+  };
+}
+
+function buildContent({ fichier, texte, catalogue }, extension, prompt) {
+  const blocCat = blocCatalogue(catalogue);
   if (EXT_TABULAIRE.includes(extension)) {
     return [
+      ...(blocCat ? [blocCat] : []),
       { type: 'text', text: `Voici le contenu brut d'un fichier tableur (${extension}), une ligne par ligne (colonne: valeur) :\n\n${texte}` },
       { type: 'text', text: prompt },
     ];
@@ -176,7 +204,7 @@ function buildContent({ fichier, texte }, extension, prompt) {
   const mediaBlock = isImage
     ? { type: 'image',    source: { type: 'base64', media_type: mediaType, data: fichier } }
     : { type: 'document', source: { type: 'base64', media_type: mediaType, data: fichier } };
-  return [mediaBlock, { type: 'text', text: prompt }];
+  return [...(blocCat ? [blocCat] : []), mediaBlock, { type: 'text', text: prompt }];
 }
 
 function parseReponseIA(rawText) {
@@ -231,6 +259,9 @@ function nettoyerEntites(rawEntites) {
       confiance:       ['haute', 'moyenne', 'basse'].includes(e.confiance) ? e.confiance : 'basse',
       page_source:     Number.isInteger(e.page_source) ? e.page_source : null,
       extrait_source:  typeof e.extrait_source === 'string' ? e.extrait_source.slice(0, 300) : '',
+      correspondance_existante: typeof e.correspondance_existante === 'string' && e.correspondance_existante.trim()
+        ? e.correspondance_existante.trim().slice(0, 200)
+        : null,
     });
   }
   return { entites, avertissements };
@@ -251,7 +282,10 @@ export default async function handler(req) {
     });
   }
 
-  const { fichier, texte, extension, tenantId, token } = body;
+  /* catalogue et categorie sont optionnels : l'onboarding les envoie,
+     l'appel historique depuis admin.js ne les envoie pas et garde
+     exactement le comportement d'avant. */
+  const { fichier, texte, extension, tenantId, token, catalogue, categorie } = body;
 
   if (!extension || !tenantId || !token) {
     return new Response(JSON.stringify({ ok: false, error: 'Champs manquants : extension, tenantId, token' }), {
@@ -285,14 +319,17 @@ export default async function handler(req) {
     const quota = await resoudreQuota(tenantIdReel, supabase);
 
     const anthropic = new Anthropic();
-    const prompt    = buildPrompt();
-    const content   = buildContent({ fichier, texte }, extension.toLowerCase(), prompt);
+    const prompt    = buildPrompt(categorie);
+    const content   = buildContent({ fichier, texte, catalogue }, extension.toLowerCase(), prompt);
 
-    const response = await anthropic.messages.create({
+    /* 32000 : un catalogue complet peut produire plusieurs centaines
+       d'entités. À 8000, la réponse JSON était tronquée en silence sur
+       un gros tableur et des lignes disparaissaient sans erreur. */
+    const response = await anthropic.messages.stream({
       model:      'claude-sonnet-5',
-      max_tokens: 8000,
+      max_tokens: 32000,
       messages:   [{ role: 'user', content }],
-    });
+    }).finalMessage();
 
     const rawText    = response.content.map(c => c.text || '').join('');
     const tokensUsed = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
