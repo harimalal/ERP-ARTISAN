@@ -1,0 +1,1501 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found]){display:none!important}</style></head><body>
+<title>Carnet de Sprint ArtEasy</title>
+<meta name="description" content="Guide quotidien et tableau de bord du sprint d'acquisition ArtEasy : 10 ventes en 30 jours.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#F6F4F1; --surface:#FFFFFF; --surface-2:#F1EDE6;
+  --ink:#1E1B17; --muted:#6B6259; --faint:#9A9186;
+  --line:#E4DDD2; --line-strong:#D6CCBD;
+  --accent:#C0632F; --accent-deep:#9C4A21; --accent-wash:#F5E4D8;
+  --ok:#2F7D57; --ok-wash:#E0EFE6;
+  --warn:#B07D22; --warn-wash:#F3E8CF;
+  --bad:#A32C22; --bad-wash:#F3DDD9;
+  --ring-track:#E7DFD3;
+  --info:#3E6C93; --info-wash:#E2EAF1;
+  --shadow:0 1px 2px rgba(30,27,23,.04),0 8px 24px -12px rgba(30,27,23,.12);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#16130F; --surface:#201C16; --surface-2:#2A2519;
+    --ink:#F1EBDF; --muted:#A99E8D; --faint:#7E7463;
+    --line:#332D22; --line-strong:#453D2E;
+    --accent:#E08A5C; --accent-deep:#C56A3D; --accent-wash:#3A2A1E;
+    --ok:#5FB487; --ok-wash:#1E3329;
+    --warn:#D7A94E; --warn-wash:#352C18;
+    --bad:#E1685A; --bad-wash:#3A211D;
+    --ring-track:#3A3223;
+    --info:#7FB0D4; --info-wash:#20303C;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.55);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#16130F; --surface:#201C16; --surface-2:#2A2519;
+  --ink:#F1EBDF; --muted:#A99E8D; --faint:#7E7463;
+  --line:#332D22; --line-strong:#453D2E;
+  --accent:#E08A5C; --accent-deep:#C56A3D; --accent-wash:#3A2A1E;
+  --ok:#5FB487; --ok-wash:#1E3329;
+  --warn:#D7A94E; --warn-wash:#352C18;
+  --bad:#E1685A; --bad-wash:#3A211D;
+  --ring-track:#3A3223;
+  --info:#7FB0D4; --info-wash:#20303C;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.55);
+}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font-family:"Instrument Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  line-height:1.55;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:"Bricolage Grotesque","Instrument Sans",system-ui,sans-serif;
+  font-weight:700;line-height:1.15;text-wrap:balance;margin:0}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:none}
+a{color:var(--accent-deep)}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- shell ---------- */
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid var(--line);background:var(--paper);position:sticky;top:0;z-index:20}
+.top-in{display:flex;align-items:center;gap:16px;padding:14px 0;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand .logo{font-family:"Bricolage Grotesque";font-weight:700;font-size:19px;letter-spacing:-.01em}
+.brand .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;transform:translateY(-2px)}
+.brand .sub{font-size:12.5px;color:var(--muted)}
+.top-spacer{flex:1}
+.counter{display:flex;align-items:center;gap:14px;font-size:12.5px;color:var(--muted)}
+.counter b{font-family:"IBM Plex Mono";font-weight:600;color:var(--ink);font-size:14px}
+.theme-btn{border:1px solid var(--line-strong);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--muted)}
+
+nav.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);background:var(--paper);position:sticky;top:57px;z-index:19;overflow-x:auto}
+nav.tabs .wrap{display:flex;gap:2px}
+.tab{padding:12px 16px;font-size:14px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab:hover{color:var(--ink)}
+
+main{padding:26px 0 80px}
+.view{display:none}
+.view.active{display:block}
+
+/* ---------- today layout ---------- */
+.today-grid{display:grid;grid-template-columns:210px 1fr;gap:26px;align-items:start}
+@media (max-width:860px){.today-grid{grid-template-columns:1fr}}
+
+.daynav{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:8px;position:sticky;top:112px}
+@media (max-width:860px){.daynav{position:static;display:flex;flex-wrap:wrap;gap:4px;padding:10px}}
+.daynav .wk{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);
+  padding:10px 8px 4px;font-weight:600}
+@media (max-width:860px){.daynav .wk{width:100%;padding:6px 4px 2px}}
+.dchip{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border-radius:7px;font-size:13px;color:var(--muted)}
+.dchip .code{font-family:"IBM Plex Mono";font-weight:500;font-size:12px}
+.dchip .dm{font-size:11px;color:var(--faint);margin-left:auto}
+.dchip .st{width:7px;height:7px;border-radius:50%;background:var(--ring-track);flex:none}
+.dchip.st-done .st{background:var(--ok)}
+.dchip.st-partial .st{background:var(--warn)}
+.dchip.st-missed .st{background:var(--bad)}
+.dchip[aria-current="true"]{background:var(--accent-wash);color:var(--ink)}
+.dchip:hover{background:var(--surface-2);color:var(--ink)}
+
+.daycol{min-width:0}
+.dayhead{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 18px;margin-bottom:6px}
+.dayhead .jcode{font-family:"Bricolage Grotesque";font-weight:700;font-size:40px;letter-spacing:-.02em;line-height:.9}
+.dayhead .ddate{font-size:14px;color:var(--muted);padding-bottom:3px}
+.pill{font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;
+  padding:4px 9px;border-radius:999px;border:1px solid var(--line-strong);color:var(--muted)}
+.pill.phase{background:var(--accent-wash);border-color:transparent;color:var(--accent-deep)}
+.pill.we{background:var(--surface-2)}
+.focus{font-size:16px;margin:14px 0 20px;padding-left:14px;border-left:3px solid var(--accent);color:var(--ink)}
+
+.card{border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow)}
+.card + .card{margin-top:16px}
+.card h3{font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);
+  padding:14px 16px;border-bottom:1px solid var(--line);font-family:"Instrument Sans";font-weight:600}
+.card .body{padding:8px 16px 14px}
+
+.task{display:flex;gap:11px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line)}
+.task:last-child{border-bottom:none}
+.task input{appearance:none;width:19px;height:19px;border:1.5px solid var(--line-strong);border-radius:5px;
+  margin-top:1px;flex:none;position:relative}
+.task input:checked{background:var(--accent);border-color:var(--accent)}
+.task input:checked::after{content:"";position:absolute;left:6px;top:2px;width:5px;height:10px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.task label{font-size:14px;color:var(--ink)}
+.task.done label{color:var(--faint);text-decoration:line-through}
+.progressbar{height:6px;border-radius:999px;background:var(--ring-track);overflow:hidden;margin:2px 0 0}
+.progressbar i{display:block;height:100%;background:var(--accent);border-radius:999px;transition:width .3s ease}
+
+.post{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px;
+  font-size:14px;white-space:pre-wrap;color:var(--ink)}
+.post-actions{display:flex;gap:8px;margin-top:10px}
+.btn{border:1px solid var(--line-strong);border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:500;color:var(--muted)}
+.btn:hover{color:var(--ink);border-color:var(--accent);background:var(--accent-wash)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-deep)}
+
+.reslinks{display:flex;flex-wrap:wrap;gap:7px}
+.reslink{font-size:12.5px;padding:6px 10px;border-radius:999px;border:1px dashed var(--line-strong);color:var(--muted)}
+.reslink:hover{border-style:solid;border-color:var(--accent);color:var(--accent-deep);background:var(--accent-wash)}
+
+/* ---------- plan view ---------- */
+.plan-week{margin-bottom:26px}
+.plan-week h2{font-size:16px;margin-bottom:4px}
+.plan-week .wnote{font-size:13px;color:var(--muted);margin-bottom:12px}
+.plan-rows{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.plan-row{display:grid;grid-template-columns:64px 90px 1fr auto;gap:14px;align-items:center;
+  padding:12px 15px;border-bottom:1px solid var(--line);font-size:13.5px}
+.plan-row:last-child{border-bottom:none}
+.plan-row:hover{background:var(--surface-2)}
+.plan-row .pj{font-family:"IBM Plex Mono";font-weight:600;font-size:13px}
+.plan-row .pd{font-size:12px;color:var(--faint)}
+.plan-row .pf{color:var(--ink)}
+.plan-row .pg{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 8px;white-space:nowrap}
+@media (max-width:720px){
+  .plan-row{grid-template-columns:56px 1fr;grid-auto-rows:min-content}
+  .plan-row .pd{grid-column:2}
+  .plan-row .pg{grid-column:2;justify-self:start}
+}
+
+/* ---------- dashboard ---------- */
+.dash-intro{font-size:14px;color:var(--muted);margin-bottom:20px;max-width:62ch}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:24px}
+.kpi{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:15px;box-shadow:var(--shadow)}
+.kpi .k-label{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.kpi .k-val{font-family:"Bricolage Grotesque";font-weight:700;font-size:30px;letter-spacing:-.02em;margin-top:6px;line-height:1}
+.kpi .k-val small{font-size:15px;color:var(--faint);font-weight:600}
+.kpi .k-sub{font-size:12px;color:var(--muted);margin-top:6px}
+.kpi.flag-ok{border-color:var(--ok)}
+.kpi.flag-warn{border-color:var(--warn)}
+.kpi.flag-bad{border-color:var(--bad)}
+.k-tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  padding:2px 7px;border-radius:999px;margin-top:8px}
+.k-tag.ok{background:var(--ok-wash);color:var(--ok)}
+.k-tag.warn{background:var(--warn-wash);color:var(--warn)}
+.k-tag.bad{background:var(--bad-wash);color:var(--bad)}
+
+.panel{border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);margin-bottom:18px}
+.panel h3{font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);
+  padding:14px 16px;border-bottom:1px solid var(--line);font-weight:600}
+.panel .pbody{padding:16px}
+
+.ringwrap{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.ring{--p:0;width:132px;height:132px;border-radius:50%;flex:none;
+  background:conic-gradient(var(--accent) calc(var(--p)*1%),var(--ring-track) 0);
+  display:grid;place-items:center;position:relative}
+.ring::after{content:"";position:absolute;inset:12px;border-radius:50%;background:var(--surface)}
+.ring .rc{position:relative;text-align:center}
+.ring .rc b{font-family:"Bricolage Grotesque";font-size:30px;display:block;line-height:1}
+.ring .rc span{font-size:11px;color:var(--muted)}
+.ring-legend{font-size:13px;color:var(--muted)}
+.ring-legend b{color:var(--ink)}
+
+.funnel{display:flex;flex-direction:column;gap:9px}
+.frow{display:grid;grid-template-columns:120px 1fr 54px;gap:10px;align-items:center;font-size:12.5px}
+.fbar{height:22px;border-radius:5px;background:var(--accent-wash);position:relative;overflow:hidden}
+.fbar i{position:absolute;inset:0;width:var(--w,0%);background:var(--accent);border-radius:5px;transition:width .35s ease}
+.frow .fn{color:var(--muted)}
+.frow .fv{text-align:right;font-family:"IBM Plex Mono";font-weight:600}
+
+.chart-bars{display:flex;align-items:flex-end;gap:3px;height:120px;padding-top:10px}
+.cb{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;position:relative}
+.cb.z{background:var(--ring-track)}
+.cb:hover::after{content:attr(data-t);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);
+  background:var(--ink);color:var(--paper);font-size:10px;padding:2px 5px;border-radius:4px;white-space:nowrap;margin-bottom:3px}
+.chart-x{display:flex;justify-content:space-between;font-size:10px;color:var(--faint);margin-top:5px}
+
+.entry-table{width:100%;border-collapse:collapse;font-size:13px}
+.entry-table th{text-align:left;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);
+  padding:8px 6px;border-bottom:1px solid var(--line-strong);font-weight:600;position:sticky;top:0;background:var(--surface)}
+.entry-table td{padding:5px 6px;border-bottom:1px solid var(--line)}
+.entry-table tr[data-current="1"] td{background:var(--accent-wash)}
+.entry-table td:first-child{font-family:"IBM Plex Mono";font-weight:600;font-size:12px;white-space:nowrap}
+.entry-table input{width:100%;min-width:46px;border:1px solid var(--line);border-radius:6px;padding:5px 6px;
+  background:var(--paper);color:var(--ink);font:inherit;font-size:12.5px;text-align:center;font-variant-numeric:tabular-nums}
+.entry-table input:focus{border-color:var(--accent);background:var(--surface)}
+.entry-table input[type=checkbox]{width:17px;height:17px;min-width:0;accent-color:var(--accent)}
+.tbl-scroll{overflow-x:auto;max-height:440px;overflow-y:auto}
+.entry-foot{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.mut{font-size:12px;color:var(--faint)}
+
+/* ---------- resources ---------- */
+.res-grid{display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:start}
+@media (max-width:820px){.res-grid{grid-template-columns:1fr}}
+.res-nav{position:sticky;top:112px;display:flex;flex-direction:column;gap:2px}
+@media (max-width:820px){.res-nav{position:static;flex-flow:row wrap}}
+.res-nav a{font-size:13px;padding:7px 10px;border-radius:7px;color:var(--muted);text-decoration:none;border-left:2px solid transparent}
+.res-nav a:hover,.res-nav a.on{color:var(--ink);background:var(--surface-2);border-left-color:var(--accent)}
+.res-sec{scroll-margin-top:120px;margin-bottom:34px}
+.res-sec > h2{font-size:19px;margin-bottom:4px}
+.res-sec > .rintro{font-size:13.5px;color:var(--muted);margin-bottom:14px;max-width:64ch}
+.snip{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-bottom:12px;overflow:hidden}
+.snip .sh{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 13px;
+  border-bottom:1px solid var(--line);background:var(--surface-2)}
+.snip .sh b{font-size:12.5px;font-weight:600}
+.snip .st{font-size:14px;white-space:pre-wrap;padding:13px;color:var(--ink)}
+.snip .cbtn{border:1px solid var(--line-strong);border-radius:7px;padding:5px 10px;font-size:11.5px;color:var(--muted);flex:none}
+.snip .cbtn:hover{color:var(--ink);border-color:var(--accent)}
+.callout{border:1px solid var(--warn);background:var(--warn-wash);border-radius:9px;padding:11px 13px;font-size:13px;margin:10px 0}
+
+/* ---------- content tab ---------- */
+.chip{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 7px;border-radius:999px;white-space:nowrap}
+.chip.c-journal{background:var(--accent-wash);color:var(--accent-deep)}
+.chip.c-valeur{background:var(--ok-wash);color:var(--ok)}
+.chip.c-story{background:var(--warn-wash);color:var(--warn)}
+.chip.c-preuve{background:var(--info-wash);color:var(--info)}
+.chip.c-contrarian{background:var(--bad-wash);color:var(--bad)}
+.pillars{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:14px 0 18px}
+.pcard{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px}
+.pcard b{font-size:12.5px;display:block;margin-bottom:3px}
+.pcard span{font-size:12px;color:var(--muted)}
+.exp-note{font-size:13px;color:var(--muted);border-left:3px solid var(--accent);padding-left:12px;margin:0 0 22px;max-width:70ch}
+.exp-note b{color:var(--ink)}
+.cal{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);margin-bottom:30px}
+.cal-h{display:grid;grid-template-columns:64px 1fr 92px 96px 110px;gap:10px;padding:9px 14px;
+  font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:700;border-bottom:1px solid var(--line-strong);background:var(--surface-2)}
+.cal-row{display:grid;grid-template-columns:64px 1fr 92px 96px 110px;gap:10px;align-items:center;
+  padding:9px 14px;border-bottom:1px solid var(--line);font-size:12.5px;cursor:pointer;width:100%;text-align:left}
+.cal-row:last-child{border-bottom:none}
+.cal-row:hover{background:var(--surface-2)}
+.cal-row .cj{font-family:"IBM Plex Mono";font-weight:600;font-size:11.5px}
+.cal-row .cj small{display:block;color:var(--faint);font-weight:400}
+.cal-row .ctitle{color:var(--ink)}
+.cal-row .cmeta{font-size:11px;color:var(--muted)}
+@media (max-width:760px){
+  .cal-h{display:none}
+  .cal-row{grid-template-columns:56px 1fr;grid-auto-rows:min-content;gap:4px 10px}
+  .cal-row .cc-fmt,.cal-row .cc-hook,.cal-row .cc-cta{grid-column:2;font-size:11px;color:var(--muted)}
+}
+.pmeta{font-size:12px;color:var(--muted);margin:2px 0 10px;display:flex;flex-wrap:wrap;gap:6px 14px}
+.pmeta b{color:var(--ink);font-weight:600}
+.fill{border:1px solid var(--warn);background:var(--warn-wash);border-radius:8px;padding:9px 12px;font-size:12.5px;margin-top:10px}
+.subnav-wrap{position:sticky;top:104px;z-index:5;background:var(--paper);padding:6px 0;border-bottom:1px solid var(--line);margin-bottom:18px}
+.subnav{display:flex;gap:4px;overflow-x:auto}
+.subnav button{font-size:12.5px;font-weight:500;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:6px 13px;white-space:nowrap}
+.subnav button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.csec{display:none}
+.csec.active{display:block}
+.board{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:14px 0 22px;background:var(--surface)}
+.scene{display:grid;grid-template-columns:74px 1fr;gap:14px;padding:13px 15px;border-bottom:1px solid var(--line)}
+.scene:last-child{border-bottom:none}
+.scene .tc{font-family:"IBM Plex Mono";font-size:11.5px;font-weight:600;color:var(--accent-deep)}
+.scene h4{font-size:13.5px;margin-bottom:5px}
+.scene .sd{font-size:12.5px;color:var(--muted);margin-bottom:4px}
+.scene .lower{font-size:12.5px;background:var(--surface-2);border-radius:6px;padding:5px 9px;display:inline-block;margin-top:3px}
+.scene .lower b{color:var(--ink)}
+
+/* ---------- landing tab ---------- */
+.lp-hero{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:18px 18px 16px;box-shadow:var(--shadow);margin-bottom:18px}
+.lp-hero a.big{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:var(--accent);color:#fff;text-decoration:none;font-weight:600;font-family:"Bricolage Grotesque",sans-serif;
+  padding:14px 18px;border-radius:10px;margin-top:12px}
+.lp-hero a.big:hover{background:var(--accent-deep)}
+.lp-hero .path{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--faint);margin-top:8px;word-break:break-all}
+.lp-vars{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:16px 0}
+.lp-var{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:16px}
+.lp-var .vk{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+.lp-var .vk .b{background:var(--accent-wash);color:var(--accent-deep);font-family:"IBM Plex Mono",monospace;font-size:12px;padding:2px 8px;border-radius:6px}
+.lp-var .vp{font-size:12px;color:var(--accent-deep);font-weight:600;margin:6px 0 6px}
+.lp-var .vd{font-size:12.5px;color:var(--muted);line-height:1.5}
+.lp-var .vr{font-size:12px;color:var(--ink);margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.lp-var .vr b{color:var(--accent-deep)}
+
+/* ---------- toast ---------- */
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+  background:var(--ink);color:var(--paper);font-size:13px;padding:9px 16px;border-radius:9px;
+  opacity:0;pointer-events:none;transition:.25s;z-index:50}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.foot{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--faint)}
+</style>
+
+<header class="top">
+  <div class="wrap top-in">
+    <div class="brand">
+      <span class="logo">ArtEasy<span class="dot"></span></span>
+      <span class="sub">Carnet de sprint · 10 ventes en 30 jours</span>
+    </div>
+    <div class="top-spacer"></div>
+    <div class="counter">
+      <span>Jour <b id="hdrDay">—</b>/30</span>
+      <span>Ventes <b id="hdrSales">0</b>/10</span>
+      <span>Palier <b id="hdrTier">97 €</b></span>
+    </div>
+    <button class="theme-btn" id="themeBtn">Thème</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <div class="wrap">
+    <button class="tab" data-view="today" aria-selected="true">Aujourd'hui</button>
+    <button class="tab" data-view="plan" aria-selected="false">Plan 30 jours</button>
+    <button class="tab" data-view="contenu" aria-selected="false">Contenu</button>
+    <button class="tab" data-view="landing" aria-selected="false">Landing</button>
+    <button class="tab" data-view="dash" aria-selected="false">Tableau de bord</button>
+    <button class="tab" data-view="res" aria-selected="false">Ressources</button>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <!-- ================= TODAY ================= -->
+  <section class="view active" id="view-today">
+    <div class="today-grid">
+      <aside class="daynav" id="daynav"></aside>
+      <div class="daycol" id="daycol"></div>
+    </div>
+  </section>
+
+  <!-- ================= PLAN ================= -->
+  <section class="view" id="view-plan">
+    <div id="planWrap"></div>
+  </section>
+
+  <!-- ================= CONTENU ================= -->
+  <section class="view" id="view-contenu">
+    <div class="subnav-wrap"><div class="subnav" id="cSubnav"></div></div>
+    <div id="cWrap"></div>
+  </section>
+
+  <!-- ================= LANDING ================= -->
+  <section class="view" id="view-landing">
+    <div id="landingWrap"></div>
+  </section>
+
+  <!-- ================= DASHBOARD ================= -->
+  <section class="view" id="view-dash">
+    <p class="dash-intro">Saisis chaque soir tes chiffres du jour dans le tableau en bas. Tout est calculé et stocké dans ce navigateur. Les cibles : 25 touches/jour, taux de réponse Instagram &gt; 8 %, booking &gt; 40 %, closing 35-40 %, no-show &lt; 20 %.</p>
+
+    <div class="kpi-grid" id="kpiGrid"></div>
+
+    <div class="panel">
+      <h3>Objectif — ventes cumulées</h3>
+      <div class="pbody ringwrap">
+        <div class="ring" id="salesRing"><span class="rc"><b id="ringNum">0</b><span>sur 10</span></span></div>
+        <div class="ring-legend" id="ringLegend"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Entonnoir cumulé</h3>
+      <div class="pbody"><div class="funnel" id="funnel"></div></div>
+    </div>
+
+    <div class="panel">
+      <h3>Ventes par jour</h3>
+      <div class="pbody">
+        <div class="chart-bars" id="chartBars"></div>
+        <div class="chart-x"><span>J1</span><span>J15</span><span>J30</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Saisie quotidienne</h3>
+      <div class="pbody">
+        <div class="tbl-scroll">
+          <table class="entry-table">
+            <thead><tr>
+              <th>Jour</th><th>Touches</th><th>Réponses</th><th>Appels booked</th>
+              <th>Appels faits</th><th>Ventes</th><th>CA €</th><th>Témoign.</th><th>LinkedIn</th>
+            </tr></thead>
+            <tbody id="entryBody"></tbody>
+          </table>
+        </div>
+        <div class="entry-foot">
+          <button class="btn" id="exportBtn">Copier la sauvegarde (JSON)</button>
+          <button class="btn" id="importBtn">Restaurer depuis un JSON</button>
+          <button class="btn" id="resetBtn">Réinitialiser</button>
+          <span class="mut" id="saveState">Sauvegardé dans ce navigateur</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= RESOURCES ================= -->
+  <section class="view" id="view-res">
+    <div class="res-grid">
+      <nav class="res-nav" id="resNav"></nav>
+      <div id="resWrap"></div>
+    </div>
+  </section>
+
+  <div class="foot" id="foot"></div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ---------------- config ---------------- */
+var START = new Date(2026,7,29); // 29 Aug 2026 = J1
+var GOAL = 10;
+var LS = "arteasy_sprint_2026_v1";
+var WD = ["dim","lun","mar","mer","jeu","ven","sam"];
+var MO = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+
+/* ---------------- store ---------------- */
+var store = load();
+function load(){
+  try{var s=JSON.parse(localStorage.getItem(LS));if(s&&s.kpi)return s;}catch(e){}
+  return {checks:{},kpi:{}};
+}
+function save(){
+  try{localStorage.setItem(LS,JSON.stringify(store));flash("Sauvegardé");}catch(e){}
+}
+function flash(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");
+  clearTimeout(flash._t);flash._t=setTimeout(function(){t.classList.remove("show");},1600);}
+
+/* ---------------- dates ---------------- */
+function dayDate(j){var d=new Date(START);d.setDate(d.getDate()+(j-1));return d;}
+function fmt(d){return WD[d.getDay()]+" "+d.getDate()+" "+MO[d.getMonth()];}
+function isWE(d){return d.getDay()===0||d.getDay()===6;}
+function todayJ(){
+  var now=new Date();now.setHours(0,0,0,0);
+  var diff=Math.round((now-START)/86400000)+1;
+  return Math.max(1,Math.min(30,diff));
+}
+function rawTodayJ(){var now=new Date();now.setHours(0,0,0,0);return Math.round((now-START)/86400000)+1;}
+
+/* ---------------- content: base task lists ---------------- */
+var BASE_WD = [
+  "Prospection — enrichir 15-20 lignes Agence Bio (Instagram, email, signal de croissance)",
+  "Outreach — 15 DM Instagram message 1, personnalisés en 1re phrase",
+  "Outreach — 8 emails froids aux lignes étoilées",
+  "Relances dues traitées (J+3 / J+7 Instagram, J+4 / J+9 email)",
+  "Répondre à toutes les conversations en moins de 3 h",
+  "Appels de setup du jour honorés (rappel envoyé la veille)",
+  "Communauté — 4 réponses de valeur en groupe + 8 commentaires Instagram + 2 DM douleur",
+  "Post LinkedIn publié",
+  "Tableau de bord mis à jour ce soir"
+];
+var BASE_WE = [
+  "Instagram — 20 commentaires vrais + 10 DM message 1 (ils sont sur leurs marchés)",
+  "Enrichir 40 lignes de liste pour la semaine",
+  "Relancer les conversations tièdes par un message de valeur, jamais un pitch",
+  "Post LinkedIn (le dimanche = bilan de semaine)",
+  "Monter le carrousel avant/après si nouveau client cette semaine",
+  "Tableau de bord mis à jour"
+];
+
+/* ---------------- content: 30 days ---------------- */
+/* r = resource anchor ids */
+var DAYS = [
+ {j:1,phase:"Semaine 0 — Infra",focus:"Pouvoir encaisser 97 € et avoir la promesse d'offre écrite.",
+  tasks:[
+   "Créer 3 liens de paiement Stripe : 97 € (limite 6), 147 € (limite 6), 197 € (limite 8) — collecte nom + email + case garantie 30 j",
+   "Tester chaque lien avec une carte de test",
+   "Rédiger la page d'offre à partir des textes prêts (ressource Landing)",
+   "Ouvrir Cal.com — événement « Installation ArtEasy — 20 min », visio, buffer 10 min",
+   "Ajouter les 4 questions de pré-appel dans Cal.com",
+   "Définir la mécanique de parrainage (suivi manuel dans la feuille suffit pour 10 ventes)"
+  ],r:["landing","r-landing","r-referral","r-call"],post:""},
+
+ {j:2,phase:"Semaine 0 — Infra",focus:"La landing vend une offre payante et tout est tracké.",
+  tasks:[
+   "Remplacer sur arteasy.fr tout ce qui dit « bêta / gratuit / 0 € » par la page d'offre",
+   "Un seul CTA répété : « Réserver mon appel d'installation » vers Cal.com",
+   "Compteur de places visible en haut : « Palier en cours : 97 € — 6/6 »",
+   "Créer la page /merci et la brancher comme confirmation des 3 liens Stripe",
+   "UTM sur tous les liens à diffuser (source / medium / campaign=sprint10)",
+   "Installer un suivi de trafic minimal (Plausible / Umami / GA4)",
+   "Créer la feuille de suivi Google Sheet (colonnes de la ressource KPI)"
+  ],r:["landing","r-landing","r-kpi"],post:""},
+
+ {j:3,phase:"Semaine 0 — Infra",focus:"150 lignes de prospects qualifiées + demandes de kits médias parties.",
+  tasks:[
+   "Extraire l'annuaire Agence Bio (API data.gouv.fr), filtrer sur activités de transformation",
+   "Nettoyer et garder 150 lignes ; enrichir chacune (Instagram, email, site)",
+   "Étoiler les lignes avec signal de croissance (Insta actif +500 abonnés, plusieurs points de vente)",
+   "Rejoindre 12-15 groupes Facebook ciblés",
+   "Suivre 30 comptes Instagram de transfo bio, commencer à liker / commenter (pas de DM)",
+   "Envoyer les demandes de kit média : Bio Linéaires, Biofil, 2 pages communautaires, 3 salons"
+  ],r:["r-media","r-community"],post:""},
+
+ {j:4,phase:"Semaine 0 — Infra",focus:"Tout le verbal prêt, premier post publié, premier appel blanc fait.",
+  tasks:[
+   "Personnaliser les 3 templates d'outreach avec ton nom, numéro, liens UTM",
+   "Afficher le script d'appel et la bibliothèque d'objections à côté de l'écran",
+   "1 appel blanc de setup avec un proche qui joue l'artisan sceptique — chronométré 20 min",
+   "Publier le post manifeste LinkedIn (jour 0 du journal)",
+   "Préparer le gabarit du carrousel avant/après, vide",
+   "Préparer 20 messages Instagram message 1 pré-personnalisés pour demain"
+  ],r:["r-dm","r-email","r-fb","r-call","r-obj","r-linkedin"],
+  post:"Je me donne 30 jours pour vendre ArtEasy à 10 artisans transformateurs bio.\n\nPoint de départ, sans filtre : 0 client, 0 liste email, une landing encore en « bêta gratuite ».\n\nArtEasy, c'est l'outil que j'ai construit pour les gens qui font des confitures, des jus, du chocolat — et qui perdent 8 h par semaine à ressaisir des commandes dans Excel le soir.\n\nLe plan : pas de pub. J'appelle des artisans un par un, je fais l'installation moi-même en visio, j'importe leurs données pendant l'appel. 97 € à vie pour les 6 premiers.\n\nJe publie ici tous les jours : le compteur, ce qui marche, ce qui se plante.\n\nJour 0. On y va."},
+
+ {j:5,phase:"Semaine 1 — Valider le canal",focus:"Premier vrai jour d'outreach. Volume + calme.",
+  extra:["Envoyer les 20 DM Instagram message 1 préparés hier"],
+  r:["r-dm","r-email","r-community","r-linkedin"],
+  post:"Jour 4/30. Infra prête : offre à 97 €, agenda de réservation, landing qui ne dit plus « gratuit ».\n\nAujourd'hui, premiers 20 messages à des transformateurs bio. Zéro pitch : juste une question sur leur façon de gérer les commandes.\n\nRègle que je m'impose : si je ne peux pas personnaliser la première phrase avec un détail vrai de leur compte, je n'envoie pas.\n\nDemain : les relances et, j'espère, les premières réponses."},
+
+ {j:6,phase:"Semaine 1 — Valider le canal",focus:"Relances J+1 douces + volume.",
+  r:["r-dm","r-email","r-call","r-obj"],
+  post:"Jour 5/30. Première réponse d'une confiturière : « je note sur un cahier, le soir je reporte sur Excel, et je découvre les ruptures le matin de la cuisson. »\n\nMot pour mot ce que la landing décrit. C'est pas une intuition, c'est le quotidien.\n\n[N] réponses sur [M] messages aujourd'hui."},
+
+ {j:7,phase:"Semaine 1 — Valider le canal",focus:"PREMIER POINT DE DÉCISION CANAL. Comparer taux de réponse Instagram DM vs email.",
+  extra:[
+   "Analyse (30 min) : taux de réponse Instagram DM vs email froid sur J5-J6",
+   "Le canal qui répond le mieux prend 80 % du temps dès la semaine 2 ; l'autre au minimum",
+   "Si Instagram < 3 % ET email < 2 % : retravailler la personnalisation avant d'ajouter du volume"
+  ],r:["r-dm","r-email","r-kpi"],
+  post:"Jour 6/30. Bilan des 3 premiers jours d'outreach :\n- [X] messages envoyés\n- [Y] réponses ([Z] %)\n- [N] appels bookés\n\nInstagram répond [mieux / moins bien] que l'email. Semaine prochaine je mets le paquet sur [canal]."},
+
+ {j:8,phase:"Semaine 1 — Valider le canal",focus:"Instagram terrain — ils postent depuis leurs stands, moment idéal.",
+  r:["r-dm","r-community","r-linkedin"],
+  post:"Jour 7/30. Observation : les transfo bio répondent 3× plus le samedi. Ils sont sur leurs stands, tel en main, entre deux clients.\n\nJ'adapte : gros de l'outreach Instagram le week-end, les appels en semaine."},
+
+ {j:9,phase:"Semaine 1 — Valider le canal",focus:"Bilan semaine 1 + préparation semaine 2.",
+  extra:["Préparer les 20 accroches Instagram pré-personnalisées pour lundi"],
+  r:["r-linkedin","r-kpi"],
+  post:"Semaine 1 / 4. Objectif du sprint : 10 ventes.\nRéalisé : [X] appels bookés, [Y] vente(s).\nCe qui a marché : [...]. Ce qui n'a pas marché : [...].\nSemaine 2 : doubler [canal], lancer le parrainage dès la première vente."},
+
+ {j:10,phase:"Semaine 2 — Doubler le canal",focus:"Montée en volume sur le canal gagnant (+50 %).",
+  extra:["+50 % de volume sur le canal retenu au J7 (ex. 25 DM Instagram)"],
+  r:["r-dm","r-email","r-call","r-obj"],
+  post:"Jour 9/30. On me demande pourquoi 97 € à vie et pas 30 €/mois.\n\nParce que je veux 6 artisans qui s'engagent vraiment, pas 20 curieux qui annulent au 2e mois. Le prix à vie filtre pour l'engagement. Et ceux-là me donneront les retours qui valent de l'or."},
+
+ {j:11,phase:"Semaine 2 — Doubler le canal",focus:"Appels. Si une vente tombe → témoignage + parrainage sur le même appel.",
+  r:["r-call","r-obj","r-referral"],
+  post:"Jour 10/30. Pendant un setup, l'import a bloqué sur un fichier Excel avec des cellules fusionnées. Corrigé en 20 min pendant l'appel, l'artisan a vu le fix en direct.\n\nC'est exactement pour ça que je fais les installs moi-même. Un bug attrapé à chaud vaut mieux qu'un ticket 3 jours après."},
+
+ {j:12,phase:"Semaine 2 — Doubler le canal",focus:"Si 1re vente faite → publier le carrousel avant/après.",
+  extra:["Monter et publier le carrousel avant/après du 1er client (avec accord)"],
+  r:["landing","r-linkedin","r-referral"],
+  post:"[Carrousel avant/après — sinon angle 8]\nJour 11/30. Leçon de vente du jour : [...]."},
+
+ {j:13,phase:"Semaine 2 — Doubler le canal",focus:"Relancer tous les « je vais réfléchir » de la semaine 1.",
+  extra:["Relancer chaque « je vais réfléchir » de S1 (script objection dédié)"],
+  r:["r-obj","r-dm"],
+  post:"Jour 12/30. Objection récurrente : « j'utilise Excel et ça me va. »\n\nMa réponse : « gardez Excel si ça vous va, sérieux. La vraie question : à partir de combien de commandes Excel commence à vous coûter une erreur par mois ? »\n\nLa moitié réalisent qu'ils y sont déjà."},
+
+ {j:14,phase:"Semaine 2 — Doubler le canal",focus:"Bilan mi-parcours. Recalculer le rythme requis.",
+  extra:["Recalculer le rythme requis (onglet Tableau de bord) et ajuster le volume d'appels"],
+  r:["r-kpi","r-call"],
+  post:"Jour 13/30. Mi-parcours.\n[X]/10 ventes. [Y] appels bookés. Closing à [Z] %.\nPour tenir 10 il me faut [N] ventes par semaine sur les 2 restantes. Jouable si je garde le volume d'appels."},
+
+ {j:15,phase:"Semaine 2 — Doubler le canal",focus:"Instagram terrain + relancer les conversations tièdes par de la valeur.",
+  r:["r-dm","r-linkedin"],
+  post:"[Témoignage vidéo 30 s brut si dispo]\nJour 14/30. Le premier client filmé pendant le setup, sans montage : [lien]."},
+
+ {j:16,phase:"Semaine 2 — Doubler le canal",focus:"Bilan semaine 2 + prep semaine 3.",
+  r:["r-linkedin","r-kpi"],
+  post:"Semaine 2 / 4. [X]/10 ventes.\nLe parrainage commence à tourner : [nom] m'a présenté 2 autres transfo. La preuve sociale part des clients maintenant, plus seulement de moi.\nSemaine 3 : injecter les témoignages partout."},
+
+ {j:17,phase:"Semaine 3 — Preuve sociale",focus:"Nouveau message 2 d'outreach AVEC preuve sociale (client nommé + lien vidéo).",
+  extra:["Basculer sur le message 2 bis : citer un client réel + lien témoignage dans chaque relance"],
+  r:["r-dm","r-obj","r-linkedin"],
+  post:"Jour 16/30. J'ai arrêté l'email froid cette semaine. Taux de réponse 3× plus faible que l'Instagram DM pour ce public, et la délivrabilité jouait contre moi.\n\nUn canal qu'on garde « au cas où » est un canal qui vole du temps au canal qui marche."},
+
+ {j:18,phase:"Semaine 3 — Preuve sociale",focus:"Appels — l'agenda se remplit via parrainage + preuve sociale.",
+  r:["r-call","r-obj","r-referral"],
+  post:"Jour 17/30. Ce qui fait signer un transfo bio, dans l'ordre :\n1. Je fais la migration à sa place, là, maintenant.\n2. Un autre artisan qu'il peut appeler l'utilise déjà.\n3. La garantie 30 jours.\nLe prix arrive seulement 4e."},
+
+ {j:19,phase:"Semaine 3 — Preuve sociale",focus:"Si Palier 1 (97 €) complet → post de bascule + MAJ landing sur 147 €.",
+  extra:["Si Palier 1 plein : mettre à jour le compteur landing sur 147 € et publier le post de bascule"],
+  r:["landing","r-landing","r-linkedin"],
+  post:"Jour 18/30. Palier 1 complet : 6 artisans à 97 € à vie.\n\nÇa passe à 147 € pour les 6 suivants. Toujours moitié prix du tarif cible.\n\n[X]/10 sur l'objectif du sprint."},
+
+ {j:20,phase:"Semaine 3 — Preuve sociale",focus:"Relancer TOUS les non-closés de S1-S2 avec le nouvel argument (palier qui monte + témoignages).",
+  extra:["Relance ciblée : « le tarif 97 vient de passer à 147, il reste [X] places » + client à appeler"],
+  r:["r-obj","r-dm"],
+  post:"Jour 19/30. Leçon à mes dépens : j'ai laissé 3 « je vais réfléchir » partir sans date de rappel en semaine 1. J'en ai reperdu 2.\n\nMaintenant : aucun appel ne se termine sans une prochaine action datée. Aucun."},
+
+ {j:21,phase:"Semaine 3 — Preuve sociale",focus:"Bilan S3 + plan du sprint final.",
+  extra:["Établir la liste des 8 prospects les plus chauds non closés pour lundi"],
+  r:["r-kpi","r-call"],
+  post:"Jour 20/30. [X]/10. Dernière semaine dans 2 jours.\nListe des 8 prospects les plus chauds non closés → je les appelle un par un lundi."},
+
+ {j:22,phase:"Semaine 3 — Preuve sociale",focus:"Instagram terrain + relances tièdes.",
+  r:["r-dm","r-linkedin"],
+  post:"Jour 21/30. Une phrase entendue aujourd'hui : « [citation brute d'un artisan sur sa galère]. »"},
+
+ {j:23,phase:"Semaine 3 — Preuve sociale",focus:"Bilan S3 + prep finale.",
+  r:["r-linkedin","r-kpi"],
+  post:"Semaine 3 / 4. [X]/10 ventes. Il en manque [Y] en 7 jours.\nPlan : rappels prioritaires + relance de tous les tièdes + si besoin j'ouvre 2 créneaux le samedi."},
+
+ {j:24,phase:"Semaine 4 — Sprint final",focus:"APPELER (pas messager) les 8 prospects les plus chauds non closés.",
+  extra:["Décrocher le téléphone pour les 8 prospects chauds — appel, pas message"],
+  r:["r-call","r-obj"],
+  post:"Jour 23/30. [X]/10. Semaine finale. Aujourd'hui j'ai décroché le tel 8 fois."},
+
+ {j:25,phase:"Semaine 4 — Sprint final",focus:"Appels + closing. Urgence réelle : « le sprint se termine dimanche, après c'est 397 ».",
+  r:["r-call","r-obj"],
+  post:"Jour 24/30. Objection du jour : « [...] » → « [...] »."},
+
+ {j:26,phase:"Semaine 4 — Sprint final",focus:"Appels + relance dernière chance à toute la liste tiède.",
+  extra:["Message « dernière ligne droite » à toute la liste tiède : le tarif fondateur ferme dimanche"],
+  r:["landing","r-dm","r-obj"],
+  post:"Jour 25/30. Ce qui déclenche le oui à J-4 : l'échéance réelle. Le tarif fondateur ferme dimanche, après c'est 397 €. Ça n'est pas une astuce, c'est la vérité — et ça débloque des gens qui traînaient depuis 3 semaines."},
+
+ {j:27,phase:"Semaine 4 — Sprint final",focus:"Closing intensif. Tout créneau libre = relance téléphonique.",
+  r:["r-call","r-obj"],
+  post:"Jour 26/30. [X]/10. Plus que [Y]."},
+
+ {j:28,phase:"Semaine 4 — Sprint final",focus:"Dernier jour ouvré plein. Closing + préparer la collecte des témoignages.",
+  extra:["Lister tous les témoignages à récupérer et relancer les clients sans vidéo"],
+  r:["r-call","r-referral","r-linkedin"],
+  post:"Jour 27/30. Leçon du sprint : [...]."},
+
+ {j:29,phase:"Semaine 4 — Sprint final",focus:"2 créneaux d'appel ouverts le matin pour les derniers indécis. Relances finales.",
+  extra:["Ouvrir 2 créneaux d'appel samedi matin + relances finales à tous les tièdes"],
+  r:["r-call","r-obj","r-linkedin"],
+  post:"Jour 28/30. Compilation des témoignages : [X] artisans, [X] métiers, une même phrase qui revient — « [...] »."},
+
+ {j:30,phase:"Semaine 4 — Sprint final",focus:"Derniers closings. Collecte des retours clients (rétention J7/J30, ce qui cloche).",
+  extra:[
+   "Derniers closings possibles",
+   "Demander à chaque client : se connectent-ils ? ont-ils traité une vraie commande ? qu'est-ce qui cloche ?",
+   "Préparer le post bilan complet pour le 28/09"
+  ],r:["landing","r-linkedin","r-kpi"],
+  post:"Jour 29/30. Demain je fais les comptes en public : objectif 10, réalisé [X]. Chiffres bruts, ce qui a marché, ce qui a raté, la suite. Rendez-vous demain."}
+];
+
+/* ---------------- resources ---------------- */
+var RES = [
+ {id:"r-dm",title:"Instagram DM — canal principal",
+  intro:"Premier message = une question, zéro pitch. Personnalisation vraie obligatoire en 1re phrase : si tu ne peux pas la faire, tu ne contactes pas.",
+  snips:[
+   {t:"Message 1 (jour 0)",x:"Bonjour [prénom], je suis tombé sur [détail vrai : votre gamme de confitures / votre stand à tel marché / vos étiquettes]. J'accompagne des transformateurs bio et j'essaie de comprendre un truc concret : quand une commande de magasin bio vous arrive, vous la traitez comment aujourd'hui — vous la ressaisissez quelque part, un carnet ? (je ne cherche pas à vous vendre quoi que ce soit, je creuse le sujet)"},
+   {t:"Message 2 (après qu'il ait décrit sa galère)",x:"Ça colle avec ce que j'entends partout. C'est exactement ce qu'on a construit : la commande arrive (photo, PDF, email), l'outil lit les quantités, déduit le stock, prévient si un emballage va manquer, sort la facture sans que vous tapiez quoi que ce soit. Je fais l'installation moi-même en visio, 20 min, j'importe vos données pendant l'appel. Offre fondateur : [prix palier] à vie, [X] places, garantie 30 jours. Ça vaut le coup que je vous montre 10 min sur vos vraies commandes ?"},
+   {t:"Message 2 bis (dès S3, avec preuve sociale)",x:"...Je fais l'install perso en visio. [Prénom], [métier] à [ville], l'utilise depuis [durée] : [lien vidéo]. Il reste [X] places à [prix]. Ça vaut 10 min ?"},
+   {t:"Relance 1 (J+3, vu sans réponse)",x:"Pas de souci si ce n'est pas le moment [prénom]. Je vous laisse le lien si un jour la ressaisie du soir vous gonfle : [lien UTM]. Bonne continuation."},
+   {t:"Relance 2 (J+7, dernière)",x:"Dernier message promis [prénom]. Il me reste [X] places à [prix] à vie, après ça monte. Si vous voulez voir l'outil avant que ça ferme, dites-moi un créneau. Sinon je ne vous dérange plus, bonne saison à vous."}
+  ],note:"Après la relance 2 sans réponse : stop. Pas de 3e relance."},
+
+ {id:"r-email",title:"Email froid — canal secondaire",
+  intro:"Pour les lignes avec un email pro visible. Structure Jason Bay : observation spécifique + hypothèse de douleur + demande douce.",
+  snips:[
+   {t:"Objets à tester",x:"question rapide — [nom de la marque]\nla ressaisie du soir\n[prénom], vous gérez vos commandes comment ?"},
+   {t:"Corps",x:"Bonjour [prénom],\n\nJ'ai vu que [Marque] est référencé chez [magasin/réseau] et que vous tournez sur plusieurs points de vente — belle traction.\n\nÀ ce stade, les transformateurs bio me disent souvent la même chose : les commandes arrivent par trois canaux différents, elles finissent ressaisies à la main dans Excel le soir, et il y a toujours un emballage qui manque en pleine production.\n\nOn a construit un outil qui lit la commande (photo, PDF ou email), met le stock à jour, alerte sur les ruptures et génère la facture automatiquement. Pensé pour les transfo bio, pas un ERP d'usine.\n\nJe fais l'installation moi-même en visio : 20 minutes, j'importe vos données pendant l'appel. Offre fondateur : [prix] à vie, [X] places, garantie 30 jours remboursé.\n\nÇa vaut 15 minutes cette semaine ? Voici mon agenda : [lien Cal.com UTM]\n\n[Prénom Nom]\n[téléphone]\narteasy.fr"},
+   {t:"Relance 1 (J+4)",x:"Bonjour [prénom], je remonte ce message. Une seule question : la gestion des commandes et du stock, c'est un sujet pour vous en ce moment, ou vous êtes bien organisé là-dessus ? Si ce n'est pas le moment, dites-le moi franchement, aucun souci."},
+   {t:"Relance 2 (J+9, rupture)",x:"Bonjour [prénom], je clôture de mon côté. Si un jour vous voulez voir à quoi ça ressemble sur vos vraies commandes : [lien]. Il reste [X] places à [prix] à vie. Bonne saison à vous."}
+  ]},
+
+ {id:"r-fb",title:"Facebook — jamais de pitch en groupe",
+  intro:"Deux mouvements seulement : apporter de la valeur dans les groupes (voir Communauté), et DM aux gens qui commentent tes posts ou postent la douleur.",
+  snips:[
+   {t:"DM à quelqu'un qui poste la douleur",x:"Salut [prénom], j'ai vu ton message dans [groupe] sur [le sujet]. J'essaie de comprendre comment vous gérez ça tous — je bosse sur un outil pour les transfo bio justement. T'as 2 min pour me dire comment tu fais aujourd'hui ? (pas un pitch, je creuse)"}
+  ],note:"Ensuite, même logique que le message 2 de l'Instagram DM."},
+
+ {id:"r-call",title:"Script d'appel de setup — mot pour mot",
+  intro:"20-25 min, visio, partage d'écran. Rappel la veille obligatoire (baisse le no-show).",
+  snips:[
+   {t:"Rappel la veille",x:"Bonjour [prénom], on se voit demain à [heure] pour l'installation. Ayez sous la main si possible : une commande récente (photo ou PDF) et votre fichier Excel ou cahier actuel. On importe vos données en direct pendant l'appel. À demain."},
+   {t:"Étape 1 — Cadre (1 min)",x:"Merci [prénom]. On a 20 minutes, je vais respecter votre temps. Voilà comment je propose qu'on fasse : d'abord 5 minutes où vous m'expliquez comment vous gérez aujourd'hui, ça m'évite de vous montrer des choses inutiles. Ensuite je vous montre l'outil sur VOS données, pas une démo bidon. Et à la fin, deux options : soit ça vous parle et je vous explique comment on démarre, soit ça ne correspond pas et vous me le dites cash, ça ne me vexera pas. Ça vous va ?"},
+   {t:"Étape 2 — Découverte (5-7 min)",x:"SITUATION\n- Racontez-moi une journée type quand les commandes rentrent. Elles arrivent comment, par quels canaux ?\n- Une fois la commande en main, il se passe quoi ? Vous la notez où ?\n- Le stock — emballages, matières — vous le suivez comment ?\n\nPROBLÈME\n- Ça vous est déjà arrivé de lancer une production et de découvrir en cours qu'il manquait des pots ou des étiquettes ?\n- Il vous arrive d'oublier de facturer une livraison, ou de voir tard qu'une facture n'est pas payée ?\n\nCONSÉQUENCE (laisser parler, ne pas combler les silences)\n- Quand ça arrive, ça vous coûte quoi concrètement ? En temps, en argent, en stress ?\n- Vous passez combien d'heures par semaine sur toute cette partie admin, à la louche ?  → NOTER LE CHIFFRE\n- Si vous prenez [30/50] commandes de plus à Noël, ça donne quoi ?\n\nHISTORIQUE\n- Vous avez déjà essayé un outil ? Qu'est-ce qui n'a pas marché ?"},
+   {t:"Étape 3 — Transition",x:"Ok. Si je résume, on dirait que [reformuler LEUR douleur avec LEURS mots]. C'est bien ça ? [attendre le oui]\nCe que je vais vous montrer répond exactement à ça. Je vous le montre sur votre commande, celle que vous avez sous la main ?"},
+   {t:"Étape 4 — Démo sur leurs données (7-8 min, un seul parcours)",x:"1. Importer leur commande (photo/PDF) → l'IA lit les quantités. « Là, je n'ai rien tapé. »\n2. Déduction automatique du stock + alerte rupture sur une ligne.\n3. Générer la facture depuis la commande. « Toujours rien tapé. »\n4. Dashboard : alertes stock du jour, factures à relancer, prod en cours. « Voilà votre matin de demain, en 30 secondes. »\n5. S'arrêter. « Il y a d'autres modules mais l'idée est là. »\nTempérature : « Qu'est-ce que vous en pensez ? » → SILENCE."},
+   {t:"Étape 5 — Import de leurs vraies données (pendant l'appel)",x:"« On fait le vrai test. Envoyez-moi votre fichier produits ou clients, je l'importe pendant qu'on parle. »\nPendant l'import : « Sur une échelle de 1 à 10, à quel point c'est un sujet de régler ça avant la fin de l'année ? »\n- 8+ : enchaîner étape 6.\n- moins de 7 : « Qu'est-ce qui manque pour que ce soit un 8 ? » → traiter, puis étape 6."},
+   {t:"Étape 6 — Le prix",x:"Voilà comment ça marche. Un outil équivalent dans le bio — Craftybase, Katana — c'est autour de 900 € par an. Là, l'offre fondateur : [prix palier] une seule fois, à vie. Pas d'abonnement, jamais, pour vous.\nEn échange je vous demande deux choses : l'utiliser vraiment, et me faire un retour honnête sur ce qui cloche.\nIl reste [X] places à ce tarif. Après, ça passe à [palier suivant].\nEt vous ne prenez aucun risque : 30 jours, si ça ne vous va pas je rembourse, sans question. Et si je n'arrive pas à importer vos données proprement, on ne parle pas d'argent tant que ce n'est pas réglé."},
+   {t:"Étape 7 — Closing",x:"« Sur ce qu'on vient de voir ensemble, vous vous lancez avec nous ? »\n→ SILENCE TOTAL. Ne pas parler en premier. Même si c'est long."},
+   {t:"Étape 8 — Si oui",x:"« Parfait. Je vous envoie le lien de paiement maintenant, 30 secondes, et je vous garde en ligne pour finir la config ensemble. »\n- Envoyer le lien Stripe dans le chat. Confirmer le paiement à l'écran.\n- Finir le setup : presets métier, commande test, tour rapide.\n- « Je vous ajoute sur WhatsApp, vous m'écrivez directement pendant 60 jours. Point rapide dans 3 jours ? »\n- MAJ compteur landing + feuille de suivi."},
+   {t:"Étape 9 — Témoignage à chaud (même appel)",x:"« Vous me rendez un service ? 30 secondes, face caméra, ce que vous faisiez avant et ce que vous venez de voir. Ça m'aide énormément. On le fait maintenant tant que c'est frais ? »\n- C'était quoi le plus pénible avant ?\n- Qu'est-ce qui vous a décidé aujourd'hui ?\n- Vous diriez quoi à un autre artisan qui hésite ?"},
+   {t:"Étape 10 — Parrainage (même appel)",x:"« Dernier truc. Vous connaissez sûrement d'autres transformateurs qui galèrent pareil. Si vous en présentez un qui se lance : lui garde le tarif fondateur même si les places sont parties, et vous, vous avez [3 mois de support prioritaire en plus / accès gratuit à vie aux prochains modules payants / 1 h de conseil gestion avec moi]. Vous avez 2-3 noms en tête là, maintenant ? »\nNoter les noms. Demander une intro par message groupé."}
+  ]},
+
+ {id:"r-obj",title:"Bibliothèque d'objections",
+  intro:"Règle « the ledge » : micro-pause + « c'est une bonne question », puis répondre calmement. Jamais sur la défensive.",
+  snips:[
+   {t:"« C'est trop cher / [prix] c'est beaucoup là tout de suite »",x:"→ « Je comprends. Juste pour bien saisir : c'est le montant qui coince, ou c'est que vous n'êtes pas encore sûr que ça va vous servir ? »\nSi montant : « Vous passez ~[X] h/semaine là-dessus. Même à 15 € de l'heure, c'est remboursé en [calcul] jours de temps gagné. Et garantie 30 jours, aucun risque réel. »\nSi doute : « Alors on ne parle pas d'argent. Qu'est-ce qui vous ferait dire oui à coup sûr ? Montrez-moi le cas qui vous inquiète, on le teste. »"},
+   {t:"« J'ai pas le temps d'apprendre / de migrer »",x:"→ « C'est pour ça que je fais l'install moi-même. Vos données, c'est moi qui les importe, là, pendant qu'on parle. Vous n'avez rien à faire. Et mon WhatsApp direct 60 jours : vous n'apprenez pas seul. »"},
+   {t:"« Je vais réfléchir / j'en parle à mon associé / ma femme / mon comptable »",x:"→ « Bien sûr. Souvent ça veut dire une de deux choses : soit quelque chose n'est pas clair, soit ce n'est pas le moment. Vous êtes lequel ? »\nCo-décideur réel : « Qu'est-ce que [personne] aurait besoin de voir pour être à l'aise ? On refait 10 min tous les trois cette semaine — jeudi ou vendredi ? » Jamais raccrocher sans date.\nPas le moment : « C'est quoi qui changerait entre aujourd'hui et le bon moment ? »"},
+   {t:"« J'utilise Excel et ça me va très bien »",x:"→ « Franchement, si Excel vous va, gardez Excel, je suis sérieux. La seule question : à partir de combien de commandes/mois Excel commence à vous coûter une erreur ? Vous en êtes où ? Et à Noël ? » Laisser le doute travailler."},
+   {t:"« Je vous connais pas, c'est fiable ? »",x:"→ « Question légitime, on est jeune. Vos données : hébergées en Europe, chiffrées, RGPD. Garantie 30 jours sans question. Vous parlez au fondateur, pas à un support. Je fais cette offre justement pour avoir [X] artisans qui l'utilisent pour de vrai et me disent ce qui cloche. » (Dès qu'on a des témoignages : les envoyer juste après l'appel.)"},
+   {t:"« Après la bêta, le prix va exploser ? Je serai coincé ? »",x:"→ « Non. À vie veut dire à vie. Ce que vous achetez aujourd'hui, vous le gardez à ce prix pour toujours, même quand on passera en abonnement pour les nouveaux. »"},
+   {t:"« Est-ce que ça fait [fonction précise] ? »",x:"→ « Aujourd'hui : [oui/non/pas encore]. [Si non] Vous êtes le retour dont j'ai besoin. Je le note, et je vous dis franchement si c'est prévu dans les semaines qui viennent ou pas. Je préfère perdre la vente que vous vendre du vent. »"},
+   {t:"« Envoyez-moi de la doc »",x:"→ « Je peux, mais une doc PDF ne montre pas grand-chose. En 15 min en visio sur vos vraies commandes, c'est 10× plus parlant. Jeudi ou vendredi ? »"},
+   {t:"« Je verrai après les fêtes / la saison »",x:"→ « C'est pendant la saison que l'outil sert le plus, c'est là que les erreurs coûtent cher. L'install prend 20 min. Le mieux : être prêt AVANT le pic. On installe cette semaine, vous testez au calme, vous êtes rodé quand ça accélère. »"},
+   {t:"Silence / « je sais pas »",x:"→ « Qu'est-ce qui vous retient, là, maintenant ? » → se taire."}
+  ]},
+
+ {id:"r-linkedin",title:"Build in public — LinkedIn",
+  intro:"Ne fait pas les ventes ce mois-ci. Construit l'actif qui rend le mois 2 facile + quelques leads entrants en S3-S4. Une seule plateforme, un post par jour.",
+  snips:[
+   {t:"Post manifeste (J4)",x:"Je me donne 30 jours pour vendre ArtEasy à 10 artisans transformateurs bio.\n\nPoint de départ, sans filtre : 0 client, 0 liste email, une landing encore en « bêta gratuite ».\n\nArtEasy, c'est l'outil que j'ai construit pour les gens qui font des confitures, des jus, du chocolat — et qui perdent 8 h par semaine à ressaisir des commandes dans Excel le soir.\n\nLe plan : pas de pub. J'appelle des artisans un par un, je fais l'installation moi-même en visio, j'importe leurs données pendant l'appel. 97 € à vie pour les 6 premiers.\n\nJe publie ici tous les jours : le compteur, ce qui marche, ce qui se plante.\n\nJour 0. On y va."},
+   {t:"Format quotidien (5 lignes)",x:"Ligne 1 : Jour X/30 — [N ventes / M appels bookés].\nLigne 2-3 : un fait concret d'aujourd'hui.\nLigne 4 : un apprentissage ou obstacle, dit franchement.\nLigne 5 : ce que je fais demain.\n3 hashtags max. Emoji avec parcimonie."},
+   {t:"Carrousel avant/après (dès le 1er client)",x:"Slide 1 : « Avant / Après — [prénom], [produit], [ville] »\nSlide 2 : photo de leur cahier ou capture de leur Excel (le vrai désordre)\nSlide 3 : capture du dashboard ArtEasy avec LEURS données\nSlide 4 : la phrase du témoignage, en gros\nSlide 5 : « Offre fondateur — [X] places à [prix] à vie. Lien en commentaire. »"},
+   {t:"10 angles de post",x:"1. L'objection du jour + comment j'y ai répondu.\n2. Une phrase exacte d'un artisan sur sa galère.\n3. Les chiffres : X appels, Y ventes, Z % closing.\n4. Un bug attrapé en direct pendant un setup + le fix.\n5. Pourquoi [prix] à vie et pas un abonnement.\n6. Un témoignage vidéo 30 s publié brut.\n7. Ce que j'ai coupé cette semaine et pourquoi.\n8. Une leçon de vente apprise à mes dépens.\n9. Ce qui déclenche vraiment le oui dans cette niche.\n10. Bilan de semaine : objectif vs réalité, sans arrondir."}
+  ]},
+
+ {id:"r-referral",title:"Parrainage — sans cash",
+  intro:"Le parrain gagne du service et du statut, jamais de l'argent. Filleul : garde le tarif du palier en cours même si les places sont parties.",
+  snips:[
+   {t:"Avantages parrain (au choix, cumulables)",x:"- +3 mois de support WhatsApp prioritaire au-delà des 60 jours\n- OU accès anticipé aux prochains modules payants, gratuit à vie\n- OU 1 heure de conseil gestion / coût de revient en visio avec le fondateur"},
+   {t:"Message que le PARRAIN envoie (fourni prêt)",x:"Je viens de faire gagner [X heures par semaine / la ressaisie du soir] à [nom] avec ArtEasy. Si vous faites de la transfo et que vous galérez avec vos commandes et votre stock, leur offre fondateur est à [prix] à vie (au lieu de ~950 €/an ailleurs). Voici mon lien : [lien]. Le fondateur fait l'install lui-même."},
+   {t:"Message au filleul après l'intro",x:"Bonjour [prénom], [parrain] m'a dit que vous faisiez [produit] et que la gestion des commandes commençait à vous prendre du temps. Il utilise ArtEasy depuis [durée]. Je fais l'installation moi-même en visio, 20 min, j'importe vos données pendant l'appel. Grâce à [parrain] vous gardez le tarif fondateur. Ça vaut 15 min pour voir ce que ça donne sur vos commandes ?"}
+  ]},
+
+ {id:"r-landing",title:"Textes landing / page d'offre",
+  intro:"Remplace la landing bêta. Un seul CTA répété. Compteur de places réel, mis à jour à chaque vente.",
+  snips:[
+   {t:"Hero",x:"Titre : Une commande arrive. L'IA la lit. La facture part. Vous n'avez rien tapé.\nSous-titre : ArtEasy gère vos commandes, votre stock, votre production et vos factures — en un seul flux. Pensé pour les artisans transformateurs bio, pas pour une usine.\nBandeau : 9 modules en production · Hébergement Europe RGPD · Palier en cours : [prix] — X/[N] places\nCTA : Réserver mon appel d'installation (20 min, gratuit)\nSous le CTA : Installation faite par le fondateur. Vos données importées pendant l'appel. Garantie 30 jours remboursé."},
+   {t:"Section offre fondateur",x:"Offre fondateur — 20 places, 3 paliers\n\nPalier en cours : [prix] une fois. À vie. Pas d'abonnement.\nUn outil équivalent dans le bio coûte environ 947 € par an.\n\nInclus :\n- L'outil complet, tous les modules, pour toujours.\n- L'installation en visio par le fondateur (20 min).\n- L'import de vos données (produits, clients, stock) fait pour vous.\n- Des presets par métier : plan comptable et catalogue pré-configurés pour confiture, jus ou confiserie.\n- Support WhatsApp direct avec le fondateur pendant 60 jours.\n\nEn échange : l'utiliser pour de vrai, et un retour honnête sur ce qui ne va pas.\n\nGarantie : 30 jours remboursé, sans question. Et si on n'arrive pas à importer vos données proprement, vous ne payez rien tant que ce n'est pas réglé.\n\nPlaces : Palier 1 (97 €) X/6 · Palier 2 (147 €) 6 · Palier 3 (197 €) 8. On ne rouvre jamais un palier fermé.\nCTA : Réserver mon appel"},
+   {t:"Page /merci (après paiement)",x:"C'est fait. Bienvenue parmi les fondateurs d'ArtEasy.\n\nProchaine étape : on finit votre configuration ensemble. Si ce n'est pas déjà fait pendant l'appel, choisissez un créneau ici : [lien].\n\nD'ici là, préparez : votre catalogue produits (Excel ou photo), votre liste clients, une commande récente type.\n\nUne question ? Écrivez-moi directement sur WhatsApp : [numéro]. Je réponds vite.\n\n[Prénom], fondateur d'ArtEasy"}
+  ]},
+
+ {id:"r-media",title:"Sponsoring & presse spécialisée",
+  intro:"Un placement dans le sprint (150-350 €). Les kits salons se demandent maintenant pour une décision post-sprint (délais 1-4 mois).",
+  snips:[
+   {t:"Dans le sprint — à contacter J3",x:"- Bio Linéaires (magazine du réseau bio spécialisé) : kit média, encart 1/4 page ou insertion newsletter pro\n- Biofil (magazine technique producteurs bio) : newsletter ou encart\n- Newsletters de fédérations et réseaux (FNAB régionales, Bienvenue à la Ferme, réseaux de magasins bio)\n- Pages Instagram/Facebook communautaires artisan food (20-100k abonnés) : post partenaire payé 50-150 €\n- Podcasts artisan / food entrepreneurs : mention sponsor 1-2 épisodes, ou passer en invité (gratuit, plus fort)\n- Annuaires en ligne d'artisans / créateurs : fiche mise en avant"},
+   {t:"Écrans / bannières salons — pour l'après-sprint",x:"- Natexpo (Lyon 28-29 sept 2026, Paris 2027) : demander formules sponsoring hors stand (signalétique, écrans, appli du salon, sacs visiteurs, wifi). Viser 2027.\n- Salon Marjolaine (Paris, nov 2026) : formules non-exposant (encart catalogue, écran, insertion sac)\n- MIF Expo — Salon du Made in France (Paris, nov 2026) : kit sponsoring\n- Salons Bio « Respire la Vie » / « Vivre Autrement » / « Zen » (tour régional) : formules écran et bannières accessibles aux non-exposants\n- Salons régionaux des métiers d'art et de la gastronomie (via CMA) : peu chers, très ciblés localement"},
+   {t:"Message de demande de kit média",x:"Objet : Demande de kit média — ArtEasy (outil pour transformateurs bio)\n\nBonjour,\n\nJe développe ArtEasy, un outil de gestion (commandes, stock, production, facturation) conçu pour les artisans transformateurs bio.\n\nJe souhaite toucher votre audience de producteurs et transformateurs. Pourriez-vous m'envoyer :\n- votre kit média / grille tarifaire (encart, newsletter, publi-info, post partenaire) ;\n- pour un salon : les formules de visibilité pour un non-exposant (signalétique, écrans, catalogue, insertion sac visiteur, sponsoring d'espace).\n\nJe cherche un premier placement avant fin septembre, budget de départ modeste, avec une vraie option de montée en puissance ensuite.\n\nMerci,\n[Prénom Nom] — arteasy.fr — [téléphone]"}
+  ]},
+
+ {id:"r-community",title:"Playbook communauté",
+  intro:"Être reconnu comme « le gars qui aide sur la gestion » avant de vendre. 20-30 min par jour. Jamais « voici mon outil » dans un groupe.",
+  snips:[
+   {t:"5 idées de valeur (à reformuler, jamais copier)",x:"1. « Comment je calculerais mon coût de revient sur un pot de confiture » — méthode chiffrée, étape par étape.\n2. « Les 3 erreurs de facturation qui coûtent le plus cher aux transfo » — sans citer d'outil.\n3. « Traçabilité des lots : le minimum à avoir pour un contrôle » — checklist.\n4. « Gérer le stock d'emballages quand on a 15 références » — astuce concrète.\n5. « Marchés + magasins bio + web : ne pas perdre une commande entre les trois. »"},
+   {t:"Routine quotidienne",x:"- 3-5 réponses utiles dans les groupes, zéro mention ArtEasy.\n- 2-3 personnes qui postent la douleur → DM (voir Facebook).\n- 10 commentaires Instagram vrais sur des comptes de transfo bio.\n\nInterdits : poster « voici mon outil » dans un groupe, lien ArtEasy en commentaire non sollicité, DM copié-collé."},
+   {t:"Où chercher",x:"Groupes Facebook : « transformateurs » « conserverie » « vente directe producteurs » « artisans agroalimentaire » « micro-entreprise agroalimentaire » « bio et local » + groupes régionaux de producteurs + groupes par produit.\nInstagram : #confitureartisanale #confituremaison #artisanbio #transformationbio #producteurbio #circuitcourt #ventedirecte #marchedeproducteurs #fabriqueenfrance #miellocal #jusdefruitsartisanal #kombuchafrance #conserverieartisanale"}
+  ]},
+
+ {id:"r-kpi",title:"Définitions KPI",
+  intro:"Le tableau de bord calcule tout à partir de ta saisie quotidienne. Voici ce que chaque chiffre veut dire et sa cible.",
+  snips:[
+   {t:"KPI principaux",x:"Ventes cumulées / 10 — la seule qui compte au final.\nJours restants dans le sprint.\nRythme requis = (10 − ventes) / semaines restantes. Si > 4 → alerte : il faut plus d'appels, pas un meilleur closing.\nCA cumulé.\nProjection finale = ventes + (rythme actuel × semaines restantes)."},
+   {t:"Indicateurs avancés (prédisent les ventes 1-2 semaines avant)",x:"Touches envoyées — cible 25/jour, ~600 sur le sprint.\nTaux de réponse par canal = réponses / touches — cible Instagram > 8 %, email > 5 %.\nAppels bookés (cumul) — cible 25-30.\nTaux de booking = appels bookés / réponses — cible > 40 %.\nTaux de no-show — cible < 20 % (rappel la veille obligatoire).\nTaux de closing = ventes / appels réalisés — cible 35-40 %.\nPanier moyen = CA / ventes — doit monter avec les paliers."},
+   {t:"Colonnes de la feuille de suivi",x:"Date 1er contact · Nom/Marque · Métier · Région · Canal · Source · Perso utilisée · Statut (contacté/répondu/appel booké/appel fait/vendu/perdu/à relancer) · Date prochaine action · Objection principale · Montant et date de vente · Témoignage (o/n) · Noms parrainage donnés"},
+   {t:"Critère de coupure (J7)",x:"Si taux de réponse Instagram < 3 % ET email < 2 % sur J5-J6 : le problème est le ciblage ou l'accroche, pas le canal. Resserrer sur les seules lignes étoilées, retravailler la 1re phrase, refaire 30 touches avant de juger. Ne pas ajouter de volume sur une accroche qui ne mord pas."}
+  ]}
+];
+
+/* ---------------- helpers ---------------- */
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
+function tierFor(sales){ if(sales>=12) return "197 €"; if(sales>=6) return "147 €"; return "97 €"; }
+function dayTasks(d){
+  var dt=dayDate(d.j), we=isWE(dt);
+  if(d.tasks) return d.tasks.slice();
+  var base=we?BASE_WE.slice():BASE_WD.slice();
+  if(d.extra){ for(var i=d.extra.length-1;i>=0;i--) base.unshift(d.extra[i]); }
+  return base;
+}
+
+/* ---------------- TODAY view ---------------- */
+var curJ = todayJ();
+function buildDayNav(){
+  var nav=document.getElementById("daynav");nav.innerHTML="";
+  var weeks=[[1,4,"Semaine 0 · Infra"],[5,9,"Semaine 1 · Valider le canal"],[10,16,"Semaine 2 · Doubler le canal"],[17,23,"Semaine 3 · Preuve sociale"],[24,30,"Semaine 4 · Sprint final"]];
+  weeks.forEach(function(w){
+    nav.appendChild(el("div","wk",w[2]));
+    for(var j=w[0];j<=w[1];j++){ nav.appendChild(dchip(j)); }
+  });
+}
+function dchip(j){
+  var d=DAYS[j-1], dt=dayDate(j), we=isWE(dt);
+  var b=el("button","dchip");
+  b.appendChild(el("span","st"));
+  b.appendChild(el("span","code","J"+j));
+  var dm=el("span","dm",WD[dt.getDay()]+" "+dt.getDate()+"/"+(dt.getMonth()+1));
+  b.appendChild(dm);
+  if(j===curJ) b.setAttribute("aria-current","true");
+  var stt=dayStatus(j);
+  if(stt) b.classList.add("st-"+stt);
+  b.onclick=function(){curJ=j;renderDay();buildDayNav();window.scrollTo({top:0,behavior:"smooth"});};
+  return b;
+}
+function dayStatus(j){
+  var arr=store.checks[j]||[];
+  var total=dayTasks(DAYS[j-1]).length;
+  var done=arr.filter(Boolean).length;
+  if(total&&done>=total) return "done";
+  if(done>0) return "partial";
+  if(rawTodayJ()>j) return "missed";
+  return "";
+}
+function renderDay(){
+  var d=DAYS[curJ-1], dt=dayDate(curJ), we=isWE(dt), col=document.getElementById("daycol");
+  col.innerHTML="";
+  var head=el("div","dayhead");
+  head.appendChild(el("span","jcode","J"+curJ));
+  head.appendChild(el("span","ddate",fmt(dt)+" 2026"));
+  head.appendChild(el("span","pill phase",d.phase));
+  if(we) head.appendChild(el("span","pill we","Week-end · pas d'appels"));
+  if(curJ===todayJ() && rawTodayJ()>=1 && rawTodayJ()<=30) head.appendChild(el("span","pill","Aujourd'hui"));
+  col.appendChild(head);
+  col.appendChild(el("p","focus",d.focus));
+
+  /* checklist */
+  var tasks=dayTasks(d);
+  var c1=el("div","card");
+  c1.appendChild(el("h3",null,"Checklist du jour"));
+  var body=el("div","body");
+  var pb=el("div","progressbar");var pbi=el("i");pb.appendChild(pbi);
+  var arr=store.checks[curJ]||(store.checks[curJ]=[]);
+  tasks.forEach(function(t,i){
+    var row=el("div","task");
+    var cb=el("input");cb.type="checkbox";cb.checked=!!arr[i];
+    if(cb.checked) row.classList.add("done");
+    var id="t"+curJ+"_"+i;cb.id=id;
+    var lb=el("label",null,t);lb.setAttribute("for",id);
+    cb.onchange=function(){arr[i]=cb.checked;row.classList.toggle("done",cb.checked);
+      save();updateProgress();buildDayNav();updateHeader();};
+    row.appendChild(cb);row.appendChild(lb);body.appendChild(row);
+  });
+  body.appendChild(pb);
+  c1.appendChild(body);col.appendChild(c1);
+  function updateProgress(){
+    var done=(store.checks[curJ]||[]).filter(Boolean).length;
+    pbi.style.width=(tasks.length?Math.round(done/tasks.length*100):0)+"%";
+  }
+  updateProgress();
+
+  /* linkedin post — source unique : onglet Contenu */
+  var liPost=CONTENT.linkedin.filter(function(p){return p.j===curJ;})[0];
+  var postTxt=liPost?liPost.texte:d.post;
+  if(postTxt){
+    var c2=el("div","card");
+    c2.appendChild(el("h3",null,"Post LinkedIn du jour"));
+    var b2=el("div","body");
+    if(liPost){
+      var mm=el("div","pmeta");
+      mm.appendChild(el("span",null,liPost.format));
+      if(liPost.heure)mm.appendChild(el("span",null,"À poster : "+liPost.heure));
+      if(liPost.cta)mm.appendChild(el("span",null,"CTA : "+liPost.cta));
+      b2.appendChild(mm);
+    }
+    b2.appendChild(el("div","post",postTxt));
+    var pa=el("div","post-actions");
+    var cp=el("button","btn primary","Copier le post");
+    cp.onclick=function(){copy(postTxt);};
+    pa.appendChild(cp);
+    if(liPost&&liPost.comment){
+      var cc=el("button","btn","Copier le 1er commentaire");
+      cc.onclick=function(){copy(liPost.comment);};
+      pa.appendChild(cc);
+    }
+    var open=el("button","btn","Voir dans Contenu →");
+    open.onclick=function(){switchView("contenu");cShow("linkedin");
+      var t=document.getElementById("li-j"+curJ);if(t)t.scrollIntoView({behavior:"smooth",block:"start"});};
+    pa.appendChild(open);
+    b2.appendChild(pa);
+    if(liPost&&liPost.fill)b2.appendChild(el("div","fill","À compléter : "+liPost.fill));
+    c2.appendChild(b2);col.appendChild(c2);
+  }
+
+  /* resources */
+  if(d.r&&d.r.length){
+    var c3=el("div","card");
+    c3.appendChild(el("h3",null,"Ressources liées à ce jour"));
+    var b3=el("div","body");
+    var rl=el("div","reslinks");
+    d.r.forEach(function(rid){
+      if(rid==="landing"){
+        var lb=el("button","reslink","Landing de lancement (3 variantes)");
+        lb.onclick=function(){switchView("landing");};
+        rl.appendChild(lb);return;
+      }
+      var meta=RES.filter(function(x){return x.id===rid;})[0];if(!meta)return;
+      var a=el("button","reslink",meta.title);
+      a.onclick=function(){gotoRes(rid);};
+      rl.appendChild(a);
+    });
+    b3.appendChild(rl);c3.appendChild(b3);col.appendChild(c3);
+  }
+  updateHeader();
+}
+
+/* ---------------- PLAN view ---------------- */
+function buildPlan(){
+  var w=document.getElementById("planWrap");w.innerHTML="";
+  var weeks=[
+   [1,4,"Semaine 0 — Infra","J1 à J4. Rien ne part en outreach avant que l'encaissement, la landing, le tracking, la liste et les scripts soient prêts."],
+   [5,9,"Semaine 1 — Valider le canal","Volume calme sur les deux canaux. Au J7 on tranche : Instagram DM ou email. Cible : 5-7 appels bookés, 0-2 ventes."],
+   [10,16,"Semaine 2 — Doubler le canal","+50 % de volume sur le canal gagnant. Premières ventes → témoignage + parrainage à chaque fois. Cible cumul : 3-4 ventes."],
+   [17,23,"Semaine 3 — Preuve sociale","Les témoignages entrent dans l'outreach et les relances. Bascule de palier. Cible cumul : 6-7 ventes."],
+   [24,30,"Semaine 4 — Sprint final","Rappels téléphoniques des prospects chauds, échéance réelle du tarif fondateur. Cible cumul : 10 ventes."]
+  ];
+  weeks.forEach(function(wk){
+    var sec=el("div","plan-week");
+    sec.appendChild(el("h2",null,wk[2]));
+    sec.appendChild(el("p","wnote",wk[3]));
+    var rows=el("div","plan-rows");
+    for(var j=wk[0];j<=wk[1];j++){
+      var d=DAYS[j-1],dt=dayDate(j);
+      var r=el("div","plan-row");
+      r.appendChild(el("span","pj","J"+j));
+      r.appendChild(el("span","pd",WD[dt.getDay()]+" "+dt.getDate()+"/"+(dt.getMonth()+1)));
+      r.appendChild(el("span","pf",d.focus));
+      var g=el("span","pg",isWE(dt)?"week-end":d.phase.split("—")[0].trim());
+      r.appendChild(g);
+      r.onclick=(function(jj){return function(){curJ=jj;switchView("today");renderDay();buildDayNav();};})(j);
+      r.style.cursor="pointer";
+      rows.appendChild(r);
+    }
+    sec.appendChild(rows);w.appendChild(sec);
+  });
+}
+
+/* ---------------- DASHBOARD ---------------- */
+function kpiDay(j){
+  var k=store.kpi[j]||{};
+  return {touches:+k.touches||0,reponses:+k.reponses||0,bookes:+k.bookes||0,
+    faits:+k.faits||0,ventes:+k.ventes||0,ca:+k.ca||0,temo:+k.temo||0,li:!!k.li};
+}
+function agg(uptoJ){
+  var a={touches:0,reponses:0,bookes:0,faits:0,ventes:0,ca:0,temo:0,li:0};
+  for(var j=1;j<=(uptoJ||30);j++){var d=kpiDay(j);
+    a.touches+=d.touches;a.reponses+=d.reponses;a.bookes+=d.bookes;a.faits+=d.faits;
+    a.ventes+=d.ventes;a.ca+=d.ca;a.temo+=d.temo;a.li+=d.li?1:0;}
+  return a;
+}
+function pct(n,d){return d>0?(n/d*100):0;}
+function buildDash(){
+  var tJ=todayJ(), rawJ=rawTodayJ();
+  var A=agg(30);
+  var joursRestants=Math.max(0,30-rawJ+1); if(rawJ>30)joursRestants=0;
+  var semRest=Math.max(1,Math.ceil(joursRestants/7));
+  var semEcoul=Math.max(1,Math.round((Math.min(rawJ,30))/7*10)/10);
+  var rythmeReq=(GOAL-A.ventes)/semRest;
+  var rythmeAct=A.ventes/Math.max(1,semEcoul);
+  var projection=Math.round((A.ventes+rythmeAct*Math.max(0,semRest-1))*10)/10;
+  var closing=pct(A.ventes,A.faits);
+  var repRate=pct(A.reponses,A.touches);
+  var booking=pct(A.bookes,A.reponses);
+  var panier=A.ventes>0?Math.round(A.ca/A.ventes):0;
+  var touchesPerDay=A.touches/Math.max(1,Math.min(rawJ,30)-4>0?Math.min(rawJ,30)-4:1);
+
+  var cards=[
+   {l:"Ventes cumulées",v:A.ventes+"<small> / "+GOAL+"</small>",s:"Projection fin de sprint : "+projection,
+    flag:A.ventes>=GOAL?"ok":(A.ventes>=rawJ/3?"":"warn")},
+   {l:"Jours restants",v:joursRestants,s:semRest+" semaine(s) · sprint J1→J30",flag:""},
+   {l:"Rythme requis",v:(rythmeReq<=0?"0":rythmeReq.toFixed(1))+"<small> /sem</small>",
+    s:rythmeReq>4?"Trop élevé — augmenter le volume d'appels":"Tenable au rythme actuel",
+    flag:rythmeReq<=0?"ok":(rythmeReq>4?"bad":(rythmeReq>2.5?"warn":"ok"))},
+   {l:"CA cumulé",v:A.ca+" <small>€</small>",s:"Panier moyen : "+panier+" €",flag:""},
+   {l:"Touches / jour",v:(touchesPerDay?touchesPerDay.toFixed(0):"0"),s:"Cible 25 · cumul "+A.touches,
+    flag:touchesPerDay>=22?"ok":(touchesPerDay>=12?"warn":"bad"),tag:touchesPerDay>=22?["ok","au rythme"]:(touchesPerDay>=12?["warn","sous la cible"]:["bad","très bas"])},
+   {l:"Taux de réponse",v:repRate.toFixed(1)+" <small>%</small>",s:A.reponses+" réponses / "+A.touches+" touches",
+    flag:repRate>=8?"ok":(repRate>=3?"warn":"bad"),tag:repRate>=8?["ok","bon"]:(repRate>=3?["warn","à surveiller"]:["bad","accroche à revoir"])},
+   {l:"Appels bookés",v:A.bookes,s:"Cible 25-30 · booking "+booking.toFixed(0)+" %",
+    flag:booking>=40?"ok":(booking>=25?"warn":""),tag:booking>=40?["ok","booking "+booking.toFixed(0)+" %"]:null},
+   {l:"Taux de closing",v:closing.toFixed(0)+" <small>%</small>",s:A.ventes+" ventes / "+A.faits+" appels faits",
+    flag:closing>=35?"ok":(closing>=25?"warn":(A.faits>0?"bad":"")),
+    tag:closing>=35?["ok","dans la cible"]:(closing>=25&&A.faits>0?["warn","limite"]:(A.faits>2?["bad","ciblage amont à resserrer"]:null))}
+  ];
+  var g=document.getElementById("kpiGrid");g.innerHTML="";
+  cards.forEach(function(c){
+    var k=el("div","kpi"+(c.flag?" flag-"+c.flag:""));
+    k.appendChild(el("div","k-label",c.l));
+    var v=el("div","k-val");v.innerHTML=c.v;k.appendChild(v);
+    k.appendChild(el("div","k-sub",c.s));
+    if(c.tag){var t=el("span","k-tag "+c.tag[0],c.tag[1]);k.appendChild(t);}
+    g.appendChild(k);
+  });
+
+  /* ring */
+  var p=Math.min(100,A.ventes/GOAL*100);
+  var ring=document.getElementById("salesRing");
+  ring.style.setProperty("--p",p);
+  document.getElementById("ringNum").textContent=A.ventes;
+  document.getElementById("ringLegend").innerHTML=
+    "<b>"+A.ventes+"</b> vente(s) sur "+GOAL+".<br>"+
+    (A.ventes>=GOAL?"Objectif atteint.":"Il en manque <b>"+(GOAL-A.ventes)+"</b> en <b>"+joursRestants+"</b> jour(s).")+
+    "<br>Palier en cours : <b>"+tierFor(A.ventes)+"</b>.";
+
+  /* funnel */
+  var f=document.getElementById("funnel");f.innerHTML="";
+  var steps=[["Touches",A.touches],["Réponses",A.reponses],["Appels bookés",A.bookes],["Appels faits",A.faits],["Ventes",A.ventes]];
+  var mx=Math.max(1,A.touches);
+  steps.forEach(function(s){
+    var row=el("div","frow");
+    row.appendChild(el("span","fn",s[0]));
+    var bar=el("div","fbar");var i=el("i");i.style.width=(s[1]/mx*100)+"%";bar.appendChild(i);
+    row.appendChild(bar);
+    row.appendChild(el("span","fv",String(s[1])));
+    f.appendChild(row);
+  });
+
+  /* bar chart ventes/jour */
+  var cb=document.getElementById("chartBars");cb.innerHTML="";
+  var maxV=1;for(var j=1;j<=30;j++){maxV=Math.max(maxV,kpiDay(j).ventes);}
+  for(var j=1;j<=30;j++){
+    var v=kpiDay(j).ventes;
+    var bar=el("div","cb"+(v===0?" z":""));
+    bar.style.height=(v===0?4:(v/maxV*100))+"%";
+    bar.setAttribute("data-t","J"+j+" · "+v+" vente(s)");
+    cb.appendChild(bar);
+  }
+
+  buildEntry();
+}
+function buildEntry(){
+  var tb=document.getElementById("entryBody");tb.innerHTML="";
+  var tJ=rawTodayJ();
+  for(var j=1;j<=30;j++){
+    var d=kpiDay(j),dt=dayDate(j);
+    var tr=el("tr");if(j===todayJ()&&tJ>=1&&tJ<=30)tr.setAttribute("data-current","1");
+    tr.appendChild(el("td",null,"J"+j+" "+WD[dt.getDay()]+" "+dt.getDate()+"/"+(dt.getMonth()+1)));
+    ["touches","reponses","bookes","faits","ventes","ca","temo"].forEach(function(key){
+      var td=el("td");var inp=el("input");inp.type="number";inp.min="0";inp.value=d[key]||"";
+      inp.setAttribute("aria-label",key+" J"+j);
+      inp.onchange=(function(jj,kk){return function(e){
+        store.kpi[jj]=store.kpi[jj]||{};store.kpi[jj][kk]=e.target.value===""?0:+e.target.value;
+        save();buildDash();updateHeader();
+      };})(j,key);
+      td.appendChild(inp);tr.appendChild(td);
+    });
+    var tdc=el("td");var chk=el("input");chk.type="checkbox";chk.checked=d.li;
+    chk.setAttribute("aria-label","LinkedIn J"+j);
+    chk.onchange=(function(jj){return function(e){
+      store.kpi[jj]=store.kpi[jj]||{};store.kpi[jj].li=e.target.checked;save();buildDash();
+    };})(j);
+    tdc.appendChild(chk);tr.appendChild(tdc);
+    tb.appendChild(tr);
+  }
+}
+
+/* ---------------- RESOURCES ---------------- */
+function buildRes(){
+  var nav=document.getElementById("resNav"),w=document.getElementById("resWrap");
+  nav.innerHTML="";w.innerHTML="";
+  RES.forEach(function(r){
+    var a=el("a",null,r.title);a.href="#"+r.id;nav.appendChild(a);
+    var sec=el("section","res-sec");sec.id=r.id;
+    sec.appendChild(el("h2",null,r.title));
+    if(r.intro)sec.appendChild(el("p","rintro",r.intro));
+    (r.snips||[]).forEach(function(s){
+      var box=el("div","snip");
+      var sh=el("div","sh");sh.appendChild(el("b",null,s.t));
+      var cbtn=el("button","cbtn","Copier");cbtn.onclick=(function(txt){return function(){copy(txt);};})(s.x);
+      sh.appendChild(cbtn);box.appendChild(sh);
+      box.appendChild(el("div","st",s.x));
+      sec.appendChild(box);
+    });
+    if(r.note)sec.appendChild(el("div","callout",r.note));
+    w.appendChild(sec);
+  });
+}
+function gotoRes(id){
+  switchView("res");
+  var t=document.getElementById(id);
+  if(t)t.scrollIntoView({behavior:"smooth",block:"start"});
+  document.querySelectorAll(".res-nav a").forEach(function(a){
+    a.classList.toggle("on",a.getAttribute("href")==="#"+id);});
+}
+
+/* ---------------- views / header / theme ---------------- */
+function switchView(v){
+  document.querySelectorAll(".tab").forEach(function(t){
+    t.setAttribute("aria-selected",t.dataset.view===v);});
+  document.querySelectorAll(".view").forEach(function(s){
+    s.classList.toggle("active",s.id==="view-"+v);});
+  if(v==="dash")buildDash();
+  window.scrollTo({top:0});
+}
+document.querySelectorAll(".tab").forEach(function(t){
+  t.onclick=function(){switchView(t.dataset.view);};
+});
+function updateHeader(){
+  var A=agg(30);
+  document.getElementById("hdrDay").textContent=Math.min(30,Math.max(1,rawTodayJ()<1?1:todayJ()));
+  document.getElementById("hdrSales").textContent=A.ventes;
+  document.getElementById("hdrTier").textContent=tierFor(A.ventes);
+}
+var themeBtn=document.getElementById("themeBtn");
+var savedTheme=null;try{savedTheme=localStorage.getItem(LS+"_theme");}catch(e){}
+if(savedTheme)document.documentElement.setAttribute("data-theme",savedTheme);
+themeBtn.onclick=function(){
+  var cur=document.documentElement.getAttribute("data-theme");
+  var isDark=cur==="dark"||(cur!=="light"&&window.matchMedia("(prefers-color-scheme:dark)").matches);
+  var next=isDark?"light":"dark";
+  document.documentElement.setAttribute("data-theme",next);
+  try{localStorage.setItem(LS+"_theme",next);}catch(e){}
+  if(document.getElementById("view-dash").classList.contains("active"))buildDash();
+};
+
+/* ---------------- copy / export / import ---------------- */
+function copy(txt){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){flash("Copié");},function(){fallbackCopy(txt);});
+  }else fallbackCopy(txt);
+}
+function fallbackCopy(txt){
+  var ta=document.createElement("textarea");ta.value=txt;ta.style.position="fixed";ta.style.opacity="0";
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand("copy");flash("Copié");}catch(e){flash("Copie impossible");}
+  document.body.removeChild(ta);
+}
+document.getElementById("exportBtn").onclick=function(){
+  copy(JSON.stringify(store));
+  flash("Sauvegarde copiée — colle-la dans une note");
+};
+document.getElementById("importBtn").onclick=function(){
+  var raw=prompt("Colle ici une sauvegarde JSON précédemment copiée :");
+  if(!raw)return;
+  try{var o=JSON.parse(raw);if(o&&o.kpi&&o.checks){store=o;save();
+    renderDay();buildDayNav();buildDash();updateHeader();flash("Sauvegarde restaurée");}
+    else flash("JSON non reconnu");}
+  catch(err){flash("JSON invalide");}
+};
+document.getElementById("resetBtn").onclick=function(){
+  if(confirm("Effacer toute la progression et les chiffres saisis ?")){
+    store={checks:{},kpi:{}};save();renderDay();buildDayNav();buildDash();updateHeader();
+  }
+};
+
+/* ---------------- foot ---------------- */
+document.getElementById("foot").innerHTML=
+  "Carnet de sprint ArtEasy · J1 = samedi 29 août 2026, J30 = dimanche 27 septembre · bilan public le 28/09. "+
+  "Plan complet et scripts : PLAN_SPRINT_10_VENTES_2026-08-29.md · Progression et chiffres stockés dans ce navigateur uniquement.";
+
+/* ================= CONTENU MULTIPLATEFORME ================= */
+var PIL={journal:["c-journal","Journal"],valeur:["c-valeur","Valeur ICP"],story:["c-story","Story"],preuve:["c-preuve","Preuve"],contrarian:["c-contrarian","Contrarian"]};
+
+var CONTENT={
+ pillars:[
+  ["Journal de sprint","Le sprint en public : chiffres, coulisses, décisions. Attire les pairs, crée de l'inbound."],
+  ["Valeur ICP","J'apprends quelque chose à l'artisan sur SA gestion. Le pilier qui se partage en groupe et en DM."],
+  ["Story","Pourquoi ArtEasy existe, l'artisan que j'ai vu galérer, mes erreurs de fondateur."],
+  ["Preuve","Témoignages, avant/après, captures, résultats clients."],
+  ["Contrarian / growth","Les partis pris qui cassent l'orthodoxe SaaS. Engagement + démarque."]
+ ],
+ experts:"Contenu bâti avec la méthode de créateurs francophones orientés growth : <b>Nina Ramen</b> (le copywriting cash — une accroche fait mal ou intrigue, jamais elle n'informe), <b>Thibault Louis</b> (structure problème / agitation / solution, et l'angle « l'erreur que tout le monde fait »), <b>Grégoire Gambatto / Germinal</b> (le hook contrarian, le chiffre précis, l'ennemi commun), <b>Benoît Dubos &amp; Scalezia</b> (chaque post = un enseignement actionnable). Règle commune : une idée par post, phrases courtes, du blanc, un détail concret d'artisan, un seul CTA.",
+ regles:"- Ligne 1 = l'accroche. Elle tient seule et donne envie de cliquer « voir plus ». Jamais un résumé.\n- Une idée par post. Deux idées = deux posts.\n- Phrases courtes, retours à la ligne fréquents. Le blanc se lit.\n- Toujours un détail concret : « couvercle 70 mm », « le post-it sous le torchon » — pas « la gestion des stocks ».\n- Un seul CTA, souvent aucun. Un post sur deux ne demande rien : il installe l'autorité.\n- Le lien va en 1er commentaire, jamais dans le post (portée LinkedIn).\n- Poster 7h30-9h en semaine, 18h-20h le dimanche. Répondre à chaque commentaire dans l'heure.",
+
+ linkedin:[
+  {j:1,pilier:"contrarian",format:"Texte court",hook:"Contre-intuitif",angle:"J'annonce que je fais l'inverse du SaaS classique",cta:"Question ouverte",heure:"sam 9h-11h",
+   texte:"Lundi, je lance un sprint que la plupart des gens du SaaS trouveraient absurde.\n\n30 jours. Objectif : 10 clients payants pour ArtEasy, mon outil de gestion pour les artisans qui transforment (confitures, jus, chocolat, savon…).\n\nLes règles que je m'impose :\n– zéro publicité\n– zéro essai gratuit\n– un seul métier ciblé\n– j'installe l'outil moi-même, en visio, pour chaque client\n\nTout le monde me dirait de faire l'inverse : ads, funnel, self-service, freemium.\n\nJe pense que pour 10 premiers clients, la vitesse ne vient pas de l'automatisation. Elle vient du téléphone.\n\nOn verra dans 30 jours si j'ai raison. Je publie tout ici, chiffres compris.\n\nRendez-vous lundi."},
+  {j:2,pilier:"valeur",format:"Texte court",hook:"Coût caché",angle:"La ressaisie 3× = presque une journée par mois",cta:"Question",heure:"dim 18h-20h",
+   texte:"Une commande de magasin bio qui arrive chez un artisan, elle est saisie 3 fois.\n\n1. Sur un carnet, en réception.\n2. Dans un Excel, le soir.\n3. Sur une facture, à la livraison.\n\nÀ chaque recopie : un risque d'erreur de quantité, un oubli de ligne, une DLC qui saute.\n\nEt surtout : 15 à 20 minutes par commande. Pour un artisan qui en traite 60 par mois, c'est presque une journée entière, chaque mois, passée à recopier des chiffres déjà écrits une fois.\n\nLa bonne question n'est pas « comment recopier plus vite ».\nC'est « pourquoi je recopie ».\n\nUne commande devrait être saisie une seule fois, et devenir toute seule une préparation, une alerte de stock, puis une facture."},
+  {j:3,pilier:"story",format:"Texte + photo",hook:"Scène",angle:"Une journée dans l'atelier d'une confiturière",cta:"",heure:"lun 8h",
+   texte:"J'ai passé une journée dans l'atelier d'une confiturière.\n\n7h : elle cuit.\n11h : un magasin appelle pour doubler sa commande de la semaine.\n11h04 : elle note sur un post-it, qu'elle colle sur le plan de travail.\n15h : le post-it a disparu sous un torchon.\n19h : elle rouvre son Excel, essaie de se souvenir des quantités, rappelle le magasin pour confirmer.\n21h : elle fait ses étiquettes.\n\nElle ne manque pas de rigueur. Elle est excellente.\nIl lui manque un système qui ne repose pas sur un post-it.\n\nC'est là que j'ai compris quel outil il fallait construire. Pas un ERP. Un truc qui attrape la commande à 11h04 et ne la lâche plus."},
+  {j:4,pilier:"journal",format:"Texte court",hook:"Manifeste",angle:"0 client, 0 liste, je lance",cta:"",heure:"mar 8h-9h",
+   texte:"Je me donne 30 jours pour vendre ArtEasy à 10 artisans transformateurs bio.\n\nPoint de départ, sans filtre : 0 client, 0 liste email, une landing encore en « bêta gratuite ».\n\nArtEasy, c'est l'outil que j'ai construit pour les gens qui font des confitures, des jus, du chocolat — et qui perdent 8 h par semaine à ressaisir des commandes dans Excel le soir.\n\nLe plan : pas de pub. J'appelle des artisans un par un, je fais l'installation moi-même en visio, j'importe leurs données pendant l'appel. 97 € à vie pour les 6 premiers.\n\nJe publie ici tous les jours : le compteur, ce qui marche, ce qui se plante.\n\nJour 1. On y va."},
+  {j:5,pilier:"valeur",format:"Carrousel",hook:"Méthode chiffrée",angle:"Coût de revient d'un pot, ligne par ligne",cta:"Dis ton produit phare en commentaire",heure:"mer 8h",comment:"La méthode complète, produit par produit : je peux la détailler ici si tu me dis lequel tu veux calculer. Ou en 20 min en visio, je le fais sur ton catalogue. arteasy.fr",
+   texte:"La plupart des artisans que je rencontre fixent leur prix de vente à l'instinct.\n\n« Le pot à 6,50 €, ça se vend bien. »\n\nSauf que « ça se vend bien » n'est pas « c'est rentable ».\n\nComment calculer le coût de revient réel d'un pot de confiture, ligne par ligne (carrousel) :\n\n1. Matières : fruits + sucre + pectine, au poids réellement utilisé pour un pot.\n2. Emballage : pot + couvercle + capsule + étiquette.\n3. Énergie de cuisson : coût gaz/élec par fournée ÷ nombre de pots.\n4. Temps : minutes de main d'œuvre par pot × ton taux horaire (même si c'est toi).\n5. Pertes : casse, ratés, invendus. Ajoute 5 à 10 %.\n\nAdditionne. Compare à ton prix de vente.\nLa marge que tu croyais avoir n'est pas celle que tu as.\n\nFais le calcul sur ton produit phare ce week-end. Le résultat surprend presque tout le monde."},
+  {j:6,pilier:"journal",format:"Texte court",hook:"Voix client",angle:"La 1re réponse, mot pour mot",cta:"",heure:"jeu 8h",
+   texte:"Jour 5 du sprint.\n\nPremière vraie réponse, d'une confiturière :\n\n« Je note sur un cahier, le soir je reporte sur Excel, et je découvre les ruptures le matin de la cuisson. »\n\nMot pour mot ce que j'ai mis sur la landing il y a six mois, en me demandant si j'exagérais.\n\nJe n'exagérais pas.\n\nLes premiers appels d'installation se calent pour cette semaine. Zéro vente pour l'instant — on est à J5, c'est le tempo prévu.\n\nDemain : relances et nouveaux messages."},
+  {j:7,pilier:"journal",format:"Sondage + texte",hook:"Question",angle:"Je coupe un canal aujourd'hui",cta:"Sondage : Instagram ou email ?",heure:"ven 8h",
+   texte:"Jour 6. Petit moment de vérité du sprint.\n\nDepuis 3 jours j'envoie des messages sur deux canaux en parallèle : DM Instagram et email.\n\nRègle que je m'étais fixée : au bout d'une semaine, je regarde lequel répond, je garde celui-là, je coupe l'autre.\n\nPas « je ralentis l'autre ». Je coupe.\n\nParce qu'un canal qu'on garde « au cas où » ne coûte pas 0. Il coûte le temps qu'on ne met pas sur celui qui marche.\n\nVerdict ce soir, chiffres à l'appui."},
+  {j:8,pilier:"contrarian",format:"Texte court",hook:"Ennemi commun",angle:"Pourquoi pas d'essai gratuit",cta:"",heure:"sam 10h",
+   texte:"« Tu devrais mettre un essai gratuit de 14 jours. »\n\nOn me l'a dit 5 fois cette semaine. Je ne le fais pas. Voici pourquoi.\n\nUn essai gratuit, pour un artisan débordé, ça veut dire : « installe l'outil toi-même, teste-le sur ton temps libre, et rappelle-moi ».\n\nSon temps libre, il n'en a pas. L'outil finit jamais configuré. L'essai expire. Il se dit que « ce n'était pas pour lui ».\n\nCe que je fais à la place : un appel de 20 minutes où j'installe tout, j'importe ses données pendant qu'on parle, et il raccroche avec l'outil qui tourne sur sa vraie activité.\n\nLe gratuit qui demande de l'effort n'est pas un cadeau. C'est une charge déguisée."},
+  {j:9,pilier:"journal",format:"Texte court",hook:"Bilan",angle:"Semaine 1, ce qui a raté",cta:"",heure:"dim 18h",fill:"le nombre de ventes au compteur",
+   texte:"Bilan de la semaine 1 du sprint. Objectif : 10 ventes en 30 jours.\n\nCe qui est fait :\n– l'offre est en ligne, on peut payer (avant, non)\n– une centaine d'artisans contactés, un par un, jamais en copié-collé\n– les premiers appels d'installation calés\n\nCe qui n'a pas marché :\n– un de mes deux canaux ne mord pas. Je le coupe.\n– j'ai laissé deux conversations refroidir faute de relance rapide. Corrigé.\n\nVentes au compteur : ____ / 10.\n\nSemaine 2 : tout le volume sur le canal qui répond, et le parrainage dès le premier client."},
+  {j:10,pilier:"valeur",format:"Texte court",hook:"Liste",angle:"3 erreurs de facturation qui coûtent cher",cta:"Laquelle te parle ?",heure:"lun 8h",
+   texte:"Les 3 erreurs de facturation qui coûtent le plus cher aux artisans que je rencontre :\n\n1. Facturer en retard.\nLivraison lundi, facture « quand j'aurai le temps » vendredi. Paiement décalé de deux semaines, trésorerie sous tension.\n\n2. Ne pas suivre les impayés.\n« Je crois que tout est payé. » Sans tableau des factures dues, on relance au feeling, on oublie, on perd 300 € par-ci par-là.\n\n3. Refaire la facture à la main à chaque fois.\nModèle Word, on retape les lignes, le total, l'export PDF. 20 minutes. × 60 par mois.\n\nLes trois viennent du même problème : la facture est déconnectée de la commande et de la livraison.\n\nQuand elle en découle automatiquement, les trois disparaissent."},
+  {j:11,pilier:"story",format:"Texte court",hook:"Scène",angle:"Bug réparé en direct pendant l'appel",cta:"",heure:"mar 8h",
+   texte:"Aujourd'hui, pendant une installation client, l'import de ses données a planté.\n\nFichier Excel avec des cellules fusionnées partout. L'outil n'aimait pas.\n\nDeux façons de gérer ça :\n– « je note le bug, je vous recontacte dans quelques jours »\n– ou on le corrige maintenant, pendant l'appel.\n\nJ'ai pris la deuxième. 20 minutes de code en direct, partage d'écran, l'artisan a vu le correctif se déployer et son fichier passer.\n\nIl m'a dit : « c'est la première fois que je vois quelqu'un réparer un truc devant moi ».\n\nC'est exactement pour ça que je fais les installations moi-même. Un bug attrapé à chaud, c'est un client rassuré. Un ticket, c'est un client qui doute."},
+  {j:12,pilier:"preuve",format:"Carrousel",hook:"Avant / après",angle:"1er client : le vrai bazar d'avant",cta:"Lien en commentaire",heure:"mer 8h",comment:"ArtEasy — offre fondateur, installation faite par mes soins, garantie 30 jours. Places limitées : arteasy.fr",
+   texte:"Avant / après, premier client du sprint (carrousel).\n\nAvant : un cahier à spirale, une colonne par magasin, des ratures, un Excel « commandes 2026 » avec 40 onglets.\n\nAprès : une commande photographiée, lue par l'outil, transformée en préparation puis en facture. Le cahier sert encore — pour les idées de recettes.\n\nSlide 1 : le cahier (avec son accord)\nSlide 2 : l'Excel aux 40 onglets\nSlide 3 : la même semaine dans ArtEasy\nSlide 4 : sa phrase, à chaud — « le soir, je ne recopie plus rien »\nSlide 5 : offre fondateur, places restantes, lien en commentaire\n\nJe ne montre pas un cas parfait. Je montre le vrai bazar d'avant, parce que c'est celui dans lequel 90 % des artisans travaillent."},
+  {j:13,pilier:"contrarian",format:"Texte court",hook:"Contre-intuitif",angle:"« Excel me va » — ok, mais…",cta:"",heure:"jeu 8h",
+   texte:"« J'utilise Excel et ça me va très bien. »\n\nRéponse honnête : gardez Excel. Sérieusement.\n\nExcel est parfait jusqu'à un certain volume. Le problème, c'est que ce seuil arrive sans prévenir.\n\nUn jour vous passez de 3 à 6 points de vente. Les commandes se multiplient. Et Excel, qui vous faisait gagner du temps, se met à en coûter : une rupture non anticipée, une facture oubliée, une erreur de quantité chez un client important.\n\nLa question n'est pas « Excel ou pas Excel ».\nC'est « à partir de combien de commandes par mois Excel me coûte une erreur ».\n\nSi vous êtes en dessous : ne changez rien.\nSi vous sentez que vous y êtes : ce n'est pas un caprice de vouloir autre chose."},
+  {j:14,pilier:"journal",format:"Texte court",hook:"Chiffre",angle:"Mi-parcours : le goulot est en amont",cta:"",heure:"ven 8h",fill:"le nombre de ventes au compteur",
+   texte:"Jour 13. Mi-parcours du sprint.\n\nCompteur : ____ ventes sur 10.\n\nCe que les chiffres me disent :\n– le taux appel → vente est bon. Les gens qui prennent le rendez-vous signent souvent.\n– le goulot est en amont : pas assez d'appels calés.\n\nDonc la semaine 3 ne sera pas « mieux vendre ». Ce sera « plus de conversations ».\n\nC'est une erreur classique : quand ça coince, on veut peaufiner le closing. Alors que 9 fois sur 10, il faut juste remplir le haut de l'entonnoir."},
+  {j:15,pilier:"preuve",format:"Vidéo",hook:"Témoignage",angle:"30s brut, fin d'installation",cta:"",heure:"sam 10h",
+   texte:"30 secondes, filmées à la fin d'une installation, sans montage (vidéo).\n\nJe lui ai demandé trois choses :\n– c'était quoi le plus pénible avant\n– qu'est-ce qui l'a décidée\n– ce qu'elle dirait à un artisan qui hésite\n\nSa réponse à la dernière : « appelle-le, tu verras en 20 minutes, tu risques rien ».\n\nJe capture ces témoignages pendant l'appel, jamais trois semaines après. L'émotion du « ah, en fait c'est réglé » ne se rejoue pas."},
+  {j:16,pilier:"journal",format:"Texte court",hook:"Bilan",angle:"Semaine 2 : le parrainage démarre seul",cta:"",heure:"dim 18h",fill:"le nombre de ventes au compteur",
+   texte:"Bilan semaine 2.\n\nCompteur : ____ / 10.\n\nLe truc nouveau cette semaine : le parrainage a démarré tout seul. Une cliente a présenté deux autres transformatrices, sans que je le demande vraiment — juste parce que je lui ai posé la question à la fin de l'appel.\n\nLa preuve sociale qui vient de moi ne vaut rien. Celle qui vient d'une artisane à une autre artisane vaut tout.\n\nSemaine 3 : injecter ces témoignages partout dans les messages, et faire monter le palier de prix."},
+  {j:17,pilier:"valeur",format:"Carrousel",hook:"Checklist",angle:"Traçabilité des lots : le minimum",cta:"Checklist en commentaire",heure:"lun 8h",comment:"Checklist traçabilité à chaque fournée :\n1. N° de lot du produit fini + date + quantité\n2. Lots des matières premières utilisées (fruits, sucre, contenants)\n3. DLC / DDM calculée\n4. Clients livrés avec ce lot\n5. Où c'est écrit (un seul endroit, retrouvable en 2 min)\n\narteasy.fr",
+   texte:"Traçabilité des lots : le minimum à avoir pour ne pas transpirer un jour de contrôle (carrousel).\n\nCe qu'un contrôleur peut demander :\n– pour un produit fini, quels lots de matières premières sont dedans\n– à quelle date il a été fabriqué, en quelle quantité\n– où il a été livré (pour un rappel éventuel)\n\nCe qu'il faut donc noter, à chaque fournée :\n1. Numéro de lot du produit fini + date + quantité\n2. Lots des matières premières utilisées\n3. DLC / DDM calculée\n4. Clients livrés avec ce lot\n\nSur un cahier, c'est faisable mais fragile. Le jour où on vous demande « ce pot, il contient quel lot de fruits », il faut répondre en 2 minutes, pas en fouillant.\n\nChecklist complète en commentaire."},
+  {j:18,pilier:"contrarian",format:"Texte court",hook:"Liste contre-intuitive",angle:"Ce qui fait signer : le prix est 4e",cta:"Le prix, c'est quelle position chez vous ?",heure:"mar 8h",
+   texte:"Après 15 appels de vente avec des artisans, voici ce qui fait signer, dans l'ordre réel :\n\n1. « Je fais la migration de vos données à votre place, là, maintenant. »\nLa corvée disparaît devant eux.\n\n2. « Un autre artisan, que vous pouvez appeler, l'utilise déjà. »\nLe pair rassure plus que n'importe quel argument.\n\n3. « 30 jours remboursé, sans question. »\nLe risque tombe à zéro.\n\n4. Le prix.\n\nLe prix est quatrième. On croit toujours qu'il est premier. Il ne l'est presque jamais quand la douleur est réelle et le risque annulé."},
+  {j:19,pilier:"journal",format:"Texte court",hook:"Chiffre",angle:"Palier 1 complet, la rareté vraie",cta:"",heure:"mer 8h",fill:"si le palier 1 n'est pas encore plein à J18, décale ce post au jour où il l'est",
+   texte:"Jour 18. Le premier palier de prix est complet.\n\nLes 6 premières places à 97 € à vie sont parties. Ça passe à 147 € pour les 6 suivantes — toujours moitié moins que le tarif que je vise à terme.\n\nCe n'est pas un faux compte à rebours marketing. Les liens de paiement sont réellement bloqués à 6. Quand c'est plein, c'est plein.\n\nLa rareté ne marche que si elle est vraie. Sinon les gens le sentent, et vous perdez ce que vous essayiez de gagner."},
+  {j:20,pilier:"story",format:"Texte court",hook:"Confession",angle:"3 « je vais réfléchir » laissés filer",cta:"",heure:"jeu 8h",
+   texte:"Trois personnes m'ont dit « je vais réfléchir » en semaine 1.\n\nJe les ai laissées raccrocher sans fixer de date pour se reparler.\n\nJ'en ai reperdu deux.\n\n« Je vais réfléchir » n'est pas une réponse. C'est un silence poli qui veut dire : soit quelque chose n'est pas clair, soit ce n'est pas le moment. Et si tu ne demandes pas lequel des deux, tu ne le sauras jamais.\n\nDepuis : aucun appel ne se termine sans une prochaine action datée. Même un simple « je vous rappelle jeudi 14h ».\n\nÇa a l'air de rien. C'est la moitié du métier de vendre."},
+  {j:21,pilier:"journal",format:"Texte court",hook:"Chiffre",angle:"J-9 : j'appelle les 8 chauds lundi",cta:"",heure:"ven 8h",fill:"le nombre de ventes au compteur",
+   texte:"Jour 20. Plus que 10 jours dans le sprint.\n\nCompteur : ____ / 10.\n\nCe que je fais ce week-end : la liste des 8 personnes qui ont eu l'appel, qui étaient chaudes, et qui n'ont pas encore signé.\n\nLundi, je ne leur envoie pas un message. Je les appelle. Une par une.\n\nLa dernière ligne droite d'un sprint ne se joue pas sur du nouveau volume. Elle se joue sur les gens qu'on a déjà convaincus à 80 %."},
+  {j:22,pilier:"valeur",format:"Texte court",hook:"Coût caché",angle:"Commandes perdues entre 3 canaux",cta:"Vous perdez le fil sur quel canal ?",heure:"sam 10h",
+   texte:"Un artisan qui vend sur 3 canaux — marchés, magasins bio, site web — perd des commandes dans les trous entre les trois.\n\nLe magasin envoie un mail. Le client du marché passe un coup de fil. Le site génère une notif.\n\nTrois formats, trois endroits, aucune vue d'ensemble. Un jour, une des trois passe à la trappe.\n\nLa solution n'est pas « être plus organisé ». C'est faire arriver les trois au même endroit, dans le même format, avec le même statut : reçue / préparée / livrée / facturée.\n\nTant que vos commandes vivent dans votre boîte mail, votre téléphone et votre tête en même temps, il y en aura une qui tombera."},
+  {j:23,pilier:"journal",format:"Texte court",hook:"Bilan honnête",angle:"Semaine 3 : c'est serré",cta:"",heure:"dim 18h",fill:"ventes au compteur + nombre restant",
+   texte:"Bilan semaine 3.\n\nCompteur : ____ / 10. Il m'en manque ____ en 7 jours.\n\nHonnêtement ? C'est serré.\n\nLe plan pour la dernière semaine :\n– rappeler tous les « presque » un par un\n– relancer chaque personne tiède avec l'échéance réelle (le tarif fondateur ferme dimanche)\n– ouvrir deux créneaux d'appel samedi matin\n\nJe publierai le résultat quoi qu'il arrive. 10, ou pas 10. Un sprint public n'a de valeur que si le bilan est honnête même quand il n'est pas beau."},
+  {j:24,pilier:"contrarian",format:"Texte court",hook:"Contre-intuitif",angle:"97 € à vie vs 39 €/mois",cta:"",heure:"lun 8h",
+   texte:"Pourquoi 97 € à vie et pas 39 € par mois ?\n\nLe calcul d'abonnement est meilleur pour moi. Tout le monde me le dit.\n\nMais je ne cherche pas 50 curieux qui s'abonnent et se désabonnent au deuxième mois. Je cherche 10 artisans qui s'engagent vraiment et qui me disent, pendant 6 mois, tout ce qui cloche dans l'outil.\n\nLe paiement unique filtre exactement ça : quelqu'un qui paie 97 € une fois a décidé. Quelqu'un qui « teste » un abonnement n'a pas décidé.\n\nCes 10 retours valent plus que la MRR que j'aurais faite. À ce stade, je vends de l'engagement, pas un logiciel."},
+  {j:25,pilier:"preuve",format:"Texte court",hook:"Insight",angle:"Une phrase revient : le soir, je ne rouvre plus l'ordi",cta:"",heure:"mar 8h",
+   texte:"J'ai maintenant plusieurs artisans qui utilisent ArtEasy depuis quelques semaines. Une phrase revient, presque mot pour mot, chez chacun :\n\n« Le soir, je ne rouvre plus l'ordinateur. »\n\nCe n'est pas « je gagne 2h par semaine » (même si c'est vrai). C'est plus profond : la charge mentale du « il faut que je ressaisisse tout ce soir » a disparu.\n\nJe n'avais pas vendu ça. J'avais vendu du gain de temps. Les clients, eux, achètent du repos.\n\nLeçon de positionnement que je garde pour la suite."},
+  {j:26,pilier:"valeur",format:"Texte court",hook:"Coût caché",angle:"Le stock d'emballages qu'on oublie",cta:"Déjà eu la rupture de couvercles en pleine prod ?",heure:"mer 8h",
+   texte:"Le stock qu'on oublie toujours de suivre : les emballages.\n\nOn surveille les fruits, le sucre, les ingrédients. On oublie les pots, les couvercles, les capsules, les étiquettes.\n\nEt le jour où on lance une fournée de 200 pots avec 150 couvercles en stock, on le découvre… à la mise en pot.\n\nLes emballages ont trois défauts :\n– délais de réappro longs (souvent 3 à 6 semaines)\n– commandés en gros volume, donc on croit toujours en avoir assez\n– plusieurs références qui se ressemblent (52 mm, 63 mm, 70 mm…)\n\nLa règle simple : un seuil d'alerte par référence d'emballage, exactement comme pour les matières premières."},
+  {j:27,pilier:"journal",format:"Texte court",hook:"Chiffre",angle:"J-3 : l'échéance débloque",cta:"",heure:"jeu 8h",fill:"le nombre de ventes au compteur",
+   texte:"Jour 27. Trois jours avant la fin du sprint.\n\nCompteur : ____ / 10.\n\nJe décroche le téléphone toute la journée. Pas de messages, pas de posts élaborés. Des appels.\n\nCe que j'ai appris cette semaine : à J-3, ce qui débloque les gens, ce n'est pas un nouvel argument. C'est l'échéance. « Le tarif fondateur ferme dimanche » fait bouger des personnes qui traînaient depuis trois semaines.\n\nEt c'est vrai. Dimanche, ça ferme."},
+  {j:28,pilier:"story",format:"Texte court",hook:"Liste",angle:"Ce que le sprint m'a appris sur la vente",cta:"Vous en ajouteriez laquelle ?",heure:"ven 8h",
+   texte:"Ce que 4 semaines à vendre en direct m'ont appris, en vrac :\n\n– Les artisans ne veulent pas d'un logiciel. Ils veulent récupérer leurs soirées.\n– Un appel où j'installe tout vaut 50 emails.\n– « Je vais réfléchir » se traite sur le moment, pas après.\n– Le prix est le 4e critère, jamais le 1er, quand la douleur est réelle.\n– Filmer le témoignage à chaud, sinon il n'existera jamais.\n– Couper un canal qui ne marche pas est plus dur, et plus rentable, que d'en lancer un nouveau.\n\nRien de révolutionnaire. Mais je le sais maintenant avec mes mains, pas avec un livre."},
+  {j:29,pilier:"preuve",format:"Carrousel",hook:"Compilation",angle:"Ils ont rejoint ArtEasy ce mois-ci",cta:"Lien en commentaire",heure:"sam 10h",fill:"la liste réelle des clients (prénom, métier, région)",comment:"Le même appel de 20 min, installation faite par mes soins : arteasy.fr — il reste quelques places au tarif fondateur.",
+   texte:"Les artisans qui ont rejoint ArtEasy pendant ce sprint (carrousel) :\n\n– une confiturière dans la Drôme\n– un producteur de jus dans le Gers\n– une chocolatière\n– [compléter avec les vrais]\n\nDes métiers différents, la même phrase à chaque fois : « le soir, je ne recopie plus rien ».\n\nDemain, le bilan complet du sprint. Chiffres bruts, ce qui a marché, ce qui a raté."},
+  {j:30,pilier:"journal",format:"Texte court",hook:"Teaser",angle:"Sprint fini, bilan demain",cta:"",heure:"dim 18h",
+   texte:"Jour 30. Le sprint est fini.\n\nDemain je publie le bilan complet : le chiffre final (10 ou pas), le canal qui a tout porté, le coût réel en temps, le taux de transformation, et ce que je ferais différemment.\n\nCe soir, juste ça : merci à ceux qui ont suivi, commenté, partagé. Un sprint public sans personne en face, c'est juste un tableur.\n\nBilan demain, sans arrondi."},
+  {j:31,pilier:"journal",format:"Texte long",hook:"Transparence totale",angle:"Bilan public — 28/09",cta:"On continue.",heure:"lun 9h",fill:"tous les chiffres réels + les 2 choses que tu changes + la prochaine étape",
+   texte:"Bilan du sprint ArtEasy. 30 jours, objectif 10 ventes.\n\nRésultat : ____ / 10.\n\nCe qui a porté le sprint : ____ (le canal).\nTaux de transformation appel → vente : ____ %.\nTemps réel investi : environ ____ h.\nCoût d'acquisition : quasi 0 € en média, ____ h par client.\n\nCe que je garde :\n– l'appel-installation comme cœur du modèle\n– le témoignage filmé systématique\n– un seul métier à la fois\n\nCe que je change :\n– ____\n– ____\n\nProchaine étape : ____.\n\nMerci d'avoir suivi. On continue."}
+ ],
+
+ instagram:{
+  role:"Instagram n'est pas un canal de vente pendant le sprint — c'est là qu'on fait l'outreach en DM et qu'on est actif dans les communautés. Mais un prospect qui reçoit ton DM va checker ton compte avant de répondre. Ces 9 posts + les stories servent à ce qu'il trouve un compte vivant, crédible et centré sur SA réalité. Beaucoup sont des reprises des carrousels LinkedIn.",
+  bio:"ArtEasy — gestion pour artisans qui transforment 🫙\nCommandes · stock · production · factures, en un seul flux\nInstallation faite par le fondateur\n👇 Prendre un appel de 20 min\narteasy.fr",
+  stories:"Cadence stories : 2 à 4 par jour, faible effort.\n- Coulisses des appels d'installation (plan large, jamais les données client à l'écran)\n- Reposter chaque carrousel en story + sticker lien\n- Sondages : « Tu saisis tes commandes où ? » / « La rupture d'emballage en pleine prod, déjà vécu ? »\n- Compteur du sprint : sticker chiffre « Jour X — Y ventes »\n- Repartage des meilleurs commentaires / DM reçus (avec accord)\n- « 20 messages envoyés ce matin » : la liste de prospection floutée, le café\n- Boîte à questions : « posez-moi vos questions gestion »",
+  posts:[
+   {j:4,format:"Carrousel (6 slides)",hook:"Chiffre",cta:"Lien en bio",
+    texte:"Une commande qui arrive chez un artisan, elle est saisie 3 fois : au carnet, dans Excel le soir, sur la facture.\n\n15-20 min par commande. 60 commandes/mois = presque une journée entière passée à recopier des chiffres déjà écrits une fois.\n\nSwipe pour voir où part le temps →\n\nArtEasy fait entrer la commande une seule fois, et la transforme toute seule en prépa, alerte de stock, puis facture.\n\n#artisanbio #confitureartisanale #transformationbio #circuitcourt #fabriqueenfrance"},
+   {j:7,format:"Reel 20s (cut court de la démo salon)",hook:"Démonstration",cta:"DM « DEMO »",
+    texte:"Une photo de bon de commande → l'IA lit les quantités → le stock se met à jour → la facture se génère.\n\n20 secondes. Zéro saisie.\n(c'est la vraie appli, sur des données de démo)\n\nEnvoie-moi « DEMO » en DM pour voir ce que ça donne sur tes commandes.\n\n#artisanbio #outilartisan #fabriqueenfrance #transformationbio"},
+   {j:11,format:"Carrousel (7 slides)",hook:"Méthode",cta:"Commente ton produit phare",
+    texte:"La plupart des artisans fixent leur prix à l'instinct. « Le pot à 6,50 €, ça se vend bien. »\n\n« Ça se vend bien » n'est pas « c'est rentable ».\n\nLes 5 lignes à additionner pour ton coût de revient réel →\n\nDis-moi ton produit phare en commentaire, je détaille le calcul.\n\n#coutderevient #artisanbio #confitureartisanale #entrepreneuriat #circuitcourt"},
+   {j:14,format:"Post photo + texte",hook:"Scène",cta:"Ça vous parle ?",
+    texte:"J'ai passé une journée dans l'atelier d'une confiturière.\n\n7h elle cuit. 11h un magasin double sa commande. 11h04 post-it. 15h le post-it a disparu sous un torchon. 19h elle rouvre Excel et essaie de se souvenir des quantités.\n\nElle n'est pas désorganisée. Elle est excellente. Il lui manque un système qui ne repose pas sur un post-it.\n\nC'est là que j'ai compris quel outil construire.\n\n#artisanbio #confiture #madeinfrance"},
+   {j:17,format:"Reel 30s (témoignage brut)",hook:"Témoignage",cta:"Lien en bio",
+    texte:"30 secondes, filmées à la fin d'une installation. Sans montage.\n\nSa réponse à « que dirais-tu à un artisan qui hésite » : « appelle-le, tu verras en 20 min, tu risques rien ».\n\n#temoignage #artisanbio #transformationbio #circuitcourt"},
+   {j:20,format:"Carrousel avant/après",hook:"Avant / après",cta:"Lien en bio · places limitées",
+    texte:"Avant : un cahier à spirale, un Excel « commandes 2026 » à 40 onglets.\nAprès : la commande photographiée, lue, transformée en facture. Le cahier sert encore — pour les recettes.\n\nJe montre le vrai bazar d'avant, parce que c'est celui de 90 % des artisans.\n\n#avantapres #artisanbio #transformationbio"},
+   {j:23,format:"Carrousel checklist",hook:"Checklist",cta:"Lien en bio",
+    texte:"Le jour d'un contrôle, on peut te demander : ce pot, il contient quel lot de fruits ? Livré où ?\n\nLes 4 choses à noter à chaque fournée →\n\n#tracabilite #artisanbio #reglementation #transformationalimentaire"},
+   {j:26,format:"Reel (texte à l'écran)",hook:"Liste",cta:"DM « FACTURE »",
+    texte:"3 erreurs de facturation qui coûtent cher aux artisans :\n1. Facturer en retard\n2. Ne pas suivre les impayés\n3. Refaire la facture à la main à chaque fois\n\nLes 3 viennent du même problème : la facture est déconnectée de la commande.\n\nDM « FACTURE » si tu veux voir comment on relie les deux.\n\n#facturation #artisanbio #gestion"},
+   {j:29,format:"Carrousel compilation",hook:"Preuve",cta:"Lien en bio",
+    texte:"Les artisans qui ont rejoint ArtEasy pendant le sprint.\n\nDes métiers différents, une même phrase : « le soir, je ne recopie plus rien ».\n\nDemain je publie le bilan complet du sprint sur LinkedIn.\n\n#artisanbio #madeinfrance #transformationbio"}
+  ]
+ },
+
+ facebook:{
+  note:"La page Facebook ArtEasy = miroir d'Instagram : mêmes visuels, publiés avec 1 à 2 jours de décalage. Les légendes peuvent être plus longues sur Facebook — quand une version LinkedIn existe pour le même sujet (J2, J5, J10, J13, J17, J22, J26), colle directement ce texte-là.\n\nLe vrai travail Facebook n'est pas la page, c'est les groupes : 3 à 5 réponses de valeur par jour, zéro pitch, et un DM aux gens qui décrivent la douleur. Tout est dans l'onglet Ressources → Playbook communauté.",
+  planning:"- Reprendre les 9 posts Instagram, décalés de 1-2 jours.\n- 2 à 3 interventions de valeur par jour dans les groupes ciblés.\n- 1 à 2 DM par jour aux membres qui postent sur la ressaisie, les ruptures, la facturation, le coût de revient.\n- Ne jamais publier « voici mon outil » dans un groupe. La proposition se fait en message privé, après avoir aidé."
+ },
+
+ salon:{
+  intro:"Le sprint est 100 % distant : ce kit sert l'après-sprint (Natexpo 2027, Marjolaine, salons bio régionaux). Mais la démo se construit maintenant — sa version courte de 20 s est réutilisée tout de suite en Reel Instagram (post J7) et en vidéo d'accueil sur la landing.",
+  expert:"Réalisation confiée à une approche de démo produit orientée conversion : <b>Peter Cohan</b> (méthode Great Demo! — montrer d'abord le résultat le plus frappant, puis dérouler le comment), la sensibilité « film produit » de <b>Sandwich Video</b> (faire ressentir avant d'expliquer), et les règles de la <b>vidéo silencieuse en autoplay</b> (accroche en 3 secondes, tout le sens porté par le texte à l'écran, boucle sans couture, gros plans lents pour un écran vu de loin).",
+  format:"- Capture d'écran de l'appli réelle, données de démo chocolaterie / confiturerie fictive (réutiliser test_fixtures_chocolaterie du repo). Jamais de vraie donnée client.\n- Silencieuse. 60-75 secondes. Boucle parfaite (image de fin = image de début, fondu).\n- Vue de 2 à 5 mètres : UI zoomée à 130-150 %, curseur agrandi + halo de clic, mouvements lents (tenir 0,4-0,5 s sur chaque action), zooms sur les moments clés.\n- Bandeau bas permanent qui répète la promesse : « ArtEasy — la commande arrive, la facture part. Vous n'avez rien tapé. »\n- Rendu 1920×1080 minimum (3840×2160 si la TV le permet), 30 fps, H.264 + une copie HEVC.",
+  storyboard:[
+   ["0:00-0:06","Le résultat d'abord","Une facture PDF finie glisse à l'écran, tampon « Envoyée ».","Plein cadre sur la facture.","Cette facture vient d'être créée. Personne n'a rien tapé."],
+   ["0:06-0:18","La commande arrive","Photo d'un bon de commande manuscrit de magasin bio, glissée dans « Import IA — Bon de commande », clic « Analyser ».","Zoom lent sur le bouton Analyser.","Une commande arrive. Photo, PDF ou email."],
+   ["0:18-0:30","L'IA lit","Animation d'analyse, puis les lignes se remplissent : Confiture abricot 230g ×12, Figue ×6… quantités surlignées.","Zoom sur 2-3 lignes qui se remplissent.","L'IA lit les quantités. 4 secondes."],
+   ["0:30-0:42","Le stock réagit","Une ligne passe en rouge « Rupture — Couvercle 70mm : 150 / besoin 200 », badge d'alerte sur le dashboard.","Zoom sur l'alerte rouge.","Le stock se met à jour. Il prévient avant la rupture."],
+   ["0:42-0:54","La facture","Clic « Générer la facture » depuis la commande livrée, le PDF terracotta/or se compose.","Zoom sur la facture qui se remplit.","Livraison → facture. Un clic. Toujours rien tapé."],
+   ["0:54-1:04","La vue d'ensemble","Dashboard complet : alertes stock, factures à relancer, prod du jour. Curseur calme.","Léger dézoom vers le plein dashboard.","Votre matin, en 30 secondes."],
+   ["1:04-1:12","Boucle + CTA","Retour sur la facture de la scène 0 + carte « arteasy.fr » + QR code.","Fixe, puis fondu vers la scène 0.","ArtEasy. Pour les artisans qui transforment. Scannez →"]
+  ],
+  scriptvo:"Version voix off (optionnelle, ~110 mots) pour un usage Reel / pub futur. Le stand, lui, reste silencieux.\n\n« Ça, c'est une facture. Elle vient d'être créée, et personne n'a rien tapé.\nVoilà comment.\nUne commande arrive — une photo, un PDF, un email. Vous la déposez dans ArtEasy.\nL'IA lit les quantités en quelques secondes.\nLe stock se met à jour tout seul, et vous prévient si un emballage va manquer — avant la production, pas pendant.\nÀ la livraison, un clic : la facture part.\nEt le matin, tout est là : les alertes, les commandes, les factures à relancer. En trente secondes.\nArtEasy. Pour les artisans qui transforment.\nScannez le code, on vous rappelle. »",
+  plans:"- Appli dans une fenêtre 1440 px, zoom navigateur 125-150 %.\n- Curseur agrandi (réglage OS accessibilité) + surbrillance de clic. Outils : Screen Studio (Mac), CleanShot X, ou OBS + filtre de surbrillance.\n- Zooms : keyframes d'échelle 1.0 → 1.5-1.7 sur les moments clés, easing lent (~800 ms), tenir 1 s avant de revenir.\n- Coupes franches entre scènes, sauf le fondu scène 6 → scène 0 pour une boucle invisible.\n- Bandeaux : titres animés fade + slide up 200 ms, police display, fond semi-opaque terracotta 85 %, texte crème, très gros (lisible à 5 m).\n- Montage : DaVinci Resolve (gratuit) ou CapCut.\n- Boucle sur la TV : clé USB + lecteur média de la TV en répétition, OU mini-PC avec la vidéo en plein écran (VLC --loop). Prévoir les deux.\n- Insert filmé optionnel (augmente la conversion) : 2 plans de 1,5 s max — des mains qui ferment un pot, qui posent un carton de confitures. 3/4 dessus, lumière naturelle, faible profondeur de champ. À couper juste avant la scène 1 et juste avant la scène 5. Ancre « c'est pour toi, artisan » avant de montrer un logiciel. Pas de visage, pas de voix.",
+  angle:"Pour un screencast, la « caméra » = le cadrage et les zooms. Règles :\n- Ne jamais laisser l'écran entier plus de 2 s sans zoom : l'œil de loin a besoin d'être guidé.\n- Le moment de bascule émotionnelle est « vous n'avez rien tapé » — il apparaît 2 fois par boucle (scène 0 et scène 4).\n- La promesse est lisible en permanence dans le bandeau bas : quelqu'un qui arrive à la 40e seconde comprend en 3 s.\n- Une personne passe 8 à 15 s devant un stand : chaque scène doit se suffire à elle-même.",
+  affiche:"Format : A0 vertical, ou kakémono 85 × 200 cm.\n\nTitre (haut, énorme) : « Le soir, vous ne ressaisissez plus rien. »\nSous-titre : « ArtEasy — commandes, stock, production, factures. En un seul flux. Pour les artisans qui transforment. »\n\n3 puces avec pictos ligne :\n- La commande arrive, l'IA la lit\n- Le stock vous prévient avant la rupture\n- La facture part toute seule\n\nBandeau offre (bas, fond terracotta) : « Offre salon — installation faite par le fondateur + tarif fondateur. Places limitées. »\n\nQR code : grand (min 12 × 12 cm sur A0), vers arteasy.fr/salon?utm_source=salon&utm_medium=affiche&utm_campaign=sprint10 — cette route redirige vers la landing de lancement, variante C. Voir l'onglet Landing.\nSous le QR : « Scannez, 2 minutes, on vous rappelle. »\n\nVisuel : capture du dashboard en écorché + un pot de confiture. Palette terracotta / or / crème (charte ArtEasy).\nPied : arteasy.fr · nom du fondateur · un vrai numéro de téléphone.",
+  checklist:"- Grande TV 43\" minimum + pied + rallonge + multiprise\n- Clé USB avec la vidéo en 2 formats (H.264 + HEVC), testée sur la TV la veille\n- Mini-PC ou lecteur média de secours (une TV sur deux lit mal l'USB)\n- Vérifier que la vidéo boucle sans écran « fin de lecture »\n- Affiche A0 + système d'accroche (grip, œillets, ou roll-up)\n- 50 cartes de visite, QR au dos\n- Tablette avec le compte de démo chargé pour une vraie démo à ceux qui s'arrêtent\n- Carnet papier : nom + téléphone + métier des visiteurs intéressés\n- Chargeurs, eau, de quoi noter\n- 2-3 pots de vrais artisans clients (avec leur accord) posés sur la table : quelque chose à toucher"
+ }
+};
+
+/* map IG posts by day */
+var IGBYDAY={};CONTENT.instagram.posts.forEach(function(p){IGBYDAY[p.j]=p;});
+
+function cShow(name){
+  var sub=document.getElementById("cSubnav");
+  sub.querySelectorAll("button").forEach(function(x){x.setAttribute("aria-selected",x.dataset.sec===name);});
+  document.getElementById("cWrap").querySelectorAll(".csec").forEach(function(x){x.classList.toggle("active",x.id==="csec-"+name);});
+}
+
+function postCard(o){
+  var box=el("div","snip");if(o.id)box.id=o.id;
+  var sh=el("div","sh");
+  var left=el("div");left.style.display="flex";left.style.gap="8px";left.style.alignItems="center";left.style.flexWrap="wrap";
+  left.appendChild(el("b",null,o.title));
+  if(o.chip)left.appendChild(el("span","chip "+o.chip[0],o.chip[1]));
+  sh.appendChild(left);
+  box.appendChild(sh);
+  var body=el("div");body.style.padding="12px 13px";
+  if(o.meta&&o.meta.length){
+    var m=el("div","pmeta");
+    o.meta.forEach(function(t){var s=el("span");s.innerHTML=t;m.appendChild(s);});
+    body.appendChild(m);
+  }
+  var pt=el("div","post");pt.textContent=o.texte;body.appendChild(pt);
+  var acts=el("div","post-actions");
+  var cp=el("button","btn primary","Copier le post");cp.onclick=function(){copy(o.texte);};acts.appendChild(cp);
+  if(o.comment){var cc=el("button","btn","Copier le 1er commentaire");cc.onclick=function(){copy(o.comment);};acts.appendChild(cc);}
+  body.appendChild(acts);
+  if(o.fill)body.appendChild(el("div","fill","À compléter : "+o.fill));
+  box.appendChild(body);
+  return box;
+}
+
+function buildContent(){
+  var sub=document.getElementById("cSubnav"),wrap=document.getElementById("cWrap");
+  var secs=[["calendrier","Calendrier"],["linkedin","LinkedIn"],["instagram","Instagram"],["facebook","Facebook"],["salon","Salon — démo & affiche"],["methode","Méthode & experts"]];
+  sub.innerHTML="";wrap.innerHTML="";
+  secs.forEach(function(s,i){
+    var b=el("button",null,s[1]);b.dataset.sec=s[0];b.setAttribute("aria-selected",i===0?"true":"false");
+    b.onclick=function(){cShow(s[0]);window.scrollTo({top:0});};
+    sub.appendChild(b);
+    var sec=el("div","csec"+(i===0?" active":""));sec.id="csec-"+s[0];wrap.appendChild(sec);
+  });
+
+  /* ---- calendrier ---- */
+  var C=document.getElementById("csec-calendrier");
+  C.appendChild(el("p","dash-intro","Le fil rouge : un post LinkedIn par jour (le journal du sprint + la valeur pour l'artisan), 9 posts Instagram calés sur les temps forts, la page Facebook en miroir. Clique une ligne pour ouvrir le post rédigé. Tous les liens (« lien en 1er commentaire », « lien en bio ») et le QR de l'affiche salon pointent vers la landing de lancement — onglet Landing."));
+  var _lpb=el("button","btn","Ouvrir l'onglet Landing →");_lpb.onclick=function(){switchView("landing");};C.appendChild(_lpb);
+  var leg=el("div","pmeta");
+  Object.keys(PIL).forEach(function(k){leg.appendChild(el("span","chip "+PIL[k][0],PIL[k][1]));});
+  C.appendChild(leg);
+  var cal=el("div","cal");
+  var ch=el("div","cal-h");["Jour","Angle","Pilier","Format","Aussi"].forEach(function(t){ch.appendChild(el("span",null,t));});
+  cal.appendChild(ch);
+  CONTENT.linkedin.filter(function(p){return p.j<=30;}).forEach(function(p){
+    var dt=dayDate(p.j);
+    var r=el("button","cal-row");
+    var cj=el("span","cj");cj.appendChild(document.createTextNode("J"+p.j));
+    cj.appendChild(el("small",null,WD[dt.getDay()]+" "+dt.getDate()+"/"+(dt.getMonth()+1)));
+    r.appendChild(cj);
+    r.appendChild(el("span","ctitle",p.angle));
+    r.appendChild(el("span","chip "+PIL[p.pilier][0],PIL[p.pilier][1]));
+    r.appendChild(el("span","cmeta cc-fmt",p.format));
+    var ig=IGBYDAY[p.j];
+    r.appendChild(el("span","cmeta cc-cta",ig?"＋ Instagram ("+ig.format.split(" ")[0].toLowerCase()+")":"—"));
+    r.onclick=function(){cShow("linkedin");var t=document.getElementById("li-j"+p.j);if(t)t.scrollIntoView({behavior:"smooth",block:"start"});};
+    cal.appendChild(r);
+  });
+  C.appendChild(cal);
+
+  /* ---- linkedin ---- */
+  var L=document.getElementById("csec-linkedin");
+  L.appendChild(el("p","dash-intro","31 posts : les 30 jours du sprint + le bilan public du 28/09. La plupart sont prêts tels quels. Le lien de chaque post (à mettre en 1er commentaire) est la landing de lancement — onglet Landing."));
+  var _lpb2=el("button","btn","Ouvrir l'onglet Landing →");_lpb2.onclick=function(){switchView("landing");};L.appendChild(_lpb2);
+  CONTENT.linkedin.forEach(function(p){
+    var dt=p.j<=30?dayDate(p.j):null;
+    L.appendChild(postCard({
+      id:"li-j"+p.j,
+      title:p.j<=30?("J"+p.j+" · "+WD[dt.getDay()]+" "+dt.getDate()+"/"+(dt.getMonth()+1)):"Bilan · 28/09",
+      chip:PIL[p.pilier],
+      meta:[p.format,"Accroche : <b>"+p.hook+"</b>",p.heure?("À poster : "+p.heure):"",p.cta?("CTA : "+p.cta):"CTA : aucun"].filter(Boolean),
+      texte:p.texte,comment:p.comment,fill:p.fill
+    }));
+  });
+
+  /* ---- instagram ---- */
+  var I=document.getElementById("csec-instagram");
+  I.appendChild(el("p","dash-intro",CONTENT.instagram.role));
+  var _lpb3=el("button","btn","Le lien en bio = la landing de lancement · Ouvrir l'onglet Landing →");_lpb3.onclick=function(){switchView("landing");};I.appendChild(_lpb3);
+  I.appendChild(postCard({title:"Bio du compte",meta:[],texte:CONTENT.instagram.bio}));
+  var st=el("div","snip");
+  var sth=el("div","sh");sth.appendChild(el("b",null,"Cadence stories"));st.appendChild(sth);
+  var stb=el("div","st",CONTENT.instagram.stories);st.appendChild(stb);
+  I.appendChild(st);
+  CONTENT.instagram.posts.forEach(function(p){
+    var dt=dayDate(p.j);
+    I.appendChild(postCard({
+      title:"J"+p.j+" · "+WD[dt.getDay()]+" "+dt.getDate()+"/"+(dt.getMonth()+1),
+      chip:["c-preuve","Instagram"],
+      meta:[p.format,"Accroche : <b>"+p.hook+"</b>","CTA : "+p.cta],
+      texte:p.texte
+    }));
+  });
+
+  /* ---- facebook ---- */
+  var F=document.getElementById("csec-facebook");
+  F.appendChild(el("p","dash-intro",CONTENT.facebook.note));
+  var fb=el("div","snip");var fbh=el("div","sh");fbh.appendChild(el("b",null,"Planning Facebook"));fb.appendChild(fbh);
+  fb.appendChild(el("div","st",CONTENT.facebook.planning));F.appendChild(fb);
+  var fbl=el("button","btn","Ouvrir le Playbook communauté");
+  fbl.onclick=function(){gotoRes("r-community");};F.appendChild(fbl);
+
+  /* ---- salon ---- */
+  var S=document.getElementById("csec-salon");
+  S.appendChild(el("p","dash-intro",CONTENT.salon.intro));
+  var ex=el("p","exp-note");ex.innerHTML=CONTENT.salon.expert;S.appendChild(ex);
+  function salonSnip(title,txt){
+    var b=el("div","snip");var h=el("div","sh");h.appendChild(el("b",null,title));
+    var cp=el("button","cbtn","Copier");cp.onclick=function(){copy(txt);};h.appendChild(cp);
+    b.appendChild(h);b.appendChild(el("div","st",txt));S.appendChild(b);
+  }
+  salonSnip("Format & contraintes de la vidéo",CONTENT.salon.format);
+  var sbh=el("h4",null,"Storyboard — 7 scènes, ~72 s, en boucle");sbh.style.margin="22px 0 8px";S.appendChild(sbh);
+  var bd=el("div","board");
+  CONTENT.salon.storyboard.forEach(function(sc,i){
+    var row=el("div","scene");
+    row.appendChild(el("div","tc",sc[0]));
+    var d=el("div");
+    d.appendChild(el("h4",null,(i+1)+". "+sc[1]));
+    d.appendChild(el("div","sd","À l'écran : "+sc[2]));
+    d.appendChild(el("div","sd","Caméra : "+sc[3]));
+    var lo=el("div","lower");lo.appendChild(el("b",null,"Bandeau : "));lo.appendChild(document.createTextNode(sc[4]));
+    d.appendChild(lo);
+    row.appendChild(d);bd.appendChild(row);
+  });
+  S.appendChild(bd);
+  var allBands=CONTENT.salon.storyboard.map(function(s,i){return (i+1)+". "+s[4];}).join("\n");
+  var cpb=el("button","btn","Copier tous les bandeaux");cpb.onclick=function(){copy(allBands);};S.appendChild(cpb);
+  salonSnip("Script voix off (optionnel)",CONTENT.salon.scriptvo);
+  salonSnip("Réglages capture & montage",CONTENT.salon.plans);
+  salonSnip("Angle de vue — note conversion",CONTENT.salon.angle);
+  salonSnip("Affiche A0 + QR code",CONTENT.salon.affiche);
+  salonSnip("Check-list stand",CONTENT.salon.checklist);
+
+  /* ---- methode ---- */
+  var M=document.getElementById("csec-methode");
+  M.appendChild(el("p","dash-intro","Cinq piliers en rotation. Le journal attire les pairs et crée de l'inbound ; la valeur ICP est ce qui se partage aux artisans ; le contrarian démarque ; la preuve convertit ; la story humanise."));
+  var pg=el("div","pillars");
+  CONTENT.pillars.forEach(function(p){var c=el("div","pcard");c.appendChild(el("b",null,p[0]));c.appendChild(el("span",null,p[1]));pg.appendChild(c);});
+  M.appendChild(pg);
+  var en=el("p","exp-note");en.innerHTML=CONTENT.experts;M.appendChild(en);
+  var rs=el("div","snip");var rsh=el("div","sh");rsh.appendChild(el("b",null,"Règles d'écriture (à garder sous les yeux)"));
+  var rcp=el("button","cbtn","Copier");rcp.onclick=function(){copy(CONTENT.regles);};rsh.appendChild(rcp);
+  rs.appendChild(rsh);rs.appendChild(el("div","st",CONTENT.regles));M.appendChild(rs);
+}
+
+/* ================= LANDING DE LANCEMENT ================= */
+var LANDING={
+ previewUrl:"https://claude.ai/code/artifact/5ccaeaab-f7fa-4475-a64c-1a0151036706",
+ file:"ERP ARTISAN/designs_landing/landing_lancement_2026-08-29.html (aperçu 6 variantes) · ERP ARTISAN/designs_landing/deploy/ (6 fichiers standalone séparés, prêts à déployer)",
+ objectif:"Objectif 10% de conversion sur trafic chaud (sprint, DM, QR salon). Trafic froid : 2-4%. Un seul CTA repete, zero formulaire (la prise de RDV se fait sur Cal.com), risque annule (double garantie), rarete reelle (paliers Stripe bloques).",
+ experts:"Structure : Oli Gardner (attention ratio 1:1), Peep Laja et Harry Dry (clarte + specificite + montrer), Joanna Wiebe (la lettre part de la douleur), Alex Hormozi (value stack + inversion du risque), Michael Aagaard (le bouton dit la valeur). Fil signature commun : la phrase « Vous n'avez rien tape. » revient dans chaque variante, traitee differemment (stamp D, ligne terminal E, marquee F) — c'est le marqueur de marque quelle que soit la variante retenue.",
+ variants:[
+  {k:"A",nom:"Demo — product-led",pour:"Trafic curieux qui veut voir que ca marche.",
+   desc:"Epure. Hero avec demo animee en boucle (commande manuscrite, lecture IA, alerte rupture, facture 'vous n'avez rien tape'). Ce que ca remplace, parcours 4 etapes, dashboard du matin, offre compacte.",
+   reco:"Page par defaut d'arteasy.fr."},
+  {k:"B",nom:"Lettre — long-form",pour:"Trafic froid ou sceptique.",
+   desc:"Serif, une colonne, lettre de vente. Part de 'Le soir, vous ressaisissez encore tout dans Excel', 6 douleurs, pourquoi le fondateur installe lui-meme, value stack, double garantie, temoignages en pointilles, P.S./P.P.S.",
+   reco:"Campagne froide, cold email, ads."},
+  {k:"C",nom:"Offre — offer-forward",pour:"Trafic chaud (sprint, QR salon).",
+   desc:"Fond sombre, le prix est le hero. Compteur de places, value stack Hormozi (>1900 EUR vers 97 EUR), inversion du risque, les 3 paliers.",
+   reco:"Lien du sprint."},
+  {k:"D",nom:"Etiquette — bocal de confiture",pour:"Trafic salon / positionnement 'objet artisanal'.",
+   desc:"Letterpress, Fraunces. Hero = etiquette de bocal a bord crante, CTA = sceau de cire, features = 'Composition', 'Le procede' comme une recette, offre = 'Bocal fondateur'. Surimpression rouge 'Vous n'avez rien tape'. On dirait un produit de marche.",
+   reco:"Route /salon (QR de l'affiche)."},
+  {k:"E",nom:"Schema — blueprint d'atelier",pour:"Trafic qu'on veut marquer : 'ArtEasy = une machine precise'.",
+   desc:"Mono sur dot-grid. Le flux commande vers facture dessine en schema : nœuds qui s'allument et wires qui se cablent en sequence, en boucle. Sortie terminal 'saisie_manuelle : 0' curseur clignotant. Cartouche de plan, table de specs, bon de commande mono.",
+   reco:"Page par defaut d'arteasy.fr si on veut se demarquer."},
+  {k:"F",nom:"Magazine — riso bi-ton",pour:"Lancement a fort partage social.",
+   desc:"Bi-ton tomate/vert, Instrument Serif geante bi-couleur, bandeau defilant 'Vous n'avez rien tape', captures en duotone (grayscale + multiply sur fond tomate), numeros geants avec ghost decale, ombres portees dures. Confiance editoriale, se remarque de loin.",
+   reco:"Campagne de lancement, posts, presse."}
+ ],
+ config:"- CTA_URL : le vrai lien Cal.com (en tete du script)\n- SOLD_P1 : places deja vendues au palier 1 (met a jour le compteur)\n- [Prenom] du fondateur (+ initiale dans l'avatar de A)\n- Variante B : les 2 blocs temoignages en pointilles — apres les premieres installations, jamais de faux\n- Variante F : remplacer le SVG placeholder 'tableur' par une vraie capture (traitee en duotone via le CSS existant)\n- title, favicon, image Open Graph, numero de telephone en pied\n- Creer la route /salon (redirige vers la landing avec les UTM de l'affiche) et /merci (confirmation Stripe — texte dans Ressources > Textes landing / page d'offre)\n- Les 6 fichiers separes prets a deployer sont dans designs_landing/deploy/ ; le fichier a 6 variantes sert d'apercu/comparaison",
+ usage:"- Semaine 0, J2 : remplace la landing beta par une de ces variantes (reco A ou E par defaut, D ou C sur /salon)\n- CTA de tous les posts LinkedIn et Instagram (\"lien en 1er commentaire\", \"lien en bio\")\n- QR code de l'affiche salon vers arteasy.fr/salon (variante C ou D)\n- Page /merci apres paiement Stripe\n- Signature email, relances DM (\"je vous laisse le lien\")"
+};
+
+function buildLanding(){
+  var w=document.getElementById("landingWrap");w.innerHTML="";
+  w.appendChild(el("p","dash-intro","3 variantes de page de vente dans un seul fichier standalone, avec un switcher d'apercu. Meme offre, meme objectif : reserver un appel d'installation. Au deploiement, on garde une variante et on supprime la barre d'apercu."));
+
+  var hero=el("div","lp-hero");
+  hero.appendChild(el("div","pmeta",[]));
+  var oi=el("div","pmeta");oi.appendChild(el("span",null,LANDING.objectif));hero.appendChild(oi);
+  var a=el("a","big");a.href=LANDING.previewUrl;a.target="_blank";a.rel="noopener";
+  a.appendChild(el("span",null,"Ouvrir l'apercu des 3 variantes"));a.appendChild(el("span",null,"↗"));
+  hero.appendChild(a);
+  hero.appendChild(el("div","path","Fichier : "+LANDING.file));
+  w.appendChild(hero);
+
+  var ex=el("p","exp-note");ex.textContent="Experts appliques : "+LANDING.experts;w.appendChild(ex);
+
+  var vg=el("div","lp-vars");
+  LANDING.variants.forEach(function(v){
+    var c=el("div","lp-var");
+    var vk=el("div","vk");vk.appendChild(el("span","b",v.k));vk.appendChild(document.createTextNode(v.nom));c.appendChild(vk);
+    c.appendChild(el("div","vp",v.pour));
+    c.appendChild(el("div","vd",v.desc));
+    var vr=el("div","vr");vr.appendChild(el("b",null,"Reco : "));vr.appendChild(document.createTextNode(v.reco));c.appendChild(vr);
+    vg.appendChild(c);
+  });
+  w.appendChild(vg);
+
+  function lsnip(title,txt){
+    var b=el("div","snip");var h=el("div","sh");h.appendChild(el("b",null,title));
+    var cp=el("button","cbtn","Copier");cp.onclick=function(){copy(txt);};h.appendChild(cp);
+    b.appendChild(h);b.appendChild(el("div","st",txt));w.appendChild(b);
+  }
+  lsnip("A configurer avant mise en ligne",LANDING.config);
+  lsnip("Ou la landing est utilisee dans le plan",LANDING.usage);
+
+  var rl=el("button","btn","Textes de la page d'offre (hero, offre, /merci) →");
+  rl.onclick=function(){gotoRes("r-landing");};w.appendChild(rl);
+}
+
+/* ---------------- init ---------------- */
+if(rawTodayJ()<1)curJ=1; else if(rawTodayJ()>30)curJ=30; else curJ=todayJ();
+buildContent();buildLanding();buildDayNav();renderDay();buildPlan();buildRes();buildDash();updateHeader();
+</script>
+
+</body></html>
