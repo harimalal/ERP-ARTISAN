@@ -72,6 +72,23 @@
 | demo-data/ | demo-data/ | Nouveau dossier : 75 PDF bons de commande + 4 CSV catalogue pour démos commerciales (commits 301ce07, b69d3ec) |
 | SESSIONS/2026-09-24-1934-cloud-audit-prospection-qualite-ia.md | SESSIONS/2026-09-24-1934-cloud-audit-prospection-qualite-ia.md | Ce rapport |
 
+---
+
+## 6. SUITE DE SESSION — mise en œuvre des points de l'audit (déployé sur main, e939173)
+
+| Thématique | Détail | Fichier(s) | Statut |
+|---|---|---|---|
+| Quota IA 350/semaine | Compteur `ai_usage_semaine` + RPC atomique `reserver_appel_ia` (service_role seulement), réservé avant l'appel Anthropic, semaine ISO heure de Paris, partagé Import BC + onboarding. Tenant déduit de la session. Remplace le quota mensuel contournable (drapeau et compteur modifiables depuis le navigateur). Testé : 8/8 scénarios bout en bout (dont rafale de clics) + tests SQL en base | netlify/lib/quota_ia.js, ai_analyse_bc.js, ai_extract_doc.js, migration 2026-09-24_quota_ia_hebdo.sql | ✅ |
+| Stock atomique | RPC `ajuster_stock_article/produit` (stock = greatest(0, stock + delta), sous RLS) pour réceptions, livraisons, production. Inventaire garde l'écriture absolue. Verrous anti double clic sur livraison et fin de fabrication | js/db.js, achats.js, livraisons.js, production.js, migration 2026-09-24_stock_atomique.sql | ✅ |
+| Site public | 3 formules : 39€/mois sans engagement, 197€/6 mois (-16 %, mise en avant), 397€/an (-15 %). Brief partenaire aligné | index.html | ✅ |
+| Import IA | Lecture du format "REF:Nom" + respect du null explicite du modèle : 382/382 lignes correctes, 0 inventée (rejoué avec le code réel de app.html) | app.html | ✅ |
+| Suppressions bloquées | Message clair (FK 23503) ; deleteCommande ne vide plus une commande livrée de ses lignes | js/db.js, admin.js, commandes.js, produits.js | ✅ |
+| Validation | 3 agents validateurs indépendants (serveur, application, site) — 0 bloquant, correctifs appliqués | — | ✅ |
+
+Décisions à prendre (Hari) : prix de l'annuel (2 × 197 € = 394 € < 397 €), mention HT/TTC des prix, garantie 30 jours vs engagement 6/12 mois, publication publique des dossiers internes (publish = "."), recettes supprimées en cascade avec un article.
+
+Non traités volontairement : extraction IA en fonction d'arrière-plan (refonte asynchrone), tests dans le déploiement (suites Python nécessitant des identifiants réels), page de statut.
+
 ## Artefacts Claude Docs produits cette session
 - Pilote Multi-projets (inbox global) : https://claude.ai/artifact/NasX2tqBrmPDs8w66htCM9
 - Brief prospection ArtEasy : https://claude.ai/artifact/QMjDzzd7nNUeJPBg3YSskA
