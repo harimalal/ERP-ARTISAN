@@ -7,7 +7,8 @@
    Le compteur vit en base (table ai_usage_semaine, RPC
    reserver_appel_ia exécutable par service_role seulement).
    L'appel est réservé AVANT d'interroger Anthropic : des
-   clics simultanés ne peuvent pas dépasser la limite.
+   clics simultanés ne peuvent pas dépasser la limite. Un appel
+   réservé reste compté même si Anthropic échoue ensuite.
 ------------------------------------------------------- */
 
 export const QUOTA_IA_HEBDO = 350;
@@ -27,11 +28,14 @@ export async function reserverAppelIA(supabase, tenantId) {
     p_tenant: tenantId,
     p_limite: QUOTA_IA_HEBDO,
   });
-  if (error) throw new Error(`Vérification du quota IA impossible : ${error.message}`);
+  if (error) {
+    console.error('[quota_ia] reserver_appel_ia ERREUR:', error.message);
+    throw new Error("L'analyse IA est momentanément indisponible. Réessayez dans quelques minutes.");
+  }
   if (!data?.autorise) {
     throw new QuotaIAError(
       `Vous avez atteint votre quota d'analyses IA pour cette semaine. ` +
-      `Réessayez à partir de lundi — en attendant, vous pouvez toujours saisir vos commandes à la main.`
+      `Réessayez à partir de lundi — en attendant, vous pouvez toujours saisir vos données à la main.`
     );
   }
   return data.semaine;

@@ -702,35 +702,6 @@ export async function updateTenant(changes) {
 }
 
 /* -------------------------------------------------------
-   QUOTA IA
-------------------------------------------------------- */
-
-export async function getAiUsage(mois) {
-  const { data, error } = await supabase
-    .from('ai_usage')
-    .select('appels, tokens')
-    .eq('tenant_id', tid())
-    .eq('mois', mois)
-    .maybeSingle();
-  if (error) handleError('getAiUsage', error);
-  return data || { appels: 0, tokens: 0 };
-}
-
-export async function incrementAiUsage(mois, tokensUsed = 0) {
-  const current = await getAiUsage(mois);
-  const { error } = await supabase
-    .from('ai_usage')
-    .upsert({
-      tenant_id: tid(),
-      mois,
-      appels: (current.appels || 0) + 1,
-      tokens: (current.tokens || 0) + tokensUsed,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'tenant_id,mois' });
-  if (error) handleError('incrementAiUsage', error);
-}
-
-/* -------------------------------------------------------
    MOUVEMENTS DE STOCK
 ------------------------------------------------------- */
 

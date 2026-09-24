@@ -367,6 +367,7 @@ async function _extraire(cat) {
     const session = await getSession();
 
     const trouvees = [];
+    let interruption = null;
     for (const file of st.fichiers) {
       const ext = file.name.split('.').pop().toLowerCase();
       if (!EXT_OK.includes(ext)) {
@@ -384,13 +385,15 @@ async function _extraire(cat) {
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok || !data.ok) {
-        throw Object.assign(new Error(data.error || `Erreur serveur ${resp.status}`), { quota: data.code === 'QUOTA_EXCEEDED' });
+        interruption = Object.assign(new Error(data.error || `Erreur serveur ${resp.status}`), { quota: data.code === 'QUOTA_EXCEEDED' });
+        break;
       }
       for (const ent of (data.entites || [])) {
         if (ent.type === cat) trouvees.push(ent);
       }
       (data.avertissements || []).forEach(a => console.warn('[onboarding]', file.name, a));
     }
+    if (interruption && !trouvees.length) throw interruption;
 
     /* Dédoublonnage : contre la base, puis à l'intérieur du lot.
        Les deux cas sont comptés séparément — "déjà chez vous" et
@@ -412,7 +415,13 @@ async function _extraire(cat) {
     st.analyse = true;
     _renderResultat(cat);
     _renderEtatOnglet(cat);
-    showToast(`✅ ${st.entites.filter(e => !e.doublon).length} ${cat}(s) détecté(s).`, 'success');
+    const nb = st.entites.filter(e => !e.doublon).length;
+    if (interruption) {
+      console.error('[onboarding] extraction interrompue:', interruption.message);
+      showToast(`${interruption.quota ? '⏳' : '⚠'} ${interruption.message} Les ${nb} ${cat}(s) déjà détecté(s) sont conservé(s).`, 'warn');
+    } else {
+      showToast(`✅ ${nb} ${cat}(s) détecté(s).`, 'success');
+    }
 
   } catch (err) {
     console.error('[onboarding] extraction ERREUR:', err.message, err.stack);
