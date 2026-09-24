@@ -1311,12 +1311,26 @@ function setActiveNav(page) {
         return best;
       }
 
+      /* Le prompt liste le catalogue en "REF:Nom" : le modèle renvoie souvent
+         ce couple entier au lieu de la seule référence. */
+      function _refCatalogue(ref, produits) {
+        if (!ref) return null;
+        const s = String(ref).trim();
+        if (produits.some(p => p.ref === s)) return s;
+        const tete = s.split(':')[0].trim();
+        return produits.some(p => p.ref === tete) ? tete : null;
+      }
+
       function _iaShowPreview(data, produits, clients) {
         document.getElementById('iaStep1').style.display = 'none';
         document.getElementById('iaStep2').style.display = 'none';
         document.getElementById('iaStep3').style.display = 'block';
         const lignes = (data.lignes || []).map(l => {
-          if (l.refDetectee && produits.find(p => p.ref === l.refDetectee)) return l;
+          const ref = _refCatalogue(l.refDetectee, produits);
+          if (ref) return { ...l, refDetectee: ref };
+          /* "Aucun produit" explicite du modèle : on le garde. Le rapprochement
+             flou inventait ici une correspondance (test sur 75 BC). */
+          if (l.refDetectee === null) return l;
           const match = _fuzzyMatch(l.nomOriginal, produits);
           return match ? { ...l, refDetectee: match.ref } : l;
         });
