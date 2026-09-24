@@ -840,21 +840,13 @@
   background: rgba(22, 163, 74, .6);
   color: #fff;
 }
-.offre-benefits-title {
-  font-family: 'Fraunces', serif;
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--ink);
-  margin-bottom: 26px;
-  line-height: 1.2;
-}
 .offre-benefits ul {
   list-style: none;
   padding: 0;
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 28px;
 }
 .offre-benefits li {
   display: flex;
@@ -946,7 +938,6 @@
 .plan-detail { margin-top: 12px; font-size: 14px; color: var(--ink-s); line-height: 1.5; }
 .offre-cta { text-align: center; margin: 34px 0 30px; }
 .offre-cta .btn-primary { justify-content: center; }
-.offre-benefits ul { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 28px; }
 .offre-fineprint {
   text-align: center;
   margin-top: 32px;
@@ -964,6 +955,7 @@
   .plan-6mois { order: -1; transform: none; }
   .offre-benefits { padding: 32px 24px; }
   .offre-benefits ul { grid-template-columns: 1fr; }
+  .offre-benefits-eyebrow { letter-spacing: 1px; white-space: nowrap; }
 }
 
 /* ====== SECTION FAQ ====== */
@@ -1284,7 +1276,7 @@ commandes traitées</div>
           <div class="plan-nom">6 mois</div>
           <div class="plan-prix">197€<span>/6 mois</span></div>
           <div class="plan-remise">-16%</div>
-          <div class="plan-detail">Soit 32,83€ par mois.<br>Le meilleur prix mensuel, pour 6 mois seulement.</div>
+          <div class="plan-detail">Soit 32,83€ par mois.<br>Le meilleur prix mensuel, avec un engagement court.</div>
         </div>
       </div>
       <div class="plan plan-an">
@@ -1303,12 +1295,12 @@ commandes traitées</div>
     <div class="offre-benefits">
       <div class="offre-benefits-eyebrow offre-tag-green">Inclus dans toutes les formules</div>
       <ul>
-          <li><span><strong>L'outil complet</strong>, tous les modules, mises à jour incluses</span></li>
-          <li><span><strong>Installation en visio par le fondateur</strong> (20 minutes)</span></li>
-          <li><span><strong>Import de vos données</strong> (produits, clients, stock) fait pour vous</span></li>
-          <li><span><strong>Presets métier</strong> : plan comptable et catalogue pré-configurés</span></li>
-          <li><span><strong>Support WhatsApp direct</strong> avec le fondateur pendant 60 jours</span></li>
-          <li><span><strong>Garantie 30 jours</strong> remboursé, sans question</span></li>
+        <li><span><strong>L'outil complet</strong>, tous les modules, mises à jour incluses</span></li>
+        <li><span><strong>Installation en visio par le fondateur</strong> (20 minutes)</span></li>
+        <li><span><strong>Import de vos données</strong> (produits, clients, stock) fait pour vous</span></li>
+        <li><span><strong>Presets métier</strong> : plan comptable et catalogue pré-configurés</span></li>
+        <li><span><strong>Support WhatsApp direct</strong> avec le fondateur pendant 60 jours</span></li>
+        <li><span><strong>Garantie 30 jours</strong> remboursé, sans question</span></li>
         </ul>
     </div>
     <div class="offre-fineprint">
