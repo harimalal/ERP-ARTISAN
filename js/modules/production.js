@@ -11,7 +11,7 @@
 import {
   getAllOFs, createOF, updateOFStatut, updateOFDate, deleteOF,
   getCommandes, getProduits, getArticles, getRecettesByProduit, getClients, getTenant,
-  updateArticleStock, updateProduitStock,
+  ajusterStockArticle, ajusterStockProduit,
   createAchat, achatDoublonExiste,
   addMouvement, factureExistePourCommande, createFacture, createFactureLignes, nextRefServeur,
   updateCommandeStatut,
@@ -431,16 +431,12 @@ async function _terminerFab(id) {
       if (!aref || !qp) continue;
       const a = _articles.find(x => x.ref === aref);
       if (!a) continue;
-      const newStock = Math.max(0, a.stock - qp * of.quantite);
-      await updateArticleStock(a.id, newStock);
+      a.stock = await ajusterStockArticle(a.id, -(qp * of.quantite));
       await addMouvement({ type: 'sortie', ref: aref, nom: a.nom, qte: qp * of.quantite, motif: 'Production ' + of.ref, ref_doc: of.ref });
-      a.stock = newStock;
     }
 
-    const newPFStock = (p.stock || 0) + of.quantite;
-    await updateProduitStock(p.id, newPFStock);
+    p.stock = await ajusterStockProduit(p.id, of.quantite);
     await addMouvement({ type: 'entree_pf', ref: p.ref, nom: p.nom, qte: of.quantite, motif: 'Production ' + of.ref, ref_doc: of.ref });
-    p.stock = newPFStock;
 
     await updateOFStatut(id, 'clos');
     of.statut = 'clos';

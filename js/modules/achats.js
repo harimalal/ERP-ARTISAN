@@ -8,7 +8,7 @@
 import {
   getAchats, createAchat, updateAchat, deleteAchat,
   getArticles, getFournisseurs, getTenant,
-  updateArticleStock, addMouvement, nextRefServeur,
+  ajusterStockArticle, addMouvement, nextRefServeur,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, badgeAchat, showToast, today,
@@ -571,9 +571,8 @@ async function _saveDetailBC() {
       if (passeRecu) {
         const art = _articles.find(x => x.id === l.article_id);
         if (art) {
-          await updateArticleStock(art.id, art.stock + ld.qte);
+          art.stock = await ajusterStockArticle(art.id, ld.qte);
           await addMouvement({ type: 'entree', ref: art.ref, nom: art.nom, qte: ld.qte, motif: 'Réception ' + g.ref, ref_doc: g.ref });
-          art.stock += ld.qte;
         }
       }
       const idx = _achats.findIndex(x => x.id === l.id);
@@ -607,9 +606,8 @@ async function _changerStatutGroupe(refGroupe, statut) {
       if (passeRecu) {
         const art = _articles.find(x => x.id === l.article_id);
         if (art) {
-          await updateArticleStock(art.id, art.stock + l.quantite);
+          art.stock = await ajusterStockArticle(art.id, l.quantite);
           await addMouvement({ type: 'entree', ref: art.ref, nom: art.nom, qte: l.quantite, motif: 'Réception ' + g.ref, ref_doc: g.ref });
-          art.stock += l.quantite;
         }
       }
       const bc = _achats.find(x => x.id === l.id);

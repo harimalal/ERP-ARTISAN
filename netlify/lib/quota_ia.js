@@ -30,8 +30,8 @@ export async function reserverAppelIA(supabase, tenantId) {
   if (error) throw new Error(`Vérification du quota IA impossible : ${error.message}`);
   if (!data?.autorise) {
     throw new QuotaIAError(
-      `Limite hebdomadaire d'analyses IA atteinte (${QUOTA_IA_HEBDO} cette semaine). ` +
-      `Elle se réinitialise lundi. En attendant, la saisie manuelle reste disponible.`
+      `Vous avez atteint votre quota d'analyses IA pour cette semaine. ` +
+      `Réessayez à partir de lundi — en attendant, vous pouvez toujours saisir vos commandes à la main.`
     );
   }
   return data.semaine;

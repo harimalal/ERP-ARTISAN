@@ -1275,13 +1275,15 @@ function setActiveNav(page) {
           });
           clearInterval(ticker); progEl.style.width = '100%';
           const result = await resp.json().catch(() => null);
-          if (!resp.ok || !result?.ok) throw new Error(result?.error || ('Erreur serveur ' + resp.status));
+          if (!resp.ok || !result?.ok) {
+            throw Object.assign(new Error(result?.error || ('Erreur serveur ' + resp.status)), { quota: result?.code === 'QUOTA_EXCEEDED' });
+          }
           _iaShowPreview(result.data, produitsCache, clientsCache);
         } catch (err) {
           clearInterval(ticker);
           document.getElementById('iaStep1').style.display = 'block';
           document.getElementById('iaStep2').style.display = 'none';
-          if (iaError) { iaError.style.display = 'flex'; iaError.textContent = 'Erreur : ' + err.message; }
+          if (iaError) { iaError.style.display = 'flex'; iaError.textContent = (err.quota ? '' : 'Erreur : ') + err.message; }
         }
       });
 

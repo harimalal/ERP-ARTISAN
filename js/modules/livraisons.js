@@ -15,7 +15,7 @@ import {
   getFactures, createFacture, updateFactureStatut,
   createLivraison, factureExistePourCommande,
   getCommandes, getClients, getProduits,
-  updateProduitStock, addMouvement,
+  ajusterStockProduit, addMouvement,
   updateCommandeStatut, getTenant,
   createFactureLignes, nextRefServeur, getFactureLignes,
 } from '../db.js';
@@ -144,10 +144,8 @@ export async function saveLivraison() {
     for (const l of (c.commande_lignes || [])) {
       const p = _produits.find(x => x.id === l.produit_id);
       if (!p) continue;
-      const newStock = Math.max(0, p.stock - l.quantite);
-      await updateProduitStock(p.id, newStock);
+      p.stock = await ajusterStockProduit(p.id, -l.quantite);
       await addMouvement({ type: 'sortie_pf', ref: p.ref, nom: p.nom, qte: l.quantite, motif: 'Livraison ' + c.ref, ref_doc: c.ref });
-      p.stock = newStock;
     }
 
     /* Créer la livraison */

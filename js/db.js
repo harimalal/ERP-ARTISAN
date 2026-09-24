@@ -93,8 +93,26 @@ export async function deleteArticle(id) {
   if (error) handleError('deleteArticle', error);
 }
 
+/* Valeur absolue — réservé à l'inventaire (comptage physique). */
 export async function updateArticleStock(id, newStock) {
   return updateArticle(id, { stock: newStock });
+}
+
+/* Mouvement relatif, calculé côté base : deux mouvements simultanés
+   s'additionnent au lieu de s'écraser. Plancher à 0. Retourne le stock réel. */
+async function _ajusterStock(rpc, id, delta) {
+  const { data, error } = await supabase.rpc(rpc, { p_id: id, p_delta: delta });
+  if (error) handleError(rpc, error);
+  if (data === null || data === undefined) handleError(rpc, { message: 'élément introuvable' });
+  return Number(data);
+}
+
+export function ajusterStockArticle(id, delta) {
+  return _ajusterStock('ajuster_stock_article', id, delta);
+}
+
+export function ajusterStockProduit(id, delta) {
+  return _ajusterStock('ajuster_stock_produit', id, delta);
 }
 
 /* -------------------------------------------------------

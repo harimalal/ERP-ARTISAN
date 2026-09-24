@@ -383,7 +383,9 @@ async function _extraire(cat) {
         body: JSON.stringify(payload),
       });
       const data = await resp.json();
-      if (!resp.ok || !data.ok) throw new Error(data.error || `Erreur serveur ${resp.status}`);
+      if (!resp.ok || !data.ok) {
+        throw Object.assign(new Error(data.error || `Erreur serveur ${resp.status}`), { quota: data.code === 'QUOTA_EXCEEDED' });
+      }
       for (const ent of (data.entites || [])) {
         if (ent.type === cat) trouvees.push(ent);
       }
@@ -414,7 +416,8 @@ async function _extraire(cat) {
 
   } catch (err) {
     console.error('[onboarding] extraction ERREUR:', err.message, err.stack);
-    showToast('⚠ Extraction échouée : ' + err.message, 'error');
+    if (err.quota) showToast('⏳ ' + err.message, 'warn');
+    else           showToast('⚠ Extraction échouée : ' + err.message, 'error');
   } finally {
     st.enCours = false;
     const b = document.getElementById('ob-extract-' + cat);
