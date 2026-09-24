@@ -73,13 +73,15 @@ export function showToast(msg, type = 'default') {
   t.className = 'toast';
   if (type === 'error') t.style.background = 'var(--ui-red)';
   if (type === 'success') t.style.borderLeft = '4px solid var(--ui-green)';
+  if (type === 'warn') t.style.borderLeft = '4px solid #f59e0b';
   t.textContent = msg;
   document.body.appendChild(t);
+  const duree = type === 'warn' ? 7000 : 3200;
   setTimeout(() => {
     t.style.opacity = '0';
     t.style.transition = 'opacity .4s';
     setTimeout(() => t.remove(), 400);
-  }, 3200);
+  }, duree);
 }
 
 /* -------------------------------------------------------

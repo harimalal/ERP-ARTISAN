@@ -382,7 +382,7 @@ async function _extraire(cat) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      const data = await resp.json();
+      const data = await resp.json().catch(() => ({}));
       if (!resp.ok || !data.ok) {
         throw Object.assign(new Error(data.error || `Erreur serveur ${resp.status}`), { quota: data.code === 'QUOTA_EXCEEDED' });
       }

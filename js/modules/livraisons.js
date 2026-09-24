@@ -121,7 +121,16 @@ function _renderTable() {
    Fix S11 — Règle 11 recharge cache avant opération
    Fix S11 — date_facture mise à jour lors du passage à 'facture'
 ------------------------------------------------------- */
+/* Le stock est décrémenté côté base : un double clic décrémenterait deux fois. */
+let _livraisonEnCours = false;
+
 export async function saveLivraison() {
+  if (_livraisonEnCours) return;
+  _livraisonEnCours = true;
+  try { await _enregistrerLivraison(); } finally { _livraisonEnCours = false; }
+}
+
+async function _enregistrerLivraison() {
   const commandeId = document.getElementById('livCmdId').value;
   const date       = document.getElementById('livDate').value || today();
   if (!commandeId) { showToast('⚠ Commande introuvable.', 'error'); return; }

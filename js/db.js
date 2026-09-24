@@ -23,7 +23,7 @@ const MESSAGES_SUPPRESSION_BLOQUEE = {
   deleteArticle:  "Cet article figure dans des bons de commande fournisseur, il ne peut pas être supprimé. Vous pouvez modifier sa fiche à la place.",
   deleteProduit:  "Ce produit figure dans des commandes ou des ordres de fabrication, il ne peut pas être supprimé. Vous pouvez modifier sa fiche à la place.",
   deleteClient:   "Ce client a des commandes enregistrées, il ne peut pas être supprimé. Vous pouvez modifier sa fiche à la place.",
-  deleteCommande: "Cette commande a déjà été livrée ou facturée, elle ne peut plus être supprimée.",
+  deleteCommande: "Cette commande a déjà une livraison ou une facture, elle ne peut plus être supprimée.",
 };
 
 function handleError(context, error) {

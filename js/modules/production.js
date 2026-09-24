@@ -413,9 +413,18 @@ async function _supprimerOF(id) {
   }
 }
 
+/* Le stock est ajusté côté base : un double clic compterait la fabrication deux fois. */
+let _terminerEnCours = false;
+
 async function _terminerFab(id) {
+  if (_terminerEnCours) return;
+  _terminerEnCours = true;
+  try { await _terminerFabrication(id); } finally { _terminerEnCours = false; }
+}
+
+async function _terminerFabrication(id) {
   const of = _ofs.find(o => o.id === id);
-  if (!of) return;
+  if (!of || of.statut === 'clos') return;
   const p = _produits.find(x => x.id === of.produit_id);
   if (!p) return;
 
