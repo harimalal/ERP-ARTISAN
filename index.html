@@ -818,12 +818,6 @@
   margin-top: 4px;
   font-size: 36px;
 }
-.offre-grid {
-  display: grid;
-  grid-template-columns: 1.2fr .9fr;
-  gap: 38px;
-  align-items: stretch;
-}
 .offre-benefits {
   background: #fff;
   border-radius: 16px;
@@ -882,104 +876,77 @@
 }
 .offre-benefits li strong { color: var(--ink); font-weight: 600; }
 
-.offre-pricecard {
-  background: #fff;
-  color: var(--ink);
-  border-radius: 16px;
-  padding: 44px 36px;
+.plans {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+  align-items: stretch;
+}
+.plan {
+  --c: var(--ink-s);
+  position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,.05);
+}
+.plan-6mois { --c: #16A34A; border: 2px solid var(--c); box-shadow: 0 16px 44px rgba(22,163,74,.18); transform: translateY(-10px); }
+.plan-an    { --c: var(--tc); }
+.plan-duree {
+  background: var(--c);
+  color: #fff;
+  text-align: center;
+  padding: 12px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+.plan-badge {
+  align-self: center;
+  margin-top: 16px;
+  padding: 5px 14px;
+  border-radius: 30px;
+  background: rgba(22,163,74,.12);
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 700;
+}
+.plan-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   text-align: center;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  box-shadow: 0 8px 32px rgba(0,0,0,.06);
+  padding: 26px 22px 30px;
 }
-.offre-pricecard::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 320px;
-  height: 320px;
-  background: radial-gradient(circle, rgba(22,163,74,.10) 0%, transparent 70%);
-  pointer-events: none;
+.plan-nom { font-size: 15px; font-weight: 700; color: var(--ink-m); }
+.plan-prix {
+  font-family: 'Fraunces', serif;
+  font-size: 54px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -1.5px;
+  color: var(--c);
+  margin-top: 10px;
 }
-.offre-pricecard-tag {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 18px;
+.plan-prix span { font-size: 17px; font-weight: 700; letter-spacing: 0; color: var(--ink-s); margin-left: 2px; }
+.plan-remise {
+  margin-top: 12px;
+  padding: 4px 12px;
   border-radius: 30px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  margin-bottom: 26px;
-}
-.offre-tag-red {
-  background: rgba(192, 57, 43, .6);
+  background: var(--c);
   color: #fff;
-}
-.offre-pricecard-tag::before {
-  content: '';
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 8px rgba(255,255,255,.7);
-  animation: pulse-white-offre 2s infinite;
-}
-@keyframes pulse-white-offre {
-  0%,100% { opacity: 1; transform: scale(1); }
-  50% { opacity: .6; transform: scale(1.3); }
-}
-.offre-price-main {
-  font-family: 'Fraunces', serif;
-  font-size: clamp(72px, 9vw, 108px);
+  font-size: 13px;
   font-weight: 800;
-  line-height: 1;
-  letter-spacing: -3px;
-  color: #16A34A;
-  position: relative;
-  margin-bottom: 6px;
 }
-.offre-price-life {
-  position: relative;
-  font-family: 'Fraunces', serif;
-  font-size: clamp(34px, 4vw, 44px);
-  font-weight: 800;
-  letter-spacing: 6px;
-  color: #16A34A;
-  margin-top: 2px;
-  line-height: 1;
-}
-.offre-price-old {
-  position: relative;
-  font-size: 19px;
-  font-weight: 500;
-  color: var(--ink-s);
-  margin-top: 22px;
-  letter-spacing: .3px;
-}
-.offre-price-target {
-  position: relative;
-  font-size: 14px;
-  color: var(--ink-m);
-  margin-top: 18px;
-  line-height: 1.5;
-  max-width: 280px;
-}
-.offre-price-target strong { color: var(--ink); font-weight: 700; }
-.offre-pricecard .btn-primary {
-  position: relative;
-  margin-top: 30px;
-  width: 100%;
-  justify-content: center;
-}
+.plan-detail { margin-top: 12px; font-size: 14px; color: var(--ink-s); line-height: 1.5; }
+.offre-cta { text-align: center; margin: 34px 0 30px; }
+.offre-cta .btn-primary { justify-content: center; }
+.offre-benefits ul { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 28px; }
 .offre-fineprint {
   text-align: center;
   margin-top: 32px;
@@ -993,9 +960,10 @@
   .offre-section { padding: 72px 20px; }
   .offre-head h2,
   .offre-head h2 .l2 { font-size: 28px; }
-  .offre-grid { grid-template-columns: 1fr; gap: 22px; }
+  .plans { grid-template-columns: 1fr; gap: 18px; }
+  .plan-6mois { order: -1; transform: none; }
   .offre-benefits { padding: 32px 24px; }
-  .offre-pricecard { padding: 36px 24px; }
+  .offre-benefits ul { grid-template-columns: 1fr; }
 }
 
 /* ====== SECTION FAQ ====== */
@@ -1090,13 +1058,6 @@
   .hero-trust { display: flex; gap: 20px; flex-wrap: wrap; margin-top: -34px; margin-bottom: 52px; font-size: 13px; color: var(--ink-s); }
   .hero-trust span { display: flex; align-items: center; gap: 6px; }
 
-  /* ============== OFFRE — échelle des paliers (ajouté) ============== */
-  .offre-tiers { display: flex; gap: 8px; width: 100%; margin-top: 22px; position: relative; }
-  .offre-tier { flex: 1; border: 1px solid var(--line); border-radius: 10px; padding: 10px 6px; text-align: center; }
-  .offre-tier.is-current { border-color: #16A34A; background: rgba(22,163,74,.06); }
-  .offre-tier .ot-p { display: block; font-family: 'Fraunces', serif; font-weight: 800; font-size: 18px; color: var(--ink); }
-  .offre-tier.is-current .ot-p { color: #16A34A; }
-  .offre-tier .ot-s { display: block; font-size: 9.5px; color: var(--ink-s); margin-top: 2px; }
   @media (max-width: 600px) { .hero-trust { margin-top: -10px; flex-direction: column; gap: 8px; } }
 
 </style>
@@ -1305,13 +1266,43 @@ commandes traitées</div>
 <section id="final" class="offre-section">
   <div class="offre-inner">
     <div class="offre-head">
-      <h2>Un seul tarif<span class="l2">tout compris, sans engagement</span></h2>
+      <h2>Choisissez votre formule<span class="l2">tout compris, aucun frais d'installation</span></h2>
     </div>
-    <div class="offre-grid">
-      <div class="offre-benefits">
-        <div class="offre-benefits-eyebrow offre-tag-green">Ce que vous obtenez</div>
-        <div class="offre-benefits-title">Tout est inclus dans l'abonnement</div>
-        <ul>
+    <div class="plans">
+      <div class="plan plan-mois">
+        <div class="plan-duree">Sans engagement</div>
+        <div class="plan-body">
+          <div class="plan-nom">Mensuel</div>
+          <div class="plan-prix">39€<span>/mois</span></div>
+          <div class="plan-detail">Résiliable à tout moment,<br>sans frais.</div>
+        </div>
+      </div>
+      <div class="plan plan-6mois">
+        <div class="plan-duree">Engagement 6 mois</div>
+        <div class="plan-badge">★ Meilleure offre</div>
+        <div class="plan-body">
+          <div class="plan-nom">6 mois</div>
+          <div class="plan-prix">197€<span>/6 mois</span></div>
+          <div class="plan-remise">-16%</div>
+          <div class="plan-detail">Soit 32,83€ par mois.<br>Le meilleur prix mensuel, pour 6 mois seulement.</div>
+        </div>
+      </div>
+      <div class="plan plan-an">
+        <div class="plan-duree">Engagement 12 mois</div>
+        <div class="plan-body">
+          <div class="plan-nom">Annuel</div>
+          <div class="plan-prix">397€<span>/an</span></div>
+          <div class="plan-remise">-15%</div>
+          <div class="plan-detail">Soit 33,08€ par mois.<br>Un seul paiement pour l'année.</div>
+        </div>
+      </div>
+    </div>
+    <div class="offre-cta">
+      <a href="#" class="btn-primary" data-cta>Réserver mon appel d'installation →</a>
+    </div>
+    <div class="offre-benefits">
+      <div class="offre-benefits-eyebrow offre-tag-green">Inclus dans toutes les formules</div>
+      <ul>
           <li><span><strong>L'outil complet</strong>, tous les modules, mises à jour incluses</span></li>
           <li><span><strong>Installation en visio par le fondateur</strong> (20 minutes)</span></li>
           <li><span><strong>Import de vos données</strong> (produits, clients, stock) fait pour vous</span></li>
@@ -1319,19 +1310,6 @@ commandes traitées</div>
           <li><span><strong>Support WhatsApp direct</strong> avec le fondateur pendant 60 jours</span></li>
           <li><span><strong>Garantie 30 jours</strong> remboursé, sans question</span></li>
         </ul>
-      </div>
-      <div class="offre-pricecard">
-        <div class="offre-pricecard-tag offre-tag-green">Sans engagement · aucun frais d'installation</div>
-        <div class="offre-price-main" data-price-main>39€</div>
-        <div class="offre-price-life">PAR MOIS</div>
-        <div class="offre-price-old">ou 397€ par an, soit -15% sur l'année</div>
-        <div class="offre-tiers">
-          <div class="offre-tier is-current"><span class="ot-p">39€</span><span class="ot-s">Mensuel · sans engagement</span></div>
-          <div class="offre-tier"><span class="ot-p">397€</span><span class="ot-s">Annuel · -15%</span></div>
-        </div>
-        <div class="offre-price-target">Résiliable à tout moment, sans frais.</div>
-        <a href="#" class="btn-primary" data-cta>Réserver mon appel d'installation →</a>
-      </div>
     </div>
     <div class="offre-fineprint">
       <strong>Garantie 30 jours remboursé, sans question.</strong> Et si je n'arrive pas à importer vos données proprement pendant l'installation, vous ne payez rien tant que ce n'est pas réglé.<br>Installation faite par le fondateur en personne, pas un onboarding automatisé.
@@ -1360,7 +1338,7 @@ commandes traitées</div>
       </div>
       <div class="faq-item">
         <button class="faq-q" type="button"><span>Combien ça coûte, et suis-je engagé ?</span><span class="faq-q-icon">+</span></button>
-        <div class="faq-a">39€ par mois, sans engagement : vous arrêtez quand vous voulez. Ou 397€ pour l'année si vous préférez payer une fois (15% de réduction sur l'année). Aucun frais d'installation : l'installation et l'import de vos données sont inclus.</div>
+        <div class="faq-a">Trois formules, sans aucun frais d'installation : 39€ par mois sans engagement (vous arrêtez quand vous voulez), 197€ pour 6 mois (-16%) ou 397€ pour l'année (-15%). L'installation et l'import de vos données sont inclus dans les trois.</div>
       </div>
       <div class="faq-item">
         <button class="faq-q" type="button"><span>Et si ça ne me convient pas ?</span><span class="faq-q-icon">+</span></button>
