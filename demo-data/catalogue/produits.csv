@@ -1,0 +1,23 @@
+ref,nom,prix,seuil,stock
+CONF001,Confiture Fraise Gariguette 250g,5.2,15,40
+CONF002,Confiture Abricot 250g,5.0,15,40
+CONF003,Confiture Framboise 250g,6.1,15,40
+CONF004,Confiture Myrtille 250g,6.8,15,40
+CONF005,Confiture Figue 250g,5.6,15,40
+CONF006,Gelée de Coing 250g,5.3,15,40
+CONF007,Confiture Fraise Gariguette 500g,8.9,15,40
+CONF008,Confiture Orange Amère 250g,5.4,15,40
+SAV001,Savon Lavande 100g,4.5,15,40
+SAV002,Savon Karité 100g,5.2,15,40
+SAV003,Savon Miel Amande 100g,5.0,15,40
+SAV004,Savon Argile Verte 100g,4.8,15,40
+SAV005,Savon Charbon 100g,5.5,15,40
+MIEL001,Miel de Fleurs 500g,7.9,15,40
+MIEL002,Miel de Lavande 250g,9.6,15,40
+MIEL003,Miel de Châtaignier 500g,8.7,15,40
+MIEL004,Miel d'Acacia 250g,8.2,15,40
+BISC001,Biscuits Sablés Beurre 200g,4.2,15,40
+BISC002,Biscuits Chocolat Noisette 200g,4.6,15,40
+BISC003,Biscuits Citron 150g,3.9,15,40
+SIROP001,Sirop de Menthe 500ml,4.1,15,40
+SIROP002,Sirop de Grenadine 500ml,3.9,15,40

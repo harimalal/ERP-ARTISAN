@@ -1,0 +1,31 @@
+ref,nom,categorie,unite,prix,fournisseur,seuil,stock
+A001,Fraises fraîches,Fruits,kg,3.2,Verger des Collines,15,40
+A002,Abricots frais,Fruits,kg,2.9,Verger des Collines,10,25
+A003,Framboises fraîches,Fruits,kg,6.5,Verger des Collines,8,12
+A004,Myrtilles fraîches,Fruits,kg,7.8,Verger des Collines,6,10
+A005,Figues fraîches,Fruits,kg,4.1,Verger des Collines,8,14
+A006,Coings,Fruits,kg,2.4,Verger des Collines,10,18
+A007,Oranges amères,Fruits,kg,3.0,Agrumes du Sud,12,20
+A008,Sucre cristal,Sucre et additifs,kg,1.1,Négoce Sucrier Rhône,50,120
+A009,Pectine,Sucre et additifs,kg,14.5,Négoce Sucrier Rhône,2,5
+A010,Pot verre 250ml,Emballage,pièce,0.38,Verrerie Duplan,200,480
+A011,Pot verre 500ml,Emballage,pièce,0.52,Verrerie Duplan,100,260
+A012,Étiquette pot confiture,Emballage,pièce,0.06,Imprimerie Coutel,300,700
+A013,Huile d'olive saponifiable,Matières savon,litre,5.4,Oléiculture Provence,10,18
+A014,Beurre de karité,Matières savon,kg,9.2,Import Naturel Bio,5,9
+A015,Argile verte,Matières savon,kg,3.6,Import Naturel Bio,4,6
+A016,Charbon actif,Matières savon,kg,12.0,Import Naturel Bio,2,3
+A017,Huile essentielle lavande,Matières savon,litre,28.0,Distillerie Haute-Provence,1,2
+A018,Amandes en poudre,Matières savon,kg,8.9,Import Naturel Bio,3,5
+A019,Miel brut toutes fleurs,Miel brut,kg,6.8,Rucher des Collines,15,30
+A020,Miel brut lavande,Miel brut,kg,9.4,Rucher des Collines,8,12
+A021,Miel brut châtaignier,Miel brut,kg,8.1,Rucher des Collines,8,14
+A022,Miel brut acacia,Miel brut,kg,7.6,Rucher des Collines,6,10
+A023,Farine de blé T55,Biscuiterie,kg,1.3,Minoterie du Moulin Bleu,25,50
+A024,Beurre doux,Biscuiterie,kg,6.2,Laiterie Fontclaire,10,15
+A025,Pépites de chocolat,Biscuiterie,kg,7.9,Négoce Sucrier Rhône,5,8
+A026,Noisettes concassées,Biscuiterie,kg,11.5,Import Naturel Bio,4,6
+A027,Feuilles de menthe fraîche,Sirop,kg,4.5,Verger des Collines,3,5
+A028,Grenadine base,Sirop,litre,3.9,Négoce Sucrier Rhône,4,6
+A029,Étiquette pot savon,Emballage,pièce,0.05,Imprimerie Coutel,200,500
+A030,Carton d'expédition 12 pots,Emballage,pièce,0.95,Imprimerie Coutel,20,40

@@ -1,0 +1,12 @@
+nom,contact,email,tel,adresse,delai,categorie
+Verger des Collines,Élodie Mazan,contact@vergerdescollines.fr,04 75 12 33 08,"128 chemin des Vergers, 26400 Crest",3 jours,Fruits
+Agrumes du Sud,Karim Belaïd,commandes@agrumesdusud.fr,04 94 55 21 76,"ZA Les Oliviers, 83340 Le Luc",5 jours,Fruits
+Négoce Sucrier Rhône,Sophie Vidal,clients@negoce-sucrier-rhone.fr,04 78 40 19 22,"12 rue des Docks, 69002 Lyon",4 jours,Sucre et additifs
+Verrerie Duplan,Marc Duplan,vente@verrerie-duplan.fr,04 66 22 87 10,"45 route de Nîmes, 30000 Nîmes",7 jours,Emballage
+Imprimerie Coutel,Nathalie Coutel,devis@imprimerie-coutel.fr,04 90 31 44 09,"8 avenue Jean Jaurès, 84000 Avignon",5 jours,Emballage
+Oléiculture Provence,Julien Ferrand,contact@oleiculture-provence.fr,04 42 60 18 55,"Moulin des Baux, 13520 Maussane-les-Alpilles",6 jours,Matières savon
+Import Naturel Bio,Camille Roze,commandes@importnaturel-bio.fr,01 48 22 60 14,"3 rue de l'Industrie, 93300 Aubervilliers",8 jours,Matières savon
+Distillerie Haute-Provence,Bernard Estève,contact@distillerie-hp.fr,04 92 61 27 33,"Plateau de Valensole, 04210 Valensole",10 jours,Matières savon
+Rucher des Collines,Anne Sicard,miel@ruocherdescollines.fr,04 75 40 12 88,"22 chemin du Rucher, 26120 Chabeuil",4 jours,Miel brut
+Minoterie du Moulin Bleu,Thierry Aubry,vente@moulinbleu.fr,02 47 55 30 12,"5 rue du Moulin, 37000 Tours",5 jours,Biscuiterie
+Laiterie Fontclaire,Hélène Fontclaire,contact@laiterie-fontclaire.fr,05 55 30 44 19,"9 route de la Laiterie, 19000 Tulle",3 jours,Biscuiterie
