@@ -9,8 +9,8 @@
    - Clé Anthropic injectée par Netlify AI Gateway
    - Clé Supabase SERVICE_KEY côté serveur uniquement
    - Vérification session avant chaque appel IA
-   - Quota mensuel ignoré uniquement pour le tout premier
-     onboarding d'un tenant (tenants.onboarding_ia_utilise = false)
+   - Plafond hebdomadaire partagé avec l'Import BC
+     (netlify/lib/quota_ia.js), sans exemption
    - Aucune clé exposée au navigateur
 
    Entrée  (POST JSON) :
@@ -24,9 +24,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-
-const PLANS_QUOTA = { starter: 20, pro: 100, business: Infinity };
-const MOIS_COURANT = () => new Date().toISOString().slice(0, 7);
+import { QuotaIAError, tenantDuUser, reserverAppelIA, enregistrerTokensIA } from '../lib/quota_ia.js';
 
 const TYPES_VALIDES = ['client', 'fournisseur', 'article', 'produit'];
 
@@ -74,52 +72,6 @@ async function verifierSession(token, supabase) {
   const { data: { user }, error } = await supabase.auth.getUser(token);
   if (error || !user) throw new Error('Session invalide ou expirée');
   return user;
-}
-
-async function resoudreTenantDepuisUser(userId, supabase) {
-  const { data, error } = await supabase.from('users').select('tenant_id').eq('id', userId).single();
-  if (error || !data) throw new Error('Utilisateur introuvable');
-  return data.tenant_id;
-}
-
-async function resoudreQuota(tenantId, supabase) {
-  const { data: tenant, error: tErr } = await supabase
-    .from('tenants')
-    .select('plan, onboarding_ia_utilise')
-    .eq('id', tenantId)
-    .single();
-  if (tErr || !tenant) throw new Error('Tenant introuvable');
-
-  if (!tenant.onboarding_ia_utilise) {
-    return { hors_quota: true, mois: null, appels: 0, limite: null };
-  }
-
-  const mois = MOIS_COURANT();
-  const limite = PLANS_QUOTA[tenant.plan] ?? PLANS_QUOTA.starter;
-  const { data: usage } = await supabase
-    .from('ai_usage')
-    .select('appels')
-    .eq('tenant_id', tenantId)
-    .eq('mois', mois)
-    .maybeSingle();
-  const appels = usage?.appels || 0;
-
-  if (appels >= limite) {
-    throw new Error(`Quota IA atteint (${appels}/${limite} appels ce mois). Passez au plan supérieur.`);
-  }
-  return { hors_quota: false, mois, appels, limite };
-}
-
-async function incrementerQuota(tenantId, mois, appelsActuels, tokensUsed, supabase) {
-  await supabase
-    .from('ai_usage')
-    .upsert({
-      tenant_id:  tenantId,
-      mois,
-      appels:     appelsActuels + 1,
-      tokens:     tokensUsed,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'tenant_id,mois' });
 }
 
 /* Bloc de ciblage — utilisé par l'onboarding, qui envoie les documents
@@ -315,8 +267,8 @@ export default async function handler(req) {
   try {
     const supabase = getSupabaseAdmin();
     const user = await verifierSession(token, supabase);
-    const tenantIdReel = await resoudreTenantDepuisUser(user.id, supabase);
-    const quota = await resoudreQuota(tenantIdReel, supabase);
+    const tenantIdReel = await tenantDuUser(supabase, user.id);
+    const semaine = await reserverAppelIA(supabase, tenantIdReel);
 
     const anthropic = new Anthropic();
     const prompt    = buildPrompt(categorie);
@@ -331,14 +283,10 @@ export default async function handler(req) {
       messages:   [{ role: 'user', content }],
     }).finalMessage();
 
-    const rawText    = response.content.map(c => c.text || '').join('');
-    const tokensUsed = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
-    const parsed = parseReponseIA(rawText);
+    const rawText = response.content.map(c => c.text || '').join('');
+    const parsed  = parseReponseIA(rawText);
     const { entites, avertissements: avertissementsDrop } = nettoyerEntites(parsed.entites);
-
-    if (!quota.hors_quota) {
-      await incrementerQuota(tenantIdReel, quota.mois, quota.appels, tokensUsed, supabase);
-    }
+    await enregistrerTokensIA(supabase, tenantIdReel, semaine, response.usage);
 
     return new Response(JSON.stringify({
       ok: true,
@@ -349,7 +297,7 @@ export default async function handler(req) {
 
   } catch (err) {
     console.error('[ai_extract_doc] ERREUR:', err.message, err.stack);
-    const isQuota = err.message?.includes('Quota IA');
+    const isQuota = err instanceof QuotaIAError;
     return new Response(JSON.stringify({
       ok: false, error: err.message || 'Erreur serveur', code: isQuota ? 'QUOTA_EXCEEDED' : 'SERVER_ERROR',
     }), { status: isQuota ? 429 : 500, headers: { 'Content-Type': 'application/json' } });

@@ -1,12 +1,13 @@
 /* -------------------------------------------------------
    AppMee — netlify/functions/ai-analyse-bc.js
    Analyse un bon de commande (PDF ou image) par Claude.
-   Fix Q1 — Suppression quota interne
+   Quota — plafond hebdomadaire partagé (netlify/lib/quota_ia.js)
    Fix P1 — Prompt strict JSON + fallback parser robuste
 ------------------------------------------------------- */
 
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { QuotaIAError, tenantDuUser, reserverAppelIA, enregistrerTokensIA } from '../lib/quota_ia.js';
 
 function getSupabaseAdmin() {
   const url = process.env.SUPABASE_URL;
@@ -153,7 +154,9 @@ export default async function handler(req) {
 
   try {
     const supabase = getSupabaseAdmin();
-    await verifierSession(token, supabase);
+    const user     = await verifierSession(token, supabase);
+    const tenantIdReel = await tenantDuUser(supabase, user.id);
+    const semaine  = await reserverAppelIA(supabase, tenantIdReel);
 
     const anthropic = new Anthropic();
     const prompt    = buildPrompt(produits, clients, contexte);
@@ -167,12 +170,19 @@ export default async function handler(req) {
 
     const rawText = response.content.map(c => c.text || '').join('');
     const data    = parseReponseIA(rawText);
+    await enregistrerTokensIA(supabase, tenantIdReel, semaine, response.usage);
 
     return new Response(JSON.stringify({ ok: true, data }), {
       status: 200, headers: { 'Content-Type': 'application/json' },
     });
 
   } catch (err) {
+    if (err instanceof QuotaIAError) {
+      console.warn('[ai_analyse_bc] QUOTA:', err.message);
+      return new Response(JSON.stringify({ ok: false, error: err.message, code: 'QUOTA_EXCEEDED' }), {
+        status: 429, headers: { 'Content-Type': 'application/json' },
+      });
+    }
     console.error('[ai_analyse_bc] ERREUR:', err.message);
     console.error('[ai_analyse_bc] STACK:', err.stack);
     console.error('[ai_analyse_bc] ENV SUPABASE_URL:', process.env.SUPABASE_URL ? 'OK' : 'MANQUANT');

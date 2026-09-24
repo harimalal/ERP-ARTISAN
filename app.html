@@ -1274,9 +1274,8 @@ function setActiveNav(page) {
             body: JSON.stringify({ fichier: b64, extension: ext, contexte: ctx, produits: produitsCache, clients: clientsCache, tenantId: getTenantId() || '', token: session?.access_token || '' })
           });
           clearInterval(ticker); progEl.style.width = '100%';
-          if (!resp.ok) throw new Error('Erreur serveur ' + resp.status);
-          const result = await resp.json();
-          if (!result.ok) throw new Error(result.error || 'Erreur IA');
+          const result = await resp.json().catch(() => null);
+          if (!resp.ok || !result?.ok) throw new Error(result?.error || ('Erreur serveur ' + resp.status));
           _iaShowPreview(result.data, produitsCache, clientsCache);
         } catch (err) {
           clearInterval(ticker);
