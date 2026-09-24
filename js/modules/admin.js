@@ -130,7 +130,7 @@ async function _suppArticle(id) {
     _renderArticles();
     showToast('✅ Article supprimé.');
   } catch (err) {
-    showToast('❌ Erreur suppression.', 'error');
+    showToast(err.suppressionBloquee ? '⚠ ' + err.message : '❌ Erreur suppression.', err.suppressionBloquee ? 'warn' : 'error');
   }
 }
 
@@ -175,7 +175,7 @@ async function _suppProduit(id) {
     _renderProduits();
     showToast('✅ Produit supprimé.');
   } catch (err) {
-    showToast('❌ Erreur suppression.', 'error');
+    showToast(err.suppressionBloquee ? '⚠ ' + err.message : '❌ Erreur suppression.', err.suppressionBloquee ? 'warn' : 'error');
   }
 }
 
@@ -213,7 +213,7 @@ async function _suppClient(id) {
     _renderClients();
     showToast('✅ Client supprimé.');
   } catch (err) {
-    showToast('❌ Erreur suppression.', 'error');
+    showToast(err.suppressionBloquee ? '⚠ ' + err.message : '❌ Erreur suppression.', err.suppressionBloquee ? 'warn' : 'error');
   }
 }
 
@@ -252,7 +252,7 @@ async function _suppFournisseur(id) {
     _renderFournisseurs();
     showToast('✅ Fournisseur supprimé.');
   } catch (err) {
-    showToast('❌ Erreur suppression.', 'error');
+    showToast(err.suppressionBloquee ? '⚠ ' + err.message : '❌ Erreur suppression.', err.suppressionBloquee ? 'warn' : 'error');
   }
 }
 
@@ -387,13 +387,18 @@ function _bindEditRowForm() {
     if (!_editType || !_editId) return;
     const ok = await confirmDialog('Supprimer cet élément ?');
     if (!ok) return;
-    if (_editType === 'article')     await deleteArticle(_editId);
-    if (_editType === 'produit')     await deleteProduit(_editId);
-    if (_editType === 'client')      await deleteClient(_editId);
-    if (_editType === 'fournisseur') await deleteFournisseur(_editId);
-    closeModal('modalEditRow');
-    await render();
-    showToast('✅ Supprimé.');
+    try {
+      if (_editType === 'article')     await deleteArticle(_editId);
+      if (_editType === 'produit')     await deleteProduit(_editId);
+      if (_editType === 'client')      await deleteClient(_editId);
+      if (_editType === 'fournisseur') await deleteFournisseur(_editId);
+      closeModal('modalEditRow');
+      await render();
+      showToast('✅ Supprimé.');
+    } catch (err) {
+      console.error('[admin] suppression editRow ERREUR:', err.message, err);
+      showToast(err.suppressionBloquee ? '⚠ ' + err.message : '❌ Erreur suppression.', err.suppressionBloquee ? 'warn' : 'error');
+    }
   });
 }
 
@@ -571,7 +576,7 @@ function _bindFicheClientForm() {
       _renderClients();
       showToast('✅ Client supprimé.');
     } catch (err) {
-      showToast('❌ Erreur suppression.', 'error');
+      showToast(err.suppressionBloquee ? '⚠ ' + err.message : '❌ Erreur suppression.', err.suppressionBloquee ? 'warn' : 'error');
     }
   });
 }
@@ -643,7 +648,7 @@ function _bindFicheFournisseurForm() {
       _renderFournisseurs();
       showToast('✅ Fournisseur supprimé.');
     } catch (err) {
-      showToast('❌ Erreur suppression.', 'error');
+      showToast(err.suppressionBloquee ? '⚠ ' + err.message : '❌ Erreur suppression.', err.suppressionBloquee ? 'warn' : 'error');
     }
   });
 }

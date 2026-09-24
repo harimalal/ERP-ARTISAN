@@ -172,7 +172,7 @@ async function _supprimerProduit(id) {
     showToast('✅ Produit supprimé.');
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'produits' } }));
   } catch (err) {
-    showToast('❌ Erreur suppression produit.', 'error');
+    showToast(err.suppressionBloquee ? '⚠ ' + err.message : '❌ Erreur suppression produit.', err.suppressionBloquee ? 'warn' : 'error');
     console.error('[produits] _supprimerProduit ERREUR:', err.message, err);
   }
 }

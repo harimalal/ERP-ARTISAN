@@ -147,7 +147,7 @@ async function _supprimerCmd(id) {
     showToast('✅ Commande supprimée.');
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'commandes' } }));
   } catch (err) {
-    showToast('❌ Erreur suppression.', 'error');
+    showToast(err.suppressionBloquee ? '⚠ ' + err.message : '❌ Erreur suppression.', err.suppressionBloquee ? 'warn' : 'error');
   }
 }
 

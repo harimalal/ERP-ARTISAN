@@ -17,8 +17,20 @@ import { getTenantId } from './auth.js';
    HELPERS INTERNES
 ------------------------------------------------------- */
 
+/* Suppression refusée par la base (clé étrangère, code 23503) : l'élément est
+   encore utilisé ailleurs. Message lisible par l'artisan, affiché tel quel. */
+const MESSAGES_SUPPRESSION_BLOQUEE = {
+  deleteArticle:  "Cet article figure dans des bons de commande fournisseur, il ne peut pas être supprimé. Vous pouvez modifier sa fiche à la place.",
+  deleteProduit:  "Ce produit figure dans des commandes ou des ordres de fabrication, il ne peut pas être supprimé. Vous pouvez modifier sa fiche à la place.",
+  deleteClient:   "Ce client a des commandes enregistrées, il ne peut pas être supprimé. Vous pouvez modifier sa fiche à la place.",
+  deleteCommande: "Cette commande a déjà été livrée ou facturée, elle ne peut plus être supprimée.",
+};
+
 function handleError(context, error) {
   console.error(`[AppMee][${context}]`, error.message || error);
+  if (error?.code === '23503' && MESSAGES_SUPPRESSION_BLOQUEE[context]) {
+    throw Object.assign(new Error(MESSAGES_SUPPRESSION_BLOQUEE[context]), { suppressionBloquee: true });
+  }
   throw new Error(`Erreur ${context} : ${error.message || 'inconnue'}`);
 }
 
@@ -402,14 +414,9 @@ export async function avancerStatutCommande(id) {
   return updateCommandeStatut(id, next);
 }
 
+/* Les lignes partent en cascade (FK commande_lignes → commandes ON DELETE
+   CASCADE) : une commande livrée ou facturée est refusée sans rien effacer. */
 export async function deleteCommande(id) {
-  const { error: lignesError } = await supabase
-    .from('commande_lignes')
-    .delete()
-    .eq('commande_id', id)
-    .eq('tenant_id', tid());
-  if (lignesError) handleError('deleteCommande(lignes)', lignesError);
-
   const { error } = await supabase
     .from('commandes')
     .delete()
