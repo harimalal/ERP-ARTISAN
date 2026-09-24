@@ -1030,6 +1030,38 @@ function _normaliserDatesLigne(rows) {
   });
 }
 
+/* Parseur CSV minimal mais correct — respecte les guillemets, donc une
+   valeur entre guillemets peut contenir une virgule ou un point-virgule
+   (ex: une adresse "12 rue X, 75000 Paris") sans décaler les colonnes
+   suivantes. Accepte virgule ET point-virgule comme séparateur hors
+   guillemets, comme le faisait l'ancien split(/[,;]/) — remplace ce
+   split partout où il servait à lire une ligne CSV. */
+function _parserLigneCSV(ligne) {
+  const valeurs = [];
+  let courant = '';
+  let dansGuillemets = false;
+  for (let i = 0; i < ligne.length; i++) {
+    const c = ligne[i];
+    if (dansGuillemets) {
+      if (c === '"') {
+        if (ligne[i + 1] === '"') { courant += '"'; i++; }
+        else { dansGuillemets = false; }
+      } else {
+        courant += c;
+      }
+    } else if (c === '"') {
+      dansGuillemets = true;
+    } else if (c === ',' || c === ';') {
+      valeurs.push(courant.trim());
+      courant = '';
+    } else {
+      courant += c;
+    }
+  }
+  valeurs.push(courant.trim());
+  return valeurs;
+}
+
 function _lireHeadersFichier(file, ext) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1037,7 +1069,7 @@ function _lireHeadersFichier(file, ext) {
       try {
         if (ext === 'csv') {
           const first = String(e.target.result).split('\n')[0] || '';
-          resolve(first.split(/[,;]/).map(h => h.trim().replace(/^"|"$/g, '')));
+          resolve(_parserLigneCSV(first));
         } else {
           const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
           const ongletsAvecDonnees = wb.SheetNames.filter(nom => {
@@ -1064,9 +1096,9 @@ function _lireOngletsFichier(file, ext) {
       try {
         if (ext === 'csv') {
           const lines   = String(e.target.result).split('\n').filter(l => l.trim());
-          const headers = lines[0].split(/[,;]/).map(h => h.trim().replace(/^"|"$/g, ''));
+          const headers = _parserLigneCSV(lines[0]);
           const rows = lines.slice(1).map(line => {
-            const vals = line.split(/[,;]/).map(v => v.trim().replace(/^"|"$/g, ''));
+            const vals = _parserLigneCSV(line);
             const obj  = {};
             headers.forEach((h, i) => { obj[h] = vals[i] || ''; });
             return obj;
@@ -1419,9 +1451,9 @@ function _lireLignesFichier(file, ext) {
       try {
         if (ext === 'csv') {
           const lines   = String(e.target.result).split('\n').filter(l => l.trim());
-          const headers = lines[0].split(/[,;]/).map(h => h.trim().replace(/^"|"$/g, ''));
+          const headers = _parserLigneCSV(lines[0]);
           resolve(lines.slice(1).map(line => {
-            const vals = line.split(/[,;]/).map(v => v.trim().replace(/^"|"$/g, ''));
+            const vals = _parserLigneCSV(line);
             const obj  = {};
             headers.forEach((h, i) => { obj[h] = vals[i] || ''; });
             return obj;
