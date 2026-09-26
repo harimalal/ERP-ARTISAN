@@ -161,7 +161,10 @@ async function _supprimerBC(refGroupe) {
 /* -------------------------------------------------------
    FORMULAIRE NOUVEAU BC
 ------------------------------------------------------- */
-export function initAchatModal(preselectArticleRef = null) {
+/* preselect : null (BC vide), une ref d'article (string), ou
+   { lignes:[{ref,qte}], fournisseur } pour regrouper plusieurs articles
+   du même fournisseur en un seul BC (depuis Articles à commander). */
+export function initAchatModal(preselect = null, presetQte = null) {
   document.getElementById('achatDate').value     = today();
   document.getElementById('achatRemarque').value = '';
   document.getElementById('achatRefCmd').value   = '';
@@ -172,11 +175,19 @@ export function initAchatModal(preselectArticleRef = null) {
   _renderBlocEmetteur();
   _bcLignes = [];
   _renderBCLignes();
-  _addBCLigne(preselectArticleRef);
-  if (preselectArticleRef) {
-    const art = _articles.find(a => a.ref === preselectArticleRef);
-    if (art && art.fournisseur) { fSel.value = art.fournisseur; _renderBlocFournisseur(art.fournisseur); }
+
+  if (preselect && typeof preselect === 'object') {
+    const lignes = preselect.lignes || [];
+    lignes.forEach(l => _addBCLigne(l.ref, l.qte));
+    if (preselect.fournisseur) { fSel.value = preselect.fournisseur; _renderBlocFournisseur(preselect.fournisseur); }
+  } else {
+    _addBCLigne(preselect, presetQte);
+    if (preselect) {
+      const art = _articles.find(a => a.ref === preselect);
+      if (art && art.fournisseur) { fSel.value = art.fournisseur; _renderBlocFournisseur(art.fournisseur); }
+    }
   }
+  _renderBCTotal();
 }
 
 function _renderBlocEmetteur() {
@@ -284,15 +295,19 @@ function _renderBCLignes() {
   });
 }
 
-function _addBCLigne(preselectRef = null) {
+function _addBCLigne(preselectRef = null, preselectQte = null) {
   const fournisseur = document.getElementById('achatFournisseur')?.value || '';
   const list = fournisseur ? _articles.filter(a => a.fournisseur === fournisseur) : _articles;
   const defArt = preselectRef ? _articles.find(a => a.ref === preselectRef) : (list[0] || null);
+  /* Quantité par défaut : celle imposée par l'appelant (ex. manque de
+     production calculé côté Production), sinon de quoi remonter au
+     seuil de l'article — jamais 0 par défaut, à ajuster si besoin. */
+  const qteAuto = preselectQte != null ? preselectQte : Math.max(0, (defArt?.seuil || 0) - (defArt?.stock || 0));
   _bcLignes.push({
     articleId: defArt ? defArt.id    : (list[0]?.id || ''),
     nom:       defArt ? defArt.nom   : '',
     unite:     defArt ? defArt.unite : '',
-    qte:       0,
+    qte:       qteAuto,
     prix:      defArt ? defArt.prix  : 0,
   });
   _renderBCLignes();

@@ -1209,8 +1209,13 @@ function setActiveNav(page) {
     });
 
     document.addEventListener('appmee:openAchatFor', (e) => {
-      const { ref } = e.detail || {};
-      if (achats.initAchatModal) achats.initAchatModal(ref || null);
+      const { ref, qte, lignes, fournisseur } = e.detail || {};
+      if (achats.initAchatModal) {
+        achats.initAchatModal(
+          Array.isArray(lignes) && lignes.length ? { lignes, fournisseur } : (ref || null),
+          qte
+        );
+      }
       openModal('modalAchat');
     });
 

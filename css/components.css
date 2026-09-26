@@ -463,7 +463,7 @@ textarea:focus {
   box-shadow: 0 24px 64px rgba(0,0,0,.22);
 }
 
-.modal-lg { max-width: 740px; }
+.modal-lg { max-width: 800px; }
 .modal-xl { max-width: 900px; }
 
 .modal-hdr {
@@ -549,6 +549,12 @@ textarea:focus {
 .meq-card.urgent .meq-btn[data-action="urgent"] { color: var(--accent); }
 .meq-btn-del:hover { background: #fdecea; color: var(--ui-red); }
 .meq-empty { font-size: 11.5px; color: var(--ink-muted); text-align: center; padding: 14px 0; }
+
+/* Ligne d'article du bon de commande fournisseur — le select article est
+   dans une colonne 1fr mais son min-width par défaut ("auto") se cale sur
+   l'option la plus longue et fait déborder toute la ligne (et le modal)
+   vers la droite. On force le rétrécissement + une ellipse. */
+.bc-art { min-width: 0; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ═══════════════════════════════════════════════════════
    CALENDRIER

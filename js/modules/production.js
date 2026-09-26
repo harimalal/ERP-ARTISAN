@@ -503,35 +503,49 @@ function _renderBesoins() {
     });
   });
 
-  let mHtml = '';
-  Object.entries(mg).forEach(([aref, besoin]) => {
+  /* Quantité à commander : au moins de quoi couvrir le manque de production,
+     et au moins de quoi remonter le stock au seuil de sécurité — jamais les
+     deux séparément, on prend le plus grand des deux besoins. */
+  const manques = Object.entries(mg).map(([aref, besoin]) => {
     const a = _articles.find(x => x.ref === aref);
-    if (!a) return;
+    if (!a) return null;
     const manque = besoin - a.stock;
-    if (manque <= 0) return;
-    mHtml += `<tr>
-      <td class="td-ref">${esc(aref)}</td>
-      <td>${esc(a.nom)}</td>
-      <td>${fmtQ(a.stock)} ${esc(a.unite)}</td>
-      <td>${fmtQ(besoin)} ${esc(a.unite)}</td>
-      <td style="color:var(--ui-red);font-weight:700">⚠ ${fmtQ(manque)} ${esc(a.unite)}</td>
-      <td>${fmt(manque * a.prix)} €</td>
-      <td style="font-size:11px">${esc(a.fournisseur || '—')}</td>
-      <td><button class="btn btn-primary btn-xs" data-ref="${esc(aref)}" data-manque="${manque}" data-action="bc">BC</button></td>
-    </tr>`;
-  });
+    if (manque <= 0) return null;
+    const qteACommander = Math.max(manque, (a.seuil || 0) - a.stock);
+    return { aref, a, besoin, manque, qteACommander };
+  }).filter(Boolean);
 
-  document.getElementById('manquesTbody').innerHTML = mHtml ||
+  document.getElementById('manquesTbody').innerHTML = manques.map(m => `<tr>
+      <td class="td-ref">${esc(m.aref)}</td>
+      <td>${esc(m.a.nom)}</td>
+      <td>${fmtQ(m.a.stock)} ${esc(m.a.unite)}</td>
+      <td>${fmtQ(m.besoin)} ${esc(m.a.unite)}</td>
+      <td style="color:var(--ui-red);font-weight:700">⚠ ${fmtQ(m.manque)} ${esc(m.a.unite)}</td>
+      <td>${fmt(m.manque * m.a.prix)} €</td>
+      <td style="font-size:11px">${esc(m.a.fournisseur || '—')}</td>
+      <td><button class="btn btn-primary btn-xs" data-ref="${esc(m.aref)}" data-action="bc">BC</button></td>
+    </tr>`).join('') ||
     '<tr><td colspan="8" style="text-align:center;padding:12px;color:var(--ui-green)">✅ Tous les articles disponibles.</td></tr>';
 
   document.getElementById('manquesTbody').onclick = (e) => {
     const btn = e.target.closest('[data-action="bc"]');
-    if (btn) {
-      document.dispatchEvent(new CustomEvent('appmee:openAchatFor', {
-        detail: { ref: btn.dataset.ref, qte: parseFloat(btn.dataset.manque) },
-      }));
-      openModal('modalAchat');
-    }
+    if (!btn) return;
+    const clicked = manques.find(m => m.aref === btn.dataset.ref);
+    if (!clicked) return;
+    /* Regroupe en un seul BC tous les articles manquants du même fournisseur
+       que celui cliqué — sans fournisseur renseigné, on ne peut pas
+       présumer qu'ils viennent du même endroit, on garde une ligne seule. */
+    const fournisseur = clicked.a.fournisseur || '';
+    const memeFournisseur = fournisseur
+      ? manques.filter(m => (m.a.fournisseur || '') === fournisseur)
+      : [clicked];
+    document.dispatchEvent(new CustomEvent('appmee:openAchatFor', {
+      detail: {
+        fournisseur,
+        lignes: memeFournisseur.map(m => ({ ref: m.aref, qte: m.qteACommander })),
+      },
+    }));
+    openModal('modalAchat');
   };
 }
 
