@@ -554,9 +554,12 @@ textarea:focus {
    CALENDRIER
 ═══════════════════════════════════════════════════════ */
 
+#calWeek { width: 100%; }
+
 .cal-week {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  width: 100%;
   gap: 8px;
   margin-bottom: 8px;
 }
@@ -571,6 +574,13 @@ textarea:focus {
   flex-direction: column;
 }
 
+/* Hauteur de cellule selon la vue — une ligne (semaine) doit pouvoir montrer
+   au moins 5 commandes/OF sans être coupée ; le mois, avec 4 à 5 lignes,
+   reste compact et scrolle en interne si une journée est très chargée. */
+#calWeek.cal-mode-semaine .cal-day   { height: 230px; }
+#calWeek.cal-mode-quinzaine .cal-day { height: 140px; }
+#calWeek.cal-mode-mois .cal-day      { height: 92px; }
+
 .cal-day-hdr {
   padding: 7px 10px 6px;
   background: var(--cream-dark);
@@ -583,7 +593,7 @@ textarea:focus {
 }
 
 .cal-day-hdr.today { background: var(--ink); color: var(--cream); }
-.cal-day-body { padding: 6px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.cal-day-body { padding: 6px; display: flex; flex-direction: column; gap: 4px; flex: 1; overflow-y: auto; }
 
 /* Items calendrier par statut OF */
 .cal-item {

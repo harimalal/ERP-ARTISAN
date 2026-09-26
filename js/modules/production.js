@@ -175,7 +175,9 @@ function _renderSemaineOuQuinzaine(nbJours) {
     }
     html += '</div>';
   }
-  document.getElementById('calWeek').innerHTML = html;
+  const calWeek = document.getElementById('calWeek');
+  calWeek.className = 'cal-mode-' + (nbJours === 14 ? 'quinzaine' : 'semaine');
+  calWeek.innerHTML = html;
 }
 
 function _renderMois() {
@@ -204,7 +206,9 @@ function _renderMois() {
     }
     html += '</div>';
   }
-  document.getElementById('calWeek').innerHTML = html;
+  const calWeek = document.getElementById('calWeek');
+  calWeek.className = 'cal-mode-mois';
+  calWeek.innerHTML = html;
 }
 
 function _renderCalendrier() {
