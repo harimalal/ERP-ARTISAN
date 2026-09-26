@@ -549,6 +549,9 @@ function _renderHistorique() {
     return (b.numero_lot || '').localeCompare(a.numero_lot || '');
   });
 
+  const countEl = document.getElementById('historiqueProductionCount');
+  if (countEl) countEl.textContent = clos.length;
+
   if (!clos.length) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:14px;color:var(--ink-muted)">Aucune production clôturée pour le moment.</td></tr>';
     return;

@@ -246,6 +246,30 @@
 }
 .card-hdr.hdr-amber .card-hdr-title { color: var(--hdr-amber-txt); }
 
+.card-hdr.hdr-purple {
+  background: var(--hdr-purple-bg);
+  border-bottom-color: var(--hdr-purple-brd);
+}
+.card-hdr.hdr-purple .card-hdr-title { color: var(--hdr-purple-txt); }
+
+.card-hdr.hdr-rose {
+  background: var(--hdr-rose-bg);
+  border-bottom-color: var(--hdr-rose-brd);
+}
+.card-hdr.hdr-rose .card-hdr-title { color: var(--hdr-rose-txt); }
+
+/* Section repliable (historique) — <details class="card"><summary class="card-hdr">
+   remplace le clic personnalisé : replié par défaut, un clic sur le bandeau
+   déplie/replie nativement, sans JS. */
+details.card > summary {
+  cursor: pointer;
+  list-style: none;
+}
+details.card > summary::-webkit-details-marker,
+details.card > summary::marker { display: none; content: ''; }
+.details-chevron { display: inline-block; transition: transform .15s; font-size: 10px; }
+details.card[open] > summary .details-chevron { transform: rotate(90deg); }
+
 /* Badge count dans card-hdr */
 .card-count {
   font-size: 10px;

@@ -77,17 +77,17 @@ export async function init() {
   if (!_delegationBound) {
     _delegationBound = true;
 
+    /* Même délégation pour le tableau actif ET l'historique replié —
+       les deux partagent exactement le même gabarit de ligne. */
     document.addEventListener('click', async (e) => {
-      const tbody = document.getElementById('achatsTbody');
-      if (!tbody) return;
-      const delBtn = e.target.closest('#achatsTbody [data-action="supprimer"]');
+      const delBtn = e.target.closest('#achatsTbody [data-action="supprimer"], #achatsHistoriqueTbody [data-action="supprimer"]');
       if (delBtn) { e.stopPropagation(); await _supprimerBC(delBtn.dataset.ref); return; }
-      const tr = e.target.closest('#achatsTbody tr[data-ref]');
+      const tr = e.target.closest('#achatsTbody tr[data-ref], #achatsHistoriqueTbody tr[data-ref]');
       if (tr && !e.target.closest('[data-action]')) _openDetailBC(tr.dataset.ref);
     }, true);
 
     document.addEventListener('change', async (e) => {
-      const sel = e.target.closest('#achatsTbody [data-action="changer-statut"]');
+      const sel = e.target.closest('#achatsTbody [data-action="changer-statut"], #achatsHistoriqueTbody [data-action="changer-statut"]');
       if (sel && sel.value) await _changerStatutGroupe(sel.dataset.ref, sel.value);
     }, true);
   }
@@ -100,17 +100,17 @@ export async function render() {
 
 /* -------------------------------------------------------
    TABLEAU
+   Un BC "reçu" est clos : il sort du tableau actif et ne vit plus que
+   dans l'historique replié en bas de page (Règle 19 — protéger le flux
+   "achats à gérer" d'un encombrement par des BC qui n'ont plus d'action
+   à faire).
 ------------------------------------------------------- */
-function _renderTable() {
-  const groupes = _grouperAchats(_achats);
-  const tbody = document.getElementById('achatsTbody');
-  if (!tbody) return;
-  tbody.innerHTML = groupes.map(g => {
-    const articlesLabel = g.lignes.length === 1
-      ? esc(g.lignes[0].article_nom || g.lignes[0].ref)
-      : `${g.lignes.length} articles — ${g.lignes.map(l => esc(l.article_nom || '')).join(', ')}`;
-    const qteTotale = g.lignes.length === 1 ? `${fmtQ(g.lignes[0].quantite)}` : `${g.lignes.length} lignes`;
-    return `
+function _ligneBC(g) {
+  const articlesLabel = g.lignes.length === 1
+    ? esc(g.lignes[0].article_nom || g.lignes[0].ref)
+    : `${g.lignes.length} articles — ${g.lignes.map(l => esc(l.article_nom || '')).join(', ')}`;
+  const qteTotale = g.lignes.length === 1 ? `${fmtQ(g.lignes[0].quantite)}` : `${g.lignes.length} lignes`;
+  return `
     <tr class="clickable" data-ref="${esc(g.ref)}">
       <td class="td-ref">${esc(g.ref)}</td>
       <td>${esc(g.date || '—')}</td>
@@ -134,7 +134,51 @@ function _renderTable() {
         <button class="btn btn-danger btn-xs" data-ref="${esc(g.ref)}" data-action="supprimer" title="Supprimer">✕</button>
       </td>
     </tr>`;
-  }).join('') || '<tr><td colspan="9" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun bon de commande.</td></tr>';
+}
+
+function _renderStatsAchats(groupes) {
+  const el = document.getElementById('achatsBadges');
+  if (!el) return;
+  const total     = groupes.length;
+  const brouillon = groupes.filter(g => g.statut === 'brouillon').length;
+  const envoye    = groupes.filter(g => g.statut === 'envoye').length;
+  const clos      = groupes.filter(g => g.statut === 'recu').length;
+
+  const pill = (dot, label, val) => `
+    <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:20px;font-size:12.5px;">
+      <span style="width:8px;height:8px;border-radius:50%;background:${dot};display:inline-block;"></span>
+      <span style="font-weight:600;">${label}</span>
+      <span style="font-weight:800;color:var(--ink);">${val}</span>
+    </div>`;
+
+  el.innerHTML = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+    ${pill('#4A3C30', 'Total commandes', total)}
+    ${pill('#868e96', 'À faire', brouillon)}
+    ${pill('#4c6ef5', 'Envoyé', envoye)}
+    ${pill('#22c55e', 'Clos', clos)}
+  </div>`;
+}
+
+function _renderTable() {
+  const groupes = _grouperAchats(_achats);
+  _renderStatsAchats(groupes);
+
+  const actifs      = groupes.filter(g => g.statut !== 'recu');
+  const historique   = groupes.filter(g => g.statut === 'recu');
+
+  const tbody = document.getElementById('achatsTbody');
+  if (tbody) {
+    tbody.innerHTML = actifs.map(_ligneBC).join('') ||
+      '<tr><td colspan="9" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun bon de commande à gérer.</td></tr>';
+  }
+
+  const histoTbody = document.getElementById('achatsHistoriqueTbody');
+  const histoCount = document.getElementById('achatsHistoriqueCount');
+  if (histoTbody) {
+    histoTbody.innerHTML = historique.map(_ligneBC).join('') ||
+      '<tr><td colspan="9" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun BC reçu pour le moment.</td></tr>';
+  }
+  if (histoCount) histoCount.textContent = historique.length;
 }
 
 /* -------------------------------------------------------

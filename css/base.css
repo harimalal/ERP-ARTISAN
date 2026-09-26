@@ -67,6 +67,12 @@
   --hdr-amber-bg:  #FEF6E4;
   --hdr-amber-brd: #F0D9A0;
   --hdr-amber-txt: #5A3A00;
+  --hdr-purple-bg:  #F0ECFB;
+  --hdr-purple-brd: #C9BFEF;
+  --hdr-purple-txt: #3D2A5C;
+  --hdr-rose-bg:   #FCEEF3;
+  --hdr-rose-brd:  #F3C9D9;
+  --hdr-rose-txt:  #7A1F45;
 }
 
 /* RESET */

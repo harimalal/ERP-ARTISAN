@@ -327,6 +327,17 @@ main::-webkit-scrollbar-thumb { background: var(--ui-brd2); border-radius: 4px; 
   margin-bottom: 16px;
 }
 
+.dash-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* Titre en grand dans le bandeau coloré de chaque encart Dashboard —
+   partout ailleurs card-hdr-title reste à sa taille normale (13px). */
+#page-dashboard .card-hdr-title { font-size: 18px; }
+
 .admin-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

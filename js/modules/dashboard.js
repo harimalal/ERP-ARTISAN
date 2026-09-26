@@ -17,6 +17,7 @@ export async function render() {
     _data = await getDashboardData();
     renderKPIs(_data);
     renderAlertes(_data.articles);
+    renderArticlesCommandes(_data.achats);
     renderStockProduits(_data.produits);
     renderDernieresCommandes(_data.commandes, _data.produits);
     updateBadges(_data);
@@ -153,6 +154,22 @@ function renderAlertes(articles) {
     document.dispatchEvent(new CustomEvent('appmee:openAchatFor', { detail: { ref } }));
     openModal('modalAchat');
   };
+}
+
+/* -------------------------------------------------------
+   ARTICLES COMMANDÉS
+   Nombre d'articles distincts avec un bon de commande fournisseur
+   au statut "envoyé" — en attente de réception.
+------------------------------------------------------- */
+function renderArticlesCommandes(achats) {
+  const el = document.getElementById('dashArticlesCommandes');
+  if (!el) return;
+  const nb = new Set((achats || []).filter(a => a.statut === 'envoye').map(a => a.article_id)).size;
+  el.innerHTML = `
+    <div style="padding:22px 16px;text-align:center;">
+      <div style="font-size:38px;font-weight:800;color:var(--ink);line-height:1;">${nb}</div>
+      <div style="font-size:12px;color:var(--ink-muted);margin-top:6px;">article(s) en commande fournisseur envoyée</div>
+    </div>`;
 }
 
 /* -------------------------------------------------------
