@@ -29,7 +29,7 @@ export async function render() {
    KPIs
 ------------------------------------------------------- */
 function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
-  const alertsA = articles.filter(a => a.stock <= a.seuil).length;
+  const alertsA = articles.filter(a => !a.hors_stock && a.stock <= a.seuil).length;
 
   const cmdTotal  = commandes.length;
   const cmdValeur = commandes.reduce((s, c) =>
@@ -122,7 +122,7 @@ function _fixCardOverflow(elId) {
    ALERTES STOCK ARTICLES — Fix S12 redesign barres
 ------------------------------------------------------- */
 function renderAlertes(articles) {
-  const al = articles.filter(a => a.stock <= a.seuil);
+  const al = articles.filter(a => !a.hors_stock && a.stock <= a.seuil);
   const el = document.getElementById('dashAlerts');
 
   _fixCardOverflow('dashAlerts');
@@ -216,7 +216,7 @@ function renderDernieresCommandes(commandes, produits) {
    BADGES NAVIGATION
 ------------------------------------------------------- */
 function updateBadges({ articles, commandes, ofs, factures }) {
-  const alertsA = articles.filter(a => a.stock <= a.seuil).length;
+  const alertsA = articles.filter(a => !a.hors_stock && a.stock <= a.seuil).length;
   const cmdOpen = commandes.filter(c => c.statut !== 'cloture').length;
   const ofActifs = (ofs || []).filter(o => ['planifie', 'en_cours'].includes(o.statut)).length;
   const facAlerte = (factures || []).filter(f => f.statut === 'a_lancer' || f.statut === 'a_relancer').length;

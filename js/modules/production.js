@@ -364,7 +364,7 @@ function _calcManquesRecette(produitId, qte) {
   const manques = [];
   lignes.forEach(l => {
     const a = _articles.find(x => x.ref === l.articles?.ref);
-    if (a && a.stock < l.quantite * qte) {
+    if (a && !a.hors_stock && a.stock < l.quantite * qte) {
       manques.push(`${a.nom} (manque ${fmtQ(l.quantite * qte - a.stock)} ${a.unite})`);
     }
   });
@@ -439,7 +439,7 @@ async function _terminerFabrication(id) {
       const qp   = l.quantite || 0;
       if (!aref || !qp) continue;
       const a = _articles.find(x => x.ref === aref);
-      if (!a) continue;
+      if (!a || a.hors_stock) continue;
       a.stock = await ajusterStockArticle(a.id, -(qp * of.quantite));
       await addMouvement({ type: 'sortie', ref: aref, nom: a.nom, qte: qp * of.quantite, motif: 'Production ' + of.ref, ref_doc: of.ref });
     }

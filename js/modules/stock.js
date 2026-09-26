@@ -83,9 +83,9 @@ function _progBar(stock, seuil) {
 ------------------------------------------------------- */
 function _renderIndicateurs() {
   const total   = _articles.length;
-  const enStock = _articles.filter(a => a.stock > a.seuil).length;
-  const faible  = _articles.filter(a => a.stock <= a.seuil && a.stock > a.seuil * 0.5).length;
-  const bas     = _articles.filter(a => a.stock <= a.seuil * 0.5).length;
+  const enStock = _articles.filter(a => a.hors_stock || a.stock > a.seuil).length;
+  const faible  = _articles.filter(a => !a.hors_stock && a.stock <= a.seuil && a.stock > a.seuil * 0.5).length;
+  const bas     = _articles.filter(a => !a.hors_stock && a.stock <= a.seuil * 0.5).length;
 
   const el = document.getElementById('stockIndicateurs');
   if (!el) return;
@@ -489,7 +489,7 @@ export function openInventaireGlobal() {
 function _renderInvGlobalLignes() {
   const container = document.getElementById('invGlobalLignes');
   container.innerHTML = '';
-  const alertes = _articles.filter(a => a.stock <= a.seuil);
+  const alertes = _articles.filter(a => !a.hors_stock && a.stock <= a.seuil);
   if (alertes.length) { alertes.forEach(a => _addInvGlobalLigne(a)); }
   else { _addInvGlobalLigne(); }
 }
