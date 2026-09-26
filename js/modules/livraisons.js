@@ -83,7 +83,32 @@ export async function render() {
    TABLEAU FACTURES
    Colonnes : N° Facture | Date | Client | Montant HT | TTC | Statut | Changer | Aperçu
 ------------------------------------------------------- */
+function _renderStatsFactures() {
+  const el = document.getElementById('facturesBadges');
+  if (!el) return;
+  const total    = _factures.length;
+  const aFaire   = _factures.filter(f => f.statut === 'a_lancer').length;
+  const envoye   = _factures.filter(f => f.statut === 'facture').length;
+  const clos     = _factures.filter(f => f.statut === 'regle').length;
+
+  const pill = (dot, label, val) => `
+    <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:20px;font-size:12.5px;">
+      <span style="width:8px;height:8px;border-radius:50%;background:${dot};display:inline-block;"></span>
+      <span style="font-weight:600;">${label}</span>
+      <span style="font-weight:800;color:var(--ink);">${val}</span>
+    </div>`;
+
+  el.innerHTML = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+    ${pill('#4A3C30', 'Total factures', total)}
+    ${pill('#868e96', 'À faire', aFaire)}
+    ${pill('#4c6ef5', 'Envoyé', envoye)}
+    ${pill('#22c55e', 'Clos = Payé', clos)}
+  </div>`;
+}
+
 function _renderTable() {
+  _renderStatsFactures();
+
   const facAlerte = _factures.filter(f => f.statut === 'a_lancer' || f.statut === 'a_relancer').length;
   const bliv = document.getElementById('badgeLivraisons');
   if (bliv) { bliv.textContent = facAlerte; bliv.style.display = facAlerte > 0 ? '' : 'none'; }

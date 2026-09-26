@@ -180,7 +180,7 @@ export function badgeFac(statut) {
     a_lancer:   '<span class="badge badge-neutral">À lancer</span>',
     facture:    '<span class="badge badge-blue">Facturée</span>',
     a_relancer: '<span class="badge badge-warn">À relancer</span>',
-    paye:       '<span class="badge badge-ok">Payée ✓</span>',
+    regle:      '<span class="badge badge-ok">Payée ✓</span>',
   };
   return map[statut] || `<span class="badge badge-neutral">${esc(statut)}</span>`;
 }
