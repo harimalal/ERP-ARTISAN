@@ -14,7 +14,7 @@ import {
 } from '../db.js';
 import {
   fmt, fmtQ, esc, stockStatus, showToast,
-  openModal, closeModal, sortTable, filterTable,
+  openModal, closeModal, sortTable,
   today, nextRef, confirmDialog, isPositiveNumber,
 } from '../ui.js';
 
@@ -31,6 +31,14 @@ const CAT_COLORS = {
   ingredient: { bg: 'rgba(168,85,247,0.12)',  txt: '#7e22ce', brd: 'rgba(168,85,247,0.3)'  },
   fourniture: { bg: 'rgba(249,115,22,0.12)',  txt: '#c2410c', brd: 'rgba(249,115,22,0.3)'  },
   autre:      { bg: 'rgba(156,163,175,0.15)', txt: '#4b5563', brd: 'rgba(156,163,175,0.3)' },
+  /* Taxonomie alternative (ex: Les Confitures de Pascal) — coexiste avec celle
+     du dessus, ne la remplace pas, pour ne rien casser chez les autres tenants. */
+  Fruit:      { bg: 'rgba(34,197,94,0.12)',   txt: '#15803d', brd: 'rgba(34,197,94,0.3)'   },
+  'Ingrédient': { bg: 'rgba(168,85,247,0.12)', txt: '#7e22ce', brd: 'rgba(168,85,247,0.3)'  },
+  Verre:      { bg: 'rgba(59,130,246,0.12)',  txt: '#1d4ed8', brd: 'rgba(59,130,246,0.3)'  },
+  Capsule:    { bg: 'rgba(14,165,233,0.12)',  txt: '#0369a1', brd: 'rgba(14,165,233,0.3)'  },
+  'Étiquette': { bg: 'rgba(249,115,22,0.12)', txt: '#c2410c', brd: 'rgba(249,115,22,0.3)'  },
+  Logistique: { bg: 'rgba(156,163,175,0.15)', txt: '#4b5563', brd: 'rgba(156,163,175,0.3)' },
 };
 
 const CAT_LABELS = {
@@ -119,6 +127,8 @@ export async function init() {
   _bindNewArticleForm();
   _bindInventaireForm();
   _bindTableActions();
+  _bindColumnFilters();
+  _renderColumnFilters();
 }
 
 /* -------------------------------------------------------
@@ -128,6 +138,7 @@ export async function render() {
   _articles = await getArticles();
   _renderIndicateurs();
   _renderTable();
+  _renderColumnFilters();
 }
 
 /* -------------------------------------------------------
@@ -551,8 +562,57 @@ async function _saveInvGlobal() {
    RECHERCHE ET TRI
 ------------------------------------------------------- */
 function _bindSearchInput() {
-  document.getElementById('stockSearchInput')?.addEventListener('input', (e) => {
-    filterTable('stockTable', e.target.value);
+  document.getElementById('stockSearchInput')?.addEventListener('input', _applyFilters);
+}
+
+/* -------------------------------------------------------
+   FILTRES PAR COLONNE — une liste déroulante par entête,
+   sauf Actions. Se combinent en ET avec la recherche libre.
+------------------------------------------------------- */
+function _renderColumnFilters() {
+  document.querySelectorAll('#stockFilterRow .stock-col-filter').forEach(sel => {
+    const col = parseInt(sel.dataset.col);
+    const getValue = {
+      0: a => a.ref,
+      1: a => a.nom,
+      2: a => CAT_LABELS[a.categorie] || a.categorie || '—',
+      3: a => a.unite,
+      4: a => fmtQ(a.stock),
+      5: a => fmtQ(a.seuil),
+      6: a => _statutLabel(a.stock, a.seuil),
+      7: a => fmt(a.prix) + ' €',
+      8: a => a.fournisseur || '—',
+    }[col];
+    if (!getValue) return;
+    const current = sel.value;
+    const valeurs = [...new Set(_articles.map(getValue))].filter(v => v !== '' && v != null).sort((a, b) => String(a).localeCompare(String(b), 'fr', { numeric: true }));
+    sel.innerHTML = '<option value="">Tous</option>' + valeurs.map(v => `<option value="${esc(v)}" ${v === current ? 'selected' : ''}>${esc(v)}</option>`).join('');
+  });
+}
+
+function _statutLabel(stock, seuil) {
+  if (stock <= 0) return 'Épuisé';
+  if (stock <= seuil * 0.5) return 'Bas';
+  if (stock <= seuil) return 'Faible';
+  return 'OK';
+}
+
+function _bindColumnFilters() {
+  document.querySelectorAll('#stockFilterRow .stock-col-filter').forEach(sel => {
+    sel.addEventListener('change', _applyFilters);
+  });
+}
+
+function _applyFilters() {
+  const q = (document.getElementById('stockSearchInput')?.value || '').toLowerCase();
+  const filtres = Array.from(document.querySelectorAll('#stockFilterRow .stock-col-filter'))
+    .map(sel => ({ col: parseInt(sel.dataset.col), val: sel.value }))
+    .filter(f => f.val !== '');
+
+  document.querySelectorAll('#stockTbody tr').forEach(row => {
+    const matchTexte  = !q || row.textContent.toLowerCase().includes(q);
+    const matchCols   = filtres.every(f => (row.cells[f.col]?.textContent.trim() || '') === f.val);
+    row.style.display = (matchTexte && matchCols) ? '' : 'none';
   });
 }
 

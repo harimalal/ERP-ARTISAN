@@ -9,18 +9,19 @@
 
 import {
   getProduits, createProduit, updateProduit,
-  deleteProduit, updateProduitStock,
+  updateProduitStock,
   getRecettesByProduit, saveRecette, getArticles,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, stockStatus, showToast,
-  openModal, closeModal, nextRef, confirmDialog, sortTable,
+  openModal, closeModal, nextRef, sortTable,
 } from '../ui.js';
 
 let _produits  = [];
 let _articles  = [];
 let _recN      = 0;
 let _editProduitId = null;
+let _editCoutRevient = 0;
 
 /* Guard Règle 17 */
 let _delegationBound = false;
@@ -49,13 +50,6 @@ export async function init() {
         if (p) {
           document.dispatchEvent(new CustomEvent('appmee:editProduit', { detail: { produitId: p.id } }));
         }
-        return;
-      }
-
-      const btnDel = e.target.closest('#produitsTbody [data-action="supprimer"]');
-      if (btnDel) {
-        e.stopPropagation();
-        await _supprimerProduit(btnDel.dataset.id);
         return;
       }
 
@@ -88,7 +82,7 @@ function _renderTable() {
     : _produits;
 
   document.getElementById('produitsTbody').innerHTML = liste.map(p => {
-    const cout    = p.cout || 0;
+    const cout    = p.cout_revient ?? p.cout ?? 0;
     const prix    = p.prix_vente || p.prix || 0;
     const marge   = prix - cout;
     const margeTd = cout > 0
@@ -106,7 +100,6 @@ function _renderTable() {
       <td onclick="event.stopPropagation()" style="white-space:nowrap;">
         <button class="btn-icon" data-ref="${esc(p.ref)}" data-action="editer" title="Éditer"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
         <button class="btn-icon" data-ref="${esc(p.ref)}" data-action="produire" title="Planifier un ordre de fabrication"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4V2M16 4V2M3 10h18"/></svg></button>
-        <button class="btn-icon" data-id="${esc(p.id)}" data-action="supprimer" title="Supprimer" style="color:var(--ui-red);border-color:#F0B4A8;"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
       </td>
     </tr>`;
   }).join('') || '<tr><td colspan="9" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun produit.</td></tr>';
@@ -160,29 +153,18 @@ function _sortNumeric(col, th) {
 }
 
 /* -------------------------------------------------------
-   SUPPRESSION
-------------------------------------------------------- */
-async function _supprimerProduit(id) {
-  const ok = await confirmDialog('Supprimer ce produit définitivement ?');
-  if (!ok) return;
-  try {
-    await deleteProduit(id);
-    _produits = _produits.filter(p => p.id !== id);
-    _renderTable();
-    showToast('✅ Produit supprimé.');
-    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'produits' } }));
-  } catch (err) {
-    showToast(err.suppressionBloquee ? '⚠ ' + err.message : '❌ Erreur suppression produit.', err.suppressionBloquee ? 'warn' : 'error');
-    console.error('[produits] _supprimerProduit ERREUR:', err.message, err);
-  }
-}
-
-/* -------------------------------------------------------
    FORMULAIRE NOUVEAU / ÉDITION PRODUIT
+   Un produit n'est supprimable que depuis Admin.
 ------------------------------------------------------- */
 function _bindNewProduitForm() {
   document.getElementById('btnAddRecetteLigne')?.addEventListener('click', _addRecetteLigne);
   document.getElementById('btnSaveNewProduit')?.addEventListener('click', _handleSave);
+  document.getElementById('npPrix')?.addEventListener('input', () => {
+    _showCoutEtMarge(_editProduitId ? _editCoutRevient : _collectLignesRecette().reduce((s, l) => {
+      const a = _articles.find(x => x.id === l.article_id);
+      return s + (a ? a.prix * l.quantite : 0);
+    }, 0));
+  });
 }
 
 export async function initNewProduitModal(editProduit = null) {
@@ -212,13 +194,21 @@ export async function initNewProduitModal(editProduit = null) {
 
   document.getElementById('recetteLignes').innerHTML = '';
   document.getElementById('npCoutPreview').style.display = 'none';
+  _editCoutRevient = 0;
+
+  const recetteSection = document.getElementById('npRecetteSection');
 
   if (editProduit) {
+    /* La recette ne se modifie plus ici (Admin uniquement, à terme) —
+       on la lit seulement pour calculer le coût de revient et la marge. */
+    if (recetteSection) recetteSection.style.display = 'none';
     try {
       const lignes = await getRecettesByProduit(editProduit.id);
-      for (const l of lignes) { _addRecetteLigne(l); }
+      _editCoutRevient = lignes.reduce((s, l) => s + ((l.articles?.prix || 0) * (l.quantite || 0)), 0);
     } catch (_) {}
+    _showCoutEtMarge(_editCoutRevient);
   } else {
+    if (recetteSection) recetteSection.style.display = '';
     _addRecetteLigne();
   }
 }
@@ -251,11 +241,20 @@ function _updateCoutPreview() {
     const a = _articles.find(x => x.id === l.article_id);
     return s + (a ? a.prix * l.quantite : 0);
   }, 0);
-  const el = document.getElementById('npCoutPreview');
+  _showCoutEtMarge(cout);
+}
+
+function _showCoutEtMarge(cout) {
+  const el    = document.getElementById('npCoutPreview');
   const valEl = document.getElementById('npCoutVal');
-  if (el && valEl) {
-    el.style.display = cout > 0 ? 'block' : 'none';
-    valEl.textContent = fmt(cout) + ' €';
+  const mgEl  = document.getElementById('npMargeVal');
+  if (!el || !valEl) return;
+  el.style.display = cout > 0 ? 'block' : 'none';
+  valEl.textContent = fmt(cout) + ' €';
+  if (mgEl) {
+    const prix = parseFloat(document.getElementById('npPrix')?.value) || 0;
+    const marge = prix - cout;
+    mgEl.textContent = cout > 0 ? `${fmt(marge)} € (${(marge / cout * 100).toFixed(0)}%)` : '—';
   }
 }
 
@@ -283,9 +282,9 @@ async function _saveNewProduit() {
   if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
 
   try {
-    const produit = await createProduit({ ref, nom, prix_vente: prix, seuil, stock: 0 });
+    const produit = await createProduit({ ref, nom, prix_vente: prix, seuil, stock: 0, cout_revient: cout });
     if (lignes.length) await saveRecette(produit.id, lignes);
-    _produits.push({ ...produit, cout });
+    _produits.push({ ...produit, cout_revient: cout });
     closeModal('modalNewProduit');
     _renderTable();
     showToast('✅ Produit ' + ref + ' créé.');
@@ -305,20 +304,17 @@ async function _saveEditProduit() {
   const seuil = parseInt(document.getElementById('npSeuil').value) || 100;
   if (!nom) { showToast('⚠ Le nom est requis.', 'error'); return; }
 
-  const lignes = _collectLignesRecette();
-  const cout = lignes.reduce((s, l) => {
-    const a = _articles.find(x => x.id === l.article_id);
-    return s + (a ? a.prix * l.quantite : 0);
-  }, 0);
+  /* La recette ne se modifie plus depuis ce modal — le coût de revient
+     déjà calculé à l'ouverture (depuis la recette existante) est repris tel quel. */
+  const cout = _editCoutRevient;
 
   const btn = document.getElementById('btnSaveNewProduit');
   if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
 
   try {
-    await updateProduit(_editProduitId, { nom, prix_vente: prix, seuil });
-    await saveRecette(_editProduitId, lignes);
+    await updateProduit(_editProduitId, { nom, prix_vente: prix, seuil, cout_revient: cout });
     const idx = _produits.findIndex(p => p.id === _editProduitId);
-    if (idx >= 0) Object.assign(_produits[idx], { nom, prix_vente: prix, seuil, cout });
+    if (idx >= 0) Object.assign(_produits[idx], { nom, prix_vente: prix, seuil, cout_revient: cout });
     closeModal('modalNewProduit');
     _renderTable();
     showToast('✅ Produit mis à jour.');

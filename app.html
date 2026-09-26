@@ -219,6 +219,18 @@
         <th class="sortable" data-sort-col="7">Prix achat <span class="sort-ico"></span></th>
         <th class="sortable" data-sort-col="8">Fournisseur <span class="sort-ico"></span></th>
         <th>Actions</th>
+      </tr>
+      <tr id="stockFilterRow">
+        <th><select class="stock-col-filter" data-col="0"><option value="">Tous</option></select></th>
+        <th><select class="stock-col-filter" data-col="1"><option value="">Tous</option></select></th>
+        <th><select class="stock-col-filter" data-col="2"><option value="">Tous</option></select></th>
+        <th><select class="stock-col-filter" data-col="3"><option value="">Tous</option></select></th>
+        <th><select class="stock-col-filter" data-col="4"><option value="">Tous</option></select></th>
+        <th><select class="stock-col-filter" data-col="5"><option value="">Tous</option></select></th>
+        <th><select class="stock-col-filter" data-col="6"><option value="">Tous</option></select></th>
+        <th><select class="stock-col-filter" data-col="7"><option value="">Tous</option></select></th>
+        <th><select class="stock-col-filter" data-col="8"><option value="">Tous</option></select></th>
+        <th></th>
       </tr></thead>
       <tbody id="stockTbody"></tbody>
     </table>
@@ -697,12 +709,12 @@
     <div class="form-group"><label>Prix vente HT (€)</label><input type="number" id="npPrix" step="0.01" placeholder="0,00"></div>
     <div class="form-group"><label>Seuil alerte stock</label><input type="number" id="npSeuil" placeholder="100" step="1"></div>
   </div>
-  <div style="padding:0 16px 12px;">
+  <div id="npRecetteSection" style="padding:0 16px 12px;">
     <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Recette (articles nécessaires par unité produite)</div>
     <div id="recetteLignes"></div>
     <button class="btn btn-ghost btn-sm" id="btnAddRecetteLigne" style="margin-top:5px;">+ Ajouter un article</button>
-    <div id="npCoutPreview" style="display:none;margin-top:10px;padding:8px 12px;background:var(--ui-bg2);border-radius:8px;font-size:12px;">Coût de revient estimé : <strong id="npCoutVal">—</strong></div>
   </div>
+  <div id="npCoutPreview" style="display:none;margin:0 16px 12px;padding:8px 12px;background:var(--ui-bg2);border-radius:8px;font-size:12px;">Coût de revient : <strong id="npCoutVal">—</strong> &nbsp;·&nbsp; Marge : <strong id="npMargeVal">—</strong></div>
   <div class="form-actions">
     <button class="btn btn-primary" id="btnSaveNewProduit">Enregistrer</button>
     <button class="btn btn-ghost" data-close="modalNewProduit">Annuler</button>

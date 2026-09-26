@@ -162,7 +162,7 @@ function _renderProduits() {
   const tbody = document.getElementById('adminProduitsTbody');
   tbody.innerHTML = '';
   _produits.forEach(p => {
-    const cout = p.cout || 0;
+    const cout = p.cout_revient ?? p.cout ?? 0;
     const prix = p.prix_vente || p.prix || 0;
     const m    = prix - cout;
     const tx   = cout > 0 ? (m / cout * 100).toFixed(0) : '—';
@@ -177,28 +177,14 @@ function _renderProduits() {
       <td>${fmtQ(p.seuil)}</td>
       <td><strong>${p.stock}</strong></td>
       <td>${stockStatus(p.stock, p.seuil)}</td>
-      <td><button class="btn btn-danger btn-xs" data-action="supprimer">✕</button></td>`;
-    tr.querySelector('[data-action="supprimer"]').addEventListener('click', (e) => {
-      e.stopPropagation();
-      _suppProduit(p.id);
-    });
+      <td></td>`;
     tr.addEventListener('click', () => _editRow('produit', p.id));
     tbody.appendChild(tr);
   });
 }
 
-async function _suppProduit(id) {
-  const ok = await confirmDialog('Supprimer ce produit ?');
-  if (!ok) return;
-  try {
-    await deleteProduit(id);
-    _produits = _produits.filter(p => p.id !== id);
-    _renderProduits();
-    showToast('✅ Produit supprimé.');
-  } catch (err) {
-    showToast(err.suppressionBloquee ? '⚠ ' + err.message : '❌ Erreur suppression.', err.suppressionBloquee ? 'warn' : 'error');
-  }
-}
+/* Suppression déplacée dans le modal "Modifier le produit" (editRowDeleteBtn) —
+   plus de suppression directe depuis la ligne du tableau. */
 
 /* -------------------------------------------------------
    CLIENTS
@@ -408,7 +394,9 @@ function _bindEditRowForm() {
     if (!_editType || !_editId) return;
     const ok = _editType === 'article'
       ? await _confirmationSuppressionArticle(_editId)
-      : await confirmDialog('Supprimer cet élément ?');
+      : _editType === 'produit'
+        ? await confirmDialog('Supprimer définitivement ce produit ? Cette action est irréversible.')
+        : await confirmDialog('Supprimer cet élément ?');
     if (!ok) return;
     try {
       if (_editType === 'article')     await deleteArticle(_editId);

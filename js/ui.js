@@ -109,7 +109,7 @@ export function fmt(n) {
 export function fmtQ(n) {
   if (n === null || n === undefined || isNaN(n)) return '0';
   const num = Number(n);
-  return num % 1 === 0 ? num.toString() : num.toFixed(3).replace(/\.?0+$/, '');
+  return num % 1 === 0 ? num.toString() : num.toFixed(6).replace(/\.?0+$/, '');
 }
 
 /* Date du jour au format YYYY-MM-DD */
