@@ -44,19 +44,21 @@
 .side-logo-mark {
   width: 32px;
   height: 32px;
-  background: linear-gradient(160deg, #F0841F 0%, #C45A0E 100%);
-  border-radius: 14px;
+  background: var(--ink);
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 3px 0 #9B430A, 0 4px 8px rgba(196,90,14,0.30);
+  box-shadow: 0 2px 6px rgba(30,26,22,.25);
 }
 
-.side-logo-mark svg {
-  width: 16px;
-  height: 16px;
-  fill: #fff;
+.side-logo-letter {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
 }
 
 .side-logo-name {
@@ -65,17 +67,6 @@
   font-weight: 700;
   color: var(--ink);
   letter-spacing: -.02em;
-}
-
-.side-logo-tag {
-  font-size: 9px;
-  color: var(--sage);
-  background: #EAF3EE;
-  border: 1px solid #C4DFD0;
-  border-radius: 20px;
-  padding: 1px 7px;
-  font-weight: 700;
-  margin-left: 1px;
 }
 
 /* Navigation sidebar */
@@ -361,23 +352,48 @@ main::-webkit-scrollbar-thumb { background: var(--ui-brd2); border-radius: 4px; 
 #app-loading .logo-ico {
   width: 48px;
   height: 48px;
-  border-radius: 16px;
-  background: linear-gradient(160deg, #F0841F 0%, #C45A0E 100%);
+  border-radius: 14px;
+  background: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 0 #9B430A, 0 6px 12px rgba(196,90,14,0.30);
+  box-shadow: 0 4px 10px rgba(30,26,22,.25);
 }
 
-#app-loading .logo-ico svg {
-  width: 26px;
-  height: 26px;
-  fill: #fff;
+#app-loading .logo-ico-letter {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+#app-loading .loading-xl {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 52px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -.01em;
+  display: flex;
 }
 
 #app-loading p {
   font-size: 13px;
   color: var(--ink-muted);
+}
+
+/* Apparition lettre par lettre — fondu + léger glissement, en cascade
+   (délai par lettre posé en JS via style.transitionDelay). Partagé avec
+   login.html (voir js/reveal.js). */
+.reveal-letter {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity .55s cubic-bezier(.22,.68,.35,1), transform .55s cubic-bezier(.22,.68,.35,1);
+}
+.reveal-active .reveal-letter {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* ═══════════════════════════════════════════════════════

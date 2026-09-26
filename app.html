@@ -15,14 +15,12 @@
 
 <!-- ÉCRAN DE CHARGEMENT -->
 <div id="app-loading">
-  <div class="logo-ico">
-    <svg viewBox="0 0 24 24" width="26" height="26">
-      <path d="M12 6.8 L17.6 10 V15.6 L12 18.8 L6.4 15.6 V10 Z" fill="none" stroke="#fff" stroke-width="0.8" stroke-linejoin="round"/>
-      <path d="M12 6.8 V18.8 M6.4 10 L17.6 15.6 M17.6 10 L6.4 15.6" stroke="#fff" stroke-width="0.4" opacity=".55"/>
-    </svg>
-  </div>
+  <div class="logo-ico"><span class="logo-ico-letter">A</span></div>
+  <div class="loading-xl" id="loadingReveal" aria-label="ARTEASY"></div>
   <p>Chargement de votre espace…</p>
 </div>
+<script src="/js/reveal.js"></script>
+<script>window.revealWord && window.revealWord(document.getElementById('loadingReveal'), 'ARTEASY');</script>
 
 <!-- LAYOUT PRINCIPAL -->
 <div class="app-layout">
@@ -35,13 +33,9 @@
     <!-- Logo -->
     <div class="side-logo" style="height:56px;padding:0 18px;border-bottom:1px solid var(--ui-brd);">
       <div class="side-logo-mark">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 6.8 L17.6 10 V15.6 L12 18.8 L6.4 15.6 V10 Z" fill="none" stroke="#fff" stroke-width="0.8" stroke-linejoin="round"/>
-          <path d="M12 6.8 V18.8 M6.4 10 L17.6 15.6 M17.6 10 L6.4 15.6" stroke="#fff" stroke-width="0.4" opacity=".55"/>
-        </svg>
+        <span class="side-logo-letter">A</span>
       </div>
       <span class="side-logo-name">ARTEASY</span>
-      <span class="side-logo-tag">PRO</span>
     </div>
 
     <!-- Navigation -->
