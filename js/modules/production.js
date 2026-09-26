@@ -10,6 +10,7 @@
 
 import {
   getAllOFs, createOF, updateOFStatut, updateOFDate, deleteOF,
+  countOFsClosPourDate, cloturerOF,
   getCommandes, getProduits, getArticles, getRecettesByProduit, getClients, getTenant,
   ajusterStockArticle, ajusterStockProduit,
   createAchat, achatDoublonExiste, getAchats,
@@ -29,6 +30,7 @@ let _clients   = [];
 let _achats    = [];
 let _recettes  = {};
 let _calOffset = 0;
+let _calMode   = 'semaine'; // 'semaine' | 'quinzaine' | 'mois'
 
 /* -------------------------------------------------------
    INIT
@@ -55,6 +57,7 @@ export async function render() {
   _renderOFs();
   _renderFabPlan();
   _renderBesoins();
+  _renderHistorique();
 }
 
 /* -------------------------------------------------------
@@ -92,40 +95,52 @@ function _renderBadges() {
 
 /* -------------------------------------------------------
    CALENDRIER
+   3 vues : semaine (défaut, inchangée), 2 semaines, mois.
+   _calOffset s'exprime dans l'unité de la vue active (en semaines
+   pour "semaine", en blocs de 14 jours pour "quinzaine", en mois
+   pour "mois") — il est remis à 0 à chaque changement de vue pour
+   toujours revenir sur la période en cours.
 ------------------------------------------------------- */
+const CAL_JOURS  = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const CAL_COLORS = {
+  'a_planifier': { bg: 'rgba(108,117,125,0.12)', brd: '#868e96', txt: '#495057' },
+  'planifie':    { bg: 'rgba(76,110,245,0.12)',  brd: '#4c6ef5', txt: '#364fc7' },
+  'en_cours':    { bg: 'rgba(255,146,43,0.15)',  brd: '#f59f00', txt: '#7c5200' },
+  'fabrique':    { bg: 'rgba(32,201,151,0.12)',  brd: '#20c997', txt: '#087f5b' },
+  'clos':        { bg: 'rgba(32,201,151,0.08)',  brd: '#20c997', txt: '#0b7a5a' },
+  'annule':      { bg: 'rgba(250,82,82,0.10)',   brd: '#fa5252', txt: '#c92a2a' },
+};
+
 function _bindCalNav() {
   document.getElementById('calPrev')?.addEventListener('click', () => { _calOffset--; _renderCalendrier(); });
   document.getElementById('calNext')?.addEventListener('click', () => { _calOffset++; _renderCalendrier(); });
+  document.querySelectorAll('.cal-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (_calMode === btn.dataset.mode) return;
+      _calMode   = btn.dataset.mode;
+      _calOffset = 0;
+      _renderCalendrier();
+    });
+  });
 }
 
-function _renderCalendrier() {
-  const todayStr = today();
-  const base     = new Date();
-  const monday   = new Date(base);
-  monday.setDate(base.getDate() - base.getDay() + 1 + _calOffset * 7);
-  const jours    = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+function _calModeButtonsUI() {
+  document.querySelectorAll('.cal-mode-btn').forEach(btn => {
+    const actif = btn.dataset.mode === _calMode;
+    btn.style.background = actif ? 'var(--ink)' : '#fff';
+    btn.style.color      = actif ? 'var(--cream)' : 'var(--ink-muted)';
+    btn.style.borderColor = actif ? 'var(--ink)' : 'var(--ui-brd2)';
+  });
+}
 
-  const CAL_COLORS = {
-    'a_planifier': { bg: 'rgba(108,117,125,0.12)', brd: '#868e96', txt: '#495057' },
-    'planifie':    { bg: 'rgba(76,110,245,0.12)',  brd: '#4c6ef5', txt: '#364fc7' },
-    'en_cours':    { bg: 'rgba(255,146,43,0.15)',  brd: '#f59f00', txt: '#7c5200' },
-    'fabrique':    { bg: 'rgba(32,201,151,0.12)',  brd: '#20c997', txt: '#087f5b' },
-    'clos':        { bg: 'rgba(32,201,151,0.08)',  brd: '#20c997', txt: '#0b7a5a' },
-    'annule':      { bg: 'rgba(250,82,82,0.10)',   brd: '#fa5252', txt: '#c92a2a' },
-  };
+function _calDayCellHtml(day, jourLabel, todayStr, muted) {
+  const ds      = day.toISOString().split('T')[0];
+  const isToday = ds === todayStr;
+  const ofDay   = _ofs.filter(o => o.date_prevue === ds && !['clos', 'annule'].includes(o.statut));
+  const cmdDay  = _commandes.filter(c => c.date_livraison === ds && c.statut !== 'cloture');
 
-  let html = '';
-  for (let d = 0; d < 7; d++) {
-    const day = new Date(monday);
-    day.setDate(monday.getDate() + d);
-    const ds      = day.toISOString().split('T')[0];
-    const isToday = ds === todayStr;
-
-    const ofDay  = _ofs.filter(o => o.date_prevue === ds && !['clos', 'annule'].includes(o.statut));
-    const cmdDay = _commandes.filter(c => c.date_livraison === ds && c.statut !== 'cloture');
-
-    html += `<div class="cal-day">
-      <div class="cal-day-hdr ${isToday ? 'today' : ''}">${jours[d]} ${day.getDate()}/${day.getMonth() + 1}</div>
+  return `<div class="cal-day" style="${muted ? 'opacity:.45;' : ''}">
+      <div class="cal-day-hdr ${isToday ? 'today' : ''}">${jourLabel}</div>
       <div class="cal-day-body" style="min-height:60px;">
         ${ofDay.map(o => {
           const col = CAL_COLORS[o.statut] || CAL_COLORS['planifie'];
@@ -136,9 +151,78 @@ function _renderCalendrier() {
         ${cmdDay.map(c => `<div class="cal-item cmd" title="Livraison ${esc(c.client_nom)}">📦 ${esc((c.client_nom || '').split(' ')[0])}</div>`).join('')}
       </div>
     </div>`;
+}
+
+function _mondayOf(date) {
+  const d = new Date(date);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // getDay() dimanche=0 -> lundi=0
+  return d;
+}
+
+function _renderSemaineOuQuinzaine(nbJours) {
+  const todayStr = today();
+  const monday   = _mondayOf(new Date());
+  monday.setDate(monday.getDate() + _calOffset * nbJours);
+
+  let html = '';
+  for (let semaine = 0; semaine < nbJours / 7; semaine++) {
+    html += '<div class="cal-week">';
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(monday);
+      day.setDate(monday.getDate() + semaine * 7 + d);
+      const jourLabel = `${CAL_JOURS[d]} ${day.getDate()}/${day.getMonth() + 1}`;
+      html += _calDayCellHtml(day, jourLabel, todayStr, false);
+    }
+    html += '</div>';
+  }
+  document.getElementById('calWeek').innerHTML = html;
+}
+
+function _renderMois() {
+  const todayStr = today();
+  const base     = new Date();
+  const moisRef  = new Date(base.getFullYear(), base.getMonth() + _calOffset, 1);
+  const premierDuMois = new Date(moisRef.getFullYear(), moisRef.getMonth(), 1);
+  const dernierDuMois = new Date(moisRef.getFullYear(), moisRef.getMonth() + 1, 0);
+
+  const debutGrille = _mondayOf(premierDuMois);
+  const finGrille    = new Date(dernierDuMois);
+  finGrille.setDate(finGrille.getDate() + ((7 - ((finGrille.getDay() + 6) % 7) - 1) % 7));
+
+  const nbJours   = Math.round((finGrille - debutGrille) / 86400000) + 1;
+  const nbSemaines = Math.ceil(nbJours / 7);
+
+  let html = '';
+  for (let semaine = 0; semaine < nbSemaines; semaine++) {
+    html += '<div class="cal-week">';
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(debutGrille);
+      day.setDate(debutGrille.getDate() + semaine * 7 + d);
+      const horsMois  = day.getMonth() !== moisRef.getMonth();
+      const jourLabel = `${CAL_JOURS[d]} ${day.getDate()}/${day.getMonth() + 1}`;
+      html += _calDayCellHtml(day, jourLabel, todayStr, horsMois);
+    }
+    html += '</div>';
+  }
+  document.getElementById('calWeek').innerHTML = html;
+}
+
+function _renderCalendrier() {
+  _calModeButtonsUI();
+
+  const titre = document.getElementById('calTitleLabel');
+  if (titre) {
+    const libelles = {
+      semaine:   _calOffset === 0 ? 'semaine en cours' : (_calOffset > 0 ? `${_calOffset} semaine(s) plus tard` : `${-_calOffset} semaine(s) plus tôt`),
+      quinzaine: _calOffset === 0 ? '2 semaines en cours' : (_calOffset > 0 ? `+${_calOffset} période(s) de 2 semaines` : `${_calOffset} période(s) de 2 semaines`),
+      mois:      _calOffset === 0 ? 'mois en cours' : (_calOffset > 0 ? `${_calOffset} mois plus tard` : `${-_calOffset} mois plus tôt`),
+    };
+    titre.textContent = 'Calendrier de production — ' + (libelles[_calMode] || 'semaine en cours');
   }
 
-  document.getElementById('calWeek').innerHTML = html;
+  if (_calMode === 'quinzaine') _renderSemaineOuQuinzaine(14);
+  else if (_calMode === 'mois') _renderMois();
+  else _renderSemaineOuQuinzaine(7);
 }
 
 /* -------------------------------------------------------
@@ -183,12 +267,12 @@ function _renderOFs() {
 
   tbody.innerHTML = _ofs.map(of => {
     const sb = STATUT_BADGE[of.statut] || STATUT_BADGE['a_planifier'];
-    return `<tr>
+    return `<tr data-id="${of.id}" class="of-row" style="cursor:pointer;" title="Cliquer pour voir le détail par client">
       <td class="td-ref">${esc(of.ref)}</td>
       <td class="td-bold">${esc(of.produit_nom)}</td>
       <td><strong>${of.quantite}</strong></td>
       <td style="font-size:10.5px;color:var(--ink-muted)">${esc(of.notes || '')}</td>
-      <td style="font-size:11.5px;">
+      <td style="font-size:11.5px;" data-no-toggle>
         <span style="cursor:pointer;" title="Cliquer pour modifier"
           onclick="document.getElementById('dp-${of.id}').showPicker?.()">
           ${fmtDateFR(of.date_prevue)}
@@ -199,7 +283,7 @@ function _renderOFs() {
         <button onclick="document.getElementById('dp-${of.id}').showPicker?.()"
           style="background:none;border:none;cursor:pointer;font-size:10px;padding:2px 4px;color:var(--ink-muted);" title="Modifier la date">✏</button>
       </td>
-      <td>
+      <td data-no-toggle>
         <select data-id="${of.id}" data-action="changer-statut"
           style="font-size:11px;padding:4px 9px;border:1px solid var(--ui-brd);border-radius:6px;
                  background:${sb.bg};color:${sb.txt};font-weight:600;cursor:pointer;">
@@ -208,7 +292,7 @@ function _renderOFs() {
           ).join('')}
         </select>
       </td>
-      <td>
+      <td data-no-toggle>
         <button class="btn btn-ghost btn-xs" data-id="${of.id}" data-action="supprimer-of"
           title="Supprimer cet OF"
           style="color:var(--ink-muted);font-size:10px;padding:2px 6px;opacity:0.6;">✕</button>
@@ -245,10 +329,58 @@ function _renderOFs() {
 
   tbody.onclick = async (e) => {
     const btn = e.target.closest('[data-action="supprimer-of"]');
-    if (!btn) return;
-    e.stopPropagation();
-    await _supprimerOF(btn.dataset.id);
+    if (btn) {
+      e.stopPropagation();
+      await _supprimerOF(btn.dataset.id);
+      return;
+    }
+    if (e.target.closest('[data-no-toggle]')) return;
+    const tr = e.target.closest('tr[data-id]');
+    if (tr) _toggleDetailOF(tr.dataset.id);
   };
+}
+
+/* Dépliage au clic sur une ligne d'OF : liste les commandes/clients qui
+   attendent ce produit fini, avec le numéro de commande et la quantité.
+   Sur un OF clos, on relit le snapshot figé à la clôture (detail_clients)
+   plutôt que de recalculer à partir des commandes actuelles, qui ont pu
+   changer depuis — l'historique doit rester exact. */
+function _toggleDetailOF(id) {
+  const tbody = document.getElementById('planningTbody');
+  if (!tbody) return;
+  const tr = tbody.querySelector(`tr.of-row[data-id="${id}"]`);
+  if (!tr) return;
+
+  const dejaOuvert = tbody.querySelector(`tr.of-detail-row[data-of="${id}"]`);
+  tbody.querySelectorAll('tr.of-detail-row').forEach(r => r.remove());
+  if (dejaOuvert) return;
+
+  const of = _ofs.find(o => o.id === id);
+  if (!of) return;
+  const detail = (of.statut === 'clos' && Array.isArray(of.detail_clients))
+    ? of.detail_clients
+    : _detailClientsPourProduit(of.produit_id);
+
+  const rows = detail.length
+    ? detail.map(d => `<tr>
+        <td style="padding:4px 10px;font-size:11px;color:var(--ink-muted)">${esc(d.commande_ref || '—')}</td>
+        <td style="padding:4px 10px;font-size:11px;">${esc(d.client_nom || '—')}</td>
+        <td style="padding:4px 10px;font-size:11px;text-align:right;">${d.quantite ?? '—'}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="3" style="padding:6px 10px;font-size:11px;color:var(--ink-muted)">Aucune commande en attente pour ce produit.</td></tr>`;
+
+  const detailTr = document.createElement('tr');
+  detailTr.className = 'of-detail-row';
+  detailTr.dataset.of = id;
+  detailTr.innerHTML = `<td colspan="7" style="background:#FAFAF8;padding:8px 12px;">
+    <div style="font-size:10.5px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;">Détail par commande client</div>
+    <table style="width:auto;min-width:280px;"><thead><tr>
+      <th style="padding:2px 10px;font-size:10px;text-align:left;">N° commande</th>
+      <th style="padding:2px 10px;font-size:10px;text-align:left;">Client</th>
+      <th style="padding:2px 10px;font-size:10px;text-align:right;">Qté</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+  </td>`;
+  tr.after(detailTr);
 }
 
 /* -------------------------------------------------------
@@ -392,6 +524,117 @@ function _renderBesoins() {
 }
 
 /* -------------------------------------------------------
+   HISTORIQUE DE PRODUCTION
+   Tous les OF clos, du plus récent au plus ancien. Le détail client
+   affiché est le snapshot figé au moment de la clôture (detail_clients),
+   jamais recalculé depuis les commandes actuelles — l'historique doit
+   rester exact même si les commandes évoluent après coup.
+------------------------------------------------------- */
+function _renderHistorique() {
+  const tbody = document.getElementById('historiqueTbody');
+  if (!tbody) return;
+
+  const clos = _ofs.filter(o => o.statut === 'clos').sort((a, b) => {
+    const da = a.date_cloture || '', db = b.date_cloture || '';
+    if (da !== db) return da < db ? 1 : -1;
+    return (b.numero_lot || '').localeCompare(a.numero_lot || '');
+  });
+
+  if (!clos.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:14px;color:var(--ink-muted)">Aucune production clôturée pour le moment.</td></tr>';
+    return;
+  }
+
+  const fmtDateFR = (d) => {
+    if (!d) return '—';
+    const p = d.split('-');
+    return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d;
+  };
+
+  tbody.innerHTML = clos.map(of => `<tr data-id="${of.id}" class="hist-row" style="cursor:pointer;" title="Cliquer pour voir le détail par client">
+    <td class="td-ref">${esc(of.ref)}</td>
+    <td class="td-bold">${esc(of.produit_nom)}</td>
+    <td>${esc(of.numero_lot || '—')}</td>
+    <td>${fmtDateFR(of.date_cloture)}</td>
+    <td><strong>${of.quantite}</strong></td>
+  </tr>`).join('');
+
+  tbody.onclick = (e) => {
+    const tr = e.target.closest('tr[data-id]');
+    if (tr) _toggleDetailHistorique(tr.dataset.id);
+  };
+}
+
+function _toggleDetailHistorique(id) {
+  const tbody = document.getElementById('historiqueTbody');
+  if (!tbody) return;
+  const tr = tbody.querySelector(`tr.hist-row[data-id="${id}"]`);
+  if (!tr) return;
+
+  const dejaOuvert = tbody.querySelector(`tr.hist-detail-row[data-of="${id}"]`);
+  tbody.querySelectorAll('tr.hist-detail-row').forEach(r => r.remove());
+  if (dejaOuvert) return;
+
+  const of = _ofs.find(o => o.id === id);
+  if (!of) return;
+  const detail = Array.isArray(of.detail_clients) ? of.detail_clients : [];
+
+  const rows = detail.length
+    ? detail.map(d => `<tr>
+        <td style="padding:4px 10px;font-size:11px;color:var(--ink-muted)">${esc(d.commande_ref || '—')}</td>
+        <td style="padding:4px 10px;font-size:11px;">${esc(d.client_nom || '—')}</td>
+        <td style="padding:4px 10px;font-size:11px;text-align:right;">${d.quantite ?? '—'}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="3" style="padding:6px 10px;font-size:11px;color:var(--ink-muted)">Aucune commande n'était en attente pour ce produit à la clôture.</td></tr>`;
+
+  const detailTr = document.createElement('tr');
+  detailTr.className = 'hist-detail-row';
+  detailTr.dataset.of = id;
+  detailTr.innerHTML = `<td colspan="5" style="background:#FAFAF8;padding:8px 12px;">
+    <div style="font-size:10.5px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;">Détail par commande client (au moment de la clôture)</div>
+    <table style="width:auto;min-width:280px;"><thead><tr>
+      <th style="padding:2px 10px;font-size:10px;text-align:left;">N° commande</th>
+      <th style="padding:2px 10px;font-size:10px;text-align:left;">Client</th>
+      <th style="padding:2px 10px;font-size:10px;text-align:right;">Qté</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+  </td>`;
+  tr.after(detailTr);
+}
+
+/* -------------------------------------------------------
+   NUMÉRO DE LOT — format AA-JJJ-rang
+   AA = année sur 2 chiffres, JJJ = jour de l'année sur 3 chiffres,
+   rang = rang de clôture dans la journée, tous produits confondus
+   (1er OF clos dans la journée = rang 1, peu importe le produit).
+------------------------------------------------------- */
+function _jourDeLAnnee(date) {
+  const debutAnnee = new Date(date.getFullYear(), 0, 0);
+  return Math.floor((date - debutAnnee) / 86400000);
+}
+
+function _formatNumeroLot(date, rang) {
+  const annee = String(date.getFullYear()).slice(-2);
+  const jour  = String(_jourDeLAnnee(date)).padStart(3, '0');
+  return `${annee}-${jour}-${rang}`;
+}
+
+/* Détail des clients/commandes en attente pour un produit fini donné — utilisé
+   à la fois pour le dépliage en direct des OF actifs et pour le snapshot figé
+   au moment de la clôture (l'historique doit rester exact même si les
+   commandes évoluent ensuite). */
+function _detailClientsPourProduit(produitId) {
+  const detail = [];
+  _commandes.filter(c => c.statut !== 'cloture').forEach(c => {
+    (c.commande_lignes || []).forEach(l => {
+      if (l.produit_id === produitId) {
+        detail.push({ commande_ref: c.ref, client_nom: c.client_nom, quantite: l.quantite });
+      }
+    });
+  });
+  return detail;
+}
+
+/* -------------------------------------------------------
    HELPERS
 ------------------------------------------------------- */
 function _calcManquesRecette(produitId, qte) {
@@ -483,8 +726,15 @@ async function _terminerFabrication(id) {
     p.stock = await ajusterStockProduit(p.id, of.quantite);
     await addMouvement({ type: 'entree_pf', ref: p.ref, nom: p.nom, qte: of.quantite, motif: 'Production ' + of.ref, ref_doc: of.ref });
 
-    await updateOFStatut(id, 'clos');
-    of.statut = 'clos';
+    const dateCloture   = today();
+    const dejaClosCeJour = await countOFsClosPourDate(dateCloture);
+    const numeroLot      = _formatNumeroLot(new Date(), dejaClosCeJour + 1);
+    const detailClients  = _detailClientsPourProduit(of.produit_id);
+    await cloturerOF(id, { numero_lot: numeroLot, date_cloture: dateCloture, detail_clients: detailClients });
+    of.statut         = 'clos';
+    of.numero_lot     = numeroLot;
+    of.date_cloture   = dateCloture;
+    of.detail_clients = detailClients;
 
     for (const c of _commandes) {
       if (!['planifie', 'en_production'].includes(c.statut)) continue;
@@ -551,7 +801,8 @@ async function _terminerFabrication(id) {
     _renderOFs();
     _renderCalendrier();
     _renderBesoins();
-    showToast(`✅ ${of.quantite}×${of.produit_nom} produits.`);
+    _renderHistorique();
+    showToast(`✅ ${of.quantite}×${of.produit_nom} produits. Lot ${numeroLot}.`);
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'production' } }));
   } catch (err) {
     console.error('[production] _terminerFab ERREUR:', err.message, err);

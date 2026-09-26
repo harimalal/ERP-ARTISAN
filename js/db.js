@@ -510,6 +510,31 @@ export async function deleteOF(id) {
   if (error) handleError('deleteOF', error);
 }
 
+/* Nombre d'OF déjà clos ce jour-là (tenant courant) — sert à calculer le rang
+   du numéro de lot (AA-JJJ-rang). Compté en base, jamais depuis le cache local,
+   pour éviter toute collision de rang entre deux clôtures concurrentes. */
+export async function countOFsClosPourDate(dateStr) {
+  const { count, error } = await supabase
+    .from('production_of')
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', tid())
+    .eq('date_cloture', dateStr);
+  if (error) handleError('countOFsClosPourDate', error);
+  return count || 0;
+}
+
+export async function cloturerOF(id, { numero_lot, date_cloture, detail_clients }) {
+  const { data, error } = await supabase
+    .from('production_of')
+    .update({ statut: 'clos', numero_lot, date_cloture, detail_clients })
+    .eq('id', id)
+    .eq('tenant_id', tid())
+    .select()
+    .single();
+  if (error) handleError('cloturerOF', error);
+  return data;
+}
+
 /* -------------------------------------------------------
    ACHATS — BONS DE COMMANDE FOURNISSEURS
 ------------------------------------------------------- */

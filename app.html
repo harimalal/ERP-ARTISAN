@@ -303,9 +303,14 @@
     <div class="card-hdr hdr-blue">
       <span class="card-hdr-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
-        Calendrier de production — semaine en cours
+        <span id="calTitleLabel">Calendrier de production — semaine en cours</span>
       </span>
-      <div style="display:flex;gap:6px;align-items:center;">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-outline btn-xs cal-mode-btn" data-mode="semaine" id="calModeSemaine">Semaine</button>
+          <button class="btn btn-outline btn-xs cal-mode-btn" data-mode="quinzaine" id="calModeQuinzaine">2 semaines</button>
+          <button class="btn btn-outline btn-xs cal-mode-btn" data-mode="mois" id="calModeMois">Mois</button>
+        </div>
         <button class="btn-icon" id="calPrev">◄</button>
         <button class="btn-icon" id="calNext">►</button>
       </div>
@@ -335,10 +340,15 @@
     <table><thead><tr><th>Produit</th><th>Qté planifiée (OF)</th><th>Encore à planifier</th><th>Faisabilité articles</th><th>Articles manquants</th></tr></thead>
     <tbody id="fabPlanTbody"></tbody></table>
   </div>
-  <div class="card">
+  <div class="card" style="margin-bottom:16px;">
     <div class="card-hdr"><span class="card-hdr-title">Articles à commander</span></div>
     <table><thead><tr><th>Réf</th><th>Article</th><th>Stock</th><th>Besoin</th><th>Manque</th><th>Montant</th><th>Fournisseur</th><th>Action</th></tr></thead>
     <tbody id="manquesTbody"></tbody></table>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><span class="card-hdr-title">Historique de production</span></div>
+    <table><thead><tr><th>Référence</th><th>Produit</th><th>N° de lot</th><th>Date de clôture</th><th>Qté produite</th></tr></thead>
+    <tbody id="historiqueTbody"></tbody></table>
   </div>
 </div>
 
