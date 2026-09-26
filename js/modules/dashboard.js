@@ -17,7 +17,6 @@ export async function render() {
     _data = await getDashboardData();
     renderKPIs(_data);
     renderAlertes(_data.articles);
-    renderArticlesCommandes(_data.achats);
     renderStockProduits(_data.produits);
     renderDernieresCommandes(_data.commandes, _data.produits);
     updateBadges(_data);
@@ -31,6 +30,7 @@ export async function render() {
 ------------------------------------------------------- */
 function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
   const alertsA = articles.filter(a => a.stock <= a.seuil).length;
+  const nbArticlesCommandes = new Set((achats || []).filter(a => a.statut === 'envoye').map(a => a.article_id)).size;
 
   const cmdTotal  = commandes.length;
   const cmdValeur = commandes.reduce((s, c) =>
@@ -53,24 +53,39 @@ function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
 
   document.getElementById('kpiGrid').innerHTML = `
     <div class="kpi ${alertsA > 0 ? 'alert' : 'good'}">
-      <div class="kpi-label">Alertes Stock</div>
-      <div class="kpi-value">${alertsA}</div>
-      <div class="kpi-sub">${alertsA > 0 ? 'articles sous seuil' : 'Tout OK'}</div>
+      <div class="kpi-banner">Alertes Stock</div>
+      <div class="kpi-body">
+        <div class="kpi-value">${alertsA}</div>
+        <div class="kpi-sub">${alertsA > 0 ? 'articles sous seuil' : 'Tout OK'}</div>
+      </div>
+    </div>
+    <div class="kpi purple">
+      <div class="kpi-banner">Articles commandés</div>
+      <div class="kpi-body">
+        <div class="kpi-value">${nbArticlesCommandes}</div>
+        <div class="kpi-sub">${nbArticlesCommandes > 0 ? 'article(s) en commande envoyée' : 'Aucune'}</div>
+      </div>
     </div>
     <div class="kpi blue">
-      <div class="kpi-label">Commandes</div>
-      <div class="kpi-value">${fmt(cmdValeur)} €</div>
-      <div class="kpi-sub">${cmdTotal} commande${cmdTotal > 1 ? 's' : ''} enregistrée${cmdTotal > 1 ? 's' : ''}</div>
+      <div class="kpi-banner">Commandes</div>
+      <div class="kpi-body">
+        <div class="kpi-value">${fmt(cmdValeur)} €</div>
+        <div class="kpi-sub">${cmdTotal} commande${cmdTotal > 1 ? 's' : ''} enregistrée${cmdTotal > 1 ? 's' : ''}</div>
+      </div>
     </div>
     <div class="kpi ${nbFactRelancer > 0 ? 'alert' : 'good'}">
-      <div class="kpi-label">Factures à relancer</div>
-      <div class="kpi-value">${fmt(mntFactRelancer)} €</div>
-      <div class="kpi-sub">${nbFactRelancer > 0 ? nbFactRelancer + ' facture' + (nbFactRelancer > 1 ? 's' : '') : 'Aucune'}</div>
+      <div class="kpi-banner">Factures à relancer</div>
+      <div class="kpi-body">
+        <div class="kpi-value">${fmt(mntFactRelancer)} €</div>
+        <div class="kpi-sub">${nbFactRelancer > 0 ? nbFactRelancer + ' facture' + (nbFactRelancer > 1 ? 's' : '') : 'Aucune'}</div>
+      </div>
     </div>
     <div class="kpi ${ofCours > 0 ? 'warn' : ''}">
-      <div class="kpi-label">OF en cours</div>
-      <div class="kpi-value">${ofCours}</div>
-      <div class="kpi-sub">ordre${ofCours > 1 ? 's' : ''} de fabrication</div>
+      <div class="kpi-banner">OF en cours</div>
+      <div class="kpi-body">
+        <div class="kpi-value">${ofCours}</div>
+        <div class="kpi-sub">ordre${ofCours > 1 ? 's' : ''} de fabrication</div>
+      </div>
     </div>`;
 }
 
@@ -154,22 +169,6 @@ function renderAlertes(articles) {
     document.dispatchEvent(new CustomEvent('appmee:openAchatFor', { detail: { ref } }));
     openModal('modalAchat');
   };
-}
-
-/* -------------------------------------------------------
-   ARTICLES COMMANDÉS
-   Nombre d'articles distincts avec un bon de commande fournisseur
-   au statut "envoyé" — en attente de réception.
-------------------------------------------------------- */
-function renderArticlesCommandes(achats) {
-  const el = document.getElementById('dashArticlesCommandes');
-  if (!el) return;
-  const nb = new Set((achats || []).filter(a => a.statut === 'envoye').map(a => a.article_id)).size;
-  el.innerHTML = `
-    <div style="padding:22px 16px;text-align:center;">
-      <div style="font-size:38px;font-weight:800;color:var(--ink);line-height:1;">${nb}</div>
-      <div style="font-size:12px;color:var(--ink-muted);margin-top:6px;">article(s) en commande fournisseur envoyée</div>
-    </div>`;
 }
 
 /* -------------------------------------------------------
