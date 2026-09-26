@@ -227,6 +227,18 @@ export async function saveRecette(produitId, lignes) {
   return data;
 }
 
+/* Recettes qui utilisent ces articles : la FK recettes → articles est en
+   cascade, supprimer l'article le retire en silence de ces recettes. */
+export async function getRecettesUtilisantArticles(articleIds) {
+  const { data, error } = await supabase
+    .from('recettes')
+    .select('article_id, produits(nom)')
+    .in('article_id', articleIds)
+    .eq('tenant_id', tid());
+  if (error) handleError('getRecettesUtilisantArticles', error);
+  return data || [];
+}
+
 /* -------------------------------------------------------
    CLIENTS
 ------------------------------------------------------- */

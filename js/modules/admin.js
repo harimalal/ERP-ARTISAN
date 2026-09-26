@@ -9,7 +9,7 @@ import {
   getTenant, updateTenant,
   getArticles, createArticle, updateArticle, deleteArticle, getArticleByRef,
   getProduits, createProduit, updateProduit, deleteProduit, getProduitByRef,
-  getRecettesByProduit, saveRecette,
+  getRecettesByProduit, saveRecette, getRecettesUtilisantArticles,
   getClients, createClient, upsertClient, updateClient, deleteClient, getClientByNom,
   getFournisseurs, createFournisseur, updateFournisseur, deleteFournisseur,
   getCommandes, createCommande, getAchats, getFactures, getAllOFs,
@@ -121,8 +121,29 @@ function _renderArticles() {
   });
 }
 
+async function _confirmationSuppressionArticle(id) {
+  let recettes = [];
+  try { recettes = await getRecettesUtilisantArticles([id]); } catch (_) {}
+  if (!recettes.length) return confirmDialog('Supprimer cet article ?');
+  const produitsUn = [...new Set(recettes.map(r => r.produits?.nom).filter(Boolean))];
+  /* Nom de produit non résolu (jointure vide) : avertissement générique plutôt
+     qu'une phrase tronquée du type "utilisé dans la recette de : ." */
+  if (!produitsUn.length) {
+    return confirmDialog(
+      `Cet article est utilisé dans ${recettes.length > 1 ? 'des recettes existantes' : 'une recette existante'}.\n` +
+      `Le supprimer l'en retirera — sans autre avertissement. Continuer ?`
+    );
+  }
+  const liste = produitsUn.slice(0, 5).join(', ') + (produitsUn.length > 5 ? `, +${produitsUn.length - 5} autre(s)` : '');
+  return confirmDialog(
+    `Cet article est utilisé dans la recette de : ${liste}.\n` +
+    `Le supprimer le retirera aussi de ${produitsUn.length > 1 ? 'ces recettes' : 'cette recette'} — ` +
+    `sans autre avertissement. Continuer ?`
+  );
+}
+
 async function _suppArticle(id) {
-  const ok = await confirmDialog('Supprimer cet article ?');
+  const ok = await _confirmationSuppressionArticle(id);
   if (!ok) return;
   try {
     await deleteArticle(id);
@@ -385,7 +406,9 @@ function _bindEditRowForm() {
   document.getElementById('btnSaveEditRow')?.addEventListener('click', _saveEditRow);
   document.getElementById('editRowDeleteBtn')?.addEventListener('click', async () => {
     if (!_editType || !_editId) return;
-    const ok = await confirmDialog('Supprimer cet élément ?');
+    const ok = _editType === 'article'
+      ? await _confirmationSuppressionArticle(_editId)
+      : await confirmDialog('Supprimer cet élément ?');
     if (!ok) return;
     try {
       if (_editType === 'article')     await deleteArticle(_editId);
