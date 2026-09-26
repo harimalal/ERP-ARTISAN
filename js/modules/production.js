@@ -133,13 +133,13 @@ function _calModeButtonsUI() {
   });
 }
 
-function _calDayCellHtml(day, jourLabel, todayStr, muted) {
+function _calDayCellHtml(day, jourLabel, todayStr) {
   const ds      = day.toISOString().split('T')[0];
   const isToday = ds === todayStr;
   const ofDay   = _ofs.filter(o => o.date_prevue === ds && !['clos', 'annule'].includes(o.statut));
   const cmdDay  = _commandes.filter(c => c.date_livraison === ds && c.statut !== 'cloture');
 
-  return `<div class="cal-day" style="${muted ? 'opacity:.45;' : ''}">
+  return `<div class="cal-day">
       <div class="cal-day-hdr ${isToday ? 'today' : ''}">${jourLabel}</div>
       <div class="cal-day-body" style="min-height:60px;">
         ${ofDay.map(o => {
@@ -159,7 +159,12 @@ function _mondayOf(date) {
   return d;
 }
 
-function _renderSemaineOuQuinzaine(nbJours) {
+/* Les 3 vues partent TOUJOURS de la semaine en cours (lundi de aujourd'hui),
+   jamais du 1er du mois — la vue "mois" n'est pas calée sur le mois civil,
+   c'est une fenêtre glissante de 4 ou 5 semaines (selon la longueur du mois
+   en cours) qui démarre elle aussi à la semaine en cours. _calOffset avance
+   par blocs de nbJours, propre à chaque vue. */
+function _renderGrilleParSemaines(nbJours, mode) {
   const todayStr = today();
   const monday   = _mondayOf(new Date());
   monday.setDate(monday.getDate() + _calOffset * nbJours);
@@ -171,44 +176,19 @@ function _renderSemaineOuQuinzaine(nbJours) {
       const day = new Date(monday);
       day.setDate(monday.getDate() + semaine * 7 + d);
       const jourLabel = `${CAL_JOURS[d]} ${day.getDate()}/${day.getMonth() + 1}`;
-      html += _calDayCellHtml(day, jourLabel, todayStr, false);
+      html += _calDayCellHtml(day, jourLabel, todayStr);
     }
     html += '</div>';
   }
   const calWeek = document.getElementById('calWeek');
-  calWeek.className = 'cal-mode-' + (nbJours === 14 ? 'quinzaine' : 'semaine');
+  calWeek.className = 'cal-mode-' + mode;
   calWeek.innerHTML = html;
 }
 
-function _renderMois() {
-  const todayStr = today();
-  const base     = new Date();
-  const moisRef  = new Date(base.getFullYear(), base.getMonth() + _calOffset, 1);
-  const premierDuMois = new Date(moisRef.getFullYear(), moisRef.getMonth(), 1);
-  const dernierDuMois = new Date(moisRef.getFullYear(), moisRef.getMonth() + 1, 0);
-
-  const debutGrille = _mondayOf(premierDuMois);
-  const finGrille    = new Date(dernierDuMois);
-  finGrille.setDate(finGrille.getDate() + ((7 - ((finGrille.getDay() + 6) % 7) - 1) % 7));
-
-  const nbJours   = Math.round((finGrille - debutGrille) / 86400000) + 1;
-  const nbSemaines = Math.ceil(nbJours / 7);
-
-  let html = '';
-  for (let semaine = 0; semaine < nbSemaines; semaine++) {
-    html += '<div class="cal-week">';
-    for (let d = 0; d < 7; d++) {
-      const day = new Date(debutGrille);
-      day.setDate(debutGrille.getDate() + semaine * 7 + d);
-      const horsMois  = day.getMonth() !== moisRef.getMonth();
-      const jourLabel = `${CAL_JOURS[d]} ${day.getDate()}/${day.getMonth() + 1}`;
-      html += _calDayCellHtml(day, jourLabel, todayStr, horsMois);
-    }
-    html += '</div>';
-  }
-  const calWeek = document.getElementById('calWeek');
-  calWeek.className = 'cal-mode-mois';
-  calWeek.innerHTML = html;
+function _nbSemainesMoisCourant() {
+  const base = new Date();
+  const joursDuMois = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+  return Math.ceil(joursDuMois / 7); // 28j->4, 29-31j->5
 }
 
 function _renderCalendrier() {
@@ -219,14 +199,14 @@ function _renderCalendrier() {
     const libelles = {
       semaine:   _calOffset === 0 ? 'semaine en cours' : (_calOffset > 0 ? `${_calOffset} semaine(s) plus tard` : `${-_calOffset} semaine(s) plus tôt`),
       quinzaine: _calOffset === 0 ? '2 semaines en cours' : (_calOffset > 0 ? `+${_calOffset} période(s) de 2 semaines` : `${_calOffset} période(s) de 2 semaines`),
-      mois:      _calOffset === 0 ? 'mois en cours' : (_calOffset > 0 ? `${_calOffset} mois plus tard` : `${-_calOffset} mois plus tôt`),
+      mois:      _calOffset === 0 ? 'vue mois en cours' : (_calOffset > 0 ? `+${_calOffset} période(s) de mois` : `${_calOffset} période(s) de mois`),
     };
     titre.textContent = 'Calendrier de production — ' + (libelles[_calMode] || 'semaine en cours');
   }
 
-  if (_calMode === 'quinzaine') _renderSemaineOuQuinzaine(14);
-  else if (_calMode === 'mois') _renderMois();
-  else _renderSemaineOuQuinzaine(7);
+  if (_calMode === 'quinzaine') _renderGrilleParSemaines(14, 'quinzaine');
+  else if (_calMode === 'mois') _renderGrilleParSemaines(_nbSemainesMoisCourant() * 7, 'mois');
+  else _renderGrilleParSemaines(7, 'semaine');
 }
 
 /* -------------------------------------------------------
@@ -238,8 +218,11 @@ function _renderCalendrier() {
 ------------------------------------------------------- */
 function _renderOFs() {
   const tbody = document.getElementById('planningTbody');
+  /* Un OF clos sort de cette table dès sa clôture — il vit désormais dans
+     Historique de production, jamais les deux à la fois. */
+  const ofsActifs = _ofs.filter(o => o.statut !== 'clos');
 
-  if (!_ofs.length) {
+  if (!ofsActifs.length) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun ordre de fabrication.</td></tr>';
     return;
   }
@@ -269,7 +252,7 @@ function _renderOFs() {
     return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d;
   };
 
-  tbody.innerHTML = _ofs.map(of => {
+  tbody.innerHTML = ofsActifs.map(of => {
     const sb = STATUT_BADGE[of.statut] || STATUT_BADGE['a_planifier'];
     return `<tr data-id="${of.id}" class="of-row" style="cursor:pointer;" title="Cliquer pour voir le détail par client">
       <td class="td-ref">${esc(of.ref)}</td>
