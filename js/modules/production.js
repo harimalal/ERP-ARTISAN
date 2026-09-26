@@ -401,7 +401,13 @@ function _achatsEnCoursPourArticle(articleId) {
   return _achats.filter(a => a.article_id === articleId && ['brouillon', 'envoye'].includes(a.statut));
 }
 
-function _renderFabPlan() {
+/* Demande de production par produit, tous OF actifs confondus (manuels ou
+   liés à une commande) + le manque encore non couvert par un OF pour les
+   commandes en cours. Partagé par Plan de fabrication ET Articles à
+   commander — avant ce partage, Articles à commander ne regardait QUE les
+   commandes et restait vide dès qu'un OF était planifié sans commande
+   (cas réel : production sur stock, sans commande client derrière). */
+function _demandeParProduit() {
   const parProduit = {};
   _ofs.filter(o => !['clos', 'annule'].includes(o.statut)).forEach(of => {
     if (!parProduit[of.produit_id]) parProduit[of.produit_id] = { nom: of.produit_nom, qteOF: 0, ofs: [], datePlusProche: null };
@@ -436,6 +442,11 @@ function _renderFabPlan() {
     return da < db ? -1 : da > db ? 1 : a.nom.localeCompare(b.nom, 'fr');
   });
 
+  return lignes;
+}
+
+function _renderFabPlan() {
+  const lignes = _demandeParProduit();
   const stockVirtuel = {};
   _articles.forEach(a => { stockVirtuel[a.ref] = a.stock; });
 
@@ -473,25 +484,22 @@ function _renderFabPlan() {
 
 /* -------------------------------------------------------
    ARTICLES À COMMANDER
-   Liste d'achat basée sur la demande totale des commandes en
-   cours (indépendante des OF) — reste tel quel, seul le bouton
-   BC agit réellement (ouvre le bon de commande pré-rempli).
+   Liste d'achat basée sur la demande totale de production —
+   OF actifs (manuels ou liés à une commande) + manque encore non
+   planifié pour les commandes en cours (même base que Plan de
+   fabrication, voir _demandeParProduit). Seul le bouton BC agit
+   réellement (ouvre le bon de commande pré-rempli).
 ------------------------------------------------------- */
 function _renderBesoins() {
-  const besoins = {};
-  _commandes.filter(c => c.statut !== 'cloture').forEach(c => {
-    (c.commande_lignes || []).forEach(l => {
-      besoins[l.produit_id] = (besoins[l.produit_id] || 0) + l.quantite;
-    });
-  });
-
   const mg = {};
-  Object.entries(besoins).forEach(([produitId, q]) => {
-    const lignes = _recettes[produitId] || [];
-    lignes.forEach(l => {
-      const aref = l.articles?.ref;
+  _demandeParProduit().forEach(l => {
+    const qteTotale = l.qteOF + l.manquePF;
+    if (!qteTotale) return;
+    const recette = _recettes[l.produitId] || [];
+    recette.forEach(r => {
+      const aref = r.articles?.ref;
       if (!aref) return;
-      mg[aref] = (mg[aref] || 0) + l.quantite * q;
+      mg[aref] = (mg[aref] || 0) + r.quantite * qteTotale;
     });
   });
 
