@@ -319,6 +319,21 @@ tr.clickable { cursor: pointer; }
 .prod-warn td { background: #fffbf0 !important; }
 .prod-fail td { background: #fff0f0 !important; }
 
+/* Filtres par colonne (Stock articles) — select compact pour que le tableau
+   tienne sur un seul écran sans défilement horizontal. Le select se réduit
+   avec ellipsis plutôt que de forcer la colonne à s'élargir. */
+#stockFilterRow th { padding: 4px 6px; background: var(--ui-bg2); }
+.stock-col-filter {
+  width: 100%;
+  max-width: 92px;
+  padding: 3px 5px;
+  font-size: 10px;
+  border-radius: 6px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 /* ═══════════════════════════════════════════════════════
    FORMULAIRES
 ═══════════════════════════════════════════════════════ */
