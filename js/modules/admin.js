@@ -111,11 +111,7 @@ function _renderArticles() {
       <td>${fmtQ(a.seuil)}</td>
       <td>${fmtQ(a.stock)}</td>
       <td style="font-size:11px;color:var(--ink-muted)">${esc(a.fournisseur || '—')}</td>
-      <td><button class="btn btn-danger btn-xs" data-action="supprimer">✕</button></td>`;
-    tr.querySelector('[data-action="supprimer"]').addEventListener('click', (e) => {
-      e.stopPropagation();
-      _suppArticle(a.id);
-    });
+      <td></td>`;
     tr.addEventListener('click', () => _editRow('article', a.id));
     tbody.appendChild(tr);
   });
@@ -124,7 +120,7 @@ function _renderArticles() {
 async function _confirmationSuppressionArticle(id) {
   let recettes = [];
   try { recettes = await getRecettesUtilisantArticles([id]); } catch (_) {}
-  if (!recettes.length) return confirmDialog('Supprimer cet article ?');
+  if (!recettes.length) return confirmDialog('Supprimer définitivement cet article ? Cette action est irréversible.');
   const produitsUn = [...new Set(recettes.map(r => r.produits?.nom).filter(Boolean))];
   /* Nom de produit non résolu (jointure vide) : avertissement générique plutôt
      qu'une phrase tronquée du type "utilisé dans la recette de : ." */
@@ -142,18 +138,7 @@ async function _confirmationSuppressionArticle(id) {
   );
 }
 
-async function _suppArticle(id) {
-  const ok = await _confirmationSuppressionArticle(id);
-  if (!ok) return;
-  try {
-    await deleteArticle(id);
-    _articles = _articles.filter(a => a.id !== id);
-    _renderArticles();
-    showToast('✅ Article supprimé.');
-  } catch (err) {
-    showToast(err.suppressionBloquee ? '⚠ ' + err.message : '❌ Erreur suppression.', err.suppressionBloquee ? 'warn' : 'error');
-  }
-}
+/* Suppression déplacée dans le modal "Modifier l'article" (editRowDeleteBtn). */
 
 /* -------------------------------------------------------
    PRODUITS
@@ -201,28 +186,13 @@ function _renderClients() {
       <td style="font-size:11.5px;color:var(--ink-muted)">${esc(c.tel || '—')}</td>
       <td style="font-size:11.5px;color:var(--ink-muted)">${esc(c.adresse || '—')}</td>
       <td style="font-size:11px;color:var(--ink-muted)">${esc(c.notes || '—')}</td>
-      <td><button class="btn btn-danger btn-xs" data-action="supprimer">✕</button></td>`;
-    tr.querySelector('[data-action="supprimer"]').addEventListener('click', (e) => {
-      e.stopPropagation();
-      _suppClient(c.id);
-    });
+      <td></td>`;
     tr.addEventListener('click', () => _openFicheClient(c.id));
     tbody.appendChild(tr);
   });
 }
 
-async function _suppClient(id) {
-  const ok = await confirmDialog('Supprimer ce client ?');
-  if (!ok) return;
-  try {
-    await deleteClient(id);
-    _clients = _clients.filter(c => c.id !== id);
-    _renderClients();
-    showToast('✅ Client supprimé.');
-  } catch (err) {
-    showToast(err.suppressionBloquee ? '⚠ ' + err.message : '❌ Erreur suppression.', err.suppressionBloquee ? 'warn' : 'error');
-  }
-}
+/* Suppression déplacée dans la fiche client (btnSuppFicheClient). */
 
 /* -------------------------------------------------------
    FOURNISSEURS
@@ -240,28 +210,13 @@ function _renderFournisseurs() {
       <td style="font-size:11.5px;color:var(--ink-muted)">${esc(f.tel || '—')}</td>
       <td style="font-size:11.5px;color:var(--ink-muted)">${esc(f.delai || '—')}</td>
       <td><span class="tag">${esc(f.categorie || '—')}</span></td>
-      <td><button class="btn btn-danger btn-xs" data-action="supprimer">✕</button></td>`;
-    tr.querySelector('[data-action="supprimer"]').addEventListener('click', (e) => {
-      e.stopPropagation();
-      _suppFournisseur(f.id);
-    });
+      <td></td>`;
     tr.addEventListener('click', () => _openFicheFournisseur(f.id));
     tbody.appendChild(tr);
   });
 }
 
-async function _suppFournisseur(id) {
-  const ok = await confirmDialog('Supprimer ce fournisseur ?');
-  if (!ok) return;
-  try {
-    await deleteFournisseur(id);
-    _fournisseurs = _fournisseurs.filter(f => f.id !== id);
-    _renderFournisseurs();
-    showToast('✅ Fournisseur supprimé.');
-  } catch (err) {
-    showToast(err.suppressionBloquee ? '⚠ ' + err.message : '❌ Erreur suppression.', err.suppressionBloquee ? 'warn' : 'error');
-  }
-}
+/* Suppression déplacée dans la fiche fournisseur (btnSuppFicheFournisseur). */
 
 /* -------------------------------------------------------
    EDIT ROW GÉNÉRIQUE
@@ -578,7 +533,7 @@ function _bindFicheClientForm() {
   });
 
   document.getElementById('btnSuppFicheClient')?.addEventListener('click', async () => {
-    const ok = await confirmDialog('Supprimer ce client ?');
+    const ok = await confirmDialog('Supprimer définitivement ce client ? Cette action est irréversible.');
     if (!ok) return;
     try {
       await deleteClient(_ficheClientId);
@@ -650,7 +605,7 @@ function _bindFicheFournisseurForm() {
   });
 
   document.getElementById('btnSuppFicheFournisseur')?.addEventListener('click', async () => {
-    const ok = await confirmDialog('Supprimer ce fournisseur ?');
+    const ok = await confirmDialog('Supprimer définitivement ce fournisseur ? Cette action est irréversible.');
     if (!ok) return;
     try {
       await deleteFournisseur(_ficheFournisseurId);
