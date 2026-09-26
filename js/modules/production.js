@@ -12,7 +12,7 @@ import {
   getAllOFs, createOF, updateOFStatut, updateOFDate, deleteOF,
   getCommandes, getProduits, getArticles, getRecettesByProduit, getClients, getTenant,
   ajusterStockArticle, ajusterStockProduit,
-  createAchat, achatDoublonExiste,
+  createAchat, achatDoublonExiste, getAchats,
   addMouvement, factureExistePourCommande, createFacture, createFactureLignes, nextRefServeur,
   updateCommandeStatut,
 } from '../db.js';
@@ -26,6 +26,7 @@ let _commandes = [];
 let _produits  = [];
 let _articles  = [];
 let _clients   = [];
+let _achats    = [];
 let _recettes  = {};
 let _calOffset = 0;
 
@@ -33,8 +34,8 @@ let _calOffset = 0;
    INIT
 ------------------------------------------------------- */
 export async function init() {
-  [_ofs, _commandes, _produits, _articles, _clients] = await Promise.all([
-    getAllOFs(), getCommandes(), getProduits(), getArticles(), getClients(),
+  [_ofs, _commandes, _produits, _articles, _clients, _achats] = await Promise.all([
+    getAllOFs(), getCommandes(), getProduits(), getArticles(), getClients(), getAchats(),
   ]);
   await _chargerRecettes();
   _bindCalNav();
@@ -45,8 +46,8 @@ export async function init() {
    RENDER
 ------------------------------------------------------- */
 export async function render() {
-  [_ofs, _commandes, _produits, _articles, _clients] = await Promise.all([
-    getAllOFs(), getCommandes(), getProduits(), getArticles(), getClients(),
+  [_ofs, _commandes, _produits, _articles, _clients, _achats] = await Promise.all([
+    getAllOFs(), getCommandes(), getProduits(), getArticles(), getClients(), getAchats(),
   ]);
   await _chargerRecettes();
   _renderBadges();
@@ -252,34 +253,93 @@ function _renderOFs() {
 
 /* -------------------------------------------------------
    PLAN DE FABRICATION
+   Une ligne par produit ayant un OF actif et/ou une commande
+   en cours non couverte. La faisabilité articles est calculée
+   de façon CUMULÉE ligne après ligne (le stock virtuel s'épuise
+   au fil du tableau) pour révéler les conflits entre deux OF
+   qui piochent dans le même article — un contrôle produit par
+   produit isolément ne le voit pas.
 ------------------------------------------------------- */
+function _achatsEnCoursPourArticle(articleId) {
+  if (!articleId) return [];
+  return _achats.filter(a => a.article_id === articleId && ['brouillon', 'envoye'].includes(a.statut));
+}
+
 function _renderFabPlan() {
-  const fab = {};
+  const parProduit = {};
   _ofs.filter(o => !['clos', 'annule'].includes(o.statut)).forEach(of => {
-    if (!fab[of.produit_id]) fab[of.produit_id] = { nom: of.produit_nom, qte: 0, ofs: [] };
-    fab[of.produit_id].qte += of.quantite;
-    fab[of.produit_id].ofs.push(of.ref);
+    if (!parProduit[of.produit_id]) parProduit[of.produit_id] = { nom: of.produit_nom, qteOF: 0, ofs: [], datePlusProche: null };
+    const f = parProduit[of.produit_id];
+    f.qteOF += of.quantite;
+    f.ofs.push(of.ref);
+    if (of.date_prevue && (!f.datePlusProche || of.date_prevue < f.datePlusProche)) f.datePlusProche = of.date_prevue;
   });
 
-  document.getElementById('fabPlanTbody').innerHTML =
-    Object.entries(fab).map(([produitId, f]) => {
-      const p = _produits.find(x => x.id === produitId);
-      if (!p) return '';
-      const manques = _calcManquesRecette(produitId, f.qte);
-      const ok = !manques.length;
-      return `<tr class="${ok ? 'prod-ok' : 'prod-fail'}">
-        <td class="td-bold">${esc(f.nom)}</td>
-        <td><strong>${f.qte}</strong> unités</td>
-        <td style="font-size:11px;color:var(--ink-muted)">${f.ofs.join(', ')}</td>
-        <td>${ok ? '<span class="badge badge-ok">✓ Faisable</span>' : `<span class="badge badge-alert">${manques.length} manque(s)</span>`}</td>
-        <td style="font-size:10.5px;color:var(--ui-red)">${manques.join('<br>') || '—'}</td>
-      </tr>`;
-    }).join('') ||
-    '<tr><td colspan="5" style="text-align:center;padding:14px;color:var(--ink-muted)">Aucun OF actif.</td></tr>';
+  const commande = {};
+  _commandes.filter(c => c.statut !== 'cloture').forEach(c => {
+    (c.commande_lignes || []).forEach(l => {
+      commande[l.produit_id] = (commande[l.produit_id] || 0) + l.quantite;
+    });
+  });
+
+  const produitIds = new Set([...Object.keys(parProduit), ...Object.keys(commande)]);
+  let lignes = [...produitIds].map(produitId => {
+    const p = _produits.find(x => x.id === produitId);
+    if (!p) return null;
+    const f = parProduit[produitId] || { nom: p.nom, qteOF: 0, ofs: [], datePlusProche: null };
+    const qteCmd = commande[produitId] || 0;
+    const manquePF = Math.max(0, qteCmd - (p.stock || 0) - f.qteOF);
+    return { produitId, nom: f.nom || p.nom, qteOF: f.qteOF, ofs: f.ofs, date: f.datePlusProche, manquePF };
+  }).filter(Boolean);
+
+  /* Tri : ce qui n'a encore aucun OF pour couvrir la commande d'abord (le plus urgent
+     à planifier), puis par échéance OF la plus proche. */
+  lignes.sort((a, b) => {
+    if ((a.manquePF > 0) !== (b.manquePF > 0)) return a.manquePF > 0 ? -1 : 1;
+    const da = a.date || '9999-99-99', db = b.date || '9999-99-99';
+    return da < db ? -1 : da > db ? 1 : a.nom.localeCompare(b.nom, 'fr');
+  });
+
+  const stockVirtuel = {};
+  _articles.forEach(a => { stockVirtuel[a.ref] = a.stock; });
+
+  document.getElementById('fabPlanTbody').innerHTML = lignes.map(l => {
+    const recette = _recettes[l.produitId] || [];
+    const manquesArticles = [];
+    recette.forEach(r => {
+      const aref = r.articles?.ref;
+      if (!aref || !r.quantite || !l.qteOF) return;
+      const besoin     = r.quantite * l.qteOF;
+      const disponible = stockVirtuel[aref] ?? 0;
+      stockVirtuel[aref] = disponible - besoin;
+      if (disponible < besoin) {
+        const a = _articles.find(x => x.ref === aref);
+        const manqueQte = besoin - disponible;
+        const enCours = _achatsEnCoursPourArticle(a?.id);
+        const infoCommande = enCours.length
+          ? enCours.map(ac => `en commande chez ${esc(ac.fournisseur || '—')}${ac.date_livraison ? ' (livraison ' + ac.date_livraison.split('-').reverse().join('/') + ')' : ' (date non renseignée)'}`).join(', ')
+          : 'aucune commande en cours';
+        manquesArticles.push(`${esc(a?.nom || aref)} : manque ${fmtQ(manqueQte)} ${esc(a?.unite || '')} — ${infoCommande}`);
+      }
+    });
+
+    const rowClass = (l.manquePF > 0 || manquesArticles.length) ? 'prod-fail' : 'prod-ok';
+    return `<tr class="${rowClass}">
+      <td class="td-bold">${esc(l.nom)}</td>
+      <td>${l.qteOF > 0 ? `<strong>${l.qteOF}</strong> unités (${l.ofs.join(', ')})` : '<span style="color:var(--ink-muted)">aucun OF</span>'}</td>
+      <td>${l.manquePF > 0 ? `<strong style="color:var(--ui-red)">${l.manquePF} unité(s)</strong>` : '—'}</td>
+      <td>${l.qteOF === 0 ? '—' : (manquesArticles.length ? `<span class="badge badge-alert">${manquesArticles.length} manque(s)</span>` : '<span class="badge badge-ok">✓ Faisable</span>')}</td>
+      <td style="font-size:10.5px;color:var(--ui-red)">${manquesArticles.join('<br>') || '—'}</td>
+    </tr>`;
+  }).join('') ||
+    '<tr><td colspan="5" style="text-align:center;padding:14px;color:var(--ink-muted)">Aucun OF actif ni commande en attente.</td></tr>';
 }
 
 /* -------------------------------------------------------
-   BESOINS
+   ARTICLES À COMMANDER
+   Liste d'achat basée sur la demande totale des commandes en
+   cours (indépendante des OF) — reste tel quel, seul le bouton
+   BC agit réellement (ouvre le bon de commande pré-rempli).
 ------------------------------------------------------- */
 function _renderBesoins() {
   const besoins = {};
@@ -288,25 +348,6 @@ function _renderBesoins() {
       besoins[l.produit_id] = (besoins[l.produit_id] || 0) + l.quantite;
     });
   });
-
-  let bHtml = '';
-  Object.entries(besoins).forEach(([produitId, qteCmd]) => {
-    const p = _produits.find(x => x.id === produitId);
-    if (!p) return;
-    const manques = _calcManquesRecette(produitId, qteCmd);
-    if (!manques.length) return;
-
-    bHtml += `<tr class="prod-fail">
-      <td class="td-bold">${esc(p.nom)}</td>
-      <td><strong>${qteCmd}</strong></td>
-      <td><span class="badge badge-alert">${manques.length} manque(s)</span></td>
-      <td style="font-size:10.5px;color:var(--ui-red)">${manques.join('<br>') || '—'}</td>
-      <td><span style="font-size:10.5px;color:var(--ink-muted)">Acheter d'abord</span></td>
-    </tr>`;
-  });
-
-  document.getElementById('besoinsTbody').innerHTML = bHtml ||
-    '<tr><td colspan="5" style="text-align:center;padding:14px;color:var(--ui-green)">✅ Aucune alerte — tous les besoins sont couverts.</td></tr>';
 
   const mg = {};
   Object.entries(besoins).forEach(([produitId, q]) => {
@@ -338,11 +379,6 @@ function _renderBesoins() {
 
   document.getElementById('manquesTbody').innerHTML = mHtml ||
     '<tr><td colspan="8" style="text-align:center;padding:12px;color:var(--ui-green)">✅ Tous les articles disponibles.</td></tr>';
-
-  document.getElementById('besoinsTbody').onclick = async (e) => {
-    const btn = e.target.closest('[data-action="creer-of"]');
-    if (btn) await _creerOF(btn.dataset.produitId, parseInt(btn.dataset.qte));
-  };
 
   document.getElementById('manquesTbody').onclick = (e) => {
     const btn = e.target.closest('[data-action="bc"]');
