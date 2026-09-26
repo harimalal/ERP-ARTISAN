@@ -455,6 +455,25 @@
     <table><thead><tr><th>Nom</th><th>Contact</th><th>Email</th><th>Téléphone</th><th>Délai</th><th>Catégorie</th><th></th></tr></thead>
     <tbody id="adminFournisseursTbody"></tbody></table>
   </div>
+  <div class="card">
+    <div class="card-hdr"><span class="card-hdr-title">Messages à l'équipe</span></div>
+    <div style="padding:14px 16px;">
+      <div class="meq-add">
+        <input type="text" id="msgEquipeInput" placeholder="Écrire un message…" maxlength="300">
+        <button class="btn btn-primary btn-sm" id="btnAddMessageEquipe" type="button">Ajouter</button>
+      </div>
+      <div class="meq-board" id="msgEquipeBoard">
+        <div class="meq-col">
+          <div class="meq-col-hdr"><span>En cours</span><span class="meq-count" id="msgEquipeCountEnCours">0</span></div>
+          <div class="meq-list" id="msgEquipeEnCours"></div>
+        </div>
+        <div class="meq-col">
+          <div class="meq-col-hdr"><span>C'est fait</span><span class="meq-count" id="msgEquipeCountFait">0</span></div>
+          <div class="meq-list" id="msgEquipeFait"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
     </main>
@@ -484,6 +503,12 @@
   </div>
   <div class="form-grid" style="padding-top:0;">
     <div class="form-group full"><label>Remarques</label><textarea id="cmdRemarques" rows="2" placeholder="Notes…"></textarea></div>
+    <div class="form-group full">
+      <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;">
+        <input type="checkbox" id="cmdPrioritaire" style="width:16px;height:16px;">
+        Commande prioritaire
+      </label>
+    </div>
   </div>
   <div class="alert-box alert-info" style="margin:0 16px 12px;"><span>ℹ</span><span>ARTEASY analyse le stock et génère les bons de commande fournisseur automatiquement si des articles manquent.</span></div>
   <div class="form-actions">
@@ -976,9 +1001,10 @@ function setActiveNav(page) {
       import('/js/modules/livraisons.js'),
       import('/js/modules/recettes.js'),
       import('/js/modules/admin.js'),
+      import('/js/modules/messagesEquipe.js'),
     ]);
 
-    const [dashboard, stock, produits, commandes, production, achats, livraisons, recettes, admin] = modules;
+    const [dashboard, stock, produits, commandes, production, achats, livraisons, recettes, admin, messagesEquipe] = modules;
 
     const session = await initAuth();
     if (!session) return;
@@ -994,7 +1020,7 @@ function setActiveNav(page) {
       achats:    achats.render,
       livraisons: livraisons.render,
       recettes:  recettes.render,
-      admin:     admin.render,
+      admin:     () => { admin.render(); messagesEquipe.render(); },
     };
 
     /* Navigation — écoute sur #mainNav (sidebar) ET .bottom-nav */
@@ -1493,6 +1519,7 @@ function setActiveNav(page) {
     await production.init();
     await livraisons.init();
     await admin.init();
+    await messagesEquipe.init();
     await dashboard.render();
     document.getElementById('app-loading').style.display = 'none';
   }

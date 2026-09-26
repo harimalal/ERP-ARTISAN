@@ -512,6 +512,45 @@ textarea:focus {
 .alert-danger  { background: #FCDDD8; color: #8A2010; border: 1px solid #F0B4A8; }
 
 /* ═══════════════════════════════════════════════════════
+   MESSAGES À L'ÉQUIPE — mini tableau type Trello (Admin)
+═══════════════════════════════════════════════════════ */
+
+.meq-add { display: flex; gap: 8px; margin-bottom: 14px; }
+.meq-add input {
+  flex: 1; padding: 8px 10px; border: 1px solid var(--ui-brd2); border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 12.5px; color: var(--ink); background: #fff;
+}
+.meq-add input:focus { outline: none; border-color: var(--sage); box-shadow: 0 0 0 3px rgba(61,107,82,.1); }
+
+.meq-board { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 640px) { .meq-board { grid-template-columns: 1fr; } }
+
+.meq-col { background: var(--ui-bg2); border: 1px solid var(--ui-brd); border-radius: var(--rl); padding: 12px; min-height: 90px; }
+.meq-col-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--ink-light); margin-bottom: 10px;
+}
+.meq-count { font-size: 10.5px; font-weight: 700; background: var(--cream-dark); color: var(--ink-muted); padding: 1px 8px; border-radius: 20px; }
+
+/* Cartes espacées — gap sur le conteneur, pas de margin par carte */
+.meq-list { display: flex; flex-direction: column; gap: 12px; }
+
+.meq-card {
+  background: #fff; border: 1px solid var(--ui-brd); border-left: 3px solid var(--ui-brd2);
+  border-radius: var(--r); padding: 10px 12px; box-shadow: var(--shadow);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+}
+.meq-card.urgent { border-left-color: var(--accent); background: var(--hdr-alert-bg); }
+.meq-text { font-size: 12.5px; color: var(--ink); line-height: 1.4; }
+.meq-actions { display: flex; gap: 2px; flex: none; }
+.meq-btn { border: none; background: transparent; cursor: pointer; font-size: 12.5px; padding: 3px 6px; border-radius: 6px; color: var(--ink-muted); }
+.meq-btn:hover { background: var(--cream-dark); color: var(--ink); }
+.meq-card.urgent .meq-btn[data-action="urgent"] { color: var(--accent); }
+.meq-btn-del:hover { background: #fdecea; color: var(--ui-red); }
+.meq-empty { font-size: 11.5px; color: var(--ink-muted); text-align: center; padding: 14px 0; }
+
+/* ═══════════════════════════════════════════════════════
    CALENDRIER
 ═══════════════════════════════════════════════════════ */
 

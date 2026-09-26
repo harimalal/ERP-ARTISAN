@@ -9,7 +9,7 @@ import {
   getCommandes, createCommande, avancerStatutCommande,
   deleteCommande, getClients, getProduits, getArticles,
   createAchat, achatDoublonExiste, getAchats,
-  upsertClient, nextRefServeur,
+  upsertClient, nextRefServeur, updateCommandePrioritaire,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, badgeCmd, showToast, today,
@@ -75,16 +75,18 @@ function _renderListe() {
     }).join('');
 
     return `<div class="cmd-card">
-      <div class="cmd-card-hdr">
+      <div class="cmd-card-hdr"${c.prioritaire ? ' style="background:var(--hdr-alert-bg);border-bottom-color:var(--hdr-alert-brd);"' : ''}>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span class="cmd-ref">${esc(c.ref)}</span>
           <span class="cmd-client">${esc(c.client_nom)}</span>
           <span class="cmd-date">${esc(c.date_cmd)}</span>
           ${c.date_livraison ? `<span class="cmd-date">Livr. : ${esc(c.date_livraison)}</span>` : ''}
+          ${c.prioritaire ? `<span style="font-weight:700;font-size:11.5px;color:var(--hdr-alert-txt);">⚠ Commande prioritaire</span>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
           ${badgeCmd(c.statut)}
           <span style="font-weight:700;color:var(--accent)">${fmt(tot)} €</span>
+          <button class="btn btn-ghost btn-xs" data-id="${c.id}" data-action="toggle-prioritaire">${c.prioritaire ? 'Retirer prioritaire' : 'Marquer prioritaire'}</button>
           ${c.statut !== 'cloture'
             ? `<button class="btn btn-ghost btn-xs" data-id="${c.id}" data-action="avancer">↻ Avancer</button>`
             : ''}
@@ -116,7 +118,23 @@ function _renderListe() {
     if (action === 'livrer')  _ouvrirLivraison(id);
     if (action === 'supprimer') await _supprimerCmd(id);
     if (action === 'pdf')     _aperçuPdfCmd(id);
+    if (action === 'toggle-prioritaire') await _toggleCmdPrioritaire(id);
   };
+}
+
+/* -------------------------------------------------------
+   COMMANDE PRIORITAIRE
+------------------------------------------------------- */
+async function _toggleCmdPrioritaire(id) {
+  const c = _commandes.find(x => x.id === id);
+  if (!c) return;
+  try {
+    const updated = await updateCommandePrioritaire(id, !c.prioritaire);
+    c.prioritaire = updated.prioritaire;
+    _renderListe();
+  } catch (err) {
+    showToast('❌ Erreur mise à jour commande.', 'error');
+  }
 }
 
 /* -------------------------------------------------------
@@ -194,6 +212,8 @@ export function initCommandeModal() {
   document.getElementById('cmdDateLiv').value    = '';
   document.getElementById('cmdRemarques').value  = '';
   document.getElementById('cmdLignes').innerHTML = '';
+  const cmdPrio = document.getElementById('cmdPrioritaire');
+  if (cmdPrio) cmdPrio.checked = false;
   _cmdLineN = 0;
 
   /* Remplir le select clients */
@@ -274,6 +294,7 @@ async function _saveCommande() {
     ? (document.getElementById('cmdClient')?.value?.trim() || 'Client inconnu')
     : (selVal || document.getElementById('cmdClient')?.value?.trim() || 'Client inconnu');
   const notes     = document.getElementById('cmdRemarques').value;
+  const prioritaire = document.getElementById('cmdPrioritaire')?.checked || false;
 
   const lignes = [];
   document.querySelectorAll('#cmdLignes > div[id]').forEach(div => {
@@ -315,6 +336,7 @@ async function _saveCommande() {
       date_livraison: dateLiv,
       statut:        'a_produire',
       notes,
+      prioritaire,
     }, lignes);
 
     _commandes.push({ ...cmd, commande_lignes: lignes });

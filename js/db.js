@@ -418,6 +418,18 @@ export async function updateCommandeStatut(id, statut) {
   return data;
 }
 
+export async function updateCommandePrioritaire(id, prioritaire) {
+  const { data, error } = await supabase
+    .from('commandes')
+    .update({ prioritaire })
+    .eq('id', id)
+    .eq('tenant_id', tid())
+    .select()
+    .single();
+  if (error) handleError('updateCommandePrioritaire', error);
+  return data;
+}
+
 export async function avancerStatutCommande(id) {
   const cmd = await getCommande(id);
   if (!cmd) return null;
@@ -711,6 +723,63 @@ export async function updateFactureStatut(id, statut) {
     .single();
   if (error) handleError('updateFactureStatut', error);
   return data;
+}
+
+/* -------------------------------------------------------
+   MESSAGES À L'ÉQUIPE — mini tableau type Trello (Admin)
+------------------------------------------------------- */
+
+export async function getMessagesEquipe() {
+  const { data, error } = await supabase
+    .from('messages_equipe')
+    .select('*')
+    .eq('tenant_id', tid())
+    .order('created_at', { ascending: false });
+  if (error) handleError('getMessagesEquipe', error);
+  return data;
+}
+
+export async function createMessageEquipe(texte) {
+  const { data, error } = await supabase
+    .from('messages_equipe')
+    .insert({ texte, statut: 'encours', urgent: false, tenant_id: tid() })
+    .select()
+    .single();
+  if (error) handleError('createMessageEquipe', error);
+  return data;
+}
+
+export async function updateMessageEquipeStatut(id, statut) {
+  const { data, error } = await supabase
+    .from('messages_equipe')
+    .update({ statut })
+    .eq('id', id)
+    .eq('tenant_id', tid())
+    .select()
+    .single();
+  if (error) handleError('updateMessageEquipeStatut', error);
+  return data;
+}
+
+export async function updateMessageEquipeUrgent(id, urgent) {
+  const { data, error } = await supabase
+    .from('messages_equipe')
+    .update({ urgent })
+    .eq('id', id)
+    .eq('tenant_id', tid())
+    .select()
+    .single();
+  if (error) handleError('updateMessageEquipeUrgent', error);
+  return data;
+}
+
+export async function deleteMessageEquipe(id) {
+  const { error } = await supabase
+    .from('messages_equipe')
+    .delete()
+    .eq('id', id)
+    .eq('tenant_id', tid());
+  if (error) handleError('deleteMessageEquipe', error);
 }
 
 /* -------------------------------------------------------
