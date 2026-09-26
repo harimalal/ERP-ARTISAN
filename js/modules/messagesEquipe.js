@@ -21,6 +21,7 @@ let _messages = [];
 export async function init() {
   _messages = await getMessagesEquipe();
   _bindBoard();
+  _updateBadge();
 }
 
 /* -------------------------------------------------------
@@ -104,6 +105,8 @@ function _card(m) {
 }
 
 function _renderBoard() {
+  _updateBadge();
+
   const colEnCours = document.getElementById('msgEquipeEnCours');
   const colFait    = document.getElementById('msgEquipeFait');
   if (!colEnCours || !colFait) return;
@@ -118,4 +121,17 @@ function _renderBoard() {
 
   colEnCours.innerHTML = enCours.length ? enCours.map(_card).join('') : '<div class="meq-empty">Aucun message en cours.</div>';
   colFait.innerHTML    = fait.length    ? fait.map(_card).join('')    : '<div class="meq-empty">Rien de terminé pour l’instant.</div>';
+}
+
+/* Badge de notification dans le menu latéral — nombre de messages
+   "en cours" (pas encore traités), mis à jour à chaque changement local
+   sans attendre un retour sur le Dashboard (badgeOF/badgeCmd suivent
+   ce même principe mais via getDashboardData ; ici la page a déjà les
+   données en cache donc on l'actualise directement). */
+function _updateBadge() {
+  const badge = document.getElementById('badgeMessages');
+  if (!badge) return;
+  const nb = _messages.filter(m => m.statut === 'encours').length;
+  badge.textContent = nb;
+  badge.style.display = nb > 0 ? '' : 'none';
 }

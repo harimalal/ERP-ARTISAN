@@ -846,16 +846,17 @@ export async function addMouvement({ type, ref, nom, qte, motif, ref_doc }) {
 ------------------------------------------------------- */
 
 export async function getDashboardData() {
-  const [articles, produits, commandes, achats, ofs, factures] = await Promise.all([
+  const [articles, produits, commandes, achats, ofs, factures, messagesEquipe] = await Promise.all([
     getArticles(),
     getProduits(),
     getCommandes(),
     getAchats(),
     getAllOFs(),
     getFactures(),
+    getMessagesEquipe(),
   ]);
 
-  return { articles, produits, commandes, achats, ofs, factures };
+  return { articles, produits, commandes, achats, ofs, factures, messagesEquipe };
 }
 
 /* -------------------------------------------------------
