@@ -61,3 +61,24 @@ Impossible de savoir s'il s'agissait de 20 kg ou de 20 colis (soit environ
 Contrôle d'invariance : coût total des recettes 80,661355 € avant et après.
 Les deux articles échangés étaient au même prix, le coût de revient des
 produits est donc inchangé.
+
+## Rattachement des fournisseurs (2026-09-27)
+
+| Périmètre | Fournisseur écrit en base | Lignes |
+|---|---|---|
+| Catégorie Étiquette (les 50, étiquette couvercle comprise) | Imprimerie du Court-Bran (ICB) | 50 |
+| Catégorie Capsule — Capsule T066 Twist-Off | Massilly Conservor | 1 |
+| ING-SUCRE | SVP Negoce | 0 (déjà en place) |
+
+Le nom écrit dans articles.fournisseur est le nom exact de la fiche
+fournisseur du tenant, pas l'abréviation. Sans ça l'application traiterait
+« ICB » et « Imprimerie du Court-Bran (ICB) » comme deux fournisseurs
+distincts : le regroupement des bons de commande se scinderait en deux et la
+liste déroulante du modal article ne présélectionnerait rien.
+
+« Couvercle » a été compris comme la capsule métallique Twist-Off T066 : la
+fiche Massilly Conservor porte elle-même « verrerie, capsules, palettes ».
+L'étiquette couvercle, elle, reste une étiquette et part chez ICB.
+
+Reste sans fournisseur après cette passe : 14 fruits, 11 ingrédients et le
+verre Bonta 212 ml.
