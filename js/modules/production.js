@@ -19,7 +19,7 @@ import {
 } from '../db.js';
 import {
   fmt, fmtQ, esc, badgePlan, showToast, today,
-  openModal, closeModal, nextRef, confirmDialog,
+  openModal, closeModal, nextRef, confirmDialog, estSurveille,
 } from '../ui.js';
 
 let _ofs       = [];
@@ -413,7 +413,9 @@ function _demandeParProduit() {
     if (!p) return null;
     const f = parProduit[produitId] || { nom: p.nom, qteOF: 0, ofs: [], datePlusProche: null };
     const qteCmd = commande[produitId] || 0;
-    const manquePF = Math.max(0, qteCmd - (p.stock || 0) - f.qteOF);
+    /* Produit hors stock : son stock n'est pas suivi, il ne peut donc pas
+       être signalé manquant. Ses OF restent affichés, eux sont réels. */
+    const manquePF = estSurveille(p) ? Math.max(0, qteCmd - (p.stock || 0) - f.qteOF) : 0;
     return { produitId, nom: f.nom || p.nom, qteOF: f.qteOF, ofs: f.ofs, date: f.datePlusProche, manquePF };
   }).filter(Boolean);
 
@@ -442,8 +444,10 @@ function _renderFabPlan() {
       const besoin     = r.quantite * l.qteOF;
       const disponible = stockVirtuel[aref] ?? 0;
       stockVirtuel[aref] = disponible - besoin;
-      if (disponible < besoin) {
-        const a = _articles.find(x => x.ref === aref);
+      const art = _articles.find(x => x.ref === aref);
+      /* Article hors stock : approvisionnement non suivi, jamais bloquant. */
+      if (disponible < besoin && estSurveille(art)) {
+        const a = art;
         const manqueQte = besoin - disponible;
         const enCours = _achatsEnCoursPourArticle(a?.id);
         const infoCommande = enCours.length
@@ -491,7 +495,7 @@ function _renderBesoins() {
      deux séparément, on prend le plus grand des deux besoins. */
   const manques = Object.entries(mg).map(([aref, besoin]) => {
     const a = _articles.find(x => x.ref === aref);
-    if (!a) return null;
+    if (!a || !estSurveille(a)) return null;
     const manque = besoin - a.stock;
     if (manque <= 0) return null;
     const qteACommander = Math.max(manque, (a.seuil || 0) - a.stock);

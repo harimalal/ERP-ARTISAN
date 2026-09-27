@@ -219,6 +219,7 @@
         <th class="sortable" data-sort-col="6">Statut <span class="sort-ico"></span></th>
         <th class="sortable" data-sort-col="7">Prix achat <span class="sort-ico"></span></th>
         <th class="sortable" data-sort-col="8">Fournisseur <span class="sort-ico"></span></th>
+        <th title="Coche = article non suivi : plus aucune alerte de stock">Hors stock</th>
         <th>Actions</th>
       </tr>
       <tr id="stockFilterRow">
@@ -232,6 +233,7 @@
         <th><select class="stock-col-filter" data-col="7"><option value="">Tous</option></select></th>
         <th><select class="stock-col-filter" data-col="8"><option value="">Tous</option></select></th>
         <th></th>
+        <th></th>
       </tr></thead>
       <tbody id="stockTbody"></tbody>
     </table>
@@ -240,6 +242,7 @@
 
 <!-- PRODUITS FINIS -->
 <div id="page-produits" class="page">
+  <div id="produitsIndicateurs"></div>
   <div class="sec-hdr">
     <div></div>
     <div class="btn-row">
@@ -254,9 +257,7 @@
         Catalogue produits finis
       </span>
     </div>
-    <table>
-      <thead><tr>
-<table id="produitsTable">
+    <table id="produitsTable">
       <thead><tr>
   <th class="sortable" data-sort-col="0">Référence <span class="sort-ico"></span></th>
   <th class="sortable" data-sort-col="1">Produit <span class="sort-ico"></span></th>
@@ -265,7 +266,9 @@
   <th>Statut</th>
   <th class="sortable" data-sort-col="5">Prix Vente HT <span class="sort-ico"></span></th>
   <th class="sortable" data-sort-col="6">Coût Revient <span class="sort-ico"></span></th>
-  <th>Marge</th><th>Action</th>
+  <th>Marge</th>
+  <th title="Coche = produit non suivi : plus aucune alerte de stock">Hors stock</th>
+  <th>Action</th>
 </tr></thead>
       <tbody id="produitsTbody"></tbody>
     </table>

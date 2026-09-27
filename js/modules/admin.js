@@ -22,6 +22,7 @@ import {
   fmt, fmtQ, esc, stockStatus, badgeCmd, showToast,
   openModal, closeModal, filterTable, today, confirmDialog,
   optionsCategories, bindCategorieNouvelle, lireCategorie, catLabel, couleurCategorie,
+  estSurveille,
 } from '../ui.js';
 import { getSession, getTenantId } from '../auth.js';
 import { API } from '../config.js';
@@ -278,7 +279,7 @@ function _renderProduits() {
       <td style="color:var(--ui-green);font-weight:600;">${fmt(m)} € <span style="color:var(--ink-muted);font-weight:400;font-size:10px;">(${tx}%)</span></td>
       <td>${fmtQ(p.seuil)}</td>
       <td><strong>${p.stock}</strong></td>
-      <td>${stockStatus(p.stock, p.seuil)}</td>
+      <td>${estSurveille(p) ? stockStatus(p.stock, p.seuil) : '<span class="badge badge-neutral">Hors stock</span>'}</td>
       <td></td>`;
     tr.addEventListener('click', () => _editRow('produit', p.id));
     tbody.appendChild(tr);

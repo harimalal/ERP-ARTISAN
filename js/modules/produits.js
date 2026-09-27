@@ -15,6 +15,7 @@ import {
 import {
   fmt, fmtQ, esc, stockStatus, showToast,
   openModal, closeModal, nextRef, sortTable,
+  estSurveille, sousSeuil,
 } from '../ui.js';
 
 let _produits  = [];
@@ -61,6 +62,31 @@ export async function init() {
         return;
       }
     }, true);
+
+    /* Case Hors stock : on ecoute change (et pas click) pour suivre aussi
+       la validation au clavier. Le stock reste affiche tel quel : seule
+       la surveillance (alertes, plan de fabrication) est desactivee. */
+    document.addEventListener('change', async (e) => {
+      const chk = e.target.closest('#produitsTbody .hs-chk');
+      if (!chk) return;
+      const p = _produits.find(x => x.id === chk.dataset.id);
+      if (!p) return;
+      const valeur = chk.checked;
+      chk.disabled = true;
+      try {
+        await updateProduit(p.id, { hors_stock: valeur });
+        p.hors_stock = valeur;
+        _renderIndicateurs();
+        _renderTable();
+        showToast(valeur ? `${p.nom} : hors stock, exclu des alertes.` : `${p.nom} : de nouveau suivi.`);
+        document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'produits' } }));
+      } catch (err) {
+        console.error('[produits] hors_stock ERREUR:', err.message, err);
+        chk.checked = !valeur;
+        chk.disabled = false;
+        showToast('❌ Impossible de modifier ce réglage.', 'error');
+      }
+    });
   }
 }
 
@@ -69,7 +95,40 @@ export async function init() {
 ------------------------------------------------------- */
 export async function render() {
   _produits = await getProduits();
+  _renderIndicateurs();
   _renderTable();
+}
+
+/* -------------------------------------------------------
+   INDICATEURS — etat du stock produits finis.
+   Les produits marques hors stock sont sortis des trois
+   premiers compteurs : ils ne declenchent plus d'alerte.
+------------------------------------------------------- */
+function _pillEtat(dot, label, n, col) {
+  return `<div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:20px;font-size:12.5px;">
+    <span style="width:8px;height:8px;border-radius:50%;background:${dot};display:inline-block;"></span>
+    <span style="font-weight:600;">${label}</span>
+    <span style="font-weight:800;color:${col};">${n}</span>
+  </div>`;
+}
+
+function _renderIndicateurs() {
+  const el = document.getElementById('produitsIndicateurs');
+  if (!el) return;
+
+  const suivis    = _produits.filter(estSurveille);
+  const enStock   = suivis.filter(p => p.stock > p.seuil).length;
+  const faible    = suivis.filter(p => p.stock <= p.seuil && p.stock > p.seuil * 0.5).length;
+  const bas       = suivis.filter(p => p.stock <= p.seuil * 0.5).length;
+  const horsStock = _produits.length - suivis.length;
+
+  el.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:9px;">
+      ${_pillEtat('#22c55e', 'En stock', enStock, '#16a34a')}
+      ${_pillEtat('#f59f00', 'Faibles', faible, '#b45309')}
+      ${_pillEtat('#ef4444', 'Sous seuil', bas, '#dc2626')}
+      ${horsStock ? _pillEtat('#94a3b8', 'Hors stock', horsStock, '#475569') : ''}
+    </div>`;
 }
 
 /* -------------------------------------------------------
@@ -94,21 +153,26 @@ function _renderTable() {
     const margeTd = cout > 0
       ? `<span style="color:var(--ui-green);font-weight:600">${fmt(marge)} € <span style="color:var(--ink-muted);font-weight:400;font-size:10px;">(${(marge / cout * 100).toFixed(0)}%)</span></span>`
       : `<span style="color:var(--ink-muted);font-style:italic;font-size:11px;">à définir</span>`;
-    return `<tr>
+    const suivi = estSurveille(p);
+    return `<tr data-id="${esc(p.id)}"${suivi ? '' : ' style="opacity:.55;"'}>
       <td class="td-ref">${esc(p.ref)}</td>
       <td class="td-bold">${esc(p.nom)}</td>
       <td><strong>${p.stock}</strong></td>
       <td>${p.seuil}</td>
-      <td>${stockStatus(p.stock, p.seuil)}</td>
+      <td>${suivi ? stockStatus(p.stock, p.seuil) : '<span class="badge badge-neutral">Hors stock</span>'}</td>
       <td style="font-weight:600">${fmt(prix)} €</td>
       <td>${fmt(cout)} €</td>
       <td>${margeTd}</td>
+      <td style="text-align:center;">
+        <input type="checkbox" class="hs-chk" data-id="${esc(p.id)}"${p.hors_stock ? ' checked' : ''}
+          title="Hors stock : exclut ce produit de toutes les alertes" style="cursor:pointer;">
+      </td>
       <td onclick="event.stopPropagation()" style="white-space:nowrap;">
         <button class="btn-icon" data-ref="${esc(p.ref)}" data-action="editer" title="Éditer"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
         <button class="btn-icon" data-ref="${esc(p.ref)}" data-action="produire" title="Planifier un ordre de fabrication"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4V2M16 4V2M3 10h18"/></svg></button>
       </td>
     </tr>`;
-  }).join('') || '<tr><td colspan="9" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun produit.</td></tr>';
+  }).join('') || '<tr><td colspan="10" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun produit.</td></tr>';
 }
 
 /* -------------------------------------------------------
