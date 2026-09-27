@@ -110,6 +110,21 @@ export async function updateArticleStock(id, newStock) {
   return updateArticle(id, { stock: newStock });
 }
 
+/* Renomme une catégorie sur tous les articles du tenant qui la portent.
+   Si le nouveau nom existe déjà, les deux catégories fusionnent — c'est
+   voulu, c'est la seule façon de rattraper un doublon de saisie.
+   Le filtre tenant_id rend l'opération sans effet sur les autres clients. */
+export async function renameCategorieArticles(ancien, nouveau) {
+  const { data, error } = await supabase
+    .from('articles')
+    .update({ categorie: nouveau })
+    .eq('categorie', ancien)
+    .eq('tenant_id', tid())
+    .select('id');
+  if (error) handleError('renameCategorieArticles', error);
+  return (data || []).length;
+}
+
 /* Mouvement relatif, calculé côté base : deux mouvements simultanés
    s'additionnent au lieu de s'écraser. Plancher à 0. Retourne le stock réel. */
 async function _ajusterStock(rpc, id, delta) {

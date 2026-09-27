@@ -8,6 +8,7 @@
 import {
   getTenant, updateTenant,
   getArticles, createArticle, updateArticle, deleteArticle, getArticleByRef,
+  renameCategorieArticles,
   getProduits, createProduit, updateProduit, deleteProduit, getProduitByRef,
   getRecettesByProduit, saveRecette, getRecettesUtilisantArticles,
   getClients, createClient, upsertClient, updateClient, deleteClient, getClientByNom,
@@ -20,6 +21,7 @@ import {
 import {
   fmt, fmtQ, esc, stockStatus, badgeCmd, showToast,
   openModal, closeModal, filterTable, today, confirmDialog,
+  optionsCategories, bindCategorieNouvelle, lireCategorie, catLabel, couleurCategorie,
 } from '../ui.js';
 import { getSession, getTenantId } from '../auth.js';
 import { API } from '../config.js';
@@ -53,6 +55,7 @@ export async function init() {
   _bindImportIA();
   _bindImportAvance();
   _bindSearchInputs();
+  _bindCategories();
   document.getElementById('btnSupprimerDoublons')?.addEventListener('click', _ouvrirSuppressionDoublons);
   document.getElementById('doublonsBtnSupprimer')?.addEventListener('click', _supprimerDoublonsSelection);
 }
@@ -66,6 +69,7 @@ export async function render() {
   ]);
   _renderEntreprise();
   _renderArticles();
+  _renderCategories();
   _renderProduits();
   _renderClients();
   _renderFournisseurs();
@@ -96,6 +100,112 @@ function _bindEntrepriseForm() {
 /* -------------------------------------------------------
    ARTICLES
 ------------------------------------------------------- */
+
+/* Catégories réellement utilisées par le tenant, triées.
+   Sert à peupler les listes déroulantes : aucune liste figée. */
+function _categoriesArticles() {
+  return [...new Set(_articles.map(a => a.categorie).filter(c => c != null && c !== ''))]
+    .sort((a, b) => String(a).localeCompare(String(b), 'fr'));
+}
+
+/* -------------------------------------------------------
+   CATÉGORIES — renommer et fusionner
+   Aucune table de catégories : la liste est l'ensemble des
+   valeurs portées par les articles du tenant. Renommer, c'est
+   réécrire cette valeur sur les articles concernés.
+------------------------------------------------------- */
+function _renderCategories() {
+  const list = document.getElementById('adminCategoriesList');
+  if (!list) return;
+
+  const compte = {};
+  _articles.forEach(a => {
+    const c = a.categorie;
+    if (c != null && c !== '') compte[c] = (compte[c] || 0) + 1;
+  });
+  const cats = Object.keys(compte).sort((a, b) => catLabel(a).localeCompare(catLabel(b), 'fr'));
+
+  const badge = document.getElementById('adminCategoriesCount');
+  if (badge) badge.textContent = cats.length;
+
+  if (!cats.length) {
+    list.innerHTML = '<div style="font-size:13px;color:var(--ink-muted);">Aucune catégorie pour le moment.</div>';
+    return;
+  }
+
+  list.innerHTML = cats.map(c => {
+    const col = couleurCategorie(c);
+    const k = encodeURIComponent(c);
+    return `<div class="cat-row" data-cat="${esc(c)}" style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;">
+      <span style="font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:20px;
+        background:${col.bg};color:${col.txt};border:1px solid ${col.brd};">${esc(catLabel(c))}</span>
+      <span style="font-size:11.5px;color:var(--ink-muted);">${compte[c]} article${compte[c] > 1 ? 's' : ''}</span>
+      <input class="cat-new inp" id="catnew_${k}" placeholder="Nouveau nom" style="display:none;width:200px;font-size:12px;">
+      <button class="btn btn-ghost btn-sm" data-cat-action="renommer" data-cat="${esc(c)}">Renommer</button>
+      <button class="btn btn-primary btn-sm" data-cat-action="valider" data-cat="${esc(c)}" style="display:none;">Valider</button>
+      <button class="btn btn-ghost btn-sm" data-cat-action="annuler" data-cat="${esc(c)}" style="display:none;">Annuler</button>
+    </div>`;
+  }).join('');
+}
+
+function _basculeLigneCategorie(row, enEdition) {
+  row.querySelector('.cat-new').style.display = enEdition ? '' : 'none';
+  row.querySelector('[data-cat-action="renommer"]').style.display = enEdition ? 'none' : '';
+  row.querySelector('[data-cat-action="valider"]').style.display  = enEdition ? '' : 'none';
+  row.querySelector('[data-cat-action="annuler"]').style.display  = enEdition ? '' : 'none';
+}
+
+let _categoriesBound = false;
+function _bindCategories() {
+  if (_categoriesBound) return;
+  _categoriesBound = true;
+
+  document.getElementById('adminCategoriesList')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-cat-action]');
+    if (!btn) return;
+    const row = btn.closest('.cat-row');
+    const ancien = btn.dataset.cat;
+    const action = btn.dataset.catAction;
+
+    if (action === 'renommer') {
+      const inp = row.querySelector('.cat-new');
+      inp.value = ancien;
+      _basculeLigneCategorie(row, true);
+      inp.focus();
+      inp.select();
+      return;
+    }
+    if (action === 'annuler') { _basculeLigneCategorie(row, false); return; }
+
+    if (action === 'valider') {
+      const nouveau = row.querySelector('.cat-new').value.trim();
+      if (!nouveau)          { showToast('⚠ Le nouveau nom est vide.', 'error'); return; }
+      if (nouveau === ancien) { _basculeLigneCategorie(row, false); return; }
+
+      const existe = _categoriesArticles().includes(nouveau);
+      const nb = _articles.filter(a => a.categorie === ancien).length;
+      const question = existe
+        ? `« ${catLabel(ancien)} » va fusionner avec « ${catLabel(nouveau)} ».\n${nb} article(s) changeront de catégorie. Continuer ?`
+        : `Renommer « ${catLabel(ancien)} » en « ${nouveau} » sur ${nb} article(s) ?`;
+      if (!await confirmDialog(question)) return;
+
+      btn.disabled = true;
+      try {
+        const n = await renameCategorieArticles(ancien, nouveau);
+        _articles.forEach(a => { if (a.categorie === ancien) a.categorie = nouveau; });
+        _renderCategories();
+        _renderArticles();
+        showToast(`✅ ${n} article(s) reclassés en « ${nouveau} ».`);
+        document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'articles' } }));
+      } catch (err) {
+        console.error('[admin] renommage catégorie ERREUR:', err.message, err);
+        showToast('❌ Renommage impossible.', 'error');
+        btn.disabled = false;
+      }
+    }
+  });
+}
+
 function _renderArticles() {
   const tbody = document.getElementById('adminArticlesTbody');
   tbody.innerHTML = '';
@@ -247,13 +357,8 @@ function _editRow(type, id) {
       <div class="form-group"><label>Référence</label><input id="er_ref" value="${esc(a.ref)}" readonly style="background:var(--ui-bg2);"></div>
       <div class="form-group"><label>Nom</label><input id="er_nom" value="${esc(a.nom)}"></div>
       <div class="form-group"><label>Catégorie</label>
-        <select id="er_cat">
-          <option value="matiere"    ${a.categorie === 'matiere'    ? 'selected' : ''}>Matière</option>
-          <option value="emballage"  ${a.categorie === 'emballage'  ? 'selected' : ''}>Emballage</option>
-          <option value="ingredient" ${a.categorie === 'ingredient' ? 'selected' : ''}>Ingrédient</option>
-          <option value="fourniture" ${a.categorie === 'fourniture' ? 'selected' : ''}>Fourniture</option>
-          <option value="autre"      ${a.categorie === 'autre'      ? 'selected' : ''}>Autre</option>
-        </select>
+        <select id="er_cat">${optionsCategories(_categoriesArticles(), a.categorie)}</select>
+        <input id="er_cat_new" placeholder="Nom de la nouvelle catégorie" style="display:none;margin-top:6px;">
       </div>
       <div class="form-group"><label>Unité</label><input id="er_unite" value="${esc(a.unite)}"></div>
       <div class="form-group"><label>Prix achat HT (€)</label><input type="number" id="er_prix" value="${a.prix}" step="0.001"></div>
@@ -340,6 +445,7 @@ function _editRow(type, id) {
 
   html += '</div>';
   document.getElementById('editRowContent').innerHTML = html;
+  if (type === 'article') bindCategorieNouvelle('er_cat', 'er_cat_new');
   openModal('modalEditRow');
 }
 
@@ -374,7 +480,7 @@ async function _saveEditRow() {
     if (_editType === 'article') {
       await updateArticle(_editId, {
         nom:         document.getElementById('er_nom').value,
-        categorie:   document.getElementById('er_cat').value,
+        categorie:   lireCategorie('er_cat', 'er_cat_new'),
         unite:       document.getElementById('er_unite').value,
         prix:        parseFloat(document.getElementById('er_prix').value) || 0,
         fournisseur: document.getElementById('er_fournisseur').value,
@@ -1257,7 +1363,7 @@ async function _confirmerImport(batchId) {
       closeModal('modalImportMasse');
     }
 
-    _renderArticles(); _renderProduits(); _renderClients(); _renderFournisseurs();
+    _renderArticles(); _renderCategories(); _renderProduits(); _renderClients(); _renderFournisseurs();
 
     const total = Object.values(counts).reduce((s, v) => s + v, 0);
     if (errors.length) {
@@ -1408,7 +1514,7 @@ async function _importerModelesConnus(excelDirects) {
     }
   }
 
-  _renderArticles(); _renderProduits(); _renderClients(); _renderFournisseurs();
+  _renderArticles(); _renderCategories(); _renderProduits(); _renderClients(); _renderFournisseurs();
   const total = Object.values(counts).reduce((s, v) => s + v, 0);
   if (total) showToast(`✅ ${total} lignes importées directement (format déjà reconnu).`);
   if (errors.length) errors.forEach(e => console.warn('[ImportModeleConnu]', e));
@@ -1513,7 +1619,7 @@ async function _massImport() {
   _massLoaded = {};
   if (btn) { btn.disabled = false; btn.textContent = '📥 Importer'; }
   closeModal('modalImportMasse');
-  _renderArticles(); _renderProduits(); _renderClients(); _renderFournisseurs();
+  _renderArticles(); _renderCategories(); _renderProduits(); _renderClients(); _renderFournisseurs();
 
   const total = Object.values(counts).reduce((s, v) => s + v, 0);
   if (errors.length > 0) {
@@ -1641,6 +1747,6 @@ async function _supprimerDoublonsSelection() {
     closeModal('modalDoublons');
   }
 
-  _renderArticles(); _renderProduits(); _renderClients(); _renderFournisseurs();
+  _renderArticles(); _renderCategories(); _renderProduits(); _renderClients(); _renderFournisseurs();
 }
 export const _matchEntiteExistanteTest = _matchEntiteExistante;
