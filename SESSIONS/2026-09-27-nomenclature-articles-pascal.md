@@ -187,3 +187,28 @@ Contrôle : 33 fruits, 9 + 24 = 33, 0 fruit sans fournisseur. Reste sans
 fournisseur : les 12 ingrédients (épices, pectine, eau, jus de citron,
 mélange d'épices) — hors périmètre de cette règle, qui ne portait que sur
 les fruits.
+
+## Fournisseurs des épices (2026-09-27)
+
+Deux fiches créées dans le tenant Les Confitures de Pascal :
+- Alpi Nature — catégorie "épices"
+- Louis François — catégorie "ingrédient technique" (le nom donné dans le
+  chat était « Louis France » ; la source d'origine, l'onglet ingrédients
+  de stock_2026_sept.xlsx, porte « Louis François ». J'ai retenu le nom de
+  la source.)
+
+Rattachement :
+- Alpi Nature -> 9 articles : Badiane, Cannelle, Cardamome, Clou de
+  girofle, Gingembre, Mélange d'épices, Noix de muscade (déjà en place
+  depuis sa création), Poivre, Vanille
+- Louis François -> Pectine LM
+
+Vanille bio et Mélange d'épices bio n'étaient pas dans l'onglet ingrédients
+de l'inventaire de septembre (qui ne listait que 8 lignes). Je les ai
+rattachés à Alpi Nature par cohérence de catégorie — à confirmer si Pascal
+les achète effectivement ailleurs.
+
+Contrôle : 9 articles Alpi Nature, 1 article Louis François. Restent sans
+fournisseur : Eau (jamais achetée), Jus de citron bio (pas une épice),
+Verre Bonta 212 ml (probablement Massilly Conservor par cohérence avec la
+capsule, non modifié sans confirmation).

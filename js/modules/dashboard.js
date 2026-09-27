@@ -64,7 +64,7 @@ function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
       <div class="kpi-banner">Articles commandés</div>
       <div class="kpi-body">
         <div class="kpi-value">${nbArticlesCommandes}</div>
-        <div class="kpi-sub">${nbArticlesCommandes > 0 ? 'article(s) en commande envoyée' : 'Aucune'}</div>
+        <div class="kpi-sub">${nbArticlesCommandes > 0 ? 'en commande envoyée' : 'Aucune'}</div>
       </div>
     </div>
     <div class="kpi blue">

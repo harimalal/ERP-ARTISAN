@@ -146,6 +146,12 @@
 .kpi-sub {
   font-size: 10.5px;
   color: var(--ui-text3);
+  /* Toujours sur une seule ligne, quelle que soit la largeur de la tuile —
+     les 5 KPI du dashboard sont desormais figes sur une ligne (css/layout.css),
+     donc un sous-titre trop long doit se tronquer, jamais retomber a la ligne. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* CTA intégré dans KPI alerte */
