@@ -151,8 +151,12 @@ non citées dans la liste, mises à stock 0 et hors_stock = true.
 6 lignes de la liste dictée ne correspondent à aucune étiquette ni aucun
 produit existant dans la base : Pomme (200), Oignon (200), Kiwi citron
 vert (400), Mûre (400), Citron vert (400), Mirabelle quench (400).
-Non écrites — en attente de clarification. Détail dans la réponse à
-l'utilisateur du 2026-09-27.
+Non écrites. Décision utilisateur du 2026-09-27 : abandonnées
+définitivement, pas de création d'article ni de produit pour ces 6 noms.
+Ces 2 700 pots de stock d'étiquette restent absents de la base — si ces
+parfums existent réellement chez Pascal, il faudra les faire remonter par
+un futur import (produit + recette + étiquette), pas par un simple ajustement
+de stock.
 
 ### Stock épices — onglet "ingrédients", colonne C (grammes → kg)
 7 correspondances directes (Pectine LM, Poivre, Clou de girofle,
