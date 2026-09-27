@@ -49,11 +49,20 @@ const CAT_LABELS = {
   autre:      'Autre',
 };
 
+function _catLabel(categorie) {
+  return CAT_LABELS[categorie] || categorie || '—';
+}
+
 function _tagCat(categorie) {
   const c = CAT_COLORS[categorie] || CAT_COLORS.autre;
-  const label = CAT_LABELS[categorie] || categorie || '—';
   return `<span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;
-    background:${c.bg};color:${c.txt};border:1px solid ${c.brd};">${esc(label)}</span>`;
+    background:${c.bg};color:${c.txt};border:1px solid ${c.brd};">${esc(_catLabel(categorie))}</span>`;
+}
+
+/* Comparaison insensible à la casse ET aux accents : « clementine »
+   doit trouver « Clémentine », « ETIQUETTE » doit trouver « Étiquette ». */
+function _norm(s) {
+  return String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 }
 
 /* -------------------------------------------------------
@@ -87,34 +96,54 @@ function _progBar(stock, seuil) {
 }
 
 /* -------------------------------------------------------
-   INDICATEURS — En stock / Faible / Bas
+   INDICATEURS — état de stock, puis répartition par catégorie.
+   Les catégories affichées sont déduites des articles du tenant
+   connecté : chaque client voit les siennes, rien n'est figé
+   dans le code.
 ------------------------------------------------------- */
+function _pillEtat(dot, label, n, col) {
+  return `<div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:20px;font-size:12.5px;">
+    <span style="width:8px;height:8px;border-radius:50%;background:${dot};display:inline-block;"></span>
+    <span style="font-weight:600;">${label}</span>
+    <span style="font-weight:800;color:${col};">${n}</span>
+  </div>`;
+}
+
+function _pillCat(categorie, n) {
+  const c = CAT_COLORS[categorie] || CAT_COLORS.autre;
+  return `<div style="display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:12px;
+    background:${c.bg};border:1px solid ${c.brd};color:${c.txt};">
+    <span style="font-weight:600;">${esc(_catLabel(categorie))}</span>
+    <span style="font-weight:800;">${n}</span>
+  </div>`;
+}
+
 function _renderIndicateurs() {
-  const total   = _articles.length;
+  const el = document.getElementById('stockIndicateurs');
+  if (!el) return;
+
   const enStock = _articles.filter(a => a.stock > a.seuil).length;
   const faible  = _articles.filter(a => a.stock <= a.seuil && a.stock > a.seuil * 0.5).length;
   const bas     = _articles.filter(a => a.stock <= a.seuil * 0.5).length;
 
-  const el = document.getElementById('stockIndicateurs');
-  if (!el) return;
+  const parCat = {};
+  _articles.forEach(a => {
+    const k = a.categorie || '';
+    parCat[k] = (parCat[k] || 0) + 1;
+  });
+  const cats = Object.entries(parCat)
+    .sort((x, y) => y[1] - x[1] || _catLabel(x[0]).localeCompare(_catLabel(y[0]), 'fr'));
+
   el.innerHTML = `
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-      <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:20px;font-size:12.5px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;"></span>
-        <span style="font-weight:600;">En stock</span>
-        <span style="font-weight:800;color:#16a34a;">${enStock}</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:20px;font-size:12.5px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:#f59f00;display:inline-block;"></span>
-        <span style="font-weight:600;">Faibles</span>
-        <span style="font-weight:800;color:#b45309;">${faible}</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:20px;font-size:12.5px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
-        <span style="font-weight:600;">Sous seuil</span>
-        <span style="font-weight:800;color:#dc2626;">${bas}</span>
-      </div>
-    </div>`;
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:9px;">
+      ${_pillEtat('#22c55e', 'En stock', enStock, '#16a34a')}
+      ${_pillEtat('#f59f00', 'Faibles', faible, '#b45309')}
+      ${_pillEtat('#ef4444', 'Sous seuil', bas, '#dc2626')}
+    </div>
+    ${cats.length ? `<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+      <span style="font-size:11px;color:var(--ink-muted);margin-right:2px;">Catégories</span>
+      ${cats.map(([cat, n]) => _pillCat(cat, n)).join('')}
+    </div>` : ''}`;
 }
 
 /* -------------------------------------------------------
@@ -128,6 +157,7 @@ export async function init() {
   _bindInventaireForm();
   _bindTableActions();
   _bindColumnFilters();
+  _bindClearFilters();
   _renderColumnFilters();
 }
 
@@ -170,7 +200,6 @@ function _bindTableActions() {
     }
 
     if (btn.dataset.action === 'inventaire') _openInventaire(btn.dataset.id);
-    if (btn.dataset.action === 'modifier')   _openEditArticle(btn.dataset.id);
   }, true);
 }
 
@@ -365,98 +394,6 @@ async function _saveInventaire() {
 }
 
 /* -------------------------------------------------------
-   ÉDITION ARTICLE
-------------------------------------------------------- */
-function _openEditArticle(articleId) {
-  const a = _articles.find(x => x.id === articleId);
-  if (!a) return;
-
-  const existing = document.getElementById('modalEditArticle');
-  if (existing) existing.remove();
-
-  const modal = document.createElement('div');
-  modal.id = 'modalEditArticle';
-  modal.className = 'modal-overlay';
-  modal.innerHTML = `
-    <div class="modal-box" style="max-width:520px;">
-      <div class="modal-hdr">
-        <h3>✏ Modifier l'article</h3>
-        <button class="btn-close" data-close="modalEditArticle">✕</button>
-      </div>
-      <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <label style="grid-column:1/2">Référence<input id="eaRef" class="inp" readonly style="opacity:.6;"></label>
-        <label style="grid-column:2/3">Unité
-          <select id="eaUnite" class="inp">
-            <option value="kg">kg</option><option value="g">g</option>
-            <option value="L">L</option><option value="ml">ml</option>
-            <option value="pièce">pièce</option><option value="boîte">boîte</option>
-            <option value="rouleau">rouleau</option><option value="m">m</option>
-          </select>
-        </label>
-        <label style="grid-column:1/-1">Nom<input id="eaNom" class="inp"></label>
-        <label>Catégorie
-          <select id="eaCategorie" class="inp">
-            <option value="matiere">Matière première</option>
-            <option value="emballage">Emballage</option>
-            <option value="ingredient">Ingrédient</option>
-            <option value="fourniture">Fourniture</option>
-            <option value="autre">Autre</option>
-          </select>
-        </label>
-        <label>Fournisseur<input id="eaFournisseur" class="inp"></label>
-        <label>Prix unitaire (€)<input id="eaPrix" type="number" step="0.001" class="inp"></label>
-        <label>Seuil alerte<input id="eaSeuil" type="number" class="inp"></label>
-        <label>Stock actuel<input id="eaStock" type="number" step="0.001" class="inp"></label>
-      </div>
-      <div class="modal-ftr">
-        <button class="btn btn-ghost" data-close="modalEditArticle">Annuler</button>
-        <button class="btn btn-primary" id="btnSaveEditArticle">Enregistrer</button>
-      </div>
-    </div>`;
-  document.body.appendChild(modal);
-  modal.querySelectorAll('[data-close]').forEach(btn =>
-    btn.addEventListener('click', () => closeModal('modalEditArticle')));
-
-  document.getElementById('eaRef').value         = a.ref;
-  document.getElementById('eaNom').value         = a.nom;
-  document.getElementById('eaCategorie').value   = a.categorie || 'autre';
-  document.getElementById('eaUnite').value       = a.unite || 'kg';
-  document.getElementById('eaPrix').value        = a.prix || '';
-  document.getElementById('eaSeuil').value       = a.seuil || '';
-  document.getElementById('eaStock').value       = a.stock || 0;
-  document.getElementById('eaFournisseur').value = a.fournisseur || '';
-
-  document.getElementById('btnSaveEditArticle').addEventListener('click', () => _saveEditArticle(articleId));
-  openModal('modalEditArticle');
-}
-
-async function _saveEditArticle(articleId) {
-  const a = _articles.find(x => x.id === articleId);
-  if (!a) return;
-  const changes = {
-    nom:         document.getElementById('eaNom').value.trim(),
-    categorie:   document.getElementById('eaCategorie').value,
-    unite:       document.getElementById('eaUnite').value,
-    prix:        parseFloat(document.getElementById('eaPrix').value) || 0,
-    seuil:       parseFloat(document.getElementById('eaSeuil').value) || 0,
-    stock:       parseFloat(document.getElementById('eaStock').value) || 0,
-    fournisseur: document.getElementById('eaFournisseur').value.trim(),
-  };
-  if (!changes.nom) { showToast('⚠ Le nom est requis.', 'error'); return; }
-  try {
-    await updateArticle(articleId, changes);
-    Object.assign(a, changes);
-    closeModal('modalEditArticle');
-    _renderIndicateurs();
-    _renderTable();
-    showToast('✅ Article ' + a.ref + ' mis à jour.');
-    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'articles' } }));
-  } catch (err) {
-    showToast('❌ Erreur mise à jour article.', 'error');
-  }
-}
-
-/* -------------------------------------------------------
    INVENTAIRE GLOBAL
 ------------------------------------------------------- */
 export function openInventaireGlobal() {
@@ -604,15 +541,25 @@ function _bindColumnFilters() {
 }
 
 function _applyFilters() {
-  const q = (document.getElementById('stockSearchInput')?.value || '').toLowerCase();
+  const q = _norm(document.getElementById('stockSearchInput')?.value || '');
   const filtres = Array.from(document.querySelectorAll('#stockFilterRow .stock-col-filter'))
     .map(sel => ({ col: parseInt(sel.dataset.col), val: sel.value }))
     .filter(f => f.val !== '');
 
   document.querySelectorAll('#stockTbody tr').forEach(row => {
-    const matchTexte  = !q || row.textContent.toLowerCase().includes(q);
+    const matchTexte  = !q || _norm(row.textContent).includes(q);
     const matchCols   = filtres.every(f => (row.cells[f.col]?.textContent.trim() || '') === f.val);
     row.style.display = (matchTexte && matchCols) ? '' : 'none';
+  });
+}
+
+/* Remet la recherche libre et les 9 filtres de colonne à zéro d'un coup. */
+function _bindClearFilters() {
+  document.getElementById('btnClearStockFilters')?.addEventListener('click', () => {
+    const s = document.getElementById('stockSearchInput');
+    if (s) s.value = '';
+    document.querySelectorAll('#stockFilterRow .stock-col-filter').forEach(sel => { sel.value = ''; });
+    _applyFilters();
   });
 }
 

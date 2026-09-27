@@ -75,10 +75,16 @@ export async function render() {
 /* -------------------------------------------------------
    TABLE
 ------------------------------------------------------- */
+/* Comparaison insensible à la casse ET aux accents : « clementine »
+   doit trouver « Clémentine », « PECHE » doit trouver « Pêche ». */
+function _norm(s) {
+  return String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
 function _renderTable() {
-  const filtre = document.getElementById('produitsSearchInput')?.value?.toLowerCase() || '';
+  const filtre = _norm(document.getElementById('produitsSearchInput')?.value || '');
   const liste  = filtre
-    ? _produits.filter(p => p.nom.toLowerCase().includes(filtre) || (p.ref || '').toLowerCase().includes(filtre))
+    ? _produits.filter(p => _norm(p.nom).includes(filtre) || _norm(p.ref).includes(filtre))
     : _produits;
 
   document.getElementById('produitsTbody').innerHTML = liste.map(p => {
