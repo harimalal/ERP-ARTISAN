@@ -108,6 +108,13 @@ function _categoriesArticles() {
     .sort((a, b) => String(a).localeCompare(String(b), 'fr'));
 }
 
+/* Catégories réellement portées par les fournisseurs du tenant.
+   Même principe que pour les articles : aucune liste figée. */
+function _categoriesFournisseurs() {
+  return [...new Set(_fournisseurs.map(f => f.categorie).filter(c => c != null && c !== ''))]
+    .sort((a, b) => String(a).localeCompare(String(b), 'fr'));
+}
+
 /* -------------------------------------------------------
    CATÉGORIES — renommer et fusionner
    Aucune table de catégories : la liste est l'ensemble des
@@ -410,13 +417,8 @@ function _editRow(type, id) {
       <div class="form-group"><label>Téléphone</label><input id="er_tel" value="${esc(f.tel || '')}"></div>
       <div class="form-group"><label>Délai livraison</label><input id="er_delai" value="${esc(f.delai || '')}"></div>
       <div class="form-group"><label>Catégorie</label>
-        <select id="er_categorie">
-          <option value="">—</option>
-          <option value="emballage"  ${f.categorie === 'emballage'  ? 'selected' : ''}>Emballage</option>
-          <option value="matiere"    ${f.categorie === 'matiere'    ? 'selected' : ''}>Matière</option>
-          <option value="ingredient" ${f.categorie === 'ingredient' ? 'selected' : ''}>Ingrédient</option>
-          <option value="fourniture" ${f.categorie === 'fourniture' ? 'selected' : ''}>Fourniture</option>
-        </select>
+        <select id="er_categorie">${optionsCategories(_categoriesFournisseurs(), f.categorie, { avecVide: true })}</select>
+        <input id="er_categorie_new" placeholder="Nom de la nouvelle catégorie" style="display:none;margin-top:6px;">
       </div>`;
   } else if (type === 'entreprise') {
     const me = _tenant || {};
@@ -445,7 +447,8 @@ function _editRow(type, id) {
 
   html += '</div>';
   document.getElementById('editRowContent').innerHTML = html;
-  if (type === 'article') bindCategorieNouvelle('er_cat', 'er_cat_new');
+  if (type === 'article')     bindCategorieNouvelle('er_cat', 'er_cat_new');
+  if (type === 'fournisseur') bindCategorieNouvelle('er_categorie', 'er_categorie_new');
   openModal('modalEditRow');
 }
 
@@ -513,7 +516,7 @@ async function _saveEditRow() {
         email:     document.getElementById('er_email')?.value.trim()     || '',
         tel:       document.getElementById('er_tel')?.value.trim()       || '',
         delai:     document.getElementById('er_delai')?.value.trim()     || '',
-        categorie: document.getElementById('er_categorie')?.value        || '',
+        categorie: lireCategorie('er_categorie', 'er_categorie_new'),
       });
     } else if (_editType === 'entreprise') {
       const data = {
@@ -569,7 +572,17 @@ function _bindNewClientForm() {
 /* -------------------------------------------------------
    NOUVEAU FOURNISSEUR
 ------------------------------------------------------- */
+/* Liste reconstruite à chaque ouverture : une catégorie créée juste avant
+   sur un autre fournisseur apparaît sans recharger la page. */
+export function initNewFournisseurModal() {
+  const sel = document.getElementById('nfCategorie2');
+  if (sel) sel.innerHTML = optionsCategories(_categoriesFournisseurs(), '', { avecVide: true });
+  const inp = document.getElementById('nfCategorie2New');
+  if (inp) { inp.value = ''; inp.style.display = 'none'; }
+}
+
 function _bindNewFournisseurForm() {
+  bindCategorieNouvelle('nfCategorie2', 'nfCategorie2New');
   document.getElementById('btnSaveNewFournisseur')?.addEventListener('click', async () => {
     const nom = document.getElementById('nfNom2').value.trim();
     if (!nom) { showToast('⚠ Nom requis.', 'error'); return; }
@@ -580,7 +593,7 @@ function _bindNewFournisseurForm() {
         email:     document.getElementById('nfEmail2').value,
         tel:       document.getElementById('nfTel2').value,
         delai:     document.getElementById('nfDelai').value,
-        categorie: document.getElementById('nfCategorie2').value,
+        categorie: lireCategorie('nfCategorie2', 'nfCategorie2New'),
       });
       _fournisseurs.push(f);
       closeModal('modalNewFournisseur');
@@ -669,16 +682,12 @@ function _openFicheFournisseur(id) {
     <div class="form-group full"><label>Adresse</label><input id="ff_adresse" value="${esc(f.adresse || '')}"></div>
     <div class="form-group"><label>Délai livraison</label><input id="ff_delai" value="${esc(f.delai || '')}"></div>
     <div class="form-group"><label>Catégorie</label>
-      <select id="ff_categorie">
-        <option value="">—</option>
-        <option value="emballage"  ${f.categorie === 'emballage'  ? 'selected' : ''}>Emballage</option>
-        <option value="matiere"    ${f.categorie === 'matiere'    ? 'selected' : ''}>Matière</option>
-        <option value="ingredient" ${f.categorie === 'ingredient' ? 'selected' : ''}>Ingrédient</option>
-        <option value="fourniture" ${f.categorie === 'fourniture' ? 'selected' : ''}>Fourniture</option>
-      </select>
+      <select id="ff_categorie">${optionsCategories(_categoriesFournisseurs(), f.categorie, { avecVide: true })}</select>
+      <input id="ff_categorie_new" placeholder="Nom de la nouvelle catégorie" style="display:none;margin-top:6px;">
     </div>
     <div class="form-group"><label>IBAN</label><input id="ff_iban" value="${esc(f.iban || '')}"></div>
     <div class="form-group full"><label>Notes</label><textarea id="ff_notes" rows="2">${esc(f.notes || '')}</textarea></div>`;
+  bindCategorieNouvelle('ff_categorie', 'ff_categorie_new');
   openModal('modalFicheFournisseur');
 }
 
@@ -692,7 +701,7 @@ function _bindFicheFournisseurForm() {
       tel:       document.getElementById('ff_tel').value.trim(),
       adresse:   document.getElementById('ff_adresse').value.trim(),
       delai:     document.getElementById('ff_delai').value.trim(),
-      categorie: document.getElementById('ff_categorie').value,
+      categorie: lireCategorie('ff_categorie', 'ff_categorie_new'),
       iban:      document.getElementById('ff_iban').value.trim(),
       notes:     document.getElementById('ff_notes').value.trim(),
     };

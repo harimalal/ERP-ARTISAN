@@ -168,10 +168,15 @@ export function couleurCategorie(nom) {
   };
 }
 
-export function optionsCategories(categories, courante) {
+export function optionsCategories(categories, courante, opts = {}) {
   const liste = [...new Set([...(categories || []), courante].filter(c => c != null && c !== ''))]
     .sort((a, b) => catLabel(a).localeCompare(catLabel(b), 'fr'));
-  return liste.map(c =>
+  /* Catégorie facultative (fournisseurs) : une entrée vide en tête, choisie
+     si l'élément n'en porte aucune. */
+  const vide = opts.avecVide
+    ? `<option value=""${!courante ? ' selected' : ''}>—</option>`
+    : '';
+  return vide + liste.map(c =>
     `<option value="${esc(c)}"${c === courante ? ' selected' : ''}>${esc(catLabel(c))}</option>`).join('')
     + `<option value="${CAT_NOUVELLE}">+ Nouvelle catégorie…</option>`;
 }
