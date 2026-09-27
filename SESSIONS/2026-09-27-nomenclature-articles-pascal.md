@@ -167,3 +167,23 @@ muscade bio, ING-NOIX-MUSCADE, absent du catalogue, 600g).
 Invariant coût recettes inchangé : 80,661355 € avant et après — confirme
 que seuls stock, seuil et hors_stock ont été touchés, jamais un prix.
 0 anomalie stock positif + hors_stock, sur produits comme sur étiquettes.
+
+## Fournisseurs des fruits — règle agrumes / autres (2026-09-27)
+
+Décision utilisateur : tous les articles Fruit répartis en deux groupes,
+sans exception, y compris ceux qui avaient déjà un fournisseur renseigné.
+
+- Agrumes (9) -> LR BIO : Bergamote, Citron, Citron vert, Clémentine,
+  Mandarine, Orange, Orange (jus et zeste), Orange amère, Pamplemousse
+- Tous les autres fruits (24) -> AQUITAINE BIOLOGIE
+
+7 articles ont changé de fournisseur par rapport à ce qui existait avant
+(Abricot, Cerise, Kiwi, Mirabelle, Poire, Quetsche, Reine Claude étaient
+en LR BIO, passent en AQUITAINE BIOLOGIE). Les 6 agrumes qui n'avaient
+aucun fournisseur (Bergamote, Citron vert, Clémentine, Orange, Orange jus
+et zeste, Orange amère) sont désormais rattachés à LR BIO.
+
+Contrôle : 33 fruits, 9 + 24 = 33, 0 fruit sans fournisseur. Reste sans
+fournisseur : les 12 ingrédients (épices, pectine, eau, jus de citron,
+mélange d'épices) — hors périmètre de cette règle, qui ne portait que sur
+les fruits.
