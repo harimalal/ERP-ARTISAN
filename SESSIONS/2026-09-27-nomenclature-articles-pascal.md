@@ -120,3 +120,46 @@ chacun des 47 produits. Aucun produit désynchronisé.
    cardamome, poivre, badiane, clou de girofle. L'eau est légitimement à 0,
    les autres manquent.
 5. 5 produits sans prix de vente : marge incalculable.
+
+## Inventaire de fin septembre (2026-09-27)
+
+Source : fichier stock_2026_sept.xlsx fourni par l'utilisateur, deux onglets.
+
+### Seuils et valeurs directes
+- Seuil de tous les produits finis (53) : 70
+- Seuil de toutes les étiquettes (51) : 100
+- Stock Verre Bonta 212 ml : 150
+
+### Stock produits finis — onglet "stock 2709", colonne J (Total)
+48 EAN distincts sur 60 lignes. Plusieurs lignes partagent le même EAN pour
+des variantes de destination commerciale (LGEP, Schilliger, Bio C Bon) ou
+de format (30g, 650g) : les totaux ont été sommés par EAN, car dans notre
+ERP c'est le même produit physique, une seule fiche.
+- 48 produits mis à jour (stock = total de l'onglet)
+- 17 produits à stock 0 → hors_stock = true (règle explicite du client)
+- 5 produits non couverts par cet inventaire (pas de ligne dans l'Excel,
+  ce sont les 5 références en majuscules déjà signalées comme anomalies
+  de données : FRAMBMYRTCAS230, GROSEILLE230, KIWIPOMME230, ORANGE230,
+  ORANGECITRON230) — stock laissé inchangé, non traité ici.
+
+### Stock étiquettes — dicté dans le chat
+13 correspondances directes + 1 étiquette créée (Framboise Litchi
+Champagne, qui a un produit existant depuis le lot précédent mais n'avait
+jamais eu sa propre étiquette). Les 37 autres étiquettes du catalogue,
+non citées dans la liste, mises à stock 0 et hors_stock = true.
+
+6 lignes de la liste dictée ne correspondent à aucune étiquette ni aucun
+produit existant dans la base : Pomme (200), Oignon (200), Kiwi citron
+vert (400), Mûre (400), Citron vert (400), Mirabelle quench (400).
+Non écrites — en attente de clarification. Détail dans la réponse à
+l'utilisateur du 2026-09-27.
+
+### Stock épices — onglet "ingrédients", colonne C (grammes → kg)
+7 correspondances directes (Pectine LM, Poivre, Clou de girofle,
+Cardamome, Badiane, Gingembre, Cannelle) + 1 ingrédient créé (Noix de
+muscade bio, ING-NOIX-MUSCADE, absent du catalogue, 600g).
+
+### Contrôle
+Invariant coût recettes inchangé : 80,661355 € avant et après — confirme
+que seuls stock, seuil et hors_stock ont été touchés, jamais un prix.
+0 anomalie stock positif + hors_stock, sur produits comme sur étiquettes.
