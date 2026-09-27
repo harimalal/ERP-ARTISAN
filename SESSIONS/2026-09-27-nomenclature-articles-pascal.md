@@ -31,3 +31,33 @@ référence. Aucune quantité modifiée.
 ## Sauvegarde avant / après
 
 Voir SESSIONS/2026-09-27-nomenclature-articles-pascal.json
+
+## Fusion des doublons de fruits (validée le 2026-09-27)
+
+Un seul article par fruit, utilisé dans toutes les recettes, prix achat
+harmonisé à 4,80 € le kg.
+
+| Fruit | Article conservé | Articles supprimés |
+|---|---|---|
+| Kiwi | FRT-KIWI — Kiwi bio | FRT-KIWI-IT, FRT-KIWI-NZ, FRT-KIWI-ES |
+| Poire | FRT-POIRE — Poire bio | FRT-POIRE-CONFERENCE |
+| Rhubarbe | FRT-RHUBARBE — Rhubarbe bio | FRT-RHUBARBE-FRAIS |
+| Fruit de la passion | FRT-PASSION — Fruit de la passion bio | FRT-PASSION-2 |
+
+L'article conservé est celui qui était déjà le plus utilisé en recette.
+Les 2 lignes de recette qui pointaient sur un doublon ont été repointées :
+Confiture Kiwi Mangue Passion 230g (kiwi 0,0764 kg) et Confiture Kiwi
+Passion 230g (passion 0,073 kg). Aucun produit n'utilisait déjà l'article
+canonique, donc aucune ligne en double n'a été créée.
+
+Stock : 10 kg transférés de FRT-KIWI-ES vers FRT-KIWI. Les autres doublons
+étaient à zéro.
+
+Point non tranché — FRT-KIWI-NZ portait 20 en unité COL au prix de 49 €.
+Impossible de savoir s'il s'agissait de 20 kg ou de 20 colis (soit environ
+200 kg). La quantité n'a donc PAS été transférée : le stock kiwi est à
+10 kg, à corriger par un inventaire.
+
+Contrôle d'invariance : coût total des recettes 80,661355 € avant et après.
+Les deux articles échangés étaient au même prix, le coût de revient des
+produits est donc inchangé.
