@@ -8,7 +8,8 @@
 ------------------------------------------------------- */
 
 import { getDashboardData } from '../db.js';
-import { fmt, fmtQ, esc, badgeCmd, stockStatus, openModal } from '../ui.js';
+import { fmt, fmtQ, esc, badgeCmd, stockStatus, openModal, sousSeuil,
+} from '../ui.js';
 
 let _data = null;
 
@@ -29,7 +30,7 @@ export async function render() {
    KPIs
 ------------------------------------------------------- */
 function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
-  const alertsA = articles.filter(a => a.stock <= a.seuil).length;
+  const alertsA = articles.filter(sousSeuil).length;
   const nbArticlesCommandes = new Set((achats || []).filter(a => a.statut === 'envoye').map(a => a.article_id)).size;
 
   const cmdTotal  = commandes.length;
@@ -138,7 +139,7 @@ function _fixCardOverflow(elId) {
    ALERTES STOCK ARTICLES — Fix S12 redesign barres
 ------------------------------------------------------- */
 function renderAlertes(articles) {
-  const al = articles.filter(a => a.stock <= a.seuil);
+  const al = articles.filter(sousSeuil);
   const el = document.getElementById('dashAlerts');
 
   _fixCardOverflow('dashAlerts');
@@ -175,7 +176,7 @@ function renderAlertes(articles) {
    STOCK PRODUITS FINIS — Fix S12 redesign barres
 ------------------------------------------------------- */
 function renderStockProduits(produits) {
-  const alertes = produits.filter(p => p.stock <= p.seuil);
+  const alertes = produits.filter(sousSeuil);
   const el = document.getElementById('dashProduits');
 
   _fixCardOverflow('dashProduits');
@@ -232,7 +233,7 @@ function renderDernieresCommandes(commandes, produits) {
    BADGES NAVIGATION
 ------------------------------------------------------- */
 function updateBadges({ articles, commandes, ofs, factures, messagesEquipe }) {
-  const alertsA = articles.filter(a => a.stock <= a.seuil).length;
+  const alertsA = articles.filter(sousSeuil).length;
   const cmdOpen = commandes.filter(c => c.statut !== 'cloture').length;
   const ofActifs = (ofs || []).filter(o => ['planifie', 'en_cours'].includes(o.statut)).length;
   const facAlerte = (factures || []).filter(f => f.statut === 'a_lancer' || f.statut === 'a_relancer').length;

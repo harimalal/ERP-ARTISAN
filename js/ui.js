@@ -132,6 +132,24 @@ export function qteLisible(quantite, unite) {
 }
 
 /* -------------------------------------------------------
+   HORS STOCK
+   Une ligne cochée « hors stock » sort de toutes les alertes :
+   compteurs du dashboard, badge latéral, tableaux d'alertes,
+   faisabilité des OF et liste des articles à commander. Son
+   stock reste affiché tel quel, 0 ou positif — seule la
+   surveillance est désactivée.
+   Prédicat unique partagé par tous les points d'alerte : c'est
+   ce qui garantit qu'ils ne divergeront pas avec le temps.
+------------------------------------------------------- */
+export function estSurveille(item) {
+  return !!item && item.hors_stock !== true;
+}
+
+export function sousSeuil(item) {
+  return estSurveille(item) && Number(item.stock) <= Number(item.seuil);
+}
+
+/* -------------------------------------------------------
    CATÉGORIES D'ARTICLES
    La liste n'est jamais figée dans le code : elle est construite
    à partir des catégories réellement utilisées par le tenant
