@@ -154,7 +154,6 @@ function _renderIndicateurs() {
       ${horsStock ? _pillEtat('#94a3b8', 'Hors stock', horsStock, '#475569') : ''}
     </div>
     ${cats.length ? `<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
-      <span style="font-size:11px;color:var(--ink-muted);margin-right:2px;">Catégories</span>
       ${cats.map(([cat, n]) => _pillCat(cat, n)).join('')}
     </div>` : ''}`;
 }

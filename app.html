@@ -437,7 +437,7 @@
   </div>
   <div class="card" style="margin-bottom:14px;">
     <div class="card-hdr hdr-blue">
-      <span class="card-hdr-title">Articles</span>
+      <span class="card-hdr-title">Articles <span class="hdr-hint">cliquer sur une ligne pour modifier</span></span>
       <div style="display:flex;gap:7px;align-items:center;">
         <input type="text" class="search-input" placeholder="Rechercher…" id="adminArticlesSearch" style="width:160px;">
         <button class="btn btn-primary btn-sm" data-modal="modalNewArticle">+ Nouvel article</button>
@@ -461,7 +461,7 @@
   </details>
   <div class="card" style="margin-bottom:14px;">
     <div class="card-hdr hdr-purple">
-      <span class="card-hdr-title">Produits finis</span>
+      <span class="card-hdr-title">Produits finis <span class="hdr-hint">cliquer sur une ligne pour modifier</span></span>
       <button class="btn btn-primary btn-sm" data-modal="modalNewProduit">+ Nouveau produit</button>
     </div>
     <table><thead><tr><th>Réf</th><th>Nom</th><th>Prix vente HT</th><th>Coût revient</th><th>Marge</th><th>Seuil</th><th>Stock</th><th>Statut</th><th></th></tr></thead>
@@ -469,7 +469,7 @@
   </div>
   <div class="card" style="margin-bottom:14px;">
     <div class="card-hdr hdr-rose">
-      <span class="card-hdr-title">Clients</span>
+      <span class="card-hdr-title">Clients <span class="hdr-hint">cliquer sur une ligne pour modifier</span></span>
       <button class="btn btn-primary btn-sm" data-modal="modalNewClient">+ Nouveau client</button>
     </div>
     <table><thead><tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Adresse</th><th>Notes</th><th></th></tr></thead>
@@ -477,7 +477,7 @@
   </div>
   <div class="card" style="margin-bottom:14px;">
     <div class="card-hdr hdr-amber">
-      <span class="card-hdr-title">Fournisseurs</span>
+      <span class="card-hdr-title">Fournisseurs <span class="hdr-hint">cliquer sur une ligne pour modifier</span></span>
       <div style="display:flex;gap:7px;">
         <button class="btn btn-primary btn-sm" data-modal="modalNewFournisseur">+ Nouveau fournisseur</button>
       </div>
@@ -599,6 +599,21 @@
   <div class="form-actions">
     <button class="btn btn-primary" id="btnSaveInventaire">Valider</button>
     <button class="btn btn-ghost" data-close="modalInventaire">Annuler</button>
+  </div>
+</div></div>
+
+<div class="modal-overlay" id="modalInvProduit"><div class="modal">
+  <div class="modal-hdr"><span class="modal-hdr-title">Inventaire produit fini</span><button class="modal-close" data-close="modalInvProduit">×</button></div>
+  <div class="form-grid" style="grid-template-columns:repeat(2,1fr);">
+    <div class="form-group full"><label>Produit fini</label><select id="invpProduit"></select></div>
+    <div class="form-group"><label>Stock système</label><div style="padding:7px 10px;background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:8px;font-size:12.5px;font-weight:600;" id="invpStockActuel">—</div></div>
+    <div class="form-group"><label>Quantité réelle <span style="font-weight:400;text-transform:none;font-size:10px;color:var(--ink-muted);">(pots)</span></label><input type="number" id="invpQteReel" min="0" step="1"></div>
+    <div class="form-group full"><label>Motif</label><input type="text" id="invpMotif" placeholder="Inventaire mensuel, casse, don…"></div>
+  </div>
+  <div class="alert-box alert-warn" style="margin:0 16px 12px;"><span>⚠</span><span>La quantité saisie remplacera le stock actuel du produit.</span></div>
+  <div class="form-actions">
+    <button class="btn btn-primary" id="btnSaveInvProduit">Valider</button>
+    <button class="btn btn-ghost" data-close="modalInvProduit">Annuler</button>
   </div>
 </div></div>
 
@@ -763,9 +778,9 @@
 
 <div class="modal-overlay" id="modalNewProduit"><div class="modal modal-lg">
   <div class="modal-hdr"><span class="modal-hdr-title" id="modalNewProduitTitle">Nouveau produit fini &amp; recette</span><button class="modal-close" data-close="modalNewProduit">×</button></div>
-  <div class="form-grid">
+  <div class="form-grid" style="grid-template-columns:repeat(3,1fr);">
+    <div class="form-group full"><label>Nom du produit</label><input type="text" id="npNom" placeholder="Confiture Framboise Myrtille Cassis 230g"></div>
     <div class="form-group"><label>Référence</label><input type="text" id="npRef" placeholder="P0009"></div>
-    <div class="form-group"><label>Nom du produit</label><input type="text" id="npNom" placeholder="Confiture…"></div>
     <div class="form-group"><label>Prix vente HT (€)</label><input type="number" id="npPrix" step="0.01" placeholder="0,00"></div>
     <div class="form-group"><label>Seuil alerte stock</label><input type="number" id="npSeuil" placeholder="100" step="1"></div>
   </div>
