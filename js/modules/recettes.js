@@ -10,7 +10,7 @@ import {
   getProduits, getArticles,
   getRecettesByProduit, saveRecette,
 } from '../db.js';
-import { fmt, fmtQ, esc, showToast, openModal, closeModal } from '../ui.js';
+import { fmt, fmtQ, qteLisible, esc, showToast, openModal, closeModal } from '../ui.js';
 
 let _produits    = [];
 let _articles    = [];
@@ -220,13 +220,14 @@ function _renderListe() {
       lignes.forEach(l => {
         const a     = l.articles || _articles.find(x => x.id === l.article_id) || {};
         const coutL = (a.prix || 0) * l.quantite;
+        const q     = qteLisible(l.quantite, a.unite);
         const tr    = document.createElement('tr');
         tr.innerHTML = `
           <td class="td-ref">${esc(a.ref || l.article_id)}</td>
           <td class="td-bold">${esc(a.nom || '—')}</td>
           <td><span class="tag">${esc(a.categorie || '—')}</span></td>
-          <td style="font-weight:700;color:var(--accent);">${fmtQ(l.quantite)}</td>
-          <td>${esc(a.unite || '—')}</td>
+          <td style="font-weight:700;color:var(--accent);">${esc(q.valeur)}</td>
+          <td>${esc(q.unite)}</td>
           <td>${fmt(a.prix || 0)} €</td>
           <td style="font-weight:600;">${fmt(coutL)} €</td>`;
         tbody.appendChild(tr);

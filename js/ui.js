@@ -112,6 +112,25 @@ export function fmtQ(n) {
   return num % 1 === 0 ? num.toString() : num.toFixed(6).replace(/\.?0+$/, '');
 }
 
+/* -------------------------------------------------------
+   QUANTITÉ LISIBLE
+   Bascule vers l'unité qui se lit le mieux : sous le kilo on
+   passe en grammes, sous le litre en millilitres. L'artisan lit
+   « 120,458 g » et « 0,117 g » au lieu de « 0.120458 » et
+   « 0.000117 », sans jamais changer la valeur stockée.
+   Renvoie valeur et unité séparément pour les tableaux qui ont
+   une colonne pour chacune.
+------------------------------------------------------- */
+export function qteLisible(quantite, unite) {
+  const q = Number(quantite);
+  if (!isFinite(q)) return { valeur: '0', unite: unite || '—' };
+  if (q !== 0 && Math.abs(q) < 1) {
+    if (unite === 'kg') return { valeur: fmtQ(q * 1000), unite: 'g' };
+    if (unite === 'L')  return { valeur: fmtQ(q * 1000), unite: 'ml' };
+  }
+  return { valeur: fmtQ(q), unite: unite || '—' };
+}
+
 /* Date du jour au format YYYY-MM-DD */
 export function today() {
   return new Date().toISOString().split('T')[0];
