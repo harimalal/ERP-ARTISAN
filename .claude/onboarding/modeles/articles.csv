@@ -1,0 +1,6 @@
+ref,nom,categorie,unite,prix,fournisseur,seuil,stock
+FRT-FRAISE,Fraise vrac 10 kg,Fruit,kg,4.80,AQUITAINE BIOLOGIE,20,0
+ING-SUCRE,Sucre de canne bio,Ingredient,kg,1.55,SVP Negoce,100,0
+VERRE-230G,Verre 212 ml,Verre,piece,0.32,,500,0
+CAPSULE-230G,Capsule T066 Twist-Off,Capsule,piece,0.09,,500,0
+ETQ-FRONT-FRAISE-230G,Etiquette Fraise 230g,Etiquette,piece,0.06,,200,0
