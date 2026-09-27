@@ -244,5 +244,128 @@
       "nom_avant": "Sucre de canne bio origine Colombie",
       "nom_apres": "Sucre de canne bio origine Colombie · 6-1"
     }
-  ]
+  ],
+  "fusion_doublons": {
+    "date": "2026-09-27",
+    "regle": "un seul article par fruit dans toutes les recettes, prix achat harmonise a 4,80 EUR/kg",
+    "canoniques": [
+      {
+        "ref_avant": "FRT-KIWI-FR",
+        "ref_apres": "FRT-KIWI",
+        "nom_apres": "Kiwi bio"
+      },
+      {
+        "ref_avant": "FRT-POIRE-COMICE",
+        "ref_apres": "FRT-POIRE",
+        "nom_apres": "Poire bio"
+      },
+      {
+        "ref_avant": "FRT-RHUBARBE-VRAC",
+        "ref_apres": "FRT-RHUBARBE",
+        "nom_apres": "Rhubarbe bio"
+      },
+      {
+        "ref_avant": "FRT-PASSION",
+        "ref_apres": "FRT-PASSION",
+        "nom_apres": "Fruit de la passion bio"
+      }
+    ],
+    "supprimes": [
+      {
+        "ref": "FRT-KIWI-ES",
+        "nom": "Kiwi vrac 42 * 10 kg Premium Espagne · 1383.1",
+        "categorie": "Fruit",
+        "unite": "kg",
+        "prix": 4.8,
+        "stock": 10.0,
+        "seuil": 20.0,
+        "fournisseur": "LR BIO",
+        "taux_tva": 20,
+        "remplace_par": "FRT-KIWI",
+        "stock_transfere": 10.0
+      },
+      {
+        "ref": "FRT-KIWI-IT",
+        "nom": "Kiwi vrac 33 Prodiva Italie CAT.2 · 3058.1",
+        "categorie": "Fruit",
+        "unite": "kg",
+        "prix": 4.8,
+        "stock": 0.0,
+        "seuil": 20.0,
+        "fournisseur": "LR BIO",
+        "taux_tva": 20,
+        "remplace_par": "FRT-KIWI",
+        "stock_transfere": 0.0
+      },
+      {
+        "ref": "FRT-KIWI-NZ",
+        "nom": "Kiwi vrac 36 * Terraga Nouvelle-Zélande CAL.36 CAT.2 · 4612.2",
+        "categorie": "Fruit",
+        "unite": "COL",
+        "prix": 49.0,
+        "stock": 20.0,
+        "seuil": 0.0,
+        "fournisseur": "LR BIO",
+        "taux_tva": 20,
+        "remplace_par": "FRT-KIWI",
+        "stock_transfere": 0.0,
+        "alerte": "20 en unite COL a 49 EUR : impossible de trancher entre 20 kg et 20 colis, quantite NON transferee. A saisir par inventaire."
+      },
+      {
+        "ref": "FRT-PASSION-2",
+        "nom": "Fruit de la passion Neabio Espagne · 3898.2",
+        "categorie": "Fruit",
+        "unite": "kg",
+        "prix": 4.8,
+        "stock": 0.0,
+        "seuil": 20.0,
+        "fournisseur": "LR BIO",
+        "taux_tva": 20,
+        "remplace_par": "FRT-PASSION",
+        "stock_transfere": 0.0
+      },
+      {
+        "ref": "FRT-POIRE-CONFERENCE",
+        "nom": "Poire Conference PLT Conversio Alsco Belgique CAT.2 · 694.1",
+        "categorie": "Fruit",
+        "unite": "kg",
+        "prix": 4.8,
+        "stock": 0.0,
+        "seuil": 20.0,
+        "fournisseur": "LR BIO",
+        "taux_tva": 20,
+        "remplace_par": "FRT-POIRE",
+        "stock_transfere": 0.0
+      },
+      {
+        "ref": "FRT-RHUBARBE-FRAIS",
+        "nom": "Rhubarbe fraîche 6 kg Hol Oxxa Pays-Bas CAT.2 · 2870.1",
+        "categorie": "Fruit",
+        "unite": "kg",
+        "prix": 4.8,
+        "stock": 0.0,
+        "seuil": 20.0,
+        "fournisseur": "LR BIO",
+        "taux_tva": 20,
+        "remplace_par": "FRT-RHUBARBE",
+        "stock_transfere": 0.0
+      }
+    ],
+    "recettes_repointees": [
+      {
+        "produit": "3770005480523",
+        "produit_nom": "Confiture Kiwi Mangue Passion 230g",
+        "de": "FRT-KIWI-ES",
+        "vers": "FRT-KIWI",
+        "quantite": 0.0764
+      },
+      {
+        "produit": "3770005480530",
+        "produit_nom": "Confiture Kiwi Passion 230g",
+        "de": "FRT-PASSION-2",
+        "vers": "FRT-PASSION",
+        "quantite": 0.073
+      }
+    ]
+  }
 }
