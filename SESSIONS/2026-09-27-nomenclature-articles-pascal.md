@@ -82,3 +82,41 @@ L'étiquette couvercle, elle, reste une étiquette et part chez ICB.
 
 Reste sans fournisseur après cette passe : 14 fruits, 11 ingrédients et le
 verre Bonta 212 ml.
+
+## Recalcul des coûts de revient (2026-09-27)
+
+47 produits recalculés depuis leur recette, 46 valeurs ont changé.
+6 produits sans recette portaient un coût inventé de 1,80 € : remis à 0, la
+colonne Marge affiche « à définir » au lieu d'un chiffre faux.
+
+La marge n'est pas une colonne stockée : elle est calculée à l'affichage
+(prix de vente − coût de revient). Elle est donc juste partout où le coût
+est juste.
+
+Coût de revient : de 0,7735 € à 3,6226 €, moyenne 1,7162 €.
+Marge moyenne 3,111 €, taux moyen 215,7 %, aucune marge négative.
+
+Contrôle : somme des coûts stockés 80,660600 € contre invariant recettes
+80,661355 €. L'écart de 0,000755 € est l'arrondi à 4 décimales appliqué à
+chacun des 47 produits. Aucun produit désynchronisé.
+
+### Ce qui reste faux, et pourquoi — par ordre d'impact
+
+1. CONFITURE FRAMBOISE MYRTILLE CASSIS 230G — coût 3,62 € contre 1,72 € de
+   moyenne. Sa recette pèse 775 g d'entrée pour un pot de 230 g, ratio 3,37
+   quand toutes les autres sont à 1,20. Les 3 fruits portent chacun
+   0,1461 kg, qui est visiblement le poids TOTAL de fruit, recopié sur
+   chaque ligne. Valeur probable : 0,0487 kg par fruit et 0,1096 kg de
+   sucre, soit un coût d'environ 1,93 €. Non corrigé : consigne de ne pas
+   toucher aux quantités de recette.
+2. 20 recettes anciennes à ratio 1,00 et au coût identique de 1,7325 €.
+   Elles ont été saisies en poids de sortie (230 g répartis fruit/sucre),
+   donc sans l'évaporation, et avec les mêmes quantités pour tous les
+   parfums. Coût plausible mais génerique, pas réel.
+3. 6 recettes sans verre, capsule ni étiquette : coût sous-estimé de 0,96 €
+   par pot (verre 0,25 + capsule 0,60 + 2 étiquettes 0,11).
+4. 11 ingrédients à prix 0 : pectine (30 recettes), jus de citron (26),
+   mélange d'épices (24), eau (17), vanille (9), cannelle, gingembre,
+   cardamome, poivre, badiane, clou de girofle. L'eau est légitimement à 0,
+   les autres manquent.
+5. 5 produits sans prix de vente : marge incalculable.

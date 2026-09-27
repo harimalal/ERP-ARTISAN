@@ -67,6 +67,28 @@ SELECT
          SELECT sum(r.quantite*a.prix) FROM recettes r JOIN articles a ON a.id=r.article_id
           WHERE r.produit_id=p.id),0)) > 0.01)                                       AS couts_revient_desynchronises,
 
+  /* 13. A regarder — recette dont le poids d'entree s'ecarte de plus de 50 %
+         de la mediane des autres recettes. Detecte une recette saisie pour
+         plusieurs unites, ou une quantite totale recopiee sur chaque ligne.
+         Generique : compare les recettes entre elles, sans connaitre le
+         format du produit. A trouve chez Pascal une recette a ratio 3,37
+         quand toutes les autres sont a 1,20. */
+  (SELECT count(*) FROM (
+     SELECT r.produit_id, sum(r.quantite) AS poids FROM recettes r
+       JOIN articles a ON a.id=r.article_id
+      WHERE r.tenant_id=(SELECT tid FROM t) AND lower(a.unite) IN ('kg','l')
+      GROUP BY r.produit_id
+   ) x WHERE x.poids > 1.5 * (SELECT med FROM (
+       SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY poids) AS med FROM (
+         SELECT sum(r.quantite) AS poids FROM recettes r JOIN articles a ON a.id=r.article_id
+          WHERE r.tenant_id=(SELECT tid FROM t) AND lower(a.unite) IN ('kg','l')
+          GROUP BY r.produit_id) y) z)
+       OR x.poids < 0.5 * (SELECT med FROM (
+       SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY poids) AS med FROM (
+         SELECT sum(r.quantite) AS poids FROM recettes r JOIN articles a ON a.id=r.article_id
+          WHERE r.tenant_id=(SELECT tid FROM t) AND lower(a.unite) IN ('kg','l')
+          GROUP BY r.produit_id) y) z))                                              AS poids_recette_aberrant,
+
   /* 12. Invariant a noter avant et apres toute operation de masse */
   (SELECT round(sum(r.quantite*a.prix)::numeric,6) FROM recettes r
      JOIN articles a ON a.id=r.article_id WHERE r.tenant_id=(SELECT tid FROM t))     AS invariant_cout_recettes;
