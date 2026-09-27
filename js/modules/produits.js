@@ -9,7 +9,7 @@
 
 import {
   getProduits, createProduit, updateProduit,
-  updateProduitStock,
+  updateProduitStock, addMouvement,
   getRecettesByProduit, saveRecette, getArticles,
 } from '../db.js';
 import {
@@ -35,6 +35,7 @@ export async function init() {
   _bindNewProduitForm();
   _bindSearchInput();   /* Fix S12 — branché ici, pas juste exporté */
   _bindSortHeaders();   /* Fix S12 — tri en-têtes */
+  _bindInventaireForm();
 
   /* Règle 17 — délégation document, posée une seule fois */
   if (!_delegationBound) {
@@ -43,14 +44,13 @@ export async function init() {
       const tbody = document.getElementById('produitsTbody');
       if (!tbody) return;
 
-      const btnEdit = e.target.closest('#produitsTbody [data-action="editer"]');
-      if (btnEdit) {
+      /* Inventaire produit fini : corriger le stock reel sans passer par un OF.
+         La modification des donnees du produit (nom, prix, seuil, TVA) se fait
+         dans Admin > Produits finis, en cliquant sur la ligne. */
+      const btnInv = e.target.closest('#produitsTbody [data-action="inventaire"]');
+      if (btnInv) {
         e.stopPropagation();
-        const ref = btnEdit.dataset.ref;
-        const p = _produits.find(x => x.ref === ref);
-        if (p) {
-          document.dispatchEvent(new CustomEvent('appmee:editProduit', { detail: { produitId: p.id } }));
-        }
+        _openInventaire(btnInv.dataset.id);
         return;
       }
 
@@ -168,8 +168,10 @@ function _renderTable() {
           title="Hors stock : exclut ce produit de toutes les alertes" style="cursor:pointer;">
       </td>
       <td onclick="event.stopPropagation()" style="white-space:nowrap;">
-        <button class="btn-icon" data-ref="${esc(p.ref)}" data-action="editer" title="Éditer"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
-        <button class="btn-icon" data-ref="${esc(p.ref)}" data-action="produire" title="Planifier un ordre de fabrication"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4V2M16 4V2M3 10h18"/></svg></button>
+        <div style="display:flex;gap:5px;align-items:center;">
+          <button class="btn btn-outline btn-sm" data-ref="${esc(p.ref)}" data-action="produire">Produire</button>
+          <button class="btn btn-ghost btn-sm" data-id="${esc(p.id)}" data-action="inventaire">Inventaire</button>
+        </div>
       </td>
     </tr>`;
   }).join('') || '<tr><td colspan="10" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun produit.</td></tr>';
@@ -405,6 +407,89 @@ function _collectLignesRecette() {
     if (articleId && q > 0) lignes.push({ article_id: articleId, quantite: q, unite: null });
   });
   return lignes;
+}
+
+/* -------------------------------------------------------
+   INVENTAIRE PRODUIT FINI
+   Meme principe que l'inventaire articles : la quantite saisie
+   remplace le stock, l'ecart est trace dans les mouvements.
+------------------------------------------------------- */
+let _invProduitId = null;
+
+function _openInventaire(produitId) {
+  _invProduitId = produitId;
+  const p = _produits.find(x => x.id === produitId);
+  if (!p) return;
+
+  const sel = document.getElementById('invpProduit');
+  if (!sel) return;
+  sel.innerHTML = _produits.map(x =>
+    `<option value="${esc(x.id)}" ${x.id === produitId ? 'selected' : ''}>${esc(x.ref)} — ${esc(x.nom)}</option>`
+  ).join('');
+
+  _syncInvProduit(produitId);
+  const qte = document.getElementById('invpQteReel');
+  if (qte) qte.value = '';
+  const motif = document.getElementById('invpMotif');
+  if (motif) motif.value = '';
+  openModal('modalInvProduit');
+}
+
+function _syncInvProduit(produitId) {
+  const sel = document.getElementById('invpProduit');
+  const p = _produits.find(x => x.id === (produitId || sel?.value));
+  const el = document.getElementById('invpStockActuel');
+  if (!p || !el) return;
+  el.textContent = fmtQ(p.stock) + ' pots';
+}
+
+function _bindInventaireForm() {
+  document.getElementById('invpProduit')?.addEventListener('change', (e) => {
+    _invProduitId = e.target.value;
+    _syncInvProduit(e.target.value);
+  });
+  document.getElementById('btnSaveInvProduit')?.addEventListener('click', _saveInventaire);
+}
+
+async function _saveInventaire() {
+  const produitId = _invProduitId || document.getElementById('invpProduit')?.value;
+  const qReal     = parseFloat(document.getElementById('invpQteReel')?.value);
+  const motif     = document.getElementById('invpMotif')?.value || 'Manuel';
+
+  if (!produitId || isNaN(qReal) || qReal < 0) {
+    showToast('⚠ Saisissez une quantité réelle.', 'error');
+    return;
+  }
+
+  const p = _produits.find(x => x.id === produitId);
+  if (!p) return;
+  const ecart = qReal - Number(p.stock || 0);
+
+  const btn = document.getElementById('btnSaveInvProduit');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
+
+  try {
+    await updateProduitStock(produitId, qReal);
+    await addMouvement({
+      type:    'inventaire',
+      ref:     p.ref,
+      nom:     p.nom,
+      qte:     Math.abs(ecart),
+      motif:   'Inventaire produit fini — ' + motif,
+      ref_doc: 'INV-' + Date.now(),
+    });
+    p.stock = qReal;
+    closeModal('modalInvProduit');
+    _renderIndicateurs();
+    _renderTable();
+    showToast(`✅ ${p.nom} ajusté : ${fmtQ(qReal)} pots (écart : ${ecart >= 0 ? '+' : ''}${fmtQ(ecart)})`);
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'produits' } }));
+  } catch (err) {
+    console.error('[produits] _saveInventaire ERREUR:', err.message, err);
+    showToast('❌ Erreur inventaire produit.', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Valider'; }
+  }
 }
 
 /* -------------------------------------------------------

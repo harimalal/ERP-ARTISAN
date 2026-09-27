@@ -525,10 +525,6 @@ main::-webkit-scrollbar-thumb { background: var(--ui-brd2); border-radius: 4px; 
 }
 
 @media (max-width: 640px) {
-  .kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   .stats-row {
     overflow-x: auto;
     flex-wrap: nowrap;
@@ -536,10 +532,34 @@ main::-webkit-scrollbar-thumb { background: var(--ui-brd2); border-radius: 4px; 
   }
 }
 
-@media (max-width: 480px) {
-  .kpi-grid {
-    grid-template-columns: 1fr;
-  }
+/* Les 5 KPI restent sur une ligne : on ne casse jamais la grille en 2 ou
+   1 colonne, on reduit progressivement le gabarit des tuiles. */
+@media (max-width: 1100px) {
+  .kpi-grid { gap: 8px; }
+  .kpi-banner { padding: 7px 10px; font-size: 11px; }
+  .kpi-body { padding: 10px 12px 12px; }
+  .kpi-value { font-size: 21px; }
+  .kpi.alert .kpi-value { font-size: 25px; }
+  .kpi-sub { font-size: 9.5px; }
+}
+
+@media (max-width: 760px) {
+  .kpi-grid { gap: 6px; }
+  .kpi-banner { padding: 6px 8px; font-size: 9.5px; line-height: 1.2; }
+  .kpi-body { padding: 8px 9px 10px; }
+  .kpi-value { font-size: 17px; }
+  .kpi.alert .kpi-value { font-size: 19px; }
+  .kpi-sub { font-size: 9px; }
+}
+
+/* Tres petits ecrans : le sous-titre passe a la trappe pour que les
+   5 valeurs restent lisibles sur une ligne. */
+@media (max-width: 560px) {
+  .kpi-banner { padding: 5px 6px; font-size: 8.5px; }
+  .kpi-body { padding: 7px 7px 8px; }
+  .kpi-value { font-size: 15px; }
+  .kpi.alert .kpi-value { font-size: 16px; }
+  .kpi-sub { display: none; }
 }
 
 /* bottom-nav masqué par défaut (desktop) */

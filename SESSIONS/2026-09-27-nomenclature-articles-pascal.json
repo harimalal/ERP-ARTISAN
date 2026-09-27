@@ -1,0 +1,248 @@
+{
+  "tenant": "0cbb535e-3bc1-43f5-b7f3-83d1285436b4",
+  "tenant_nom": "Les Confitures de Pascal",
+  "date": "2026-09-27",
+  "portee": "articles.ref + articles.nom ; mouvements.ref suivis ; achats.article_nom realigne",
+  "lignes": [
+    {
+      "ref_avant": "3047.2",
+      "ref_apres": "FRT-ABRICOT",
+      "nom_avant": "ABRICOT ORANGERED FRUITUNI FRANCE CAL.AA CAT.2",
+      "nom_apres": "Abricot Orangered Fruituni France CAL.AA CAT.2 · 3047.2"
+    },
+    {
+      "ref_avant": "2938.1",
+      "ref_apres": "FRT-CERISE",
+      "nom_avant": "CERISE SUMMIT LAURIDAM FRANCE CAL.26+MM CAT.2",
+      "nom_apres": "Cerise Summit Lauridam France CAL.26+MM CAT.2 · 2938.1"
+    },
+    {
+      "ref_avant": "4012.1",
+      "ref_apres": "FRT-CITRON",
+      "nom_avant": "CITRON 2 RANGS 6 KG VEGA CECILIA ESPAGNE CAL.3-4 CAT.2",
+      "nom_apres": "Citron 2 rangs 6 kg Vega Cecilia Espagne CAL.3-4 CAT.2 · 4012.1"
+    },
+    {
+      "ref_avant": "4155.4",
+      "ref_apres": "FRT-PASSION",
+      "nom_avant": "FRUIT DE LA PASSION * NEABIO ESPAGNE",
+      "nom_apres": "Fruit de la passion * Neabio Espagne · 4155.4"
+    },
+    {
+      "ref_avant": "3898.2",
+      "ref_apres": "FRT-PASSION-2",
+      "nom_avant": "FRUIT DE LA PASSION NEABIO ESPAGNE",
+      "nom_apres": "Fruit de la passion Neabio Espagne · 3898.2"
+    },
+    {
+      "ref_avant": "3058.1",
+      "ref_apres": "FRT-KIWI-IT",
+      "nom_avant": "KIWI VRAC 33 PRODIVA ITALIE CAT.2",
+      "nom_apres": "Kiwi vrac 33 Prodiva Italie CAT.2 · 3058.1"
+    },
+    {
+      "ref_avant": "660.1",
+      "ref_apres": "FRT-KIWI-FR",
+      "nom_avant": "KIWI VRAC 33FR KSO FRANCE CAT.2",
+      "nom_apres": "Kiwi vrac 33FR KSO France CAT.2 · 660.1"
+    },
+    {
+      "ref_avant": "4612.2",
+      "ref_apres": "FRT-KIWI-NZ",
+      "nom_avant": "KIWI VRAC 36 * TERRAGA NOUVELLE-ZÉLANDE CAL.36 CAT.2",
+      "nom_apres": "Kiwi vrac 36 * Terraga Nouvelle-Zélande CAL.36 CAT.2 · 4612.2"
+    },
+    {
+      "ref_avant": "1383.1",
+      "ref_apres": "FRT-KIWI-ES",
+      "nom_avant": "KIWI VRAC 42 * 10 KG PREMIUM ESPAGNE",
+      "nom_apres": "Kiwi vrac 42 * 10 kg Premium Espagne · 1383.1"
+    },
+    {
+      "ref_avant": "1045.3",
+      "ref_apres": "FRT-MANDARINE",
+      "nom_avant": "MANDARINE ORTANIQUE * 6 KG ELEADORA GRÈCE CAL.2 (58-69MM) CAT.2",
+      "nom_apres": "Mandarine Ortanique * 6 kg Eleadora Grèce CAL.2 (58-69MM) CAT.2 · 1045.3"
+    },
+    {
+      "ref_avant": "4399.1",
+      "ref_apres": "FRT-MIRABELLE",
+      "nom_avant": "MIRABELLE * GIE FRANCE CAT.2",
+      "nom_apres": "Mirabelle * GIE France CAT.2 · 4399.1"
+    },
+    {
+      "ref_avant": "469.1",
+      "ref_apres": "FRT-POIRE-COMICE",
+      "nom_avant": "POIRE COMICE PLATEAU PAYS-BAS CAT.2",
+      "nom_apres": "Poire Comice plateau Pays-Bas CAT.2 · 469.1"
+    },
+    {
+      "ref_avant": "694.1",
+      "ref_apres": "FRT-POIRE-CONFERENCE",
+      "nom_avant": "POIRE CONFERENCE PLT CONVERSIO ALSCO BELGIQUE CAT.2",
+      "nom_apres": "Poire Conference PLT Conversio Alsco Belgique CAT.2 · 694.1"
+    },
+    {
+      "ref_avant": "4110.1",
+      "ref_apres": "FRT-PAMPLEMOUSSE",
+      "nom_avant": "POMELO STAR RUBY RSA BEE FAIR AFRIQUE DU SUD CAL.3 CAT.2",
+      "nom_apres": "Pamplemousse Pomelo Star Ruby RSA Bee Fair Afrique du Sud CAL.3 CAT.2 · 4110.1"
+    },
+    {
+      "ref_avant": "4556.2",
+      "ref_apres": "FRT-QUETSCHE",
+      "nom_avant": "PRUNE QUETSHE * MIRABIO FRANCE CAT.2",
+      "nom_apres": "Quetsche (prune) * Mirabio France CAT.2 · 4556.2"
+    },
+    {
+      "ref_avant": "4053.1",
+      "ref_apres": "FRT-REINE-CLAUDE",
+      "nom_avant": "PRUNE REINE CLAUDE DOREE FRANCE CAL.30-40MM CAT.2",
+      "nom_apres": "Reine Claude dorée (prune) France CAL.30-40MM CAT.2 · 4053.1"
+    },
+    {
+      "ref_avant": "2870.1",
+      "ref_apres": "FRT-RHUBARBE-FRAIS",
+      "nom_avant": "RHUBARBE 6 KG HOL OXXA PAYS-BAS CAT.2",
+      "nom_apres": "Rhubarbe fraîche 6 kg Hol Oxxa Pays-Bas CAT.2 · 2870.1"
+    },
+    {
+      "ref_avant": "VRF03",
+      "ref_apres": "FRT-CASSIS",
+      "nom_avant": "VRAC CASSIS (POLOGNE) 10kg",
+      "nom_apres": "Cassis vrac (Pologne) 10 kg · VRF03"
+    },
+    {
+      "ref_avant": "VRF04",
+      "ref_apres": "FRT-GRIOTTE",
+      "nom_avant": "VRAC CERISES GRIOTTES 10kg",
+      "nom_apres": "Griotte vrac (cerises griottes) 10 kg · VRF04"
+    },
+    {
+      "ref_avant": "VRF06",
+      "ref_apres": "FRT-FRAISE",
+      "nom_avant": "VRAC FRAISES 10kg",
+      "nom_apres": "Fraise vrac 10 kg · VRF06"
+    },
+    {
+      "ref_avant": "VRF08",
+      "ref_apres": "FRT-FRAMBOISE",
+      "nom_avant": "VRAC FRAMBOISES EN BRISURES 10kg",
+      "nom_apres": "Framboise vrac en brisures 10 kg · VRF08"
+    },
+    {
+      "ref_avant": "VRF18",
+      "ref_apres": "FRT-MANGUE",
+      "nom_avant": "VRAC MANGUES CUBES 12kg",
+      "nom_apres": "Mangue vrac en cubes 12 kg · VRF18"
+    },
+    {
+      "ref_avant": "VRF12",
+      "ref_apres": "FRT-MYRTILLE",
+      "nom_avant": "VRAC MYRTILLES SAUVAGES 10 KG",
+      "nom_apres": "Myrtille vrac sauvage 10 kg · VRF12"
+    },
+    {
+      "ref_avant": "VRF17",
+      "ref_apres": "FRT-PECHE",
+      "nom_avant": "VRAC PECHE ( ITALIE) 10kg",
+      "nom_apres": "Pêche vrac (Italie) 10 kg · VRF17"
+    },
+    {
+      "ref_avant": "VRF16",
+      "ref_apres": "FRT-RHUBARBE-VRAC",
+      "nom_avant": "VRAC RHUBARBE 10kg",
+      "nom_apres": "Rhubarbe vrac 10 kg · VRF16"
+    },
+    {
+      "ref_avant": "ING-ANANAS",
+      "ref_apres": "FRT-ANANAS",
+      "nom_avant": "Ananas bio",
+      "nom_apres": "Ananas bio"
+    },
+    {
+      "ref_avant": "ING-BERGAMOTE",
+      "ref_apres": "FRT-BERGAMOTE",
+      "nom_avant": "Bergamote bio",
+      "nom_apres": "Bergamote bio"
+    },
+    {
+      "ref_avant": "ING-CITRON-VERT",
+      "ref_apres": "FRT-CITRON-VERT",
+      "nom_avant": "Citron vert bio",
+      "nom_apres": "Citron vert bio"
+    },
+    {
+      "ref_avant": "ING-CLEMENTINE",
+      "ref_apres": "FRT-CLEMENTINE",
+      "nom_avant": "Clémentine bio",
+      "nom_apres": "Clémentine bio"
+    },
+    {
+      "ref_avant": "ING-COING",
+      "ref_apres": "FRT-COING",
+      "nom_avant": "Coing bio",
+      "nom_apres": "Coing bio"
+    },
+    {
+      "ref_avant": "ING-FIGUE",
+      "ref_apres": "FRT-FIGUE",
+      "nom_avant": "Figue bio",
+      "nom_apres": "Figue bio"
+    },
+    {
+      "ref_avant": "ING-GROSEILLE",
+      "ref_apres": "FRT-GROSEILLE",
+      "nom_avant": "Groseille bio",
+      "nom_apres": "Groseille bio"
+    },
+    {
+      "ref_avant": "ING-NECTARINE",
+      "ref_apres": "FRT-NECTARINE",
+      "nom_avant": "Nectarine bio",
+      "nom_apres": "Nectarine bio"
+    },
+    {
+      "ref_avant": "ING-ORANGE",
+      "ref_apres": "FRT-ORANGE",
+      "nom_avant": "Orange bio",
+      "nom_apres": "Orange bio"
+    },
+    {
+      "ref_avant": "ING-ORANGE-AMERE",
+      "ref_apres": "FRT-ORANGE-AMERE",
+      "nom_avant": "Orange amère bio",
+      "nom_apres": "Orange amère bio"
+    },
+    {
+      "ref_avant": "ING-ORANGE-JUS-ET-ZESTE",
+      "ref_apres": "FRT-ORANGE-JUS-ZESTE",
+      "nom_avant": "Orange (jus et zeste) bio",
+      "nom_apres": "Orange (jus et zeste) bio"
+    },
+    {
+      "ref_avant": "ING-POMME",
+      "ref_apres": "FRT-POMME",
+      "nom_avant": "Pomme bio",
+      "nom_apres": "Pomme bio"
+    },
+    {
+      "ref_avant": "ING-POTIMARRON",
+      "ref_apres": "FRT-POTIMARRON",
+      "nom_avant": "Potimarron bio",
+      "nom_apres": "Potimarron bio"
+    },
+    {
+      "ref_avant": "ING-TOMATE-VERTE",
+      "ref_apres": "FRT-TOMATE-VERTE",
+      "nom_avant": "Tomate verte bio",
+      "nom_apres": "Tomate verte bio"
+    },
+    {
+      "ref_avant": "6-1",
+      "ref_apres": "ING-SUCRE",
+      "nom_avant": "Sucre de canne bio origine Colombie",
+      "nom_apres": "Sucre de canne bio origine Colombie · 6-1"
+    }
+  ]
+}

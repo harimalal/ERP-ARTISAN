@@ -93,7 +93,10 @@
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  /* 5 KPI toujours sur une seule ligne, quelle que soit la largeur d'écran.
+     minmax(0,1fr) au lieu de 1fr : sans le 0, un contenu long (un montant)
+     élargit sa colonne et casse l'alignement des 5 tuiles. */
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 20px;
 }
@@ -199,6 +202,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Mention discrete dans un bandeau de section : « cliquer sur une ligne
+   pour modifier ». Leger, italique, jamais en concurrence avec le titre. */
+.hdr-hint {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10.5px;
+  font-weight: 400;
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink-muted);
 }
 
 .card-hdr-title svg {
