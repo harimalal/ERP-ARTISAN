@@ -131,6 +131,71 @@ export function qteLisible(quantite, unite) {
   return { valeur: fmtQ(q), unite: unite || '—' };
 }
 
+/* -------------------------------------------------------
+   CATÉGORIES D'ARTICLES
+   La liste n'est jamais figée dans le code : elle est construite
+   à partir des catégories réellement utilisées par le tenant
+   connecté. Chaque client voit donc les siennes, et une liste
+   codée en dur ne peut plus écraser silencieusement la catégorie
+   d'un article dont la valeur n'y figurait pas.
+------------------------------------------------------- */
+export const CAT_NOUVELLE = '__nouvelle__';
+
+/* Clés historiques de certains tenants : on affiche un libellé lisible,
+   la valeur stockée, elle, n'est jamais modifiée. */
+const CAT_LABELS_LEGACY = {
+  matiere: 'Matière première', emballage: 'Emballage',
+  ingredient: 'Ingrédient', fourniture: 'Fourniture', autre: 'Autre',
+};
+
+export function catLabel(categorie) {
+  return CAT_LABELS_LEGACY[categorie] || categorie || '—';
+}
+
+/* Couleur stable déduite du nom de la catégorie. Permet à n'importe quel
+   métier — bougies, cosmétiques, chocolats — d'avoir des catégories
+   colorées et distinctes sans qu'aucune liste soit écrite dans le code.
+   Même nom donne toujours la même couleur, d'un écran à l'autre et d'une
+   session à l'autre. */
+export function couleurCategorie(nom) {
+  const s = String(nom || '');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+  return {
+    bg:  `hsl(${h} 70% 50% / 0.12)`,
+    txt: `hsl(${h} 65% 32%)`,
+    brd: `hsl(${h} 70% 50% / 0.30)`,
+  };
+}
+
+export function optionsCategories(categories, courante) {
+  const liste = [...new Set([...(categories || []), courante].filter(c => c != null && c !== ''))]
+    .sort((a, b) => catLabel(a).localeCompare(catLabel(b), 'fr'));
+  return liste.map(c =>
+    `<option value="${esc(c)}"${c === courante ? ' selected' : ''}>${esc(catLabel(c))}</option>`).join('')
+    + `<option value="${CAT_NOUVELLE}">+ Nouvelle catégorie…</option>`;
+}
+
+/* Affiche le champ texte quand « Nouvelle catégorie » est choisi. */
+export function bindCategorieNouvelle(selectId, inputId) {
+  const sel = document.getElementById(selectId);
+  const inp = document.getElementById(inputId);
+  if (!sel || !inp) return;
+  sel.addEventListener('change', () => {
+    const neuf = sel.value === CAT_NOUVELLE;
+    inp.style.display = neuf ? '' : 'none';
+    if (neuf) inp.focus();
+  });
+}
+
+/* Valeur retenue : la catégorie choisie, ou celle saisie si on en crée une. */
+export function lireCategorie(selectId, inputId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return '';
+  if (sel.value === CAT_NOUVELLE) return (document.getElementById(inputId)?.value || '').trim();
+  return sel.value;
+}
+
 /* Date du jour au format YYYY-MM-DD */
 export function today() {
   return new Date().toISOString().split('T')[0];

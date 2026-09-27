@@ -16,6 +16,7 @@ import {
   fmt, fmtQ, esc, stockStatus, showToast,
   openModal, closeModal, sortTable,
   today, nextRef, confirmDialog, isPositiveNumber,
+  optionsCategories, bindCategorieNouvelle, lireCategorie, couleurCategorie,
 } from '../ui.js';
 
 /* Cache local */
@@ -53,8 +54,15 @@ function _catLabel(categorie) {
   return CAT_LABELS[categorie] || categorie || '—';
 }
 
+/* Couleurs connues d'abord — pour ne rien changer visuellement aux tenants
+   existants — sinon couleur déduite du nom, pour que toute catégorie créée
+   par n'importe quel métier ait la sienne sans toucher au code. */
+function _catColor(categorie) {
+  return CAT_COLORS[categorie] || couleurCategorie(categorie);
+}
+
 function _tagCat(categorie) {
-  const c = CAT_COLORS[categorie] || CAT_COLORS.autre;
+  const c = _catColor(categorie);
   return `<span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;
     background:${c.bg};color:${c.txt};border:1px solid ${c.brd};">${esc(_catLabel(categorie))}</span>`;
 }
@@ -110,7 +118,7 @@ function _pillEtat(dot, label, n, col) {
 }
 
 function _pillCat(categorie, n) {
-  const c = CAT_COLORS[categorie] || CAT_COLORS.autre;
+  const c = _catColor(categorie);
   return `<div style="display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:12px;
     background:${c.bg};border:1px solid ${c.brd};color:${c.txt};">
     <span style="font-weight:600;">${esc(_catLabel(categorie))}</span>
@@ -255,7 +263,14 @@ function _bindNewArticleForm() {
     if (e.target.value) document.getElementById('naFournisseur').value = e.target.value;
   });
 
+  bindCategorieNouvelle('naCategorie', 'naCategorieNew');
   document.getElementById('btnSaveNewArticle')?.addEventListener('click', _saveNewArticle);
+}
+
+/* Catégories réellement utilisées par le tenant, triées. */
+function _categoriesArticles() {
+  return [...new Set(_articles.map(a => a.categorie).filter(c => c != null && c !== ''))]
+    .sort((a, b) => String(a).localeCompare(String(b), 'fr'));
 }
 
 export async function initNewArticleModal() {
@@ -277,13 +292,20 @@ export async function initNewArticleModal() {
     _fournisseurs.map(f => `<option value="${esc(f.nom)}">${esc(f.nom)}</option>`).join('');
   document.getElementById('naFournisseur').value = '';
 
+  /* Liste reconstruite à chaque ouverture : une catégorie créée juste
+     avant depuis Admin apparaît sans recharger la page. */
+  const cs = document.getElementById('naCategorie');
+  if (cs) cs.innerHTML = optionsCategories(_categoriesArticles(), '');
+  const cn = document.getElementById('naCategorieNew');
+  if (cn) { cn.value = ''; cn.style.display = 'none'; }
+
   document.getElementById('naCategorie').dispatchEvent(new Event('change'));
 }
 
 async function _saveNewArticle() {
   const ref         = document.getElementById('naRef').value.trim();
   const nom         = document.getElementById('naNom').value.trim() || document.getElementById('naNomSel').value;
-  const categorie   = document.getElementById('naCategorie').value;
+  const categorie   = lireCategorie('naCategorie', 'naCategorieNew');
   const unite       = document.getElementById('naUnite').value;
   const prix        = parseFloat(document.getElementById('naPrix').value) || 0;
   const fournisseur = document.getElementById('naFournisseur').value || document.getElementById('naFournisseurSel').value;
