@@ -74,74 +74,97 @@ function _allocationsParProduit() {
   return map;
 }
 
-function _renderListe() {
-  const el = document.getElementById('commandesList');
+/* Carte d'une commande — identique pour la liste active et l'historique
+   (même gabarit que achats.js : un seul template, deux conteneurs selon
+   le statut). `allocations` peut être {} pour une commande clôturée,
+   qui ne concourt plus pour le stock (_allocationsParProduit l'exclut
+   déjà), la colonne Faisable retombe alors sur la comparaison simple. */
+function _carteCommande(c, allocations) {
+  const tot = (c.commande_lignes || []).reduce((s, l) =>
+    s + (l.total_ht || (l.quantite * l.prix_unitaire) || 0), 0);
 
-  if (!_commandes.length) {
-    el.innerHTML = `<div class="empty-state">
-      <div class="empty-icon">📋</div>
-      <p>Aucune commande.</p>
-    </div>`;
-    return;
-  }
-
-  const allocations = _allocationsParProduit();
-
-  el.innerHTML = [..._commandes].reverse().map(c => {
-    const tot = (c.commande_lignes || []).reduce((s, l) =>
-      s + (l.total_ht || (l.quantite * l.prix_unitaire) || 0), 0);
-
-    const rows = (c.commande_lignes || []).map(l => {
-      const p = _produits.find(x => x.id === l.produit_id);
-      if (!p) return '';
-      const alloc = (allocations[p.id] || []).find(b => b.commandeId === c.id && (!l.id || b.id === l.id));
-      const aProduire = alloc ? alloc.aProduire : Math.max(0, l.quantite - (p.stock || 0));
-      const ok = aProduire <= 0;
-      return `<tr>
-        <td class="td-ref">${esc(p.ref)}</td>
-        <td>${esc(p.nom)}</td>
-        <td><strong>${l.quantite}</strong></td>
-        <td>${p.stock}</td>
-        <td>${ok
-          ? '<span class="badge badge-ok">✓ OK</span>'
-          : `<span class="badge badge-alert">Manque ${fmtQ(aProduire)}</span>`}
-        </td>
-        <td>${fmt(l.prix_unitaire)} €</td>
-        <td style="font-weight:600">${fmt(l.total_ht || l.quantite * l.prix_unitaire)} €</td>
-      </tr>`;
-    }).join('');
-
-    return `<div class="cmd-card">
-      <div class="cmd-card-hdr"${c.prioritaire ? ' style="background:var(--hdr-alert-bg);border-bottom-color:var(--hdr-alert-brd);"' : ''}>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span class="cmd-ref">${esc(c.ref)}</span>
-          <span class="cmd-client">${esc(c.client_nom)}</span>
-          <span class="cmd-date">${esc(c.date_cmd)}</span>
-          ${c.date_livraison ? `<span class="cmd-date">Livr. : ${esc(c.date_livraison)}</span>` : ''}
-          ${c.prioritaire ? `<span style="font-weight:700;font-size:11.5px;color:var(--hdr-alert-txt);">⚠ Commande prioritaire</span>` : ''}
-        </div>
-        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
-          ${selectStatutCmd(c.id, c.statut)}
-          <span style="font-weight:700;color:var(--accent)">${fmt(tot)} €</span>
-          <button class="btn btn-ghost btn-xs" data-id="${c.id}" data-action="toggle-prioritaire">${c.prioritaire ? 'Retirer prioritaire' : 'Marquer prioritaire'}</button>
-          ${c.statut === 'pret'
-            ? `<button class="btn btn-success btn-xs" data-id="${c.id}" data-action="livrer">Livrer</button>`
-            : ''}
-          <button class="btn btn-danger btn-xs" data-id="${c.id}" data-action="supprimer">✕</button>
-        </div>
-      </div>
-      <table>
-        <thead><tr>
-          <th>Réf</th><th>Produit</th><th>Qté</th>
-          <th>Stock dispo</th><th>Faisable</th><th>Prix unit.</th><th>Total</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
+  const rows = (c.commande_lignes || []).map(l => {
+    const p = _produits.find(x => x.id === l.produit_id);
+    if (!p) return '';
+    const alloc = (allocations[p.id] || []).find(b => b.commandeId === c.id && (!l.id || b.id === l.id));
+    const aProduire = alloc ? alloc.aProduire : Math.max(0, l.quantite - (p.stock || 0));
+    const ok = aProduire <= 0;
+    return `<tr>
+      <td class="td-ref">${esc(p.ref)}</td>
+      <td>${esc(p.nom)}</td>
+      <td><strong>${l.quantite}</strong></td>
+      <td>${p.stock}</td>
+      <td>${ok
+        ? '<span class="badge badge-ok">✓ OK</span>'
+        : `<span class="badge badge-alert">Manque ${fmtQ(aProduire)}</span>`}
+      </td>
+      <td>${fmt(l.prix_unitaire)} €</td>
+      <td style="font-weight:600">${fmt(l.total_ht || l.quantite * l.prix_unitaire)} €</td>
+    </tr>`;
   }).join('');
 
-  /* Délégation d'événements — identification par UUID */
-  el.onclick = async (e) => {
+  return `<div class="cmd-card">
+    <div class="cmd-card-hdr"${c.prioritaire ? ' style="background:var(--hdr-alert-bg);border-bottom-color:var(--hdr-alert-brd);"' : ''}>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span class="cmd-ref">${esc(c.ref)}</span>
+        <span class="cmd-client">${esc(c.client_nom)}</span>
+        <span class="cmd-date">${esc(c.date_cmd)}</span>
+        ${c.date_livraison ? `<span class="cmd-date">Livr. : ${esc(c.date_livraison)}</span>` : ''}
+        ${c.prioritaire ? `<span style="font-weight:700;font-size:11.5px;color:var(--hdr-alert-txt);">⚠ Commande prioritaire</span>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+        ${selectStatutCmd(c.id, c.statut)}
+        <span style="font-weight:700;color:var(--accent)">${fmt(tot)} €</span>
+        <button class="btn btn-ghost btn-xs" data-id="${c.id}" data-action="toggle-prioritaire">${c.prioritaire ? 'Retirer prioritaire' : 'Marquer prioritaire'}</button>
+        ${c.statut === 'pret'
+          ? `<button class="btn btn-success btn-xs" data-id="${c.id}" data-action="livrer">Livrer</button>`
+          : ''}
+        <button class="btn btn-danger btn-xs" data-id="${c.id}" data-action="supprimer">✕</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Réf</th><th>Produit</th><th>Qté</th>
+        <th>Stock dispo</th><th>Faisable</th><th>Prix unit.</th><th>Total</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+/* Une commande clôturée sort de la liste active et ne vit plus que dans
+   l'historique replié en bas de page (même principe que Achats/Production :
+   protéger le flux "commandes à gérer" d'un encombrement par des commandes
+   qui n'ont plus d'action à faire). */
+function _renderListe() {
+  const elActives  = document.getElementById('commandesList');
+  const elHisto     = document.getElementById('commandesHistoriqueList');
+  const countHisto  = document.getElementById('commandesHistoriqueCount');
+
+  const actives    = _commandes.filter(c => c.statut !== 'cloture');
+  const historique = _commandes.filter(c => c.statut === 'cloture');
+
+  if (!actives.length) {
+    elActives.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <p>Aucune commande en cours.</p>
+    </div>`;
+  } else {
+    const allocations = _allocationsParProduit();
+    elActives.innerHTML = [...actives].reverse().map(c => _carteCommande(c, allocations)).join('');
+  }
+
+  if (elHisto) {
+    elHisto.innerHTML = historique.length
+      ? [...historique].reverse().map(c => _carteCommande(c, {})).join('')
+      : `<div class="empty-state"><div class="empty-icon">📋</div><p>Aucune commande clôturée.</p></div>`;
+  }
+  if (countHisto) countHisto.textContent = historique.length;
+
+  /* Délégation d'événements — identification par UUID. Même handler
+     pour les deux listes (Règle 7 — onX écrasé, pas addEventListener
+     accumulé). */
+  const onClick = async (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     const id     = btn.dataset.id;
@@ -151,13 +174,18 @@ function _renderListe() {
     if (action === 'supprimer') await _supprimerCmd(id);
     if (action === 'toggle-prioritaire') await _toggleCmdPrioritaire(id);
   };
-
-  /* Règle 7 — onchange (écrasé), pas addEventListener accumulé */
-  el.onchange = async (e) => {
+  const onChange = async (e) => {
     const sel = e.target.closest('.cmd-statut-select');
     if (!sel) return;
     await changerStatutCommande(sel.dataset.id, sel.value);
   };
+
+  elActives.onclick  = onClick;
+  elActives.onchange = onChange;
+  if (elHisto) {
+    elHisto.onclick  = onClick;
+    elHisto.onchange = onChange;
+  }
 }
 
 /* -------------------------------------------------------
