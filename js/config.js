@@ -15,15 +15,6 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-export const STATUTS_COMMANDE = [
-  'a_produire', 'planifie', 'en_production', 'pret', 'cloture',
-];
-
-export const STATUTS_COMMANDE_LABELS = {
-  a_produire: 'À produire', planifie: 'Planifié',
-  en_production: 'En production', pret: 'Prêt', cloture: 'Clôturée',
-};
-
 export const STATUTS_OF      = ['planifie', 'en_cours', 'clos', 'annule'];
 export const STATUTS_ACHAT   = ['brouillon', 'envoye', 'en_cours', 'recu', 'annule'];
 export const STATUTS_FACTURE = ['a_lancer', 'facture', 'a_relancer', 'paye'];

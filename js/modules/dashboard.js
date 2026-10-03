@@ -8,8 +8,10 @@
 ------------------------------------------------------- */
 
 import { getDashboardData } from '../db.js';
-import { fmt, fmtQ, esc, badgeCmd, stockStatus, openModal, sousSeuil,
+import { fmt, fmtQ, esc, stockStatus, openModal, estAlerteDashboard,
+  selectStatutCmd, restyleSelectStatutCmd,
 } from '../ui.js';
+import { changerStatutCommande } from './commandes.js';
 
 let _data = null;
 
@@ -30,7 +32,7 @@ export async function render() {
    KPIs
 ------------------------------------------------------- */
 function renderKPIs({ articles, produits, commandes, achats, ofs, factures }) {
-  const alertsA = articles.filter(sousSeuil).length;
+  const alertsA = articles.filter(estAlerteDashboard).length;
   const nbArticlesCommandes = new Set((achats || []).filter(a => a.statut === 'envoye').map(a => a.article_id)).size;
 
   const cmdTotal  = commandes.length;
@@ -139,7 +141,7 @@ function _fixCardOverflow(elId) {
    ALERTES STOCK ARTICLES — Fix S12 redesign barres
 ------------------------------------------------------- */
 function renderAlertes(articles) {
-  const al = articles.filter(sousSeuil);
+  const al = articles.filter(estAlerteDashboard);
   const el = document.getElementById('dashAlerts');
 
   _fixCardOverflow('dashAlerts');
@@ -176,7 +178,7 @@ function renderAlertes(articles) {
    STOCK PRODUITS FINIS — Fix S12 redesign barres
 ------------------------------------------------------- */
 function renderStockProduits(produits) {
-  const alertes = produits.filter(sousSeuil);
+  const alertes = produits.filter(estAlerteDashboard);
   const el = document.getElementById('dashProduits');
 
   _fixCardOverflow('dashProduits');
@@ -201,39 +203,86 @@ function renderStockProduits(produits) {
 }
 
 /* -------------------------------------------------------
-   DERNIÈRES COMMANDES
+   COMMANDES CLIENTS EN COURS
+   Toutes les commandes hors clôturée (pas seulement les 8 dernières).
+   Chaque ligne est dépliable — le détail affiche les produits commandés.
+   Le statut se change directement ici via le même contrôle que le
+   module Commandes Clients (selectStatutCmd / changerStatutCommande,
+   ui.js + commandes.js) : un seul code qui décide, jamais deux qui
+   pourraient diverger entre Dashboard et Commandes Clients.
 ------------------------------------------------------- */
 function renderDernieresCommandes(commandes, produits) {
   const el = document.getElementById('dashCommandes');
-  const rec = [...commandes].slice(0, 8);
+  const rec = [...commandes].filter(c => c.statut !== 'cloture');
 
   if (!rec.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon neutral"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h9"/><polyline points="14 2 14 8 20 8"/></svg></div><p>Aucune commande.</p></div>';
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon neutral"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h9"/><polyline points="14 2 14 8 20 8"/></svg></div><p>Aucune commande en cours.</p></div>';
     return;
   }
 
+  const rows = rec.map(c => {
+    const tot = (c.commande_lignes || []).reduce((s, l) => s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
+    const items = (c.commande_lignes || []).map(l => `
+      <tr>
+        <td class="td-bold">${esc(l.produit_nom || '—')}</td>
+        <td><strong>${fmtQ(l.quantite)}</strong></td>
+        <td>${fmt(l.prix_unitaire)} €</td>
+        <td style="font-weight:600">${fmt(l.total_ht || l.quantite * l.prix_unitaire)} €</td>
+      </tr>`).join('') || '<tr><td colspan="4" style="color:var(--ink-muted);">Aucun article.</td></tr>';
+
+    return `
+      <tr class="dash-cmd-row" data-id="${esc(c.id)}" style="cursor:pointer;">
+        <td style="width:18px;"><span class="dash-cmd-chevron">▶</span></td>
+        <td class="td-ref">${esc(c.ref)}</td>
+        <td class="td-bold">${esc(c.client_nom)}</td>
+        <td>${esc(c.date_livraison || '—')}</td>
+        <td style="font-weight:600">${fmt(tot)} €</td>
+        <td onclick="event.stopPropagation()">${selectStatutCmd(c.id, c.statut)}</td>
+      </tr>
+      <tr class="dash-cmd-detail" data-id="${esc(c.id)}" style="display:none;">
+        <td colspan="6" style="background:var(--ui-bg2);padding:10px 14px;">
+          <table style="width:100%;">
+            <thead><tr><th>Produit</th><th>Qté</th><th>Prix unit.</th><th>Total</th></tr></thead>
+            <tbody>${items}</tbody>
+          </table>
+        </td>
+      </tr>`;
+  }).join('');
+
   el.innerHTML = `
     <table>
-      <thead><tr><th>Réf</th><th>Client</th><th>Date</th><th>Montant</th><th>Statut</th></tr></thead>
-      <tbody>${rec.map(c => {
-        const tot = (c.commande_lignes || []).reduce((s, l) => s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
-        return `<tr>
-          <td class="td-ref">${esc(c.ref)}</td>
-          <td class="td-bold">${esc(c.client_nom)}</td>
-          <td>${esc(c.date_cmd)}</td>
-          <td style="font-weight:600">${fmt(tot)} €</td>
-          <td>${badgeCmd(c.statut)}</td>
-        </tr>`;
-      }).join('')}
-      </tbody>
+      <thead><tr><th></th><th>Réf</th><th>Client</th><th>Livraison</th><th>Montant</th><th>Statut</th></tr></thead>
+      <tbody id="dashCommandesTbody">${rows}</tbody>
     </table>`;
+
+  const tbody = document.getElementById('dashCommandesTbody');
+
+  /* Règle 7 — onclick/onchange (écrasés à chaque render), pas addEventListener */
+  tbody.onclick = (e) => {
+    const row = e.target.closest('.dash-cmd-row');
+    if (!row) return;
+    const id = row.dataset.id;
+    const detail = tbody.querySelector(`.dash-cmd-detail[data-id="${id}"]`);
+    if (!detail) return;
+    const ouvert = detail.style.display !== 'none';
+    detail.style.display = ouvert ? 'none' : '';
+    const chevron = row.querySelector('.dash-cmd-chevron');
+    if (chevron) chevron.textContent = ouvert ? '▶' : '▼';
+  };
+
+  tbody.onchange = async (e) => {
+    const sel = e.target.closest('.cmd-statut-select');
+    if (!sel) return;
+    restyleSelectStatutCmd(sel);
+    await changerStatutCommande(sel.dataset.id, sel.value);
+  };
 }
 
 /* -------------------------------------------------------
    BADGES NAVIGATION
 ------------------------------------------------------- */
 function updateBadges({ articles, commandes, ofs, factures, messagesEquipe }) {
-  const alertsA = articles.filter(sousSeuil).length;
+  const alertsA = articles.filter(estAlerteDashboard).length;
   const cmdOpen = commandes.filter(c => c.statut !== 'cloture').length;
   const ofActifs = (ofs || []).filter(o => ['planifie', 'en_cours'].includes(o.statut)).length;
   const facAlerte = (factures || []).filter(f => f.statut === 'a_lancer' || f.statut === 'a_relancer').length;

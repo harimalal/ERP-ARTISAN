@@ -6,14 +6,15 @@
 ------------------------------------------------------- */
 
 import {
-  getCommandes, createCommande, avancerStatutCommande,
+  getCommandes, createCommande, updateCommandeStatut,
   deleteCommande, getClients, getProduits, getArticles,
   createAchat, achatDoublonExiste, getAchats,
   upsertClient, nextRefServeur, updateCommandePrioritaire,
 } from '../db.js';
 import {
-  fmt, fmtQ, esc, badgeCmd, showToast, today,
+  fmt, fmtQ, esc, showToast, today,
   openModal, closeModal, confirmDialog,
+  selectStatutCmd, allouerStockSequentiel,
 } from '../ui.js';
 
 /* Cache local */
@@ -41,6 +42,38 @@ export async function render() {
   _renderListe();
 }
 
+/* -------------------------------------------------------
+   FAISABILITÉ — allocation séquentielle du stock
+   Un même produit peut être demandé par plusieurs commandes à la fois :
+   le stock dispo n'est pas évalué commande par commande contre le stock
+   total, mais réparti dans l'ordre d'enregistrement (allouerStockSequentiel,
+   ui.js — même fonction que Production, pour ne jamais diverger).
+   Clôturée/annulée = besoin déjà soldé, exclu de la compétition pour le
+   stock restant.
+------------------------------------------------------- */
+function _allocationsParProduit() {
+  const besoinsParProduit = {};
+  _commandes.forEach(c => {
+    if (c.statut === 'cloture' || c.statut === 'annule') return;
+    (c.commande_lignes || []).forEach(l => {
+      if (!l.produit_id) return;
+      (besoinsParProduit[l.produit_id] ||= []).push({
+        id: l.id || (c.id + '_' + l.produit_id),
+        commandeId: c.id,
+        quantite: l.quantite,
+        created_at: c.created_at || c.date_cmd,
+      });
+    });
+  });
+
+  const map = {};
+  Object.entries(besoinsParProduit).forEach(([produitId, besoins]) => {
+    const p = _produits.find(x => x.id === produitId);
+    map[produitId] = allouerStockSequentiel(p ? p.stock : 0, besoins);
+  });
+  return map;
+}
+
 function _renderListe() {
   const el = document.getElementById('commandesList');
 
@@ -52,6 +85,8 @@ function _renderListe() {
     return;
   }
 
+  const allocations = _allocationsParProduit();
+
   el.innerHTML = [..._commandes].reverse().map(c => {
     const tot = (c.commande_lignes || []).reduce((s, l) =>
       s + (l.total_ht || (l.quantite * l.prix_unitaire) || 0), 0);
@@ -59,7 +94,9 @@ function _renderListe() {
     const rows = (c.commande_lignes || []).map(l => {
       const p = _produits.find(x => x.id === l.produit_id);
       if (!p) return '';
-      const ok = p.stock >= l.quantite;
+      const alloc = (allocations[p.id] || []).find(b => b.commandeId === c.id && (!l.id || b.id === l.id));
+      const aProduire = alloc ? alloc.aProduire : Math.max(0, l.quantite - (p.stock || 0));
+      const ok = aProduire <= 0;
       return `<tr>
         <td class="td-ref">${esc(p.ref)}</td>
         <td>${esc(p.nom)}</td>
@@ -67,7 +104,7 @@ function _renderListe() {
         <td>${p.stock}</td>
         <td>${ok
           ? '<span class="badge badge-ok">✓ OK</span>'
-          : `<span class="badge badge-alert">Manque ${l.quantite - p.stock}</span>`}
+          : `<span class="badge badge-alert">Manque ${fmtQ(aProduire)}</span>`}
         </td>
         <td>${fmt(l.prix_unitaire)} €</td>
         <td style="font-weight:600">${fmt(l.total_ht || l.quantite * l.prix_unitaire)} €</td>
@@ -84,16 +121,12 @@ function _renderListe() {
           ${c.prioritaire ? `<span style="font-weight:700;font-size:11.5px;color:var(--hdr-alert-txt);">⚠ Commande prioritaire</span>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
-          ${badgeCmd(c.statut)}
+          ${selectStatutCmd(c.id, c.statut)}
           <span style="font-weight:700;color:var(--accent)">${fmt(tot)} €</span>
           <button class="btn btn-ghost btn-xs" data-id="${c.id}" data-action="toggle-prioritaire">${c.prioritaire ? 'Retirer prioritaire' : 'Marquer prioritaire'}</button>
-          ${c.statut !== 'cloture'
-            ? `<button class="btn btn-ghost btn-xs" data-id="${c.id}" data-action="avancer">↻ Avancer</button>`
-            : ''}
           ${c.statut === 'pret'
             ? `<button class="btn btn-success btn-xs" data-id="${c.id}" data-action="livrer">Livrer</button>`
             : ''}
-          <button class="btn btn-ghost btn-xs" data-id="${c.id}" data-action="pdf">👁</button>
           <button class="btn btn-danger btn-xs" data-id="${c.id}" data-action="supprimer">✕</button>
         </div>
       </div>
@@ -114,11 +147,16 @@ function _renderListe() {
     const id     = btn.dataset.id;
     const action = btn.dataset.action;
 
-    if (action === 'avancer') await _avancerCmd(id);
     if (action === 'livrer')  _ouvrirLivraison(id);
     if (action === 'supprimer') await _supprimerCmd(id);
-    if (action === 'pdf')     _aperçuPdfCmd(id);
     if (action === 'toggle-prioritaire') await _toggleCmdPrioritaire(id);
+  };
+
+  /* Règle 7 — onchange (écrasé), pas addEventListener accumulé */
+  el.onchange = async (e) => {
+    const sel = e.target.closest('.cmd-statut-select');
+    if (!sel) return;
+    await changerStatutCommande(sel.dataset.id, sel.value);
   };
 }
 
@@ -138,11 +176,15 @@ async function _toggleCmdPrioritaire(id) {
 }
 
 /* -------------------------------------------------------
-   AVANCER STATUT — UUID, pas index (bug corrigé)
+   CHANGER STATUT — UUID, pas index
+   Exportée : réutilisée telle quelle par dashboard.js (le menu déroulant
+   statut du Dashboard appelle cette même fonction) pour que le Dashboard,
+   Commandes Clients et Production ne puissent jamais afficher un statut
+   différent pour la même commande.
 ------------------------------------------------------- */
-async function _avancerCmd(id) {
+export async function changerStatutCommande(id, nouveauStatut) {
   try {
-    const updated = await avancerStatutCommande(id);
+    const updated = await updateCommandeStatut(id, nouveauStatut);
     const idx = _commandes.findIndex(c => c.id === id);
     if (idx >= 0) _commandes[idx].statut = updated.statut;
     _renderListe();
@@ -157,8 +199,10 @@ async function _avancerCmd(id) {
       const commandeAvecLignes = idx >= 0 ? _commandes[idx] : updated;
       document.dispatchEvent(new CustomEvent('appmee:commandePlanifiee', { detail: { commande: commandeAvecLignes } }));
     }
+    return updated;
   } catch (err) {
-    showToast('❌ Erreur avancement commande.', 'error');
+    showToast('❌ Erreur changement de statut.', 'error');
+    throw err;
   }
 }
 
@@ -337,19 +381,24 @@ async function _saveCommande() {
       clientId = client ? client.id : null;
     }
 
-    /* Créer la commande avec son UUID Supabase */
+    /* Créer la commande avec son UUID Supabase — statut de départ "planifie" :
+       elle doit apparaitre immediatement dans les ordres de fabrication
+       (sans date, choisie ensuite depuis la liste des OF), exactement comme
+       une commande qu'on fait passer manuellement de "à produire" à
+       "planifié". */
     const cmd = await createCommande({
       ref,
       client_id:     clientId,
       client_nom:    clientNom,
       date_cmd:      date,
       date_livraison: dateLiv,
-      statut:        'a_produire',
+      statut:        'planifie',
       notes,
       prioritaire,
     }, lignes);
 
-    _commandes.push({ ...cmd, commande_lignes: lignes });
+    const commandeAvecLignes = { ...cmd, commande_lignes: lignes };
+    _commandes.push(commandeAvecLignes);
 
     closeModal('modalCommande');
     _renderListe();
@@ -359,6 +408,7 @@ async function _saveCommande() {
     await _analyserStock(cmd, lignes);
 
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'commandes' } }));
+    document.dispatchEvent(new CustomEvent('appmee:commandePlanifiee', { detail: { commande: commandeAvecLignes } }));
   } catch (err) {
     showToast('❌ Erreur création commande.', 'error');
   } finally {
@@ -408,17 +458,6 @@ async function _analyserStock(cmd, lignes) {
   }
 
   if (nb > 0) showToast(`⚠ ${nb} BC brouillon(s) créés automatiquement.`);
-}
-
-/* -------------------------------------------------------
-   APERÇU PDF
-------------------------------------------------------- */
-function _aperçuPdfCmd(id) {
-  const c = _commandes.find(x => x.id === id);
-  if (!c) return;
-  document.dispatchEvent(new CustomEvent('appmee:showPdf', {
-    detail: { title: 'Commande ' + c.ref, type: 'commande', data: c },
-  }));
 }
 
 /* -------------------------------------------------------

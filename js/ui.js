@@ -132,21 +132,75 @@ export function qteLisible(quantite, unite) {
 }
 
 /* -------------------------------------------------------
-   HORS STOCK
-   Une ligne cochée « hors stock » sort de toutes les alertes :
-   compteurs du dashboard, badge latéral, tableaux d'alertes,
-   faisabilité des OF et liste des articles à commander. Son
-   stock reste affiché tel quel, 0 ou positif — seule la
-   surveillance est désactivée.
-   Prédicat unique partagé par tous les points d'alerte : c'est
-   ce qui garantit qu'ils ne divergeront pas avec le temps.
+   SURVEILLANCE STOCK
+   Plus de case « hors stock » manuelle : chaque article/produit est
+   réellement surveillé, y compris à stock 0 — Stock Articles, Produits
+   Finis et Production doivent voir une vraie rupture pour pouvoir la
+   traiter (commander, planifier). Un stock à 0 est signalé par le badge
+   « Hors stock » (stockStatus ci-dessous), pas masqué.
+   Seul le Dashboard a une règle différente : un article à stock 0 n'y
+   apparaît pas dans les 4 encarts d'alertes (estAlerteDashboard), pour
+   ne pas noyer l'artisan sous des ruptures déjà visibles ailleurs — sans
+   toucher à la surveillance réelle utilisée partout ailleurs.
+   Prédicats uniques partagés par tous les points d'alerte : c'est ce qui
+   garantit qu'ils ne divergeront pas avec le temps.
 ------------------------------------------------------- */
 export function estSurveille(item) {
-  return !!item && item.hors_stock !== true;
+  return !!item;
 }
 
 export function sousSeuil(item) {
   return estSurveille(item) && Number(item.stock) <= Number(item.seuil);
+}
+
+/* Réservé aux 4 encarts d'alertes du Dashboard — jamais à Stock Articles,
+   Produits Finis ou Production, qui doivent continuer à voir les vraies
+   ruptures (stock 0) pour pouvoir agir dessus. */
+export function estAlerteDashboard(item) {
+  return sousSeuil(item) && Number(item.stock) > 0;
+}
+
+/* -------------------------------------------------------
+   ALLOCATION SÉQUENTIELLE DU STOCK
+   Pour un produit donné, répartit le stock disponible entre ses besoins
+   (lignes de commandes clients, quelle que soit leur statut) dans l'ordre
+   où les commandes ont été enregistrées — la première enregistrée est
+   servie en premier, exactement comme un artisan sert ses clients dans
+   l'ordre d'arrivée. Entre deux commandes enregistrées au même instant,
+   celle qui ne consomme pas la totalité du stock restant passe devant.
+   Sans ça, chaque commande est évaluée seule contre le stock total, et le
+   même stock est compté « disponible » pour plusieurs clients à la fois.
+   Fonction unique réutilisée par Commandes Clients (faisabilité par ligne)
+   et Production (répartition par client, vert/rouge) — pour ne jamais les
+   laisser diverger comme estSurveille()/sousSeuil() avant elles.
+   `besoins` : tableau d'objets portant au moins `quantite` et une date
+   d'enregistrement (`created_at` ou `date_cmd`). Renvoie les mêmes objets,
+   triés par ordre d'allocation, augmentés de `couvert` (servi par le
+   stock) et `aProduire` (reste à produire pour ce besoin).
+------------------------------------------------------- */
+function _clePriorite(besoin) {
+  const v = besoin?.created_at || besoin?.date_cmd || besoin?.date_commande;
+  const t = v ? new Date(v).getTime() : NaN;
+  return isNaN(t) ? Number.MAX_SAFE_INTEGER : t;
+}
+
+export function allouerStockSequentiel(stockDisponible, besoins) {
+  const tries = [...(besoins || [])].sort((a, b) => {
+    const diff = _clePriorite(a) - _clePriorite(b);
+    if (diff !== 0) return diff;
+    /* Enregistrées au même instant : la plus petite quantité d'abord,
+       pour ne pas laisser une grosse commande épuiser seule le stock. */
+    return (Number(a.quantite) || 0) - (Number(b.quantite) || 0);
+  });
+
+  let stockRestant = Number(stockDisponible) || 0;
+  return tries.map(besoin => {
+    const quantite  = Number(besoin.quantite) || 0;
+    const couvert   = Math.max(0, Math.min(quantite, stockRestant));
+    const aProduire = Math.max(0, quantite - couvert);
+    stockRestant    = Math.max(0, stockRestant - couvert);
+    return { ...besoin, couvert, aProduire };
+  });
 }
 
 /* -------------------------------------------------------
@@ -270,6 +324,41 @@ export function badgeCmd(statut) {
   return map[statut] || `<span class="badge badge-neutral">${esc(statut)}</span>`;
 }
 
+/* -------------------------------------------------------
+   LISTE DÉROULANTE STATUT COMMANDE — numérotée + colorée
+   Remplace le bouton « Avancer » : un seul contrôle, utilisé à la fois
+   dans Commandes Clients et dans le Dashboard, pour que les deux ne
+   puissent jamais afficher deux statuts différents pour la même
+   commande. Mêmes couleurs que badgeCmd() — source unique partagée.
+------------------------------------------------------- */
+export const STATUT_CMD_STYLE = {
+  a_produire:    { num: 1, label: 'À produire',    bg: '#FEF3D8', txt: '#7A5A00', brd: '#F0D9A0' },
+  planifie:      { num: 2, label: 'Planifié',      bg: '#E8EFFE', txt: '#2A3A8A', brd: '#C4CAEF' },
+  en_production: { num: 3, label: 'En production', bg: '#f0ecfb', txt: '#5a3e85', brd: '#c9bfef' },
+  pret:          { num: 4, label: 'Prêt',          bg: '#D8EDE3', txt: '#1E4A30', brd: '#B0D4C0' },
+  cloture:       { num: 5, label: 'Clôturée',      bg: '#EDE8DF', txt: '#6A5E54', brd: '#DDD6C8' },
+  annule:        { num: null, label: 'Annulée',    bg: '#FCDDD8', txt: '#8A2010', brd: '#F0B4A8' },
+};
+
+export function selectStatutCmd(id, statutActuel) {
+  const courant = STATUT_CMD_STYLE[statutActuel] || STATUT_CMD_STYLE.a_produire;
+  const options = Object.entries(STATUT_CMD_STYLE).map(([val, s]) => {
+    const texte = (s.num ? s.num + '. ' : '') + s.label;
+    return `<option value="${val}"${val === statutActuel ? ' selected' : ''} style="background:${s.bg};color:${s.txt};">${esc(texte)}</option>`;
+  }).join('');
+  return `<select class="cmd-statut-select" data-id="${esc(id)}" style="font-size:11.5px;font-weight:700;padding:4px 8px;border-radius:20px;border:1px solid ${courant.brd};background:${courant.bg};color:${courant.txt};cursor:pointer;">${options}</select>`;
+}
+
+/* Réapplique les couleurs du statut choisi sur le <select> lui-même,
+   pour un retour visuel immédiat avant tout re-render complet. */
+export function restyleSelectStatutCmd(selectEl) {
+  if (!selectEl) return;
+  const s = STATUT_CMD_STYLE[selectEl.value] || STATUT_CMD_STYLE.a_produire;
+  selectEl.style.background  = s.bg;
+  selectEl.style.color       = s.txt;
+  selectEl.style.borderColor = s.brd;
+}
+
 export function badgePlan(statut) {
   const map = {
     planifie:  '<span class="badge badge-blue">Planifié</span>',
@@ -304,7 +393,7 @@ export function badgeAchat(statut) {
 }
 
 export function stockStatus(stock, seuil) {
-  if (stock <= 0)           return '<span class="badge badge-alert">Rupture</span>';
+  if (stock <= 0)           return '<span class="badge badge-neutral">Hors stock</span>';
   if (stock <= seuil)       return '<span class="badge badge-warn">Bas</span>';
   if (stock <= seuil * 1.5) return '<span class="badge badge-warn">Faible</span>';
   return '<span class="badge badge-ok">OK</span>';

@@ -8,7 +8,7 @@
 ------------------------------------------------------- */
 
 import {
-  getArticles, createArticle, updateArticle,
+  getArticles, createArticle,
   deleteArticle, updateArticleStock, addMouvement,
   getFournisseurs,
 } from '../db.js';
@@ -17,7 +17,7 @@ import {
   openModal, closeModal, sortTable,
   today, nextRef, confirmDialog, isPositiveNumber,
   optionsCategories, bindCategorieNouvelle, lireCategorie, couleurCategorie,
-  estSurveille, sousSeuil,
+  sousSeuil,
 } from '../ui.js';
 
 /* Cache local */
@@ -77,9 +77,8 @@ function _norm(s) {
 /* -------------------------------------------------------
    BADGE STATUT STOCK — couleur sans coloration de ligne
 ------------------------------------------------------- */
-function _badgeStatut(stock, seuil, horsStock) {
-  if (horsStock)             return `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(148,163,184,0.15);color:#475569;border:1px solid rgba(148,163,184,0.3);">Hors stock</span>`;
-  if (stock <= 0)            return `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(239,68,68,0.12);color:#dc2626;border:1px solid rgba(239,68,68,0.25);">Épuisé</span>`;
+function _badgeStatut(stock, seuil) {
+  if (stock <= 0)            return `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(148,163,184,0.15);color:#475569;border:1px solid rgba(148,163,184,0.3);">Hors stock</span>`;
   if (stock <= seuil * 0.5)  return `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(239,68,68,0.12);color:#dc2626;border:1px solid rgba(239,68,68,0.25);">Bas</span>`;
   if (stock <= seuil)        return `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(245,158,11,0.12);color:#b45309;border:1px solid rgba(245,158,11,0.25);">Faible</span>`;
   return `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(34,197,94,0.12);color:#15803d;border:1px solid rgba(34,197,94,0.25);">OK</span>`;
@@ -132,11 +131,14 @@ function _renderIndicateurs() {
   const el = document.getElementById('stockIndicateurs');
   if (!el) return;
 
-  const suivis  = _articles.filter(estSurveille);
-  const enStock = suivis.filter(a => a.stock > a.seuil).length;
-  const faible  = suivis.filter(a => a.stock <= a.seuil && a.stock > a.seuil * 0.5).length;
-  const bas     = suivis.filter(a => a.stock <= a.seuil * 0.5).length;
-  const horsStock = _articles.length - suivis.length;
+  /* Hors stock = stock reel a zero, deduit automatiquement — plus de case
+     manuelle. Les 3 autres compteurs portent sur le stock reellement
+     disponible (> 0), pour ne pas melanger rupture et stock bas. */
+  const enStockArticles = _articles.filter(a => Number(a.stock) > 0);
+  const enStock   = enStockArticles.filter(a => a.stock > a.seuil).length;
+  const faible    = enStockArticles.filter(a => a.stock <= a.seuil && a.stock > a.seuil * 0.5).length;
+  const bas       = enStockArticles.filter(a => a.stock <= a.seuil * 0.5).length;
+  const horsStock = _articles.length - enStockArticles.length;
 
   const parCat = {};
   _articles.forEach(a => {
@@ -213,30 +215,6 @@ function _bindTableActions() {
 
     if (btn.dataset.action === 'inventaire') _openInventaire(btn.dataset.id);
   }, true);
-
-  /* Case Hors stock : change (pas click) pour suivre aussi le clavier. */
-  document.addEventListener('change', async (e) => {
-    const chk = e.target.closest('#stockTbody .hs-chk');
-    if (!chk) return;
-    const a = _articles.find(x => x.id === chk.dataset.id);
-    if (!a) return;
-    const valeur = chk.checked;
-    chk.disabled = true;
-    try {
-      await updateArticle(a.id, { hors_stock: valeur });
-      a.hors_stock = valeur;
-      _renderIndicateurs();
-      _renderTable();
-      _applyFilters();
-      showToast(valeur ? `${a.nom} : hors stock, exclu des alertes.` : `${a.nom} : de nouveau suivi.`);
-      document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'articles' } }));
-    } catch (err) {
-      console.error('[stock] hors_stock ERREUR:', err.message, err);
-      chk.checked = !valeur;
-      chk.disabled = false;
-      showToast('❌ Impossible de modifier ce réglage.', 'error');
-    }
-  });
 }
 
 /* -------------------------------------------------------
@@ -244,20 +222,16 @@ function _bindTableActions() {
 ------------------------------------------------------- */
 function _renderTable() {
   document.getElementById('stockTbody').innerHTML = _articles.map(a => {
-    return `<tr data-id="${esc(a.id)}"${a.hors_stock ? ' style="opacity:.55;"' : ''}>
+    return `<tr data-id="${esc(a.id)}">
       <td class="td-ref">${esc(a.ref)}</td>
       <td class="td-bold">${esc(a.nom)}</td>
       <td>${_tagCat(a.categorie)}</td>
       <td style="font-size:11.5px;color:var(--ink-muted)">${esc(a.unite)}</td>
       <td>${_progBar(a.stock, a.seuil)}</td>
       <td style="font-size:12px;">${fmtQ(a.seuil)}</td>
-      <td>${_badgeStatut(a.stock, a.seuil, a.hors_stock)}</td>
+      <td>${_badgeStatut(a.stock, a.seuil)}</td>
       <td style="font-weight:600;">${fmt(a.prix)} €</td>
       <td style="font-size:11px;color:var(--ink-muted)">${esc(a.fournisseur || '—')}</td>
-      <td style="text-align:center;">
-        <input type="checkbox" class="hs-chk" data-id="${esc(a.id)}"${a.hors_stock ? ' checked' : ''}
-          title="Hors stock : exclut cette ligne de toutes les alertes" style="cursor:pointer;">
-      </td>
       <td>
         <div style="display:flex;gap:5px;align-items:center;">
           <button class="btn btn-outline btn-sm" data-ref="${esc(a.ref)}" data-action="commander">Commander</button>
@@ -570,7 +544,7 @@ function _renderColumnFilters() {
       3: a => a.unite,
       4: a => fmtQ(a.stock),
       5: a => fmtQ(a.seuil),
-      6: a => _statutLabel(a.stock, a.seuil, a.hors_stock),
+      6: a => _statutLabel(a.stock, a.seuil),
       7: a => fmt(a.prix) + ' €',
       8: a => a.fournisseur || '—',
     }[col];
@@ -583,9 +557,8 @@ function _renderColumnFilters() {
 
 /* Doit renvoyer exactement le texte affiche par _badgeStatut :
    le filtre colonne compare le libelle au contenu de la cellule. */
-function _statutLabel(stock, seuil, horsStock) {
-  if (horsStock) return 'Hors stock';
-  if (stock <= 0) return 'Épuisé';
+function _statutLabel(stock, seuil) {
+  if (stock <= 0) return 'Hors stock';
   if (stock <= seuil * 0.5) return 'Bas';
   if (stock <= seuil) return 'Faible';
   return 'OK';

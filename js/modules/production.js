@@ -20,6 +20,7 @@ import {
 import {
   fmt, fmtQ, esc, badgePlan, showToast, today,
   openModal, closeModal, nextRef, confirmDialog, estSurveille,
+  allouerStockSequentiel,
 } from '../ui.js';
 
 let _ofs       = [];
@@ -55,7 +56,7 @@ export async function render() {
   _renderBadges();
   _renderCalendrier();
   _renderOFs();
-  _renderFabPlan();
+  _renderVueConsolidee();
   _renderBesoins();
   _renderHistorique();
 }
@@ -430,43 +431,121 @@ function _demandeParProduit() {
   return lignes;
 }
 
-function _renderFabPlan() {
-  const lignes = _demandeParProduit();
-  const stockVirtuel = {};
-  _articles.forEach(a => { stockVirtuel[a.ref] = a.stock; });
+/* -------------------------------------------------------
+   VUE CONSOLIDÉE PAR PRODUIT
+   Remplace l'ancien Plan de fabrication : une ligne par produit fini
+   avec demande, montre le « reste à produire » en avant, et se déplie
+   pour voir, par client, ce qui est déjà couvert par le stock (vert) et
+   ce qu'il reste à produire pour satisfaire tout le monde (rouge).
+   Allocation séquentielle partagée avec Commandes Clients
+   (allouerStockSequentiel, ui.js) — même ordre d'enregistrement, même
+   résultat des deux côtés, pour ne jamais diverger.
+   Les articles à commander (matières premières) restent dans leur
+   propre tableau plus bas, inchangé — cette vue porte sur les produits
+   finis, pas sur les ingrédients.
+------------------------------------------------------- */
+function _vueConsolideeParProduit() {
+  const produitIds = new Set();
+  _ofs.filter(o => !['clos', 'annule'].includes(o.statut)).forEach(o => produitIds.add(o.produit_id));
+  _commandes.filter(c => c.statut !== 'cloture').forEach(c => (c.commande_lignes || []).forEach(l => produitIds.add(l.produit_id)));
 
-  document.getElementById('fabPlanTbody').innerHTML = lignes.map(l => {
-    const recette = _recettes[l.produitId] || [];
-    const manquesArticles = [];
-    recette.forEach(r => {
-      const aref = r.articles?.ref;
-      if (!aref || !r.quantite || !l.qteOF) return;
-      const besoin     = r.quantite * l.qteOF;
-      const disponible = stockVirtuel[aref] ?? 0;
-      stockVirtuel[aref] = disponible - besoin;
-      const art = _articles.find(x => x.ref === aref);
-      /* Article hors stock : approvisionnement non suivi, jamais bloquant. */
-      if (disponible < besoin && estSurveille(art)) {
-        const a = art;
-        const manqueQte = besoin - disponible;
-        const enCours = _achatsEnCoursPourArticle(a?.id);
-        const infoCommande = enCours.length
-          ? enCours.map(ac => `en commande chez ${esc(ac.fournisseur || '—')}${ac.date_livraison ? ' (livraison ' + ac.date_livraison.split('-').reverse().join('/') + ')' : ' (date non renseignée)'}`).join(', ')
-          : 'aucune commande en cours';
-        manquesArticles.push(`${esc(a?.nom || aref)} : manque ${fmtQ(manqueQte)} ${esc(a?.unite || '')} — ${infoCommande}`);
-      }
+  const lignes = [...produitIds].map(produitId => {
+    const p = _produits.find(x => x.id === produitId);
+    if (!p) return null;
+
+    const ofsActifs = _ofs.filter(o => o.produit_id === produitId && !['clos', 'annule'].includes(o.statut));
+    const qteOF = ofsActifs.reduce((s, o) => s + o.quantite, 0);
+
+    const besoins = [];
+    _commandes.filter(c => c.statut !== 'cloture').forEach(c => {
+      (c.commande_lignes || []).forEach(l => {
+        if (l.produit_id !== produitId) return;
+        besoins.push({
+          id: l.id || (c.id + '_' + produitId), commandeId: c.id, ref: c.ref,
+          client_nom: c.client_nom, quantite: l.quantite, created_at: c.created_at || c.date_cmd,
+        });
+      });
     });
 
-    const rowClass = (l.manquePF > 0 || manquesArticles.length) ? 'prod-fail' : 'prod-ok';
-    return `<tr class="${rowClass}">
-      <td class="td-bold">${esc(l.nom)}</td>
-      <td>${l.qteOF > 0 ? `<strong>${l.qteOF}</strong> unités (${l.ofs.join(', ')})` : '<span style="color:var(--ink-muted)">aucun OF</span>'}</td>
-      <td>${l.manquePF > 0 ? `<strong style="color:var(--ui-red)">${l.manquePF} unité(s)</strong>` : '—'}</td>
-      <td>${l.qteOF === 0 ? '—' : (manquesArticles.length ? `<span class="badge badge-alert">${manquesArticles.length} manque(s)</span>` : '<span class="badge badge-ok">✓ Faisable</span>')}</td>
-      <td style="font-size:10.5px;color:var(--ui-red)">${manquesArticles.join('<br>') || '—'}</td>
-    </tr>`;
-  }).join('') ||
-    '<tr><td colspan="5" style="text-align:center;padding:14px;color:var(--ink-muted)">Aucun OF actif ni commande en attente.</td></tr>';
+    const clients = allouerStockSequentiel(p.stock, besoins);
+    const demandeTotale  = besoins.reduce((s, b) => s + b.quantite, 0);
+    const resteAProduire = clients.reduce((s, c) => s + c.aProduire, 0);
+
+    return { produitId, nom: p.nom, stock: p.stock, demandeTotale, resteAProduire, qteOF, ofsRefs: ofsActifs.map(o => o.ref), clients };
+  }).filter(Boolean);
+
+  /* Le plus urgent (reste à produire) d'abord. */
+  lignes.sort((a, b) => (b.resteAProduire > 0) - (a.resteAProduire > 0) || a.nom.localeCompare(b.nom, 'fr'));
+  return lignes;
+}
+
+function _renderVueConsolidee() {
+  const tbody = document.getElementById('prodVueTbody');
+  if (!tbody) return;
+
+  const lignes = _vueConsolideeParProduit();
+
+  if (!lignes.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:14px;color:var(--ink-muted)">Aucun OF actif ni commande en attente.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = lignes.map(l => {
+    const resteBadge = l.resteAProduire > 0
+      ? `<span class="badge badge-alert">${fmtQ(l.resteAProduire)} à produire</span>`
+      : '<span class="badge badge-ok">✓ Tout couvert</span>';
+    const ofInfo = l.qteOF > 0
+      ? `<strong>${fmtQ(l.qteOF)}</strong> <span style="font-size:10px;color:var(--ink-muted)">(${l.ofsRefs.join(', ')})</span>`
+      : '<span style="color:var(--ink-muted)">aucun</span>';
+
+    const detailRows = l.clients.map((c, i) => {
+      const pct = c.quantite > 0 ? Math.round(c.couvert / c.quantite * 100) : 0;
+      const ordre = i === 0 ? '1ʳᵉ commande enregistrée' : 'Enregistrée ensuite';
+      return `<tr>
+        <td class="td-ref">${esc(c.ref)}</td>
+        <td>${esc(c.client_nom)}</td>
+        <td style="font-size:10px;color:var(--ink-muted)">${ordre}</td>
+        <td style="min-width:140px;">
+          <div style="display:flex;height:9px;border-radius:5px;overflow:hidden;background:#EEEEEC;">
+            <div style="flex-grow:${c.couvert};flex-basis:0;background:#22C55E;"></div>
+            <div style="flex-grow:${c.aProduire};flex-basis:0;background:#F04438;"></div>
+          </div>
+        </td>
+        <td style="text-align:right;">${fmtQ(c.couvert)} / ${fmtQ(c.quantite)}</td>
+        <td style="text-align:right;color:${c.aProduire > 0 ? 'var(--ui-red)' : 'var(--ink-muted)'};font-weight:${c.aProduire > 0 ? '700' : '400'};">${c.aProduire > 0 ? fmtQ(c.aProduire) : '—'}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="6" style="color:var(--ink-muted)">Aucune commande en attente pour ce produit.</td></tr>';
+
+    return `
+      <tr class="prod-vue-row" data-id="${esc(l.produitId)}" style="cursor:pointer;">
+        <td style="width:18px;"><span class="prod-vue-chevron">▶</span></td>
+        <td class="td-bold">${esc(l.nom)}</td>
+        <td>${fmtQ(l.stock)}</td>
+        <td>${fmtQ(l.demandeTotale)}</td>
+        <td>${ofInfo}</td>
+        <td>${resteBadge}</td>
+      </tr>
+      <tr class="prod-vue-detail" data-id="${esc(l.produitId)}" style="display:none;">
+        <td colspan="6" style="background:var(--ui-bg2);padding:10px 14px;">
+          <table style="width:100%;">
+            <thead><tr><th>N° commande</th><th>Client</th><th>Ordre</th><th>Faisable / Reste</th><th>Couvert</th><th>À produire</th></tr></thead>
+            <tbody>${detailRows}</tbody>
+          </table>
+        </td>
+      </tr>`;
+  }).join('');
+
+  tbody.onclick = (e) => {
+    const row = e.target.closest('.prod-vue-row');
+    if (!row) return;
+    const id = row.dataset.id;
+    const detail = tbody.querySelector(`.prod-vue-detail[data-id="${id}"]`);
+    if (!detail) return;
+    const ouvert = detail.style.display !== 'none';
+    detail.style.display = ouvert ? 'none' : '';
+    const chevron = row.querySelector('.prod-vue-chevron');
+    if (chevron) chevron.textContent = ouvert ? '▶' : '▼';
+  };
 }
 
 /* -------------------------------------------------------
@@ -683,6 +762,7 @@ async function _setOFStatut(id, statut) {
     _renderBadges();
     _renderOFs();
     _renderCalendrier();
+    _renderVueConsolidee();
   } catch (err) {
     showToast('❌ Erreur mise à jour OF.', 'error');
   }
@@ -699,7 +779,7 @@ async function _supprimerOF(id) {
     _renderBadges();
     _renderOFs();
     _renderCalendrier();
-    _renderFabPlan();
+    _renderVueConsolidee();
     showToast('✅ OF ' + of.ref + ' supprimé.');
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'production' } }));
   } catch (err) {
@@ -816,6 +896,7 @@ async function _terminerFabrication(id) {
     _renderBadges();
     _renderOFs();
     _renderCalendrier();
+    _renderVueConsolidee();
     _renderBesoins();
     _renderHistorique();
     showToast(`✅ ${of.quantite}×${of.produit_nom} produits. Lot ${numeroLot}.`);
@@ -902,7 +983,7 @@ export async function creerOFsPourCommande(commande) {
     _renderBadges();
     _renderOFs();
     _renderCalendrier();
-    _renderFabPlan();
+    _renderVueConsolidee();
     _renderBesoins();
     showToast(`✅ ${crees} ordre${crees > 1 ? 's' : ''} de fabrication créé${crees > 1 ? 's' : ''} depuis ${commande.ref || 'la commande'} — choisissez leur date dans la liste.`);
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'production' } }));
