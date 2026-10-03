@@ -212,3 +212,19 @@ Contrôle : 9 articles Alpi Nature, 1 article Louis François. Restent sans
 fournisseur : Eau (jamais achetée), Jus de citron bio (pas une épice),
 Verre Bonta 212 ml (probablement Massilly Conservor par cohérence avec la
 capsule, non modifié sans confirmation).
+
+## Démonstration réelle de l'auto-OF (2026-10-03)
+
+TEST-CMD-03 passée au statut "planifié" (simulant le clic "avancer" de
+l'interface, maintenant équipée du correctif commandePlanifiee). 3 OF créés
+automatiquement, sans date, liés via commandes_ids : OF0001 (Orange Coing,
+20), OF0002 (Griotte, 10), OF0003 (Rhubarbe, 15).
+
+Effet vérifié : le manque en production (Plan de fabrication) retombe à 0
+pour les 3 produits, puisque stock + OF planifié couvre maintenant la
+demande cumulée (Griotte : 18 + 10 = 28 ≥ 22 ; Rhubarbe : 21 + 15 = 36 ≥ 25).
+TEST-CMD-04, non planifiée, reste visible comme demande non couverte tant
+qu'elle n'est pas, elle aussi, avancée à "planifié".
+
+Ces 3 OF portent le même tag [TEST]/commandes_ids que les commandes
+fictives — à supprimer avec elles sur demande.
