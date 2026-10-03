@@ -495,3 +495,54 @@ l'initialisation à 0 des articles dans _renderBesoins() — les deux
 tables gardent donc le même périmètre. Vérifié sur les vraies données :
 9 produits sur les 53 du catalogue ont déjà été commandés chez ce
 tenant — c'est ce nombre qui apparaît maintenant, plus les 53.
+
+## Articles à commander : retour au manque réel uniquement (2026-10-03)
+
+Deuxième correction de l'utilisateur sur la même demande : le bilan
+complet ne devait s'appliquer qu'à "Besoins de production par produit"
+(_vueConsolideeParProduit, reste scopé aux 9 produits déjà commandés,
+y compris les lignes à 0). Pour "Articles à commander" (_renderBesoins),
+le bilan complet n'avait pas de sens — l'utilisateur veut y voir
+uniquement les articles réellement manquants pour les commandes en
+cours, pas la liste entière des matières premières déjà bien
+approvisionnées. _renderBesoins() est revenu à sa version d'origine :
+plus d'initialisation à 0 via _produitsCommandes(), le filtre
+`manque <= 0 → retiré de la liste` est remis. Vérifié : node --check
+production.js OK, comportement identique à avant la session du bilan
+complet.
+
+## Historique des commandes clôturées + vérifications de clôture (2026-10-03)
+
+Ajout d'un bloc dépliable "Historique — Commandes clôturées" dans
+Commandes Clients, sur le même modèle que l'historique d'Achats et de
+Production (details/summary, chevron CSS pur, compteur). _renderListe()
+dans commandes.js est réorganisé : le gabarit de carte commande devient
+une fonction partagée _carteCommande(c, allocations), réutilisée pour
+les deux listes — actives (#commandesList, toutes sauf statut
+"cloture") et historique (#commandesHistoriqueList, uniquement statut
+"cloture", triées plus récentes en premier, compteur dans
+#commandesHistoriqueCount). Les gestionnaires de clic/changement de
+statut sont posés sur les deux conteneurs, pas seulement sur la liste
+active.
+
+Vérifications demandées par l'utilisateur, relues dans le code (pas
+seulement affirmées) :
+- Historique de production (#historiqueTbody / historiqueProductionCount)
+  reste strictement scopé aux OF clos (lots de produits finis — numéro
+  de lot, quantité produite, date de clôture) — aucune référence à une
+  commande ou à un client dans cette table. Les deux historiques
+  (commandes clôturées / lots de production clos) restent deux listes
+  séparées, sans chevauchement de données.
+- Numéro de lot : format inchangé, AA-JJJ-rang (_formatNumeroLot,
+  production.js ligne 779) — année sur 2 chiffres, jour de l'année sur
+  3 chiffres, rang de clôture dans la journée tous produits confondus.
+  Généré automatiquement dans _terminerFabrication (ligne 869), appelée
+  uniquement quand le statut d'un OF passe à "clos" — déclenchement
+  identique à avant, seul le point d'entrée a changé (sélecteur de
+  statut par ligne dans Ordres de fabrication, via le handler
+  "changer-statut-of" qui route "clos" vers _terminerFab) au lieu de
+  l'ancienne table à plat.
+
+Vérifié avant livraison : node --check sur commandes.js et production.js,
+extraction + node --check du script module de app.html, suite de tests
+unitaires existante (2/2) toujours verte.

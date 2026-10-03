@@ -625,17 +625,6 @@ export async function creerOFPourProduit(produitId, datePrevue = null) {
 ------------------------------------------------------- */
 function _renderBesoins() {
   const mg = {};
-  /* Bilan complet, mais seulement pour les produits déjà commandés au
-     moins une fois (_produitsCommandes, même périmètre que la vue par
-     produit juste au-dessus) : chaque article de leur recette apparaît,
-     même à 0 besoin — pas seulement ceux qui manquent aujourd'hui, mais
-     pas non plus les ingrédients d'un produit jamais commandé. */
-  _produitsCommandes().forEach(produitId => {
-    (_recettes[produitId] || []).forEach(r => {
-      const aref = r.articles?.ref;
-      if (aref && !(aref in mg)) mg[aref] = 0;
-    });
-  });
   _demandeParProduit().forEach(l => {
     const qteTotale = l.qteOF + l.manquePF;
     if (!qteTotale) return;
@@ -647,43 +636,43 @@ function _renderBesoins() {
     });
   });
 
-  /* Quantité à commander : au moins de quoi couvrir le manque de production,
-     et au moins de quoi remonter le stock au seuil de sécurité — jamais les
-     deux séparément, on prend le plus grand des deux besoins. */
-  const lignes = Object.entries(mg).map(([aref, besoin]) => {
+  /* Seulement ce qui manque réellement pour honorer les commandes en cours
+     — pas un bilan de tous les articles de recette. Quantité à commander :
+     au moins de quoi couvrir le manque de production, et au moins de quoi
+     remonter le stock au seuil de sécurité — jamais les deux séparément,
+     on prend le plus grand des deux besoins. */
+  const manques = Object.entries(mg).map(([aref, besoin]) => {
     const a = _articles.find(x => x.ref === aref);
     if (!a || !estSurveille(a)) return null;
-    const manque = Math.max(0, besoin - a.stock);
-    const qteACommander = manque > 0 ? Math.max(manque, (a.seuil || 0) - a.stock) : 0;
+    const manque = besoin - a.stock;
+    if (manque <= 0) return null;
+    const qteACommander = Math.max(manque, (a.seuil || 0) - a.stock);
     return { aref, a, besoin, manque, qteACommander };
   }).filter(Boolean);
 
-  /* Les manquants d'abord (le plus urgent), puis le reste par ordre alphabétique. */
-  lignes.sort((a, b) => (b.manque > 0) - (a.manque > 0) || a.a.nom.localeCompare(b.a.nom, 'fr'));
-
-  document.getElementById('manquesTbody').innerHTML = lignes.map(m => `<tr>
+  document.getElementById('manquesTbody').innerHTML = manques.map(m => `<tr>
       <td class="td-ref">${esc(m.aref)}</td>
       <td>${esc(m.a.nom)}</td>
       <td>${fmtQ(m.a.stock)} ${esc(m.a.unite)}</td>
       <td>${fmtQ(m.besoin)} ${esc(m.a.unite)}</td>
-      <td style="${m.manque > 0 ? 'color:var(--ui-red);font-weight:700' : 'color:var(--ink-muted)'}">${m.manque > 0 ? '⚠ ' + fmtQ(m.manque) + ' ' + esc(m.a.unite) : '✓ OK'}</td>
-      <td>${m.manque > 0 ? fmt(m.manque * m.a.prix) + ' €' : '—'}</td>
+      <td style="color:var(--ui-red);font-weight:700">⚠ ${fmtQ(m.manque)} ${esc(m.a.unite)}</td>
+      <td>${fmt(m.manque * m.a.prix)} €</td>
       <td style="font-size:11px">${esc(m.a.fournisseur || '—')}</td>
-      <td>${m.manque > 0 ? `<button class="btn btn-primary btn-xs" data-ref="${esc(m.aref)}" data-action="bc">BC</button>` : ''}</td>
+      <td><button class="btn btn-primary btn-xs" data-ref="${esc(m.aref)}" data-action="bc">BC</button></td>
     </tr>`).join('') ||
-    '<tr><td colspan="8" style="text-align:center;padding:12px;color:var(--ink-muted)">Aucun article utilisé dans une recette.</td></tr>';
+    '<tr><td colspan="8" style="text-align:center;padding:12px;color:var(--ui-green)">✅ Tous les articles disponibles.</td></tr>';
 
   document.getElementById('manquesTbody').onclick = (e) => {
     const btn = e.target.closest('[data-action="bc"]');
     if (!btn) return;
-    const clicked = lignes.find(m => m.aref === btn.dataset.ref && m.manque > 0);
+    const clicked = manques.find(m => m.aref === btn.dataset.ref);
     if (!clicked) return;
     /* Regroupe en un seul BC tous les articles manquants du même fournisseur
        que celui cliqué — sans fournisseur renseigné, on ne peut pas
        présumer qu'ils viennent du même endroit, on garde une ligne seule. */
     const fournisseur = clicked.a.fournisseur || '';
     const memeFournisseur = fournisseur
-      ? lignes.filter(m => m.manque > 0 && (m.a.fournisseur || '') === fournisseur)
+      ? manques.filter(m => (m.a.fournisseur || '') === fournisseur)
       : [clicked];
     document.dispatchEvent(new CustomEvent('appmee:openAchatFor', {
       detail: {
