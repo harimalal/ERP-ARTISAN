@@ -327,6 +327,21 @@
     </div>
   </div>
   <div class="card" style="margin-bottom:16px;">
+    <div class="card-hdr hdr-rose">
+      <span class="card-hdr-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h9"/><polyline points="14 2 14 8 20 8"/></svg>
+        Commandes en cours — cliquer une ligne pour le détail prêt / à produire
+      </span>
+    </div>
+    <table><thead><tr><th></th><th>Référence</th><th>Client</th><th>Livraison</th><th>Statut</th></tr></thead>
+    <tbody id="prodCommandesTbody"></tbody></table>
+  </div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-hdr"><span class="card-hdr-title">Besoins de production par produit — cliquer une ligne pour le détail par client. Reste à produire : la quantité couvre toutes les commandes en attente de ce produit.</span></div>
+    <table><thead><tr><th></th><th>Produit</th><th>Stock</th><th>Demande totale</th><th>OF en cours</th><th>Reste à produire</th><th></th></tr></thead>
+    <tbody id="prodVueTbody"></tbody></table>
+  </div>
+  <div class="card" style="margin-bottom:16px;">
     <div class="card-hdr hdr-amber">
       <span class="card-hdr-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
@@ -335,11 +350,6 @@
     </div>
     <table><thead><tr><th>Référence</th><th>Produit</th><th>Qté</th><th>Clients</th><th>Date planifiée</th><th>Statut</th><th>Actions</th></tr></thead>
     <tbody id="planningTbody"></tbody></table>
-  </div>
-  <div class="card" style="margin-bottom:16px;">
-    <div class="card-hdr"><span class="card-hdr-title">Besoins de production par produit — cliquer une ligne pour le détail par client</span></div>
-    <table><thead><tr><th></th><th>Produit</th><th>Stock</th><th>Demande totale</th><th>OF en cours</th><th>Reste à produire</th></tr></thead>
-    <tbody id="prodVueTbody"></tbody></table>
   </div>
   <div class="card" style="margin-bottom:16px;">
     <div class="card-hdr"><span class="card-hdr-title">Articles à commander</span></div>
