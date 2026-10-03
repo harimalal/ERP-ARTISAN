@@ -455,3 +455,30 @@ Vérifié avant livraison : node --check sur tous les fichiers touchés +
 script module app.html, recherche exhaustive de toute référence
 résiduelle aux symboles supprimés (aucune trouvée), suite de tests
 unitaires existante (2/2) toujours verte.
+
+## Besoins de production / Articles à commander : bilan complet (2026-10-03)
+
+Diagnostic : les deux tables du bas de la page Production
+(_vueConsolideeParProduit et _renderBesoins) ne listaient que les
+produits/articles ayant une commande ou un OF en cours — un produit sans
+demande actuelle (ou un article sans manque actuel) disparaissait
+entièrement du tableau. Ce n'est pas un bug introduit aujourd'hui, c'est
+comme ça depuis la création de ces deux vues plus tôt dans la session ;
+l'utilisateur a demandé explicitement un bilan complet : toutes les
+confitures (53 produits chez ce tenant), toutes les matières premières
+utilisées dans une recette (85 articles), chacune avec son statut (0
+quand rien n'est dû), pas seulement celles en alerte.
+
+Corrigé : _vueConsolideeParProduit() part maintenant de tous les
+produits du tenant (plus seulement ceux avec OF/commande) ; _renderBesoins()
+initialise chaque article de recette à 0 avant d'accumuler la demande
+réelle. Dans les deux cas, le tri garde les plus urgents (reste à
+produire / manque > 0) en premier, le reste (déjà couvert) en dessous
+par ordre alphabétique — rien n'est caché, mais l'essentiel reste visible
+sans défiler. Le calcul lui-même (allocation séquentielle, agrégation
+par recette) n'a pas changé, seul le filtre d'affichage est retiré.
+
+Signalé à l'utilisateur sans y toucher : les deux tables font
+maintenant 53 et 85 lignes respectivement — un repli façon Historique
+(details/summary, déjà utilisé ailleurs dans la page) pourrait les
+raccourcir visuellement si besoin, pas demandé pour l'instant.
