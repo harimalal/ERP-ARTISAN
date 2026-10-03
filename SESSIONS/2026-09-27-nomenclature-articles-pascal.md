@@ -381,3 +381,32 @@ pouvoir agir dessus.
    (réf, client, livraison, statut) — retrait du montant et de la liste
    d'articles dépliable, qui vivent déjà dans Commandes Clients et
    Production. But explicite : que chaque écran ait un intérêt propre.
+
+## Production — planification depuis Commandes en cours, renommage (2026-10-03)
+
+Suite directe du point précédent : la section "Commandes en cours" est
+renommée "Ordres de fabrication" (le nom historique passe sur cette vue
+par commande) ; l'ancienne table OF (dates/statuts/clôture, inchangée
+dans son rôle) est renommée "Ordres de fabrication — suivi des lots"
+pour ne pas avoir deux titres identiques. Les deux textes d'aide
+("cliquer une ligne pour le détail…") passent en gris, petite taille,
+moins proéminents que les titres. La phrase explicative "Reste à
+produire : la quantité couvre toutes les commandes…" est retirée de
+Besoins de production — redondante avec l'explication déjà donnée à
+l'oral.
+
+Le bouton "Créer OF" de Besoins de production par produit est retiré —
+remplacé par une capacité plus directe : dans le détail dépliable d'une
+commande (Ordres de fabrication), chaque ligne "à produire" porte
+maintenant un champ date. Choisir une date y crée (ou, si un OF actif
+couvre déjà ce produit, met à jour) la fournée qui couvre TOUTES les
+commandes en attente de ce produit — jamais un OF par commande
+(creerOFPourProduit accepte désormais une date, commandes_ids reste la
+liste de toutes les commandes couvertes).
+
+Point explicitement laissé de côté, car formulé au conditionnel par
+l'utilisateur ("si on doit aller plus loin") : supprimer aussi l'ancienne
+table "Ordres de fabrication — suivi des lots" et le bouton "+ Planifier
+un OF". Je n'ai pas touché à ça — c'est l'endroit qui déclenche
+réellement la clôture (décrément de stock, facture), je préfère une
+confirmation explicite avant d'y toucher.

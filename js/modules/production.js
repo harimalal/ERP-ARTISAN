@@ -220,28 +220,34 @@ function _renderCalendrier() {
    - Select statut sans border colorée
 ------------------------------------------------------- */
 /* -------------------------------------------------------
-   COMMANDES EN COURS
-   Vue de suivi client, pas de décision de production : une ligne par
+   ORDRES DE FABRICATION (vue par commande)
+   Vue de suivi client ET point d'entrée pour planifier : une ligne par
    commande non clôturée, date de livraison + statut (même contrôle que
    Commandes Clients et Dashboard, toujours synchronisé), dépliable pour
    voir quels produits de CETTE commande sont déjà couverts par le stock
    (vert) et lesquels restent à produire (rouge) — allouerStockSequentiel,
    la même allocation que partout ailleurs.
-   Aucune action de production ici : créer ou clôturer un OF se fait
-   depuis Besoins de production par produit (quantité cumulée, toutes
-   commandes confondues — un artisan produit une fournée pour plusieurs
-   clients à la fois, jamais une par commande).
+   Choisir une date sur une ligne « à produire » crée (ou met à jour s'il
+   existe déjà) l'OF du produit — TOUJOURS une seule fournée qui couvre
+   d'un coup toutes les commandes en attente de ce produit, jamais un OF
+   par commande (creerOFPourProduit, commandes_ids = toutes les commandes
+   couvertes). La table « Ordres de fabrication — suivi des lots » plus
+   bas reste le seul endroit où on clôture réellement une fabrication
+   (décrémente le stock, facture) — ça n'a pas changé ici.
 ------------------------------------------------------- */
 function _commandesEnCours() {
   return _commandes.filter(c => c.statut !== 'cloture' && c.statut !== 'annule');
 }
 
 /* Pour une commande donnée, couvert/à produire par ligne — recalculé à
-   chaque appel à partir du stock et des commandes actuelles. */
+   chaque appel à partir du stock et des commandes actuelles — plus l'OF
+   actif qui couvre déjà ce produit, s'il existe (pour proposer soit de
+   modifier sa date, soit d'en planifier un nouveau). */
 function _detailPretCommande(c) {
   return (c.commande_lignes || []).map(l => {
     const p = _produits.find(x => x.id === l.produit_id);
-    if (!p) return { produit_nom: l.produit_nom, quantite: l.quantite, couvert: 0, aProduire: l.quantite };
+    const ofExistant = _ofs.find(o => o.produit_id === l.produit_id && !['clos', 'annule'].includes(o.statut)) || null;
+    if (!p) return { produit_nom: l.produit_nom, produit_id: l.produit_id, quantite: l.quantite, couvert: 0, aProduire: l.quantite, ofExistant };
     const besoins = [];
     _commandes.filter(cc => cc.statut !== 'cloture' && cc.statut !== 'annule').forEach(cc => {
       (cc.commande_lignes || []).forEach(ll => {
@@ -251,7 +257,10 @@ function _detailPretCommande(c) {
     });
     const alloc = allouerStockSequentiel(p.stock, besoins);
     const mine = alloc.find(b => b.commandeId === c.id && (!l.id || b.id === l.id));
-    return { produit_nom: l.produit_nom, quantite: l.quantite, couvert: mine ? mine.couvert : 0, aProduire: mine ? mine.aProduire : l.quantite };
+    return {
+      produit_nom: l.produit_nom, produit_id: l.produit_id, quantite: l.quantite,
+      couvert: mine ? mine.couvert : 0, aProduire: mine ? mine.aProduire : l.quantite, ofExistant,
+    };
   });
 }
 
@@ -287,18 +296,28 @@ function _renderCommandesEnCours() {
     <tr class="prod-cmd-detail" data-id="${esc(c.id)}" style="display:none;">
       <td colspan="5" style="background:var(--ui-bg2);padding:10px 14px;">
         <table style="width:100%;">
-          <thead><tr><th>Produit</th><th>Qté commandée</th><th>Couvert</th><th>À produire</th></tr></thead>
-          <tbody>${_detailPretCommande(c).map(l => `<tr>
+          <thead><tr><th>Produit</th><th>Qté commandée</th><th>Couvert</th><th>À produire</th><th>Date de production</th></tr></thead>
+          <tbody>${_detailPretCommande(c).map(l => {
+            let dateCell = '—';
+            if (l.aProduire > 0) {
+              dateCell = l.ofExistant
+                ? `<input type="date" value="${esc(l.ofExistant.date_prevue || '')}" data-action="date-of-existant" data-of-id="${esc(l.ofExistant.id)}" style="font-size:11px;padding:3px 6px;border:1px solid var(--ui-brd2);border-radius:6px;">`
+                : `<input type="date" data-action="planifier-production" data-produit-id="${esc(l.produit_id)}" style="font-size:11px;padding:3px 6px;border:1px solid var(--ui-brd2);border-radius:6px;" title="Choisir une date planifie la fabrication de ce produit pour toutes les commandes en attente">`;
+            }
+            return `<tr>
             <td class="td-bold">${esc(l.produit_nom || '—')}</td>
             <td>${fmtQ(l.quantite)}</td>
             <td style="color:#15803D;font-weight:700;">${fmtQ(l.couvert)}</td>
             <td style="color:${l.aProduire > 0 ? '#B42318' : 'var(--ink-muted)'};font-weight:${l.aProduire > 0 ? '700' : '400'};">${l.aProduire > 0 ? fmtQ(l.aProduire) : '—'}</td>
-          </tr>`).join('')}</tbody>
+            <td onclick="event.stopPropagation()">${dateCell}</td>
+          </tr>`;
+          }).join('')}</tbody>
         </table>
       </td>
     </tr>`).join('');
 
   tbody.onclick = (e) => {
+    if (e.target.closest('[data-action]')) return;
     const row = e.target.closest('.prod-cmd-row');
     if (!row) return;
     const id = row.dataset.id;
@@ -312,9 +331,27 @@ function _renderCommandesEnCours() {
 
   tbody.onchange = async (e) => {
     const sel = e.target.closest('.cmd-statut-select');
-    if (!sel) return;
-    restyleSelectStatutCmd(sel);
-    await changerStatutCommande(sel.dataset.id, sel.value);
+    if (sel) {
+      restyleSelectStatutCmd(sel);
+      await changerStatutCommande(sel.dataset.id, sel.value);
+      return;
+    }
+
+    const inpExistant = e.target.closest('[data-action="date-of-existant"]');
+    if (inpExistant) {
+      await updateOFDate(inpExistant.dataset.ofId, inpExistant.value);
+      const of = _ofs.find(o => o.id === inpExistant.dataset.ofId);
+      if (of) of.date_prevue = inpExistant.value;
+      _renderCalendrier();
+      _renderOFs();
+      showToast('✅ Date de production mise à jour.');
+      return;
+    }
+
+    const inpNouveau = e.target.closest('[data-action="planifier-production"]');
+    if (inpNouveau) {
+      await creerOFPourProduit(inpNouveau.dataset.produitId, inpNouveau.value);
+    }
   };
 }
 
@@ -587,7 +624,7 @@ function _renderVueConsolidee() {
   const lignes = _vueConsolideeParProduit();
 
   if (!lignes.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:14px;color:var(--ink-muted)">Aucun OF actif ni commande en attente.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:14px;color:var(--ink-muted)">Aucun OF actif ni commande en attente.</td></tr>';
     return;
   }
 
@@ -595,9 +632,6 @@ function _renderVueConsolidee() {
     const resteBadge = l.resteAProduire > 0
       ? `<span class="badge badge-alert">${fmtQ(l.resteAProduire)} à produire</span>`
       : '<span class="badge badge-ok">✓ Tout couvert</span>';
-    const creerOFBtn = l.resteAProduire > 0
-      ? `<button class="btn btn-primary btn-xs" data-id="${esc(l.produitId)}" data-action="creer-of-produit">Créer OF</button>`
-      : '';
     const ofInfo = l.qteOF > 0
       ? `<strong>${fmtQ(l.qteOF)}</strong> <span style="font-size:10px;color:var(--ink-muted)">(${l.ofsRefs.join(', ')})</span>`
       : '<span style="color:var(--ink-muted)">aucun</span>';
@@ -628,10 +662,9 @@ function _renderVueConsolidee() {
         <td>${fmtQ(l.demandeTotale)}</td>
         <td>${ofInfo}</td>
         <td>${resteBadge}</td>
-        <td data-no-toggle>${creerOFBtn}</td>
       </tr>
       <tr class="prod-vue-detail" data-id="${esc(l.produitId)}" style="display:none;">
-        <td colspan="7" style="background:var(--ui-bg2);padding:10px 14px;">
+        <td colspan="6" style="background:var(--ui-bg2);padding:10px 14px;">
           <table style="width:100%;">
             <thead><tr><th>N° commande</th><th>Client</th><th>Ordre</th><th>Faisable / Reste</th><th>Couvert</th><th>À produire</th></tr></thead>
             <tbody>${detailRows}</tbody>
@@ -640,14 +673,7 @@ function _renderVueConsolidee() {
       </tr>`;
   }).join('');
 
-  tbody.onclick = async (e) => {
-    const btnCreer = e.target.closest('[data-action="creer-of-produit"]');
-    if (btnCreer) {
-      e.stopPropagation();
-      await creerOFPourProduit(btnCreer.dataset.id);
-      return;
-    }
-    if (e.target.closest('[data-no-toggle]')) return;
+  tbody.onclick = (e) => {
     const row = e.target.closest('.prod-vue-row');
     if (!row) return;
     const id = row.dataset.id;
@@ -669,7 +695,7 @@ function _renderVueConsolidee() {
    quand une commande passe à « planifié ») ne recrée pas un second OF en
    double pour elles.
 ------------------------------------------------------- */
-export async function creerOFPourProduit(produitId) {
+export async function creerOFPourProduit(produitId, datePrevue = null) {
   const ligne = _vueConsolideeParProduit().find(l => l.produitId === produitId);
   if (!ligne || ligne.resteAProduire <= 0) return;
   const p = _produits.find(x => x.id === produitId);
@@ -681,8 +707,8 @@ export async function creerOFPourProduit(produitId) {
     const ref = nextRef('OF', _ofs);
     const of = await createOF({
       ref, produit_id: produitId, produit_nom: p.nom, quantite: ligne.resteAProduire,
-      date_prevue: null, statut: 'planifie', commandes_ids: commandesIds,
-      notes: 'Depuis besoins de production',
+      date_prevue: datePrevue || null, statut: 'planifie', commandes_ids: commandesIds,
+      notes: 'Depuis commandes en cours',
     });
     _ofs.push(of);
     _renderBadges();
@@ -691,7 +717,9 @@ export async function creerOFPourProduit(produitId) {
     _renderCommandesEnCours();
     _renderVueConsolidee();
     _renderBesoins();
-    showToast(`✅ OF ${ref} créé — ${fmtQ(ligne.resteAProduire)} ${p.nom} à produire, choisissez sa date dans la liste.`);
+    showToast(datePrevue
+      ? `✅ OF ${ref} créé et planifié — ${fmtQ(ligne.resteAProduire)} ${p.nom} à produire.`
+      : `✅ OF ${ref} créé — ${fmtQ(ligne.resteAProduire)} ${p.nom} à produire, choisissez sa date dans la liste.`);
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'production' } }));
   } catch (err) {
     console.error('[production] creerOFPourProduit ERREUR:', err.message, err);
