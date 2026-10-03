@@ -20,8 +20,9 @@ import {
 import {
   fmt, fmtQ, esc, badgePlan, showToast, today,
   openModal, closeModal, nextRef, confirmDialog, estSurveille,
-  allouerStockSequentiel,
+  allouerStockSequentiel, selectStatutCmd, restyleSelectStatutCmd,
 } from '../ui.js';
+import { changerStatutCommande } from './commandes.js';
 
 let _ofs       = [];
 let _commandes = [];
@@ -55,6 +56,7 @@ export async function render() {
   await _chargerRecettes();
   _renderBadges();
   _renderCalendrier();
+  _renderCommandesEnCours();
   _renderOFs();
   _renderVueConsolidee();
   _renderBesoins();
@@ -217,52 +219,103 @@ function _renderCalendrier() {
    - Croix suppression discrète (gris, petite)
    - Select statut sans border colorée
 ------------------------------------------------------- */
-/* Commandes (hors clôturée/annulée) dont au moins une ligne n'a encore
-   aucun OF actif qui la couvre — donc absentes de la table tant que
-   personne n'a décidé de produire. Montrées ici, avec un bouton pour
-   créer l'OF manquant directement depuis la ligne, pour que la table
-   liste bien tous les bons de commande, complets ou non. */
-function _commandesSansOF() {
-  return _commandes.filter(c => c.statut !== 'cloture' && c.statut !== 'annule').filter(c => {
-    const lignes = c.commande_lignes || [];
-    if (!lignes.length) return false;
-    return lignes.some(l => !_ofs.some(o => o.statut !== 'annule'
-      && Array.isArray(o.commandes_ids) && o.commandes_ids.includes(c.id)
-      && o.produit_id === l.produit_id));
+/* -------------------------------------------------------
+   COMMANDES EN COURS
+   Vue de suivi client, pas de décision de production : une ligne par
+   commande non clôturée, date de livraison + statut (même contrôle que
+   Commandes Clients et Dashboard, toujours synchronisé), dépliable pour
+   voir quels produits de CETTE commande sont déjà couverts par le stock
+   (vert) et lesquels restent à produire (rouge) — allouerStockSequentiel,
+   la même allocation que partout ailleurs.
+   Aucune action de production ici : créer ou clôturer un OF se fait
+   depuis Besoins de production par produit (quantité cumulée, toutes
+   commandes confondues — un artisan produit une fournée pour plusieurs
+   clients à la fois, jamais une par commande).
+------------------------------------------------------- */
+function _commandesEnCours() {
+  return _commandes.filter(c => c.statut !== 'cloture' && c.statut !== 'annule');
+}
+
+/* Pour une commande donnée, couvert/à produire par ligne — recalculé à
+   chaque appel à partir du stock et des commandes actuelles. */
+function _detailPretCommande(c) {
+  return (c.commande_lignes || []).map(l => {
+    const p = _produits.find(x => x.id === l.produit_id);
+    if (!p) return { produit_nom: l.produit_nom, quantite: l.quantite, couvert: 0, aProduire: l.quantite };
+    const besoins = [];
+    _commandes.filter(cc => cc.statut !== 'cloture' && cc.statut !== 'annule').forEach(cc => {
+      (cc.commande_lignes || []).forEach(ll => {
+        if (ll.produit_id !== l.produit_id) return;
+        besoins.push({ id: ll.id || (cc.id + '_' + l.produit_id), commandeId: cc.id, quantite: ll.quantite, created_at: cc.created_at || cc.date_cmd });
+      });
+    });
+    const alloc = allouerStockSequentiel(p.stock, besoins);
+    const mine = alloc.find(b => b.commandeId === c.id && (!l.id || b.id === l.id));
+    return { produit_nom: l.produit_nom, quantite: l.quantite, couvert: mine ? mine.couvert : 0, aProduire: mine ? mine.aProduire : l.quantite };
   });
 }
 
-function _toggleDetailCommandeSansOF(id) {
-  const tbody = document.getElementById('planningTbody');
-  if (!tbody) return;
-  const tr = tbody.querySelector(`tr.cmd-sans-of-row[data-id="${id}"]`);
-  if (!tr) return;
-
-  const dejaOuvert = tbody.querySelector(`tr.cmd-sans-of-detail-row[data-cmd="${id}"]`);
-  tbody.querySelectorAll('tr.cmd-sans-of-detail-row').forEach(r => r.remove());
-  if (dejaOuvert) return;
-
-  const c = _commandes.find(x => x.id === id);
-  if (!c) return;
+/* Vrai si TOUTES les lignes de la commande sont couvertes par le stock
+   actuel, selon la même allocation séquentielle — utilisé pour faire
+   passer automatiquement une commande à « prêt » dès que la production
+   (clôture d'OF) ou un inventaire renfloue le stock. */
+function _commandeEstCouverte(c) {
   const lignes = c.commande_lignes || [];
-  const rows = lignes.length
-    ? lignes.map(l => `<tr>
-        <td style="padding:4px 10px;font-size:11px;">${esc(l.produit_nom || '—')}</td>
-        <td style="padding:4px 10px;font-size:11px;text-align:right;"><strong>${fmtQ(l.quantite)}</strong></td>
-      </tr>`).join('')
-    : `<tr><td colspan="2" style="padding:6px 10px;font-size:11px;color:var(--ink-muted)">Aucun article.</td></tr>`;
+  if (!lignes.length) return false;
+  return _detailPretCommande(c).every(l => l.aProduire <= 0);
+}
 
-  const detailTr = document.createElement('tr');
-  detailTr.className = 'cmd-sans-of-detail-row';
-  detailTr.dataset.cmd = id;
-  detailTr.innerHTML = `<td colspan="7" style="background:#FAFAF8;padding:8px 12px;">
-    <div style="font-size:10.5px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;">Articles de la commande ${esc(c.ref)}</div>
-    <table style="width:auto;min-width:260px;"><thead><tr>
-      <th style="padding:2px 10px;font-size:10px;text-align:left;">Produit</th>
-      <th style="padding:2px 10px;font-size:10px;text-align:right;">Quantité</th>
-    </tr></thead><tbody>${rows}</tbody></table>
-  </td>`;
-  tr.after(detailTr);
+function _renderCommandesEnCours() {
+  const tbody = document.getElementById('prodCommandesTbody');
+  if (!tbody) return;
+
+  const commandes = _commandesEnCours();
+
+  if (!commandes.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:14px;color:var(--ink-muted)">Aucune commande en cours.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = commandes.map(c => `
+    <tr class="prod-cmd-row" data-id="${esc(c.id)}" style="cursor:pointer;">
+      <td style="width:18px;"><span class="prod-cmd-chevron">▶</span></td>
+      <td class="td-ref">${esc(c.ref)}</td>
+      <td class="td-bold">${esc(c.client_nom || '—')}</td>
+      <td>${esc(c.date_livraison || '—')}</td>
+      <td onclick="event.stopPropagation()">${selectStatutCmd(c.id, c.statut)}</td>
+    </tr>
+    <tr class="prod-cmd-detail" data-id="${esc(c.id)}" style="display:none;">
+      <td colspan="5" style="background:var(--ui-bg2);padding:10px 14px;">
+        <table style="width:100%;">
+          <thead><tr><th>Produit</th><th>Qté commandée</th><th>Couvert</th><th>À produire</th></tr></thead>
+          <tbody>${_detailPretCommande(c).map(l => `<tr>
+            <td class="td-bold">${esc(l.produit_nom || '—')}</td>
+            <td>${fmtQ(l.quantite)}</td>
+            <td style="color:#15803D;font-weight:700;">${fmtQ(l.couvert)}</td>
+            <td style="color:${l.aProduire > 0 ? '#B42318' : 'var(--ink-muted)'};font-weight:${l.aProduire > 0 ? '700' : '400'};">${l.aProduire > 0 ? fmtQ(l.aProduire) : '—'}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </td>
+    </tr>`).join('');
+
+  tbody.onclick = (e) => {
+    const row = e.target.closest('.prod-cmd-row');
+    if (!row) return;
+    const id = row.dataset.id;
+    const detail = tbody.querySelector(`.prod-cmd-detail[data-id="${id}"]`);
+    if (!detail) return;
+    const ouvert = detail.style.display !== 'none';
+    detail.style.display = ouvert ? 'none' : '';
+    const chevron = row.querySelector('.prod-cmd-chevron');
+    if (chevron) chevron.textContent = ouvert ? '▶' : '▼';
+  };
+
+  tbody.onchange = async (e) => {
+    const sel = e.target.closest('.cmd-statut-select');
+    if (!sel) return;
+    restyleSelectStatutCmd(sel);
+    await changerStatutCommande(sel.dataset.id, sel.value);
+  };
 }
 
 function _renderOFs() {
@@ -270,9 +323,8 @@ function _renderOFs() {
   /* Un OF clos sort de cette table dès sa clôture — il vit désormais dans
      Historique de production, jamais les deux à la fois. */
   const ofsActifs = _ofs.filter(o => o.statut !== 'clos');
-  const commandesSansOF = _commandesSansOF();
 
-  if (!ofsActifs.length && !commandesSansOF.length) {
+  if (!ofsActifs.length) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun ordre de fabrication.</td></tr>';
     return;
   }
@@ -302,23 +354,7 @@ function _renderOFs() {
     return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d;
   };
 
-  const rowsCmdSansOF = commandesSansOF.map(c => {
-    const lignes = c.commande_lignes || [];
-    const produitLabel = lignes.length === 1 ? esc(lignes[0].produit_nom || '—') : `${lignes.length} produits`;
-    return `<tr data-id="${esc(c.id)}" class="cmd-sans-of-row" style="cursor:pointer;" title="Cliquer pour voir les articles de la commande">
-      <td class="td-ref">${esc(c.ref)}</td>
-      <td class="td-bold">${produitLabel}</td>
-      <td>—</td>
-      <td style="font-size:11.5px;">${esc(c.client_nom || '—')}</td>
-      <td style="font-size:11.5px;color:var(--ink-muted);">—</td>
-      <td data-no-toggle><span style="font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(245,158,11,0.12);color:#b45309;">Pas encore planifié</span></td>
-      <td data-no-toggle>
-        <button class="btn btn-primary btn-xs" data-id="${esc(c.id)}" data-action="creer-of-depuis-commande">Créer OF</button>
-      </td>
-    </tr>`;
-  }).join('');
-
-  const rowsOF = ofsActifs.map(of => {
+  tbody.innerHTML = ofsActifs.map(of => {
     const sb = STATUT_BADGE[of.statut] || STATUT_BADGE['a_planifier'];
     return `<tr data-id="${of.id}" class="of-row" style="cursor:pointer;" title="Cliquer pour voir le détail par client">
       <td class="td-ref">${esc(of.ref)}</td>
@@ -352,8 +388,6 @@ function _renderOFs() {
       </td>
     </tr>`;
   }).join('');
-
-  tbody.innerHTML = rowsCmdSansOF + rowsOF;
 
   tbody.onchange = async (e) => {
     const el = e.target.closest('[data-action]');
@@ -389,17 +423,8 @@ function _renderOFs() {
       await _supprimerOF(btn.dataset.id);
       return;
     }
-    const btnCreer = e.target.closest('[data-action="creer-of-depuis-commande"]');
-    if (btnCreer) {
-      e.stopPropagation();
-      const c = _commandes.find(x => x.id === btnCreer.dataset.id);
-      if (c) await creerOFsPourCommande(c);
-      return;
-    }
     if (e.target.closest('[data-no-toggle]')) return;
-    const trCmd = e.target.closest('tr.cmd-sans-of-row[data-id]');
-    if (trCmd) { _toggleDetailCommandeSansOF(trCmd.dataset.id); return; }
-    const tr = e.target.closest('tr.of-row[data-id]');
+    const tr = e.target.closest('tr[data-id]');
     if (tr) _toggleDetailOF(tr.dataset.id);
   };
 }
@@ -562,7 +587,7 @@ function _renderVueConsolidee() {
   const lignes = _vueConsolideeParProduit();
 
   if (!lignes.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:14px;color:var(--ink-muted)">Aucun OF actif ni commande en attente.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:14px;color:var(--ink-muted)">Aucun OF actif ni commande en attente.</td></tr>';
     return;
   }
 
@@ -570,6 +595,9 @@ function _renderVueConsolidee() {
     const resteBadge = l.resteAProduire > 0
       ? `<span class="badge badge-alert">${fmtQ(l.resteAProduire)} à produire</span>`
       : '<span class="badge badge-ok">✓ Tout couvert</span>';
+    const creerOFBtn = l.resteAProduire > 0
+      ? `<button class="btn btn-primary btn-xs" data-id="${esc(l.produitId)}" data-action="creer-of-produit">Créer OF</button>`
+      : '';
     const ofInfo = l.qteOF > 0
       ? `<strong>${fmtQ(l.qteOF)}</strong> <span style="font-size:10px;color:var(--ink-muted)">(${l.ofsRefs.join(', ')})</span>`
       : '<span style="color:var(--ink-muted)">aucun</span>';
@@ -600,9 +628,10 @@ function _renderVueConsolidee() {
         <td>${fmtQ(l.demandeTotale)}</td>
         <td>${ofInfo}</td>
         <td>${resteBadge}</td>
+        <td data-no-toggle>${creerOFBtn}</td>
       </tr>
       <tr class="prod-vue-detail" data-id="${esc(l.produitId)}" style="display:none;">
-        <td colspan="6" style="background:var(--ui-bg2);padding:10px 14px;">
+        <td colspan="7" style="background:var(--ui-bg2);padding:10px 14px;">
           <table style="width:100%;">
             <thead><tr><th>N° commande</th><th>Client</th><th>Ordre</th><th>Faisable / Reste</th><th>Couvert</th><th>À produire</th></tr></thead>
             <tbody>${detailRows}</tbody>
@@ -611,7 +640,14 @@ function _renderVueConsolidee() {
       </tr>`;
   }).join('');
 
-  tbody.onclick = (e) => {
+  tbody.onclick = async (e) => {
+    const btnCreer = e.target.closest('[data-action="creer-of-produit"]');
+    if (btnCreer) {
+      e.stopPropagation();
+      await creerOFPourProduit(btnCreer.dataset.id);
+      return;
+    }
+    if (e.target.closest('[data-no-toggle]')) return;
     const row = e.target.closest('.prod-vue-row');
     if (!row) return;
     const id = row.dataset.id;
@@ -622,6 +658,45 @@ function _renderVueConsolidee() {
     const chevron = row.querySelector('.prod-vue-chevron');
     if (chevron) chevron.textContent = ouvert ? '▶' : '▼';
   };
+}
+
+/* -------------------------------------------------------
+   CRÉER OF DEPUIS LE RESTE À PRODUIRE D'UN PRODUIT
+   Une seule fournée qui couvre d'un coup toutes les commandes en attente
+   de ce produit — jamais un OF par commande : c'est comme ça qu'un
+   artisan produit réellement. commandes_ids porte la liste des commandes
+   couvertes par cette fournée, pour que creerOFsPourCommande() (déclenché
+   quand une commande passe à « planifié ») ne recrée pas un second OF en
+   double pour elles.
+------------------------------------------------------- */
+export async function creerOFPourProduit(produitId) {
+  const ligne = _vueConsolideeParProduit().find(l => l.produitId === produitId);
+  if (!ligne || ligne.resteAProduire <= 0) return;
+  const p = _produits.find(x => x.id === produitId);
+  if (!p) return;
+
+  const commandesIds = [...new Set(ligne.clients.filter(c => c.aProduire > 0).map(c => c.commandeId))];
+
+  try {
+    const ref = nextRef('OF', _ofs);
+    const of = await createOF({
+      ref, produit_id: produitId, produit_nom: p.nom, quantite: ligne.resteAProduire,
+      date_prevue: null, statut: 'planifie', commandes_ids: commandesIds,
+      notes: 'Depuis besoins de production',
+    });
+    _ofs.push(of);
+    _renderBadges();
+    _renderOFs();
+    _renderCalendrier();
+    _renderCommandesEnCours();
+    _renderVueConsolidee();
+    _renderBesoins();
+    showToast(`✅ OF ${ref} créé — ${fmtQ(ligne.resteAProduire)} ${p.nom} à produire, choisissez sa date dans la liste.`);
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'production' } }));
+  } catch (err) {
+    console.error('[production] creerOFPourProduit ERREUR:', err.message, err);
+    showToast('❌ Erreur création OF.', 'error');
+  }
 }
 
 /* -------------------------------------------------------
@@ -910,10 +985,12 @@ async function _terminerFabrication(id) {
 
     for (const c of _commandes) {
       if (!['planifie', 'en_production'].includes(c.statut)) continue;
-      const toutOK = (c.commande_lignes || []).every(l => {
-        const pp = _produits.find(x => x.id === l.produit_id);
-        return pp && pp.stock >= l.quantite;
-      });
+      /* Même allocation séquentielle que partout ailleurs (Commandes
+         Clients, Besoins de production) — pas le stock brut comparé
+         indépendamment pour chaque commande, sinon deux commandes sur le
+         même produit se voient toutes les deux déclarées « prêtes » avec
+         un seul stock qui ne couvre en réalité qu'une des deux. */
+      const toutOK = _commandeEstCouverte(c);
       if (toutOK) {
         try { await updateCommandeStatut(c.id, 'pret'); } catch (e) {
           console.error('[production] passage a pret non bloquant:', e.message);
@@ -972,6 +1049,7 @@ async function _terminerFabrication(id) {
     _renderBadges();
     _renderOFs();
     _renderCalendrier();
+    _renderCommandesEnCours();
     _renderVueConsolidee();
     _renderBesoins();
     _renderHistorique();
@@ -1059,6 +1137,7 @@ export async function creerOFsPourCommande(commande) {
     _renderBadges();
     _renderOFs();
     _renderCalendrier();
+    _renderCommandesEnCours();
     _renderVueConsolidee();
     _renderBesoins();
     showToast(`✅ ${crees} ordre${crees > 1 ? 's' : ''} de fabrication créé${crees > 1 ? 's' : ''} depuis ${commande.ref || 'la commande'} — choisissez leur date dans la liste.`);

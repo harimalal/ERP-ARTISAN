@@ -204,12 +204,15 @@ function renderStockProduits(produits) {
 
 /* -------------------------------------------------------
    COMMANDES CLIENTS EN COURS
-   Toutes les commandes hors clôturée (pas seulement les 8 dernières).
-   Chaque ligne est dépliable — le détail affiche les produits commandés.
-   Le statut se change directement ici via le même contrôle que le
-   module Commandes Clients (selectStatutCmd / changerStatutCommande,
+   Volontairement une simple vue d'ensemble — référence, client, date
+   de livraison, statut — rien de plus. Le détail commercial (lignes,
+   prix, faisabilité) vit dans Commandes Clients ; le détail prêt/à
+   produire vit dans Production. Trois écrans suivent les commandes en
+   cours, chacun avec son propre rôle, pour ne pas répéter trois fois la
+   même chose. Le statut se change directement ici via le même contrôle
+   que le module Commandes Clients (selectStatutCmd / changerStatutCommande,
    ui.js + commandes.js) : un seul code qui décide, jamais deux qui
-   pourraient diverger entre Dashboard et Commandes Clients.
+   pourraient diverger.
 ------------------------------------------------------- */
 function renderDernieresCommandes(commandes, produits) {
   const el = document.getElementById('dashCommandes');
@@ -220,55 +223,23 @@ function renderDernieresCommandes(commandes, produits) {
     return;
   }
 
-  const rows = rec.map(c => {
-    const tot = (c.commande_lignes || []).reduce((s, l) => s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
-    const items = (c.commande_lignes || []).map(l => `
-      <tr>
-        <td class="td-bold">${esc(l.produit_nom || '—')}</td>
-        <td><strong>${fmtQ(l.quantite)}</strong></td>
-        <td>${fmt(l.prix_unitaire)} €</td>
-        <td style="font-weight:600">${fmt(l.total_ht || l.quantite * l.prix_unitaire)} €</td>
-      </tr>`).join('') || '<tr><td colspan="4" style="color:var(--ink-muted);">Aucun article.</td></tr>';
-
-    return `
-      <tr class="dash-cmd-row" data-id="${esc(c.id)}" style="cursor:pointer;">
-        <td style="width:18px;"><span class="dash-cmd-chevron">▶</span></td>
-        <td class="td-ref">${esc(c.ref)}</td>
-        <td class="td-bold">${esc(c.client_nom)}</td>
-        <td>${esc(c.date_livraison || '—')}</td>
-        <td style="font-weight:600">${fmt(tot)} €</td>
-        <td onclick="event.stopPropagation()">${selectStatutCmd(c.id, c.statut)}</td>
-      </tr>
-      <tr class="dash-cmd-detail" data-id="${esc(c.id)}" style="display:none;">
-        <td colspan="6" style="background:var(--ui-bg2);padding:10px 14px;">
-          <table style="width:100%;">
-            <thead><tr><th>Produit</th><th>Qté</th><th>Prix unit.</th><th>Total</th></tr></thead>
-            <tbody>${items}</tbody>
-          </table>
-        </td>
-      </tr>`;
-  }).join('');
+  const rows = rec.map(c => `
+    <tr>
+      <td class="td-ref">${esc(c.ref)}</td>
+      <td class="td-bold">${esc(c.client_nom)}</td>
+      <td>${esc(c.date_livraison || '—')}</td>
+      <td>${selectStatutCmd(c.id, c.statut)}</td>
+    </tr>`).join('');
 
   el.innerHTML = `
     <table>
-      <thead><tr><th></th><th>Réf</th><th>Client</th><th>Livraison</th><th>Montant</th><th>Statut</th></tr></thead>
+      <thead><tr><th>Réf</th><th>Client</th><th>Livraison</th><th>Statut</th></tr></thead>
       <tbody id="dashCommandesTbody">${rows}</tbody>
     </table>`;
 
   const tbody = document.getElementById('dashCommandesTbody');
 
-  /* Règle 7 — onclick/onchange (écrasés à chaque render), pas addEventListener */
-  tbody.onclick = (e) => {
-    const row = e.target.closest('.dash-cmd-row');
-    if (!row) return;
-    const id = row.dataset.id;
-    const detail = tbody.querySelector(`.dash-cmd-detail[data-id="${id}"]`);
-    if (!detail) return;
-    const ouvert = detail.style.display !== 'none';
-    detail.style.display = ouvert ? 'none' : '';
-    const chevron = row.querySelector('.dash-cmd-chevron');
-    if (chevron) chevron.textContent = ouvert ? '▶' : '▼';
-  };
+  /* Règle 7 — onchange (écrasé à chaque render), pas addEventListener */
 
   tbody.onchange = async (e) => {
     const sel = e.target.closest('.cmd-statut-select');

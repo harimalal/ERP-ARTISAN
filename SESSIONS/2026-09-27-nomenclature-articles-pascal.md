@@ -340,3 +340,44 @@ apparaissent bien comme "Pas encore planifié" ; TEST-CMD-03 (couverte par
 OF0001/2/3) et TEST-CMD-05 (couverte par OF0004 — créé en dehors de cette
 session, probablement par Pascal lui-même sur son compte réel) n'y
 apparaissent pas, à juste titre.
+
+## Production — refonte par bon de commande + automatisation statut (2026-10-03)
+
+Suite à la discussion sur "produit fini vs bulk/quantité qui couvre
+plusieurs commandes" : confirmation que l'app fonctionne par produit fini
+partout, et que produire pour plusieurs commandes à la fois (une fournée,
+jamais un batch par client) doit être la norme — ce que la vue consolidée
+par produit (Besoins de production) permettait déjà de voir, mais sans
+pouvoir agir dessus.
+
+1. Page Production réorganisée en 3 rôles distincts, pour que chaque vue
+   des "commandes en cours" (Dashboard, Commandes Clients, Production)
+   ait une fonction propre et ne répète pas les autres :
+   - Commandes en cours (nouveau, prodCommandesTbody) : suivi client pur,
+     une ligne par commande non clôturée (réf, client, livraison, statut
+     — même contrôle que partout ailleurs), dépliable pour voir prêt
+     (vert) / à produire (rouge) par ligne. Aucune action de production.
+   - Besoins de production par produit (existant, enrichi) : bouton
+     "Créer OF" quand reste à produire > 0 — crée UNE fournée qui couvre
+     d'un coup toutes les commandes en attente de ce produit
+     (creerOFPourProduit, commandes_ids = liste des commandes couvertes).
+   - Ordres de fabrication (OF) : revenu à son rôle d'origine, liste des
+     OF réels avec date/statut/clôture — la ligne "commandes sans OF"
+     ajoutée la session précédente est retirée, remplacée par les 2
+     points ci-dessus.
+2. Bug corrigé dans _terminerFabrication (clôture d'un OF) : le passage
+   automatique d'une commande à "prêt" comparait le stock brut du produit
+   à la quantité de CHAQUE commande indépendamment (`pp.stock >=
+   l.quantite`) — exactement le bug d'allocation déjà corrigé ailleurs
+   cette session, mais oublié ici. Remplacé par
+   allouerStockSequentiel() (nouvelle fonction _commandeEstCouverte).
+   Vérifié sur les vraies données : Rhubarbe stock 21, TEST-CMD-03 (15)
+   et TEST-CMD-04 (10) enregistrées au même instant — l'ancien calcul
+   aurait déclaré TEST-CMD-03 "prête" (21 ≥ 15) en ignorant que
+   TEST-CMD-04 consomme aussi ce stock ; le nouveau calcul la garde à
+   juste titre non couverte (seulement 11 des 15 disponibles après
+   allocation du tie-break).
+3. Dashboard : table Commandes Clients en cours simplifiée à l'essentiel
+   (réf, client, livraison, statut) — retrait du montant et de la liste
+   d'articles dépliable, qui vivent déjà dans Commandes Clients et
+   Production. But explicite : que chaque écran ait un intérêt propre.
