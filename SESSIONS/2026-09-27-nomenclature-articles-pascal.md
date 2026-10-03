@@ -318,3 +318,25 @@ onglets (un par section), affichage pur show/hide sur des conteneurs
 touchée avec le reste du code (recherche, formulaires d'édition,
 suppression doublons, import IA/avancé). Catégories d'articles reste
 nichée dans l'onglet Articles (details/summary existant, inchangé).
+
+## Ordres de fabrication — commandes sans OF (2026-10-03, option 2)
+
+Suite à la question « pourquoi les Ordres de fabrication ne listent pas
+tous les produits manquants » : diagnostic posé (OF = décision de
+production déjà prise ; Besoins de production par produit = calcul brut,
+qu'un OF existe ou non) puis 2 options présentées. Option 2 retenue :
+ajouter dans la table Ordres de fabrication les commandes (hors
+clôturée/annulée) dont au moins une ligne n'a encore aucun OF actif qui la
+couvre, avec un badge "Pas encore planifié" et un bouton "Créer OF"
+(réutilise creerOFsPourCommande, idempotent) directement depuis la ligne.
+Chaque ligne se déplie au clic pour voir les articles de ce bon de
+commande et leurs quantités. La création/clôture d'OF elle-même n'est pas
+touchée.
+
+Vérifié en direct contre les vraies données de ce tenant (lecture seule) :
+TEST-CMD-01 et TEST-CMD-02 (aucun OF) et TEST-CMD-04 (Griotte/Rhubarbe,
+seules les lignes de TEST-CMD-03 sont couvertes par OF0002/OF0003)
+apparaissent bien comme "Pas encore planifié" ; TEST-CMD-03 (couverte par
+OF0001/2/3) et TEST-CMD-05 (couverte par OF0004 — créé en dehors de cette
+session, probablement par Pascal lui-même sur son compte réel) n'y
+apparaissent pas, à juste titre.
