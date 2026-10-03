@@ -1248,6 +1248,11 @@ function setActiveNav(page) {
       openModal('modalPlanifier');
     });
 
+    document.addEventListener('appmee:commandePlanifiee', (e) => {
+      const { commande } = e.detail || {};
+      if (commande && production.creerOFsPourCommande) production.creerOFsPourCommande(commande);
+    });
+
     document.addEventListener('appmee:openAchatFor', (e) => {
       const { ref, qte, lignes, fournisseur } = e.detail || {};
       if (achats.initAchatModal) {

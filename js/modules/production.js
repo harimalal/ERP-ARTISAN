@@ -859,6 +859,57 @@ async function _creerOF(produitId, qte) {
 }
 
 /* -------------------------------------------------------
+   AUTO-OF À LA PLANIFICATION D'UNE COMMANDE
+   Quand une commande passe de « à produire » à « planifié »
+   (app.html, evenement appmee:commandePlanifiee), chacune de ses
+   lignes devient un OF sans date — la date se choisit ensuite
+   depuis la liste des OF (crayon sur la colonne date), exactement
+   comme pour un OF cree a la main.
+   Idempotent : recharge toujours les OF avant de verifier, et ne
+   recree jamais un OF deja lie a cette commande pour ce produit
+   (colonne commandes_ids) — une commande qui repasserait par
+   « planifie » n'en cree pas un second.
+------------------------------------------------------- */
+export async function creerOFsPourCommande(commande) {
+  if (!commande || !Array.isArray(commande.commande_lignes) || !commande.commande_lignes.length) return;
+
+  try { _ofs = await getAllOFs(); } catch (_) {}
+
+  let crees = 0;
+  for (const l of commande.commande_lignes) {
+    if (!l.produit_id || !l.quantite) continue;
+    const dejaCree = _ofs.some(o => o.statut !== 'annule'
+      && Array.isArray(o.commandes_ids) && o.commandes_ids.includes(commande.id)
+      && o.produit_id === l.produit_id);
+    if (dejaCree) continue;
+
+    try {
+      const ref = nextRef('OF', _ofs);
+      const of = await createOF({
+        ref, produit_id: l.produit_id, produit_nom: l.produit_nom,
+        quantite: l.quantite, date_prevue: null, statut: 'planifie',
+        commandes_ids: [commande.id],
+        notes: 'Depuis commande ' + (commande.ref || ''),
+      });
+      _ofs.push(of);
+      crees++;
+    } catch (err) {
+      console.error('[production] creerOFsPourCommande ERREUR:', err.message, err);
+    }
+  }
+
+  if (crees) {
+    _renderBadges();
+    _renderOFs();
+    _renderCalendrier();
+    _renderFabPlan();
+    _renderBesoins();
+    showToast(`✅ ${crees} ordre${crees > 1 ? 's' : ''} de fabrication créé${crees > 1 ? 's' : ''} depuis ${commande.ref || 'la commande'} — choisissez leur date dans la liste.`);
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'production' } }));
+  }
+}
+
+/* -------------------------------------------------------
    FORMULAIRE PLANIFIER OF
 ------------------------------------------------------- */
 function _bindPlanifierForm() {
