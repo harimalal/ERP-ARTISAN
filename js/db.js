@@ -10,7 +10,7 @@
    Fix S10 — Ajout deleteAchat (suppression physique BC)
 ------------------------------------------------------- */
 
-import { supabase, STATUTS_COMMANDE } from './config.js';
+import { supabase } from './config.js';
 import { getTenantId } from './auth.js';
 
 /* -------------------------------------------------------
@@ -443,14 +443,6 @@ export async function updateCommandePrioritaire(id, prioritaire) {
     .single();
   if (error) handleError('updateCommandePrioritaire', error);
   return data;
-}
-
-export async function avancerStatutCommande(id) {
-  const cmd = await getCommande(id);
-  if (!cmd) return null;
-  const idx = STATUTS_COMMANDE.indexOf(cmd.statut);
-  const next = STATUTS_COMMANDE[Math.min(idx + 1, STATUTS_COMMANDE.length - 1)];
-  return updateCommandeStatut(id, next);
 }
 
 /* Les lignes partent en cascade (FK commande_lignes → commandes ON DELETE

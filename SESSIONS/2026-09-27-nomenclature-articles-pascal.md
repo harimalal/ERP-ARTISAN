@@ -228,3 +228,81 @@ qu'elle n'est pas, elle aussi, avancée à "planifié".
 
 Ces 3 OF portent le même tag [TEST]/commandes_ids que les commandes
 fictives — à supprimer avec elles sur demande.
+
+## Batch « Améliorations » — Dashboard / Stock / Commandes / Production (2026-10-03)
+
+Changement de CODE uniquement, valable pour tous les tenants. Aucune
+donnée Pascal modifiée dans ce lot (lu seulement, pour vérifier en
+conditions réelles sur TEST-CMD-01..05).
+
+Root cause corrigée en premier (fondation du reste) : le listener
+`appmee:datachanged` dans app.html ne réagissait qu'aux entités
+'import_masse'/'import_ia' — tout changement de statut commande/production
+ailleurs dans l'app ne synchronisait jamais les autres écrans. Élargi à
+toute entité.
+
+1. js/ui.js — `allouerStockSequentiel(stockDisponible, besoins)` : répartit
+   le stock d'un produit entre ses commandes dans l'ordre d'enregistrement
+   (la plus ancienne d'abord, tie-break = plus petite quantité entre deux
+   commandes enregistrées au même instant). Fonction unique réutilisée par
+   Commandes Clients ET Production — jamais deux calculs séparés qui
+   pourraient diverger. Testée isolément (13 assertions, cas réels Griotte
+   stock 18 / 10+12, Rhubarbe, stock 0, stock largement suffisant,
+   tie-break) avant intégration.
+   + `estAlerteDashboard(item)` : réservé aux 4 encarts d'alertes du
+   Dashboard, exclut le stock à 0 (Stock Articles/Produits
+   Finis/Production continuent de voir les vraies ruptures).
+   + `selectStatutCmd()`/`restyleSelectStatutCmd()` : liste déroulante
+   statut numérotée et colorée, remplace le bouton "Avancer", partagée
+   entre Dashboard et Commandes Clients.
+   + `stockStatus()` : stock à 0 affiche désormais "Hors stock" (au lieu
+   de "Rupture").
+
+2. Stock Articles (stock.js) + Produits Finis (produits.js) : suppression
+   de la case "hors stock" manuelle et de tout ce qu'elle impliquait
+   (colonne, checkbox, mise à jour en base). Remplacée par la règle :
+   stock réel à 0 ⇒ badge "Hors stock" automatique, mais toujours une
+   vraie alerte dans ces deux modules et en Production (seul le Dashboard
+   l'exclut, via estAlerteDashboard).
+
+3. Dashboard (dashboard.js + app.html) : le bloc commandes passe en
+   premier sous les KPIs, renommé "Commandes Clients en cours" ; affiche
+   toutes les commandes hors clôturée (plus de limite à 8) ; colonne
+   Livraison (date_livraison) au lieu de la date de commande ; chaque
+   ligne se déplie au clic pour voir les articles commandés ; statut
+   changeable directement via la même liste déroulante que Commandes
+   Clients (changerStatutCommande, importé depuis commandes.js — un seul
+   code qui décide du changement de statut, jamais deux).
+
+4. Commandes Clients (commandes.js) : bouton "Avancer" remplacé par la
+   liste déroulante numérotée/colorée ; bouton aperçu PDF retiré ; la
+   colonne Faisable de chaque ligne utilise désormais
+   allouerStockSequentiel() au lieu de comparer bêtement la ligne au
+   stock total (qui faisait comparer chaque commande au stock plein,
+   sans tenir compte des commandes déjà enregistrées avant elle sur le
+   même produit). Nouvelle commande : statut de départ "planifié" (plus
+   "à produire") — elle apparaît donc immédiatement en Ordres de
+   fabrication, sans date (choisie ensuite dans la liste des OF).
+   `avancerStatutCommande` (db.js) et les constantes STATUTS_COMMANDE /
+   STATUTS_COMMANDE_LABELS (config.js), devenues inutilisées par ce
+   changement, ont été supprimées.
+
+5. Production (production.js + app.html) : la table "Plan de
+   fabrication" est remplacée par une vue consolidée par produit (une
+   ligne par produit fini, stock / demande totale / OF en cours / reste
+   à produire mis en avant), dépliable pour voir la répartition par
+   client — vert = couvert par le stock actuel, rouge = à produire pour
+   couvrir les autres clients — via allouerStockSequentiel(). La table
+   "Articles à commander" reste inchangée (alerte matières premières,
+   pas produits finis). La table "Ordres de fabrication" (dates, statuts,
+   clôture) n'a pas été touchée : c'est elle qui agit réellement sur le
+   stock à la clôture, la fusionner dans la nouvelle vue aurait fait
+   perdre l'édition de date/statut par OF individuel — signalé pour
+   validation si une fusion plus poussée est souhaitée.
+
+Vérifié avant livraison : node --check sur les 10 fichiers touchés +
+extraction/validation du script module de app.html ; test isolé des 13
+assertions allouerStockSequentiel ; relecture manuelle contre les
+commandes/produits réels de ce tenant (Griotte stock 18, Rhubarbe stock
+21, tie-break sur commandes enregistrées au même instant) ; suite de
+tests unitaires existante (2/2) toujours verte.

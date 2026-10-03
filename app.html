@@ -163,6 +163,16 @@
 <!-- DASHBOARD -->
 <div id="page-dashboard" class="page active">
   <div class="kpi-grid" id="kpiGrid"></div>
+  <div class="card">
+    <div class="card-hdr hdr-blue">
+      <span class="card-hdr-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Commandes Clients en cours
+      </span>
+      <button class="btn btn-ghost btn-sm" data-page-nav="commandes">Voir tout →</button>
+    </div>
+    <div id="dashCommandes"></div>
+  </div>
   <div class="dash-grid-2">
     <div class="card">
       <div class="card-hdr hdr-alert">
@@ -182,16 +192,6 @@
       </div>
       <div id="dashProduits"></div>
     </div>
-  </div>
-  <div class="card">
-    <div class="card-hdr hdr-blue">
-      <span class="card-hdr-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        Dernières commandes
-      </span>
-      <button class="btn btn-ghost btn-sm" data-page-nav="commandes">Voir tout →</button>
-    </div>
-    <div id="dashCommandes"></div>
   </div>
 </div>
 
@@ -219,7 +219,6 @@
         <th class="sortable" data-sort-col="6">Statut <span class="sort-ico"></span></th>
         <th class="sortable" data-sort-col="7">Prix achat <span class="sort-ico"></span></th>
         <th class="sortable" data-sort-col="8">Fournisseur <span class="sort-ico"></span></th>
-        <th title="Coche = article non suivi : plus aucune alerte de stock">Hors stock</th>
         <th>Actions</th>
       </tr>
       <tr id="stockFilterRow">
@@ -232,7 +231,6 @@
         <th><select class="stock-col-filter" data-col="6"><option value="">Tous</option></select></th>
         <th><select class="stock-col-filter" data-col="7"><option value="">Tous</option></select></th>
         <th><select class="stock-col-filter" data-col="8"><option value="">Tous</option></select></th>
-        <th></th>
         <th></th>
       </tr></thead>
       <tbody id="stockTbody"></tbody>
@@ -267,7 +265,6 @@
   <th class="sortable" data-sort-col="5">Prix Vente HT <span class="sort-ico"></span></th>
   <th class="sortable" data-sort-col="6">Coût Revient <span class="sort-ico"></span></th>
   <th>Marge</th>
-  <th title="Coche = produit non suivi : plus aucune alerte de stock">Hors stock</th>
   <th>Action</th>
 </tr></thead>
       <tbody id="produitsTbody"></tbody>
@@ -340,9 +337,9 @@
     <tbody id="planningTbody"></tbody></table>
   </div>
   <div class="card" style="margin-bottom:16px;">
-    <div class="card-hdr"><span class="card-hdr-title">Plan de fabrication</span></div>
-    <table><thead><tr><th>Produit</th><th>Qté planifiée (OF)</th><th>Encore à planifier</th><th>Faisabilité articles</th><th>Articles manquants</th></tr></thead>
-    <tbody id="fabPlanTbody"></tbody></table>
+    <div class="card-hdr"><span class="card-hdr-title">Besoins de production par produit — cliquer une ligne pour le détail par client</span></div>
+    <table><thead><tr><th></th><th>Produit</th><th>Stock</th><th>Demande totale</th><th>OF en cours</th><th>Reste à produire</th></tr></thead>
+    <tbody id="prodVueTbody"></tbody></table>
   </div>
   <div class="card" style="margin-bottom:16px;">
     <div class="card-hdr"><span class="card-hdr-title">Articles à commander</span></div>
@@ -1185,8 +1182,12 @@ function setActiveNav(page) {
 
 
     document.addEventListener('appmee:datachanged', async (e) => {
+      /* Avant : seuls 'import_masse'/'import_ia' rafraichissaient les modules —
+         tout changement de statut commande/production ne se propageait nulle part.
+         Desormais toute entite rafraichit tout, sauf exclusion explicite ci-dessous
+         (ex: un module qui gere deja son propre re-render cible). */
       const { entity } = e.detail || {};
-      if (!['import_masse', 'import_ia'].includes(entity)) return;
+      if (!entity) return;
       await Promise.allSettled([
         dashboard.render(), stock.render(), produits.render(), commandes.render(),
         production.render(), achats.render(), livraisons.render(), recettes.render(), admin.render(),
