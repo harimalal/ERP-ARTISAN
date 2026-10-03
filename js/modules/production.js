@@ -446,11 +446,23 @@ function _demandeParProduit() {
   return lignes;
 }
 
+/* Produits réellement commandés au moins une fois — pas tout le
+   catalogue : un produit jamais commandé n'a rien à faire dans un bilan
+   de besoins de production. Toute commande, quel que soit son statut
+   (y compris clôturée), compte comme présence ; + défensif, les OF
+   existants (en pratique tous liés à une commande désormais, puisque
+   "+ Planifier un OF" a été retiré). */
+function _produitsCommandes() {
+  const ids = new Set();
+  _commandes.forEach(c => (c.commande_lignes || []).forEach(l => { if (l.produit_id) ids.add(l.produit_id); }));
+  _ofs.forEach(o => { if (o.produit_id) ids.add(o.produit_id); });
+  return ids;
+}
+
 /* -------------------------------------------------------
    VUE CONSOLIDÉE PAR PRODUIT
-   Remplace l'ancien Plan de fabrication : un bilan complet, une ligne
-   par produit fini du catalogue (pas seulement ceux qui ont une
-   commande ou un OF en cours), montre le « reste à produire » en avant,
+   Remplace l'ancien Plan de fabrication : une ligne par produit déjà
+   commandé au moins une fois, montre le « reste à produire » en avant,
    et se déplie pour voir, par client, ce qui est déjà couvert par le
    stock (vert) et ce qu'il reste à produire pour satisfaire tout le
    monde (rouge).
@@ -462,7 +474,7 @@ function _demandeParProduit() {
    finis, pas sur les ingrédients.
 ------------------------------------------------------- */
 function _vueConsolideeParProduit() {
-  const produitIds = new Set(_produits.map(p => p.id));
+  const produitIds = _produitsCommandes();
 
   const lignes = [...produitIds].map(produitId => {
     const p = _produits.find(x => x.id === produitId);
@@ -501,7 +513,7 @@ function _renderVueConsolidee() {
   const lignes = _vueConsolideeParProduit();
 
   if (!lignes.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:14px;color:var(--ink-muted)">Aucun produit fini.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:14px;color:var(--ink-muted)">Aucun produit commandé.</td></tr>';
     return;
   }
 
@@ -613,10 +625,13 @@ export async function creerOFPourProduit(produitId, datePrevue = null) {
 ------------------------------------------------------- */
 function _renderBesoins() {
   const mg = {};
-  /* Bilan complet : chaque article utilisé dans une recette apparaît,
-     même à 0 besoin — pas seulement ceux qui manquent aujourd'hui. */
-  _produits.forEach(p => {
-    (_recettes[p.id] || []).forEach(r => {
+  /* Bilan complet, mais seulement pour les produits déjà commandés au
+     moins une fois (_produitsCommandes, même périmètre que la vue par
+     produit juste au-dessus) : chaque article de leur recette apparaît,
+     même à 0 besoin — pas seulement ceux qui manquent aujourd'hui, mais
+     pas non plus les ingrédients d'un produit jamais commandé. */
+  _produitsCommandes().forEach(produitId => {
+    (_recettes[produitId] || []).forEach(r => {
       const aref = r.articles?.ref;
       if (aref && !(aref in mg)) mg[aref] = 0;
     });

@@ -482,3 +482,16 @@ Signalé à l'utilisateur sans y toucher : les deux tables font
 maintenant 53 et 85 lignes respectivement — un repli façon Historique
 (details/summary, déjà utilisé ailleurs dans la page) pourrait les
 raccourcir visuellement si besoin, pas demandé pour l'instant.
+
+## Correction immédiate : périmètre trop large (2026-10-03)
+
+L'utilisateur a corrigé tout de suite : "Seulement les produits dans
+une commande" — pas tout le catalogue (53 produits), seulement ceux
+réellement commandés au moins une fois. Nouvelle fonction partagée
+_produitsCommandes() (produits référencés par au moins une ligne de
+commande, tout statut confondu, + défensif les produits des OF
+existants) utilisée à la fois par _vueConsolideeParProduit() et par
+l'initialisation à 0 des articles dans _renderBesoins() — les deux
+tables gardent donc le même périmètre. Vérifié sur les vraies données :
+9 produits sur les 53 du catalogue ont déjà été commandés chez ce
+tenant — c'est ce nombre qui apparaît maintenant, plus les 53.
