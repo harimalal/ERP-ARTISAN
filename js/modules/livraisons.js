@@ -44,17 +44,19 @@ export async function init() {
   if (!_delegationBound) {
     _delegationBound = true;
 
-    /* Clic ligne → ouvre modal édition OU aperçu PDF */
+    /* Clic ligne → ouvre modal édition OU aperçu PDF — .fac-tbody couvre
+       la liste active ET l'historique (même gabarit de ligne, deux
+       conteneurs selon le statut, comme achats.js/production.js). */
     document.addEventListener('click', (e) => {
       /* Bouton PDF */
-      const btnPdf = e.target.closest('#facturesTbody [data-action="pdf"]');
+      const btnPdf = e.target.closest('.fac-tbody [data-action="pdf"]');
       if (btnPdf) {
         e.stopPropagation();
         _aperçuPdfFac(btnPdf.dataset.id).catch(() => {});
         return;
       }
       /* Clic ligne → édition */
-      const row = e.target.closest('#facturesTbody tr[data-id]');
+      const row = e.target.closest('.fac-tbody tr[data-id]');
       if (!row) return;
       if (e.target.closest('[data-action]') || e.target.closest('select')) return;
       _ouvrirEditFacture(row.dataset.id);
@@ -62,7 +64,7 @@ export async function init() {
 
     /* Changement statut via select */
     document.addEventListener('change', async (e) => {
-      const sel = e.target.closest('#facturesTbody [data-action="changer-statut"]');
+      const sel = e.target.closest('.fac-tbody [data-action="changer-statut"]');
       if (!sel || !sel.value) return;
       await _changerStatutFac(sel.dataset.id, sel.value);
       sel.value = ''; /* reset après action */
@@ -106,16 +108,11 @@ function _renderStatsFactures() {
   </div>`;
 }
 
-function _renderTable() {
-  _renderStatsFactures();
-
-  const facAlerte = _factures.filter(f => f.statut === 'a_lancer' || f.statut === 'a_relancer').length;
-  const bliv = document.getElementById('badgeLivraisons');
-  if (bliv) { bliv.textContent = facAlerte; bliv.style.display = facAlerte > 0 ? '' : 'none'; }
-
-  const tbody = document.getElementById('facturesTbody');
-  if (!tbody) return; /* Règle 21 — guard : page Livraisons peut ne pas être active */
-  tbody.innerHTML = _factures.map(f => `
+/* Ligne d'une facture — gabarit partagé entre la liste active et
+   l'historique (même principe que achats.js/production.js : un seul
+   template, deux conteneurs selon le statut). */
+function _ligneFacture(f) {
+  return `
     <tr class="clickable" data-id="${f.id}">
       <td class="td-ref">${esc(f.ref)}</td>
       <td style="font-size:11.5px;">${esc(f.date_facture || '—')}</td>
@@ -136,8 +133,36 @@ function _renderTable() {
       <td onclick="event.stopPropagation()">
         <button class="btn-icon" data-id="${f.id}" data-action="pdf" title="Aperçu PDF">👁</button>
       </td>
-    </tr>`).join('') ||
+    </tr>`;
+}
+
+/* Une facture réglée sort de la liste active et ne vit plus que dans
+   l'historique replié en bas de page (même principe que Achats/Production/
+   Commandes Clients : protéger le flux "factures à gérer" d'un
+   encombrement par des factures qui n'ont plus d'action à faire). */
+function _renderTable() {
+  _renderStatsFactures();
+
+  const facAlerte = _factures.filter(f => f.statut === 'a_lancer' || f.statut === 'a_relancer').length;
+  const bliv = document.getElementById('badgeLivraisons');
+  if (bliv) { bliv.textContent = facAlerte; bliv.style.display = facAlerte > 0 ? '' : 'none'; }
+
+  const tbody      = document.getElementById('facturesTbody');
+  const tbodyHisto = document.getElementById('facturesHistoriqueTbody');
+  const countHisto  = document.getElementById('facturesHistoriqueCount');
+  if (!tbody) return; /* Règle 21 — guard : page Livraisons peut ne pas être active */
+
+  const actives    = _factures.filter(f => f.statut !== 'regle');
+  const historique = _factures.filter(f => f.statut === 'regle');
+
+  tbody.innerHTML = actives.map(_ligneFacture).join('') ||
     '<tr><td colspan="8" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucune facture.</td></tr>';
+
+  if (tbodyHisto) {
+    tbodyHisto.innerHTML = historique.map(_ligneFacture).join('') ||
+      '<tr><td colspan="8" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucune facture réglée.</td></tr>';
+  }
+  if (countHisto) countHisto.textContent = historique.length;
 }
 
 /* -------------------------------------------------------

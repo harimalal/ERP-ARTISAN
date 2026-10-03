@@ -546,3 +546,47 @@ seulement affirmées) :
 Vérifié avant livraison : node --check sur commandes.js et production.js,
 extraction + node --check du script module de app.html, suite de tests
 unitaires existante (2/2) toujours verte.
+
+## Diagnostic "historique vide partout" + historique Facturation (2026-10-03)
+
+Signalement : aucun historique (Production, Commandes Clients,
+Facturation) n'affiche quoi que ce soit de clos/clôturé.
+
+Diagnostic avant correction (lecture du code + requête SQL en direct sur
+les données réelles de ce tenant, aucune hypothèse non vérifiée) :
+- Commandes Clients : 4 commandes au statut "cloture" existent bien en
+  base. Le code de _renderListe()/_carteCommande() (livré à la session
+  précédente) les filtre correctement vers #commandesHistoriqueList, et
+  le déploiement Netlify en cours (commit a4cfc9c) est confirmé "ready"
+  et inclut app.html modifié. Rien d'anormal trouvé côté code ou
+  déploiement — à vérifier côté navigateur (Ctrl+Shift+R, puis cliquer
+  sur la barre "Historique — Commandes clôturées" : repliée par défaut,
+  comme Achats/Production, elle ne s'ouvre qu'au clic).
+- Production : 0 OF au statut "clos" en base (2 planifié, 5 en cours) —
+  l'historique de production est donc normalement vide, ce n'est pas un
+  bug d'affichage mais une absence de donnée. À confirmer : un OF a-t-il
+  déjà été réellement passé en statut "Clos" via le sélecteur par ligne
+  dans Ordres de fabrication (avec confirmation de la boîte de dialogue) ?
+- Facturation : 0 facture au statut "regle" en base ET surtout aucun
+  historique n'existait dans le code (_renderTable() de livraisons.js
+  affichait toutes les factures, tous statuts confondus, dans une seule
+  table — jamais scindée). C'est une fonctionnalité manquante, pas une
+  régression.
+
+Corrigé : ajout de l'historique Facturation sur le même modèle que
+Achats/Production/Commandes Clients. app.html : nouveau bloc
+<details id="facturesHistoriqueDetails"> avec #facturesHistoriqueTbody
+et #facturesHistoriqueCount, table #facturesTbody existante inchangée
+dans sa structure de colonnes. livraisons.js : gabarit de ligne extrait
+dans _ligneFacture(f), réutilisé par les deux tbody ; _renderTable()
+scinde maintenant _factures en actives (statut != 'regle') et
+historique (statut == 'regle'). Les deux tbody portent la classe
+partagée .fac-tbody : les délégations document (clic ligne/PDF,
+changement de statut, posées une seule fois dans init()) ciblaient
+auparavant #facturesTbody uniquement — mises à jour pour cibler
+.fac-tbody, donc actives comme historique répondent aux mêmes actions.
+
+Vérifié avant livraison : node --check sur livraisons.js, extraction +
+node --check du script module de app.html, suite de tests unitaires
+existante (2/2) toujours verte, requête Supabase confirmant le site
+live sert déjà le commit attendu.

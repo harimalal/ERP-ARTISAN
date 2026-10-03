@@ -390,10 +390,18 @@
     <div></div>
     <div class="btn-row"><button class="btn btn-primary" data-modal="modalNewFacture">+ Nouvelle facture</button></div>
   </div>
-  <div class="card">
+  <div class="card" style="margin-bottom:16px;">
     <table><thead><tr><th>N° Facture</th><th>Date</th><th>Client</th><th>Montant HT</th><th>TTC</th><th>Statut</th><th>Changer</th><th>Aperçu</th></tr></thead>
-    <tbody id="facturesTbody"></tbody></table>
+    <tbody id="facturesTbody" class="fac-tbody"></tbody></table>
   </div>
+  <details class="card" id="facturesHistoriqueDetails">
+    <summary class="card-hdr">
+      <span class="card-hdr-title"><span class="details-chevron">▸</span> Historique — Factures réglées</span>
+      <span class="card-count neutral" id="facturesHistoriqueCount">0</span>
+    </summary>
+    <table><thead><tr><th>N° Facture</th><th>Date</th><th>Client</th><th>Montant HT</th><th>TTC</th><th>Statut</th><th>Changer</th><th>Aperçu</th></tr></thead>
+    <tbody id="facturesHistoriqueTbody" class="fac-tbody"></tbody></table>
+  </details>
 </div>
 
 <!-- RECETTES -->
