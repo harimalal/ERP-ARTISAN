@@ -147,6 +147,16 @@ async function _avancerCmd(id) {
     if (idx >= 0) _commandes[idx].statut = updated.statut;
     _renderListe();
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'commandes' } }));
+
+    /* La commande qui entre en "planifie" doit immediatement apparaitre
+       dans les ordres de fabrication, sans date — on la choisit ensuite
+       depuis la liste des OF. _commandes[idx] (pas "updated") porte les
+       lignes : updateCommandeStatut() ne les renvoie pas, getCommandes()
+       les charge, lui, via commande_lignes(*). */
+    if (updated.statut === 'planifie') {
+      const commandeAvecLignes = idx >= 0 ? _commandes[idx] : updated;
+      document.dispatchEvent(new CustomEvent('appmee:commandePlanifiee', { detail: { commande: commandeAvecLignes } }));
+    }
   } catch (err) {
     showToast('❌ Erreur avancement commande.', 'error');
   }
