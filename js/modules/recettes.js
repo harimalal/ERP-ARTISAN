@@ -192,8 +192,10 @@ function _renderListe() {
 
     hdr.querySelector('[data-action="produire"]').addEventListener('click', (e) => {
       e.stopPropagation();
-      document.dispatchEvent(new CustomEvent('appmee:planifierOF', { detail: { ref: p.ref } }));
-      openModal('modalPlanifier');
+      /* Toute la planification de production se fait depuis la page
+         Production (section Ordres de fabrication) — un seul endroit
+         pour gérer la fabrication de toutes les commandes. */
+      document.dispatchEvent(new CustomEvent('appmee:navigate', { detail: { section: 'production' } }));
     });
 
     /* Body */
