@@ -56,8 +56,34 @@ export async function init() {
   _bindImportAvance();
   _bindSearchInputs();
   _bindCategories();
+  _bindAdminTabs();
   document.getElementById('btnSupprimerDoublons')?.addEventListener('click', _ouvrirSuppressionDoublons);
   document.getElementById('doublonsBtnSupprimer')?.addEventListener('click', _supprimerDoublonsSelection);
+}
+
+/* -------------------------------------------------------
+   ONGLETS — Mon entreprise / Articles / Produits finis /
+   Clients / Fournisseurs. Pur affichage (show/hide) : chaque
+   section garde ses ids d'origine, init()/render() ne changent
+   pas — aucune interdépendance avec le reste du code touchée.
+------------------------------------------------------- */
+function _bindAdminTabs() {
+  const tabs   = document.querySelectorAll('#adminTabs .admin-tab-btn');
+  const panels = document.querySelectorAll('[data-admin-panel]');
+  if (!tabs.length || !panels.length) return;
+
+  const activer = (nom) => {
+    tabs.forEach(b => {
+      const actif = b.dataset.adminTab === nom;
+      b.style.background  = actif ? 'var(--ink)' : '#fff';
+      b.style.color       = actif ? 'var(--cream)' : 'var(--ink-muted)';
+      b.style.borderColor = actif ? 'var(--ink)' : 'var(--ui-brd2)';
+    });
+    panels.forEach(p => { p.style.display = p.dataset.adminPanel === nom ? '' : 'none'; });
+  };
+
+  tabs.forEach(b => b.onclick = () => activer(b.dataset.adminTab));
+  activer(tabs[0].dataset.adminTab);
 }
 
 /* -------------------------------------------------------

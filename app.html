@@ -413,74 +413,97 @@
       <button class="btn btn-ghost" id="btnSupprimerDoublons">Supprimer les doublons</button>
     </div>
   </div>
-  <div class="card clickable" id="cardEntreprise" style="margin-bottom:14px;">
-    <div class="card-hdr hdr-sage">
-      <span class="card-hdr-title">Mon entreprise</span>
-      <span class="opt" style="font-size:11px;">Cliquer pour modifier</span>
-    </div>
-    <div class="form-grid" style="padding:16px;">
-      <div class="form-group"><label>Raison sociale</label><div class="ro-val" id="me_raison">—</div></div>
-      <div class="form-group"><label>SIRET</label><div class="ro-val" id="me_siret">—</div></div>
-      <div class="form-group"><label>N° TVA</label><div class="ro-val" id="me_tva">—</div></div>
-      <div class="form-group"><label>Forme juridique</label><div class="ro-val" id="me_forme">—</div></div>
-      <div class="form-group full"><label>Adresse</label><div class="ro-val" id="me_adresse">—</div></div>
-      <div class="form-group"><label>Téléphone</label><div class="ro-val" id="me_tel">—</div></div>
-      <div class="form-group"><label>Email</label><div class="ro-val" id="me_email">—</div></div>
-      <div class="form-group"><label>Site web</label><div class="ro-val" id="me_web">—</div></div>
-      <div class="form-group full"><label>IBAN (factures)</label><div class="ro-val" id="me_iban">—</div></div>
-      <div class="form-group"><label>Conditions paiement</label><div class="ro-val" id="me_cpt">—</div></div>
-      <div class="form-group"><label>Taux TVA par défaut (%)</label><div class="ro-val" id="me_taux_tva">—</div></div>
-    </div>
+
+  <div class="btn-row" id="adminTabs" style="margin-bottom:14px;flex-wrap:wrap;">
+    <button class="btn btn-outline btn-sm admin-tab-btn" data-admin-tab="entreprise">Mon entreprise</button>
+    <button class="btn btn-outline btn-sm admin-tab-btn" data-admin-tab="articles">Articles</button>
+    <button class="btn btn-outline btn-sm admin-tab-btn" data-admin-tab="produits">Produits finis</button>
+    <button class="btn btn-outline btn-sm admin-tab-btn" data-admin-tab="clients">Clients</button>
+    <button class="btn btn-outline btn-sm admin-tab-btn" data-admin-tab="fournisseurs">Fournisseurs</button>
   </div>
-  <div class="card" style="margin-bottom:14px;">
-    <div class="card-hdr hdr-blue">
-      <span class="card-hdr-title">Articles <span class="hdr-hint">cliquer sur une ligne pour modifier</span></span>
-      <div style="display:flex;gap:7px;align-items:center;">
-        <input type="text" class="search-input" placeholder="Rechercher…" id="adminArticlesSearch" style="width:160px;">
-        <button class="btn btn-primary btn-sm" data-modal="modalNewArticle">+ Nouvel article</button>
+
+  <div data-admin-panel="entreprise">
+    <div class="card clickable" id="cardEntreprise" style="margin-bottom:14px;">
+      <div class="card-hdr hdr-sage">
+        <span class="card-hdr-title">Mon entreprise</span>
+        <span class="opt" style="font-size:11px;">Cliquer pour modifier</span>
+      </div>
+      <div class="form-grid" style="padding:16px;">
+        <div class="form-group"><label>Raison sociale</label><div class="ro-val" id="me_raison">—</div></div>
+        <div class="form-group"><label>SIRET</label><div class="ro-val" id="me_siret">—</div></div>
+        <div class="form-group"><label>N° TVA</label><div class="ro-val" id="me_tva">—</div></div>
+        <div class="form-group"><label>Forme juridique</label><div class="ro-val" id="me_forme">—</div></div>
+        <div class="form-group full"><label>Adresse</label><div class="ro-val" id="me_adresse">—</div></div>
+        <div class="form-group"><label>Téléphone</label><div class="ro-val" id="me_tel">—</div></div>
+        <div class="form-group"><label>Email</label><div class="ro-val" id="me_email">—</div></div>
+        <div class="form-group"><label>Site web</label><div class="ro-val" id="me_web">—</div></div>
+        <div class="form-group full"><label>IBAN (factures)</label><div class="ro-val" id="me_iban">—</div></div>
+        <div class="form-group"><label>Conditions paiement</label><div class="ro-val" id="me_cpt">—</div></div>
+        <div class="form-group"><label>Taux TVA par défaut (%)</label><div class="ro-val" id="me_taux_tva">—</div></div>
       </div>
     </div>
-    <table id="adminArticlesTable"><thead><tr><th>Réf</th><th>Nom</th><th>Catégorie</th><th>Unité</th><th>Prix achat HT</th><th>Seuil</th><th>Stock</th><th>Fournisseur</th><th></th></tr></thead>
-    <tbody id="adminArticlesTbody"></tbody></table>
   </div>
-  <details class="card" id="adminCategoriesDetails" style="margin-bottom:14px;">
-    <summary class="card-hdr hdr-blue">
-      <span class="card-hdr-title"><span class="details-chevron">▸</span> Catégories d'articles</span>
-      <span class="card-count neutral" id="adminCategoriesCount">0</span>
-    </summary>
-    <div style="padding:14px 16px;">
-      <p style="font-size:12px;color:var(--ink-muted);margin:0 0 12px;">
-        Renommer une catégorie la remplace sur tous les articles qui la portent.
-        Si le nouveau nom existe déjà, les deux catégories fusionnent.
-      </p>
-      <div id="adminCategoriesList" style="display:flex;flex-direction:column;gap:8px;"></div>
-    </div>
-  </details>
-  <div class="card" style="margin-bottom:14px;">
-    <div class="card-hdr hdr-purple">
-      <span class="card-hdr-title">Produits finis <span class="hdr-hint">cliquer sur une ligne pour modifier</span></span>
-      <button class="btn btn-primary btn-sm" data-modal="modalNewProduit">+ Nouveau produit</button>
-    </div>
-    <table><thead><tr><th>Réf</th><th>Nom</th><th>Prix vente HT</th><th>Coût revient</th><th>Marge</th><th>Seuil</th><th>Stock</th><th>Statut</th><th></th></tr></thead>
-    <tbody id="adminProduitsTbody"></tbody></table>
-  </div>
-  <div class="card" style="margin-bottom:14px;">
-    <div class="card-hdr hdr-rose">
-      <span class="card-hdr-title">Clients <span class="hdr-hint">cliquer sur une ligne pour modifier</span></span>
-      <button class="btn btn-primary btn-sm" data-modal="modalNewClient">+ Nouveau client</button>
-    </div>
-    <table><thead><tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Adresse</th><th>Notes</th><th></th></tr></thead>
-    <tbody id="adminClientsTbody"></tbody></table>
-  </div>
-  <div class="card" style="margin-bottom:14px;">
-    <div class="card-hdr hdr-amber">
-      <span class="card-hdr-title">Fournisseurs <span class="hdr-hint">cliquer sur une ligne pour modifier</span></span>
-      <div style="display:flex;gap:7px;">
-        <button class="btn btn-primary btn-sm" data-modal="modalNewFournisseur">+ Nouveau fournisseur</button>
+
+  <div data-admin-panel="articles">
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-hdr hdr-blue">
+        <span class="card-hdr-title">Articles <span class="hdr-hint">cliquer sur une ligne pour modifier</span></span>
+        <div style="display:flex;gap:7px;align-items:center;">
+          <input type="text" class="search-input" placeholder="Rechercher…" id="adminArticlesSearch" style="width:160px;">
+          <button class="btn btn-primary btn-sm" data-modal="modalNewArticle">+ Nouvel article</button>
+        </div>
       </div>
+      <table id="adminArticlesTable"><thead><tr><th>Réf</th><th>Nom</th><th>Catégorie</th><th>Unité</th><th>Prix achat HT</th><th>Seuil</th><th>Stock</th><th>Fournisseur</th><th></th></tr></thead>
+      <tbody id="adminArticlesTbody"></tbody></table>
     </div>
-    <table><thead><tr><th>Nom</th><th>Contact</th><th>Email</th><th>Téléphone</th><th>Délai</th><th>Catégorie</th><th></th></tr></thead>
-    <tbody id="adminFournisseursTbody"></tbody></table>
+    <details class="card" id="adminCategoriesDetails" style="margin-bottom:14px;">
+      <summary class="card-hdr hdr-blue">
+        <span class="card-hdr-title"><span class="details-chevron">▸</span> Catégories d'articles</span>
+        <span class="card-count neutral" id="adminCategoriesCount">0</span>
+      </summary>
+      <div style="padding:14px 16px;">
+        <p style="font-size:12px;color:var(--ink-muted);margin:0 0 12px;">
+          Renommer une catégorie la remplace sur tous les articles qui la portent.
+          Si le nouveau nom existe déjà, les deux catégories fusionnent.
+        </p>
+        <div id="adminCategoriesList" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </details>
+  </div>
+
+  <div data-admin-panel="produits">
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-hdr hdr-purple">
+        <span class="card-hdr-title">Produits finis <span class="hdr-hint">cliquer sur une ligne pour modifier</span></span>
+        <button class="btn btn-primary btn-sm" data-modal="modalNewProduit">+ Nouveau produit</button>
+      </div>
+      <table><thead><tr><th>Réf</th><th>Nom</th><th>Prix vente HT</th><th>Coût revient</th><th>Marge</th><th>Seuil</th><th>Stock</th><th>Statut</th><th></th></tr></thead>
+      <tbody id="adminProduitsTbody"></tbody></table>
+    </div>
+  </div>
+
+  <div data-admin-panel="clients">
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-hdr hdr-rose">
+        <span class="card-hdr-title">Clients <span class="hdr-hint">cliquer sur une ligne pour modifier</span></span>
+        <button class="btn btn-primary btn-sm" data-modal="modalNewClient">+ Nouveau client</button>
+      </div>
+      <table><thead><tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Adresse</th><th>Notes</th><th></th></tr></thead>
+      <tbody id="adminClientsTbody"></tbody></table>
+    </div>
+  </div>
+
+  <div data-admin-panel="fournisseurs">
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-hdr hdr-amber">
+        <span class="card-hdr-title">Fournisseurs <span class="hdr-hint">cliquer sur une ligne pour modifier</span></span>
+        <div style="display:flex;gap:7px;">
+          <button class="btn btn-primary btn-sm" data-modal="modalNewFournisseur">+ Nouveau fournisseur</button>
+        </div>
+      </div>
+      <table><thead><tr><th>Nom</th><th>Contact</th><th>Email</th><th>Téléphone</th><th>Délai</th><th>Catégorie</th><th></th></tr></thead>
+      <tbody id="adminFournisseursTbody"></tbody></table>
+    </div>
   </div>
 </div>
 

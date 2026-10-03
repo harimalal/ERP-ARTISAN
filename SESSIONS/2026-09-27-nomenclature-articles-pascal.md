@@ -306,3 +306,15 @@ assertions allouerStockSequentiel ; relecture manuelle contre les
 commandes/produits réels de ce tenant (Griotte stock 18, Rhubarbe stock
 21, tie-break sur commandes enregistrées au même instant) ; suite de
 tests unitaires existante (2/2) toujours verte.
+
+## Admin — onglets par section (2026-10-03)
+
+Code uniquement, aucune donnée touchée. La page Admin affichait Mon
+entreprise / Articles / Catégories / Produits finis / Clients /
+Fournisseurs à la suite, en une seule page qui s'allonge. Remplacé par 5
+onglets (un par section), affichage pur show/hide sur des conteneurs
+`[data-admin-panel]` — chaque section garde exactement ses ids d'origine,
+`init()`/`render()` de admin.js n'ont pas changé : aucune interdépendance
+touchée avec le reste du code (recherche, formulaires d'édition,
+suppression doublons, import IA/avancé). Catégories d'articles reste
+nichée dans l'onglet Articles (details/summary existant, inchangé).
