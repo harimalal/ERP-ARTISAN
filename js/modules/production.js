@@ -217,13 +217,62 @@ function _renderCalendrier() {
    - Croix suppression discrète (gris, petite)
    - Select statut sans border colorée
 ------------------------------------------------------- */
+/* Commandes (hors clôturée/annulée) dont au moins une ligne n'a encore
+   aucun OF actif qui la couvre — donc absentes de la table tant que
+   personne n'a décidé de produire. Montrées ici, avec un bouton pour
+   créer l'OF manquant directement depuis la ligne, pour que la table
+   liste bien tous les bons de commande, complets ou non. */
+function _commandesSansOF() {
+  return _commandes.filter(c => c.statut !== 'cloture' && c.statut !== 'annule').filter(c => {
+    const lignes = c.commande_lignes || [];
+    if (!lignes.length) return false;
+    return lignes.some(l => !_ofs.some(o => o.statut !== 'annule'
+      && Array.isArray(o.commandes_ids) && o.commandes_ids.includes(c.id)
+      && o.produit_id === l.produit_id));
+  });
+}
+
+function _toggleDetailCommandeSansOF(id) {
+  const tbody = document.getElementById('planningTbody');
+  if (!tbody) return;
+  const tr = tbody.querySelector(`tr.cmd-sans-of-row[data-id="${id}"]`);
+  if (!tr) return;
+
+  const dejaOuvert = tbody.querySelector(`tr.cmd-sans-of-detail-row[data-cmd="${id}"]`);
+  tbody.querySelectorAll('tr.cmd-sans-of-detail-row').forEach(r => r.remove());
+  if (dejaOuvert) return;
+
+  const c = _commandes.find(x => x.id === id);
+  if (!c) return;
+  const lignes = c.commande_lignes || [];
+  const rows = lignes.length
+    ? lignes.map(l => `<tr>
+        <td style="padding:4px 10px;font-size:11px;">${esc(l.produit_nom || '—')}</td>
+        <td style="padding:4px 10px;font-size:11px;text-align:right;"><strong>${fmtQ(l.quantite)}</strong></td>
+      </tr>`).join('')
+    : `<tr><td colspan="2" style="padding:6px 10px;font-size:11px;color:var(--ink-muted)">Aucun article.</td></tr>`;
+
+  const detailTr = document.createElement('tr');
+  detailTr.className = 'cmd-sans-of-detail-row';
+  detailTr.dataset.cmd = id;
+  detailTr.innerHTML = `<td colspan="7" style="background:#FAFAF8;padding:8px 12px;">
+    <div style="font-size:10.5px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;">Articles de la commande ${esc(c.ref)}</div>
+    <table style="width:auto;min-width:260px;"><thead><tr>
+      <th style="padding:2px 10px;font-size:10px;text-align:left;">Produit</th>
+      <th style="padding:2px 10px;font-size:10px;text-align:right;">Quantité</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+  </td>`;
+  tr.after(detailTr);
+}
+
 function _renderOFs() {
   const tbody = document.getElementById('planningTbody');
   /* Un OF clos sort de cette table dès sa clôture — il vit désormais dans
      Historique de production, jamais les deux à la fois. */
   const ofsActifs = _ofs.filter(o => o.statut !== 'clos');
+  const commandesSansOF = _commandesSansOF();
 
-  if (!ofsActifs.length) {
+  if (!ofsActifs.length && !commandesSansOF.length) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun ordre de fabrication.</td></tr>';
     return;
   }
@@ -253,7 +302,23 @@ function _renderOFs() {
     return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d;
   };
 
-  tbody.innerHTML = ofsActifs.map(of => {
+  const rowsCmdSansOF = commandesSansOF.map(c => {
+    const lignes = c.commande_lignes || [];
+    const produitLabel = lignes.length === 1 ? esc(lignes[0].produit_nom || '—') : `${lignes.length} produits`;
+    return `<tr data-id="${esc(c.id)}" class="cmd-sans-of-row" style="cursor:pointer;" title="Cliquer pour voir les articles de la commande">
+      <td class="td-ref">${esc(c.ref)}</td>
+      <td class="td-bold">${produitLabel}</td>
+      <td>—</td>
+      <td style="font-size:11.5px;">${esc(c.client_nom || '—')}</td>
+      <td style="font-size:11.5px;color:var(--ink-muted);">—</td>
+      <td data-no-toggle><span style="font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(245,158,11,0.12);color:#b45309;">Pas encore planifié</span></td>
+      <td data-no-toggle>
+        <button class="btn btn-primary btn-xs" data-id="${esc(c.id)}" data-action="creer-of-depuis-commande">Créer OF</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const rowsOF = ofsActifs.map(of => {
     const sb = STATUT_BADGE[of.statut] || STATUT_BADGE['a_planifier'];
     return `<tr data-id="${of.id}" class="of-row" style="cursor:pointer;" title="Cliquer pour voir le détail par client">
       <td class="td-ref">${esc(of.ref)}</td>
@@ -287,6 +352,8 @@ function _renderOFs() {
       </td>
     </tr>`;
   }).join('');
+
+  tbody.innerHTML = rowsCmdSansOF + rowsOF;
 
   tbody.onchange = async (e) => {
     const el = e.target.closest('[data-action]');
@@ -322,8 +389,17 @@ function _renderOFs() {
       await _supprimerOF(btn.dataset.id);
       return;
     }
+    const btnCreer = e.target.closest('[data-action="creer-of-depuis-commande"]');
+    if (btnCreer) {
+      e.stopPropagation();
+      const c = _commandes.find(x => x.id === btnCreer.dataset.id);
+      if (c) await creerOFsPourCommande(c);
+      return;
+    }
     if (e.target.closest('[data-no-toggle]')) return;
-    const tr = e.target.closest('tr[data-id]');
+    const trCmd = e.target.closest('tr.cmd-sans-of-row[data-id]');
+    if (trCmd) { _toggleDetailCommandeSansOF(trCmd.dataset.id); return; }
+    const tr = e.target.closest('tr.of-row[data-id]');
     if (tr) _toggleDetailOF(tr.dataset.id);
   };
 }
