@@ -410,3 +410,48 @@ table "Ordres de fabrication — suivi des lots" et le bouton "+ Planifier
 un OF". Je n'ai pas touché à ça — c'est l'endroit qui déclenche
 réellement la clôture (décrément de stock, facture), je préfère une
 confirmation explicite avant d'y toucher.
+
+## Suppression de l'ancienne table OF + stock disponible net (2026-10-03)
+
+Confirmation reçue : suppression de la table "Ordres de fabrication —
+suivi des lots" et du bouton "+ Planifier un OF". La capacité qu'ils
+portaient (date, statut, clôture réelle qui décrémente le stock et
+facture) n'est pas perdue — elle est déplacée dans le détail dépliable
+d'une commande (section Ordres de fabrication) : chaque ligne "à
+produire" porte maintenant, en plus du champ date, le même sélecteur de
+statut (À planifier/Planifié/En cours/Fabriqué/Clos/Annulé) et un bouton
+de suppression, quand un OF existe déjà pour ce produit. Choisir "Clos"
+déclenche exactement le même _terminerFabrication qu'avant (décrément
+articles, entrée stock produit fini, facture si la commande devient
+prête) — rien n'a changé dans ce mécanisme, seul son point d'accès a
+bougé.
+
+Nettoyage associé (code mort devenu orphelin par ce changement, ou déjà
+orphelin d'une session précédente et remarqué au passage) : `_renderOFs`,
+`_toggleDetailOF`, le formulaire "+ Planifier un OF" complet
+(`initPlanifierModal`, `_addOFLigne`, `addOFLigne`, `_savePlanifier`),
+`_creerOF` (déjà mort), `_achatsEnCoursPourArticle`/`_achats`/`getAchats`
+(déjà morts depuis la refonte de Plan de fabrication plus tôt dans la
+session). Les 2 autres boutons "Produire" qui ouvraient ce modal
+(Produits Finis, Recettes) pointent maintenant vers la page Production
+(`appmee:navigate`) au lieu d'ouvrir un modal qui n'existe plus.
+
+Stock disponible net — la distinction demandée entre stock réel et stock
+réellement disponible pour une NOUVELLE commande ou un nouvel OF.
+Diagnostic : la plupart des calculs (Commandes Clients, Production)
+utilisaient déjà allouerStockSequentiel() et géraient donc correctement
+cette distinction — sauf un endroit resté sur l'ancien calcul naïf : le
+petit texte d'aide affiché pendant la création d'une commande
+(_updateCmdHint dans commandes.js), qui comparait la quantité saisie au
+stock brut du produit, sans tenir compte de ce que les commandes déjà
+enregistrées avaient déjà réservé sur ce même produit. Corrigé avec une
+nouvelle fonction _stockDisponibleNet(produitId) : stock réel moins la
+part déjà consommée par l'allocation séquentielle des commandes en
+cours. Exemple réel : Griotte stock 18, déjà entièrement réservé par
+TEST-CMD-03 (10) et TEST-CMD-04 (12) → une 6e commande sur ce produit
+verrait maintenant "Disponible : 0" au lieu de "Stock : 18" comme avant.
+
+Vérifié avant livraison : node --check sur tous les fichiers touchés +
+script module app.html, recherche exhaustive de toute référence
+résiduelle aux symboles supprimés (aucune trouvée), suite de tests
+unitaires existante (2/2) toujours verte.

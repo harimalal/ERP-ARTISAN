@@ -56,8 +56,10 @@ export async function init() {
       const btnProd = e.target.closest('#produitsTbody [data-action="produire"]');
       if (btnProd) {
         e.stopPropagation();
-        document.dispatchEvent(new CustomEvent('appmee:planifierOF', { detail: { ref: btnProd.dataset.ref } }));
-        openModal('modalPlanifier');
+        /* Toute la planification de production se fait maintenant depuis
+           la page Production (section Ordres de fabrication) — un seul
+           endroit pour gérer la fabrication de toutes les commandes. */
+        document.dispatchEvent(new CustomEvent('appmee:navigate', { detail: { section: 'production' } }));
         return;
       }
     }, true);

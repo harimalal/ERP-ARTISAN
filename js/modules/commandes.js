@@ -327,14 +327,36 @@ function _addCmdLigne() {
   }
 }
 
+/* Stock réel moins ce que les commandes en cours ont déjà réservé sur ce
+   produit (même allocation séquentielle que partout ailleurs) — jamais le
+   stock brut : une nouvelle commande ne doit pas voir « disponible » des
+   unités déjà promises à des commandes enregistrées avant elle. */
+function _stockDisponibleNet(produitId) {
+  const p = _produits.find(x => x.id === produitId);
+  if (!p) return 0;
+  const besoins = [];
+  _commandes.forEach(c => {
+    if (c.statut === 'cloture' || c.statut === 'annule') return;
+    (c.commande_lignes || []).forEach(l => {
+      if (l.produit_id !== produitId) return;
+      besoins.push({ id: l.id || (c.id + '_' + produitId), commandeId: c.id, quantite: l.quantite, created_at: c.created_at || c.date_cmd });
+    });
+  });
+  const alloc = allouerStockSequentiel(p.stock, besoins);
+  const consomme = alloc.reduce((s, b) => s + b.couvert, 0);
+  return Math.max(0, (p.stock || 0) - consomme);
+}
+
 function _updateCmdHint(produitId, el, qte) {
   if (!el) return;
   const p = _produits.find(x => x.id === produitId);
   if (!p) return;
-  const col = !qte ? 'var(--ink-muted)' : p.stock >= qte ? 'var(--ui-green)' : 'var(--ui-red)';
+  const disponible = _stockDisponibleNet(produitId);
+  const col = !qte ? 'var(--ink-muted)' : disponible >= qte ? 'var(--ui-green)' : 'var(--ui-red)';
   el.style.color = col;
-  const hint = qte ? (p.stock >= qte ? ' ✓' : ` — manque ${qte - p.stock}`) : '';
-  el.textContent = 'Stock : ' + p.stock + hint;
+  const hint = qte ? (disponible >= qte ? ' ✓' : ` — manque ${fmtQ(qte - disponible)}`) : '';
+  const note = disponible < p.stock ? ` (stock total ${fmtQ(p.stock)}, déjà réservé par d'autres commandes)` : '';
+  el.textContent = 'Disponible : ' + fmtQ(disponible) + hint + note;
 }
 
 async function _saveCommande() {

@@ -294,12 +294,7 @@
 <!-- PRODUCTION -->
 <div id="page-production" class="page">
   <div id="productionBadges"></div>
-  <div class="sec-hdr">
-    <div></div>
-    <div class="btn-row">
-      <button class="btn btn-outline" data-modal="modalPlanifier">+ Planifier un OF</button>
-    </div>
-  </div>
+  <div class="sec-hdr"><div></div><div class="btn-row"></div></div>
   <div class="card" style="margin-bottom:16px;">
     <div class="card-hdr hdr-blue">
       <span class="card-hdr-title">
@@ -341,16 +336,6 @@
     <div class="card-hdr"><span class="card-hdr-title">Besoins de production par produit <span style="font-weight:400;font-size:11px;color:var(--ink-muted);margin-left:6px;">— cliquer une ligne pour le détail par client</span></span></div>
     <table><thead><tr><th></th><th>Produit</th><th>Stock</th><th>Demande totale</th><th>OF en cours</th><th>Reste à produire</th></tr></thead>
     <tbody id="prodVueTbody"></tbody></table>
-  </div>
-  <div class="card" style="margin-bottom:16px;">
-    <div class="card-hdr hdr-amber">
-      <span class="card-hdr-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
-        Ordres de fabrication — suivi des lots
-      </span>
-    </div>
-    <table><thead><tr><th>Référence</th><th>Produit</th><th>Qté</th><th>Clients</th><th>Date planifiée</th><th>Statut</th><th>Actions</th></tr></thead>
-    <tbody id="planningTbody"></tbody></table>
   </div>
   <div class="card" style="margin-bottom:16px;">
     <div class="card-hdr"><span class="card-hdr-title">Articles à commander</span></div>
@@ -733,26 +718,6 @@
   <div class="form-actions">
     <button class="btn btn-primary" id="btnPrintPdf">Imprimer / Télécharger PDF</button>
     <button class="btn btn-ghost" data-close="modalPdfPreview">Fermer</button>
-  </div>
-</div></div>
-
-<div class="modal-overlay" id="modalPlanifier"><div class="modal modal-lg">
-  <div class="modal-hdr"><span class="modal-hdr-title">Planifier des ordres de fabrication</span><button class="modal-close" data-close="modalPlanifier">×</button></div>
-  <div style="padding:0 16px 6px;">
-    <div style="font-size:10px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Ordres à créer — Produit | Nom | Qté | Date</div>
-    <div id="ofLignes"></div>
-    <button class="btn btn-ghost btn-sm" id="btnAddOFLigne" style="margin-top:5px;">+ Ajouter un OF</button>
-  </div>
-  <div class="form-grid" style="padding-top:0;">
-    <div class="form-group full"><label>Clients concernés <span class="opt">(opt.)</span></label><input type="text" id="ofClients" placeholder="CMD0001, CMD0002…"></div>
-  </div>
-  <div id="ofFaisabilite" style="display:none;padding:0 16px 10px;"><div id="ofFaisabiliteContent"></div></div>
-  <div class="form-actions between">
-    <div></div>
-    <div style="display:flex;gap:7px;">
-      <button class="btn btn-primary" id="btnSavePlanifier">Planifier</button>
-      <button class="btn btn-ghost" data-close="modalPlanifier">Annuler</button>
-    </div>
   </div>
 </div></div>
 
@@ -1162,11 +1127,6 @@ function setActiveNav(page) {
     }, true);
 
     document.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-modal="modalPlanifier"]');
-      if (btn && production.initPlanifierModal) production.initPlanifierModal(null);
-    }, true);
-
-    document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-modal="modalNewFacture"]');
       if (btn && livraisons.initNewFactureModal) livraisons.initNewFactureModal();
     }, true);
@@ -1208,10 +1168,6 @@ function setActiveNav(page) {
         console.error('[modalEditFacture] ERREUR:', err.message);
         alert('Erreur enregistrement : ' + err.message);
       }
-    });
-
-    document.getElementById('btnAddOFLigne')?.addEventListener('click', () => {
-      if (production.addOFLigne) production.addOFLigne();
     });
 
 
@@ -1276,12 +1232,6 @@ function setActiveNav(page) {
     openModal('modalNewProduit');
   }
 });
-
-    document.addEventListener('appmee:planifierOF', (e) => {
-      const { ref } = e.detail || {};
-      if (production.initPlanifierModal) production.initPlanifierModal(ref || null);
-      openModal('modalPlanifier');
-    });
 
     document.addEventListener('appmee:commandePlanifiee', (e) => {
       const { commande } = e.detail || {};

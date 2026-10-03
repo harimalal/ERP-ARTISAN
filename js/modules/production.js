@@ -13,13 +13,12 @@ import {
   countOFsClosPourDate, cloturerOF,
   getCommandes, getProduits, getArticles, getRecettesByProduit, getClients, getTenant,
   ajusterStockArticle, ajusterStockProduit,
-  createAchat, achatDoublonExiste, getAchats,
   addMouvement, factureExistePourCommande, createFacture, createFactureLignes, nextRefServeur,
   updateCommandeStatut,
 } from '../db.js';
 import {
-  fmt, fmtQ, esc, badgePlan, showToast, today,
-  openModal, closeModal, nextRef, confirmDialog, estSurveille,
+  fmt, fmtQ, esc, showToast, today,
+  openModal, nextRef, confirmDialog, estSurveille,
   allouerStockSequentiel, selectStatutCmd, restyleSelectStatutCmd,
 } from '../ui.js';
 import { changerStatutCommande } from './commandes.js';
@@ -29,7 +28,6 @@ let _commandes = [];
 let _produits  = [];
 let _articles  = [];
 let _clients   = [];
-let _achats    = [];
 let _recettes  = {};
 let _calOffset = 0;
 let _calMode   = 'semaine'; // 'semaine' | 'quinzaine' | 'mois'
@@ -38,26 +36,24 @@ let _calMode   = 'semaine'; // 'semaine' | 'quinzaine' | 'mois'
    INIT
 ------------------------------------------------------- */
 export async function init() {
-  [_ofs, _commandes, _produits, _articles, _clients, _achats] = await Promise.all([
-    getAllOFs(), getCommandes(), getProduits(), getArticles(), getClients(), getAchats(),
+  [_ofs, _commandes, _produits, _articles, _clients] = await Promise.all([
+    getAllOFs(), getCommandes(), getProduits(), getArticles(), getClients(),
   ]);
   await _chargerRecettes();
   _bindCalNav();
-  _bindPlanifierForm();
 }
 
 /* -------------------------------------------------------
    RENDER
 ------------------------------------------------------- */
 export async function render() {
-  [_ofs, _commandes, _produits, _articles, _clients, _achats] = await Promise.all([
-    getAllOFs(), getCommandes(), getProduits(), getArticles(), getClients(), getAchats(),
+  [_ofs, _commandes, _produits, _articles, _clients] = await Promise.all([
+    getAllOFs(), getCommandes(), getProduits(), getArticles(), getClients(),
   ]);
   await _chargerRecettes();
   _renderBadges();
   _renderCalendrier();
   _renderCommandesEnCours();
-  _renderOFs();
   _renderVueConsolidee();
   _renderBesoins();
   _renderHistorique();
@@ -212,13 +208,25 @@ function _renderCalendrier() {
   else _renderGrilleParSemaines(7, 'semaine');
 }
 
-/* -------------------------------------------------------
-   TABLE DES OFs — Fix S12
-   - Lignes fond blanc (pas de bg coloré)
-   - Pas de border-left colorée
-   - Croix suppression discrète (gris, petite)
-   - Select statut sans border colorée
-------------------------------------------------------- */
+/* Libellés et couleurs du statut d'un OF — partagés par le contrôle
+   statut posé sur chaque ligne « à produire » dans Ordres de fabrication. */
+const STATUT_OF_LABELS = {
+  'a_planifier':  'À planifier',
+  'planifie':     'Planifié',
+  'en_cours':     'En cours de fabrication',
+  'fabrique':     'Fabriqué',
+  'clos':         'Clos',
+  'annule':       'Annulé',
+};
+const STATUT_OF_BADGE = {
+  'a_planifier': { bg: 'rgba(108,117,125,0.10)', txt: '#495057' },
+  'planifie':    { bg: 'rgba(76,110,245,0.10)',  txt: '#364fc7' },
+  'en_cours':    { bg: 'rgba(255,146,43,0.12)',  txt: '#7c5200' },
+  'fabrique':    { bg: 'rgba(32,201,151,0.12)',  txt: '#087f5b' },
+  'clos':        { bg: 'rgba(32,201,151,0.08)',  txt: '#0b7a5a' },
+  'annule':      { bg: 'rgba(250,82,82,0.10)',   txt: '#c92a2a' },
+};
+
 /* -------------------------------------------------------
    ORDRES DE FABRICATION (vue par commande)
    Vue de suivi client ET point d'entrée pour planifier : une ligne par
@@ -296,27 +304,43 @@ function _renderCommandesEnCours() {
     <tr class="prod-cmd-detail" data-id="${esc(c.id)}" style="display:none;">
       <td colspan="5" style="background:var(--ui-bg2);padding:10px 14px;">
         <table style="width:100%;">
-          <thead><tr><th>Produit</th><th>Qté commandée</th><th>Couvert</th><th>À produire</th><th>Date de production</th></tr></thead>
+          <thead><tr><th>Produit</th><th>Qté commandée</th><th>Couvert</th><th>À produire</th><th>Production</th></tr></thead>
           <tbody>${_detailPretCommande(c).map(l => {
-            let dateCell = '—';
+            let prodCell = '—';
             if (l.aProduire > 0) {
-              dateCell = l.ofExistant
-                ? `<input type="date" value="${esc(l.ofExistant.date_prevue || '')}" data-action="date-of-existant" data-of-id="${esc(l.ofExistant.id)}" style="font-size:11px;padding:3px 6px;border:1px solid var(--ui-brd2);border-radius:6px;">`
-                : `<input type="date" data-action="planifier-production" data-produit-id="${esc(l.produit_id)}" style="font-size:11px;padding:3px 6px;border:1px solid var(--ui-brd2);border-radius:6px;" title="Choisir une date planifie la fabrication de ce produit pour toutes les commandes en attente">`;
+              if (l.ofExistant) {
+                const sb = STATUT_OF_BADGE[l.ofExistant.statut] || STATUT_OF_BADGE['a_planifier'];
+                prodCell = `
+                  <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
+                    <input type="date" value="${esc(l.ofExistant.date_prevue || '')}" data-action="date-of-existant" data-of-id="${esc(l.ofExistant.id)}" style="font-size:11px;padding:3px 6px;border:1px solid var(--ui-brd2);border-radius:6px;">
+                    <select data-action="changer-statut-of" data-of-id="${esc(l.ofExistant.id)}" style="font-size:11px;padding:3px 7px;border:1px solid var(--ui-brd);border-radius:6px;background:${sb.bg};color:${sb.txt};font-weight:600;cursor:pointer;">
+                      ${Object.entries(STATUT_OF_LABELS).map(([val, label]) => `<option value="${val}" ${l.ofExistant.statut === val ? 'selected' : ''}>${label}</option>`).join('')}
+                    </select>
+                    <button data-action="supprimer-of" data-of-id="${esc(l.ofExistant.id)}" title="Supprimer cet OF" style="background:none;border:none;cursor:pointer;font-size:10px;padding:2px 4px;color:var(--ink-muted);opacity:0.6;">✕</button>
+                  </div>`;
+              } else {
+                prodCell = `<input type="date" data-action="planifier-production" data-produit-id="${esc(l.produit_id)}" style="font-size:11px;padding:3px 6px;border:1px solid var(--ui-brd2);border-radius:6px;" title="Choisir une date planifie la fabrication de ce produit pour toutes les commandes en attente">`;
+              }
             }
             return `<tr>
             <td class="td-bold">${esc(l.produit_nom || '—')}</td>
             <td>${fmtQ(l.quantite)}</td>
             <td style="color:#15803D;font-weight:700;">${fmtQ(l.couvert)}</td>
             <td style="color:${l.aProduire > 0 ? '#B42318' : 'var(--ink-muted)'};font-weight:${l.aProduire > 0 ? '700' : '400'};">${l.aProduire > 0 ? fmtQ(l.aProduire) : '—'}</td>
-            <td onclick="event.stopPropagation()">${dateCell}</td>
+            <td onclick="event.stopPropagation()">${prodCell}</td>
           </tr>`;
           }).join('')}</tbody>
         </table>
       </td>
     </tr>`).join('');
 
-  tbody.onclick = (e) => {
+  tbody.onclick = async (e) => {
+    const btnSupp = e.target.closest('[data-action="supprimer-of"]');
+    if (btnSupp) {
+      e.stopPropagation();
+      await _supprimerOF(btnSupp.dataset.ofId);
+      return;
+    }
     if (e.target.closest('[data-action]')) return;
     const row = e.target.closest('.prod-cmd-row');
     if (!row) return;
@@ -343,8 +367,20 @@ function _renderCommandesEnCours() {
       const of = _ofs.find(o => o.id === inpExistant.dataset.ofId);
       if (of) of.date_prevue = inpExistant.value;
       _renderCalendrier();
-      _renderOFs();
       showToast('✅ Date de production mise à jour.');
+      return;
+    }
+
+    const selOF = e.target.closest('[data-action="changer-statut-of"]');
+    if (selOF) {
+      const newStatut = selOF.value;
+      if (newStatut === 'clos') {
+        await _terminerFab(selOF.dataset.ofId);
+      } else if (newStatut === 'annule') {
+        await _annulerOF(selOF.dataset.ofId);
+      } else {
+        await _setOFStatut(selOF.dataset.ofId, newStatut);
+      }
       return;
     }
 
@@ -353,160 +389,6 @@ function _renderCommandesEnCours() {
       await creerOFPourProduit(inpNouveau.dataset.produitId, inpNouveau.value);
     }
   };
-}
-
-function _renderOFs() {
-  const tbody = document.getElementById('planningTbody');
-  /* Un OF clos sort de cette table dès sa clôture — il vit désormais dans
-     Historique de production, jamais les deux à la fois. */
-  const ofsActifs = _ofs.filter(o => o.statut !== 'clos');
-
-  if (!ofsActifs.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucun ordre de fabrication.</td></tr>';
-    return;
-  }
-
-  const STATUT_LABELS = {
-    'a_planifier':  'À planifier',
-    'planifie':     'Planifié',
-    'en_cours':     'En cours de fabrication',
-    'fabrique':     'Fabriqué',
-    'clos':         'Clos',
-    'annule':       'Annulé',
-  };
-
-  /* Badge statut coloré — sans bordure sur le select */
-  const STATUT_BADGE = {
-    'a_planifier': { bg: 'rgba(108,117,125,0.10)', txt: '#495057' },
-    'planifie':    { bg: 'rgba(76,110,245,0.10)',  txt: '#364fc7' },
-    'en_cours':    { bg: 'rgba(255,146,43,0.12)',  txt: '#7c5200' },
-    'fabrique':    { bg: 'rgba(32,201,151,0.12)',  txt: '#087f5b' },
-    'clos':        { bg: 'rgba(32,201,151,0.08)',  txt: '#0b7a5a' },
-    'annule':      { bg: 'rgba(250,82,82,0.10)',   txt: '#c92a2a' },
-  };
-
-  const fmtDateFR = (d) => {
-    if (!d) return '—';
-    const p = d.split('-');
-    return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d;
-  };
-
-  tbody.innerHTML = ofsActifs.map(of => {
-    const sb = STATUT_BADGE[of.statut] || STATUT_BADGE['a_planifier'];
-    return `<tr data-id="${of.id}" class="of-row" style="cursor:pointer;" title="Cliquer pour voir le détail par client">
-      <td class="td-ref">${esc(of.ref)}</td>
-      <td class="td-bold">${esc(of.produit_nom)}</td>
-      <td><strong>${of.quantite}</strong></td>
-      <td style="font-size:10.5px;color:var(--ink-muted)">${esc(of.notes || '')}</td>
-      <td style="font-size:11.5px;" data-no-toggle>
-        <span style="cursor:pointer;" title="Cliquer pour modifier"
-          onclick="document.getElementById('dp-${of.id}').showPicker?.()">
-          ${fmtDateFR(of.date_prevue)}
-        </span>
-        <input type="date" value="${esc(of.date_prevue || '')}"
-          style="width:0;height:0;opacity:0;position:absolute;"
-          data-id="${of.id}" data-action="update-date" id="dp-${of.id}">
-        <button onclick="document.getElementById('dp-${of.id}').showPicker?.()"
-          style="background:none;border:none;cursor:pointer;font-size:10px;padding:2px 4px;color:var(--ink-muted);" title="Modifier la date">✏</button>
-      </td>
-      <td data-no-toggle>
-        <select data-id="${of.id}" data-action="changer-statut"
-          style="font-size:11px;padding:4px 9px;border:1px solid var(--ui-brd);border-radius:6px;
-                 background:${sb.bg};color:${sb.txt};font-weight:600;cursor:pointer;">
-          ${Object.entries(STATUT_LABELS).map(([val, label]) =>
-            `<option value="${val}" ${of.statut === val ? 'selected' : ''}>${label}</option>`
-          ).join('')}
-        </select>
-      </td>
-      <td data-no-toggle>
-        <button class="btn btn-ghost btn-xs" data-id="${of.id}" data-action="supprimer-of"
-          title="Supprimer cet OF"
-          style="color:var(--ink-muted);font-size:10px;padding:2px 6px;opacity:0.6;">✕</button>
-      </td>
-    </tr>`;
-  }).join('');
-
-  tbody.onchange = async (e) => {
-    const el = e.target.closest('[data-action]');
-    if (!el) return;
-    const id = el.dataset.id;
-
-    if (el.dataset.action === 'update-date') {
-      await updateOFDate(id, el.value);
-      const of = _ofs.find(o => o.id === id);
-      if (of) of.date_prevue = el.value;
-      _renderCalendrier();
-      _renderOFs();
-    }
-
-    if (el.dataset.action === 'changer-statut') {
-      const newStatut = el.value;
-      if (newStatut === 'clos') {
-        await _terminerFab(id);
-      } else if (newStatut === 'annule') {
-        await _annulerOF(id);
-      } else {
-        await _setOFStatut(id, newStatut);
-        _renderOFs();
-        _renderCalendrier();
-      }
-    }
-  };
-
-  tbody.onclick = async (e) => {
-    const btn = e.target.closest('[data-action="supprimer-of"]');
-    if (btn) {
-      e.stopPropagation();
-      await _supprimerOF(btn.dataset.id);
-      return;
-    }
-    if (e.target.closest('[data-no-toggle]')) return;
-    const tr = e.target.closest('tr[data-id]');
-    if (tr) _toggleDetailOF(tr.dataset.id);
-  };
-}
-
-/* Dépliage au clic sur une ligne d'OF : liste les commandes/clients qui
-   attendent ce produit fini, avec le numéro de commande et la quantité.
-   Sur un OF clos, on relit le snapshot figé à la clôture (detail_clients)
-   plutôt que de recalculer à partir des commandes actuelles, qui ont pu
-   changer depuis — l'historique doit rester exact. */
-function _toggleDetailOF(id) {
-  const tbody = document.getElementById('planningTbody');
-  if (!tbody) return;
-  const tr = tbody.querySelector(`tr.of-row[data-id="${id}"]`);
-  if (!tr) return;
-
-  const dejaOuvert = tbody.querySelector(`tr.of-detail-row[data-of="${id}"]`);
-  tbody.querySelectorAll('tr.of-detail-row').forEach(r => r.remove());
-  if (dejaOuvert) return;
-
-  const of = _ofs.find(o => o.id === id);
-  if (!of) return;
-  const detail = (of.statut === 'clos' && Array.isArray(of.detail_clients))
-    ? of.detail_clients
-    : _detailClientsPourProduit(of.produit_id);
-
-  const rows = detail.length
-    ? detail.map(d => `<tr>
-        <td style="padding:4px 10px;font-size:11px;color:var(--ink-muted)">${esc(d.commande_ref || '—')}</td>
-        <td style="padding:4px 10px;font-size:11px;">${esc(d.client_nom || '—')}</td>
-        <td style="padding:4px 10px;font-size:11px;text-align:right;">${d.quantite ?? '—'}</td>
-      </tr>`).join('')
-    : `<tr><td colspan="3" style="padding:6px 10px;font-size:11px;color:var(--ink-muted)">Aucune commande en attente pour ce produit.</td></tr>`;
-
-  const detailTr = document.createElement('tr');
-  detailTr.className = 'of-detail-row';
-  detailTr.dataset.of = id;
-  detailTr.innerHTML = `<td colspan="7" style="background:#FAFAF8;padding:8px 12px;">
-    <div style="font-size:10.5px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;">Détail par commande client</div>
-    <table style="width:auto;min-width:280px;"><thead><tr>
-      <th style="padding:2px 10px;font-size:10px;text-align:left;">N° commande</th>
-      <th style="padding:2px 10px;font-size:10px;text-align:left;">Client</th>
-      <th style="padding:2px 10px;font-size:10px;text-align:right;">Qté</th>
-    </tr></thead><tbody>${rows}</tbody></table>
-  </td>`;
-  tr.after(detailTr);
 }
 
 /* -------------------------------------------------------
@@ -518,11 +400,6 @@ function _toggleDetailOF(id) {
    qui piochent dans le même article — un contrôle produit par
    produit isolément ne le voit pas.
 ------------------------------------------------------- */
-function _achatsEnCoursPourArticle(articleId) {
-  if (!articleId) return [];
-  return _achats.filter(a => a.article_id === articleId && ['brouillon', 'envoye'].includes(a.statut));
-}
-
 /* Demande de production par produit, tous OF actifs confondus (manuels ou
    liés à une commande) + le manque encore non couvert par un OF pour les
    commandes en cours. Partagé par Plan de fabrication ET Articles à
@@ -712,7 +589,6 @@ export async function creerOFPourProduit(produitId, datePrevue = null) {
     });
     _ofs.push(of);
     _renderBadges();
-    _renderOFs();
     _renderCalendrier();
     _renderCommandesEnCours();
     _renderVueConsolidee();
@@ -939,7 +815,7 @@ async function _setOFStatut(id, statut) {
     const of = _ofs.find(o => o.id === id);
     if (of) of.statut = statut;
     _renderBadges();
-    _renderOFs();
+    _renderCommandesEnCours();
     _renderCalendrier();
     _renderVueConsolidee();
   } catch (err) {
@@ -956,7 +832,7 @@ async function _supprimerOF(id) {
     await deleteOF(id);
     _ofs = _ofs.filter(o => o.id !== id);
     _renderBadges();
-    _renderOFs();
+    _renderCommandesEnCours();
     _renderCalendrier();
     _renderVueConsolidee();
     showToast('✅ OF ' + of.ref + ' supprimé.');
@@ -1075,7 +951,6 @@ async function _terminerFabrication(id) {
     }
 
     _renderBadges();
-    _renderOFs();
     _renderCalendrier();
     _renderCommandesEnCours();
     _renderVueConsolidee();
@@ -1098,26 +973,10 @@ async function _annulerOF(id) {
     await updateOFStatut(id, 'annule');
     of.statut = 'annule';
     _renderBadges();
-    _renderOFs();
+    _renderCommandesEnCours();
     showToast('OF ' + of.ref + ' annulé.');
   } catch (err) {
     showToast('❌ Erreur annulation OF.', 'error');
-  }
-}
-
-async function _creerOF(produitId, qte) {
-  const p = _produits.find(x => x.id === produitId);
-  if (!p) return;
-  const ref = nextRef('OF', _ofs);
-  try {
-    const of = await createOF({ ref, produit_id: p.id, produit_nom: p.nom, quantite: qte, date_prevue: today(), statut: 'planifie' });
-    _ofs.push(of);
-    _renderBadges();
-    _renderOFs();
-    _renderCalendrier();
-    showToast('✅ OF ' + ref + ' créé.');
-  } catch (err) {
-    showToast('❌ Erreur création OF.', 'error');
   }
 }
 
@@ -1163,7 +1022,6 @@ export async function creerOFsPourCommande(commande) {
 
   if (crees) {
     _renderBadges();
-    _renderOFs();
     _renderCalendrier();
     _renderCommandesEnCours();
     _renderVueConsolidee();
@@ -1173,113 +1031,3 @@ export async function creerOFsPourCommande(commande) {
   }
 }
 
-/* -------------------------------------------------------
-   FORMULAIRE PLANIFIER OF
-------------------------------------------------------- */
-function _bindPlanifierForm() {
-  document.getElementById('btnSavePlanifier')?.addEventListener('click', _savePlanifier);
-}
-
-export function initPlanifierModal(preselectProduitRef = null) {
-  const container = document.getElementById('ofLignes');
-  if (container) {
-    container.innerHTML = '';
-    _ofLigneN = 0;
-    _addOFLigne(preselectProduitRef);
-  }
-  const ofClients = document.getElementById('ofClients');
-  if (ofClients) ofClients.value = '';
-  const ofFaisabilite = document.getElementById('ofFaisabilite');
-  if (ofFaisabilite) ofFaisabilite.style.display = 'none';
-}
-
-let _ofLigneN = 0;
-
-function _addOFLigne(preselectProduitRef = null) {
-  const container = document.getElementById('ofLignes');
-  if (!container) return;
-  _ofLigneN++;
-
-  const div = document.createElement('div');
-  div.className = 'of-ligne';
-  div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 80px 130px auto;gap:7px;margin-bottom:7px;align-items:center;';
-
-  const byRef  = _produits.map(p =>
-    `<option value="${esc(p.id)}" ${p.ref === preselectProduitRef ? 'selected' : ''}>${esc(p.ref)}</option>`).join('');
-  const byName = _produits.map(p =>
-    `<option value="${esc(p.id)}" ${p.ref === preselectProduitRef ? 'selected' : ''}>${esc(p.nom)}</option>`).join('');
-
-  div.innerHTML = `
-    <select class="of-ref inp" style="font-size:11.5px;font-weight:600;color:var(--accent);">${byRef}</select>
-    <select class="of-nom inp">${byName}</select>
-    <input type="number" placeholder="Qté" min="1" class="of-qte inp">
-    <input type="date" class="of-date inp" value="${today()}">
-    <button style="background:none;border:none;color:var(--ui-red);font-size:18px;cursor:pointer;line-height:1;" type="button">×</button>`;
-
-  div.querySelector('.of-ref').addEventListener('change', (e) => { div.querySelector('.of-nom').value = e.target.value; });
-  div.querySelector('.of-nom').addEventListener('change', (e) => { div.querySelector('.of-ref').value = e.target.value; });
-  div.querySelector('button').addEventListener('click', () => div.remove());
-
-  container.appendChild(div);
-}
-
-export function addOFLigne() { _addOFLigne(); }
-
-async function _savePlanifier() {
-  const container = document.getElementById('ofLignes');
-  const lignes = [];
-
-  if (container) {
-    container.querySelectorAll('.of-ligne').forEach(div => {
-      const produitId = div.querySelector('.of-ref')?.value;
-      const qte       = parseInt(div.querySelector('.of-qte')?.value) || 0;
-      const date      = div.querySelector('.of-date')?.value || today();
-      if (produitId && qte > 0) lignes.push({ produitId, qte, date });
-    });
-  }
-
-  if (!lignes.length) {
-    showToast('⚠ Ajoutez au moins un OF avec produit et quantité.', 'error');
-    return;
-  }
-
-  const notesClients = document.getElementById('ofClients')?.value || '';
-  let createdCount = 0;
-
-  try {
-    for (const { produitId, qte, date } of lignes) {
-      const p = _produits.find(x => x.id === produitId);
-      if (!p) continue;
-
-      const ref = nextRef('OF', _ofs);
-      const of  = await createOF({ ref, produit_id: p.id, produit_nom: p.nom, quantite: qte, notes: notesClients, date_prevue: date, statut: 'planifie' });
-      _ofs.push(of);
-      createdCount++;
-
-      const lignesRecette = _recettes[p.id] || [];
-      for (const l of lignesRecette) {
-        const aref = l.articles?.ref;
-        const qp   = l.quantite || 0;
-        if (!aref || !qp) continue;
-        const a = _articles.find(x => x.ref === aref);
-        if (!a) continue;
-        const manque = qp * qte - a.stock;
-        if (manque <= 0) continue;
-        const doublon = await achatDoublonExiste(a.id, ref);
-        if (doublon) continue;
-        const bcRef = await nextRefServeur('BC');
-        await createAchat({ ref: bcRef, article_id: a.id, article_nom: a.nom, quantite: Math.ceil(manque), prix_unitaire: a.prix, fournisseur: a.fournisseur || '', statut: 'brouillon', ref_commande: ref, notes: 'Auto OF ' + ref });
-      }
-    }
-
-    closeModal('modalPlanifier');
-    _renderBadges();
-    _renderOFs();
-    _renderCalendrier();
-    showToast(`✅ ${createdCount} OF planifié(s).`);
-    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'production' } }));
-  } catch (err) {
-    console.error('[production] _savePlanifier ERREUR:', err.message, err);
-    showToast('❌ Erreur planification OF.', 'error');
-  }
-}
