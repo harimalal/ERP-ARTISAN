@@ -40,7 +40,7 @@ Jamais de refus, jamais de prose — UNIQUEMENT le JSON.
 
 Format de réponse obligatoire :
 {
-  "client": "nom exact ou meilleure correspondance parmi [${cliList}] ou null",
+  "client": "nom du client — voir règle CLIENT ci-dessous, jamais null sauf document illisible",
   "date": "YYYY-MM-DD ou null",
   "dateLivraison": "YYYY-MM-DD ou null",
   "remarques": "notes importantes ou chaîne vide",
@@ -54,7 +54,7 @@ Format de réponse obligatoire :
 }
 
 Règles d'extraction :
-- CLIENT : Compare avec la liste fournie en ignorant majuscules, accents et abréviations. "Épicerie La Ruche" peut correspondre à "Epicerie Cooperative La Ruche".
+- CLIENT : Compare d'abord avec la liste fournie en ignorant majuscules, accents et abréviations ("Épicerie La Ruche" peut correspondre à "Epicerie Cooperative La Ruche") — si une correspondance existe, renvoie le nom EXACT de la liste. Sinon, ce client n'existe pas encore dans l'application : extrais son nom tel qu'il apparaît dans le document (en-tête, destinataire, raison sociale) et renvoie-le tel quel — ne renvoie JAMAIS null simplement parce que le client est absent de la liste, null est réservé au cas où le document ne permet d'identifier aucun client.
 - PRODUITS : Associe chaque ligne du document au produit le plus proche par nom, description ou référence. Cherche les correspondances partielles ("confiture fraise" → "Confiture Fraise Gariguette 50ml").
 - QUANTITÉS : Interprète "x6", "6 u.", "6 pots", "6" comme la quantité 6. Si absent, utilise 1.
 - Si le document est illisible ou vide : retourne {"client":null,"date":null,"dateLivraison":null,"remarques":"Document illisible","lignes":[]}.

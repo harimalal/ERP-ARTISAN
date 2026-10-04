@@ -1467,7 +1467,17 @@ function setActiveNav(page) {
         document.getElementById('iaStep2').style.display = 'none';
         openModal('modalCommande');
 
-        const clientNom = data.client || '';
+        /* Le prompt IA renvoie désormais le nom du client même s'il n'est pas
+           encore dans l'application (voir ai_analyse_bc.js) — null ne doit
+           plus arriver que si le document est vraiment illisible. Dans ce
+           cas résiduel, on ne laisse jamais le champ client vide : on
+           retombe sur le nom du fichier importé, à défaut un repère daté,
+           pour que la commande ait toujours un vrai client (créé
+           automatiquement à l'enregistrement, comme pour tout nom saisi). */
+        const clientNom = data.client || (() => {
+          const base = (_iaFile?.name || '').replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim();
+          return base ? `À identifier — ${base}` : `Client à identifier (import ${new Date().toLocaleDateString('fr-FR')})`;
+        })();
         const selClient = document.getElementById('cmdClientSel');
         if (selClient && clientNom) {
           const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();

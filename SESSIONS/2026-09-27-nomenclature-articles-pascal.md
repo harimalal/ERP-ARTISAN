@@ -963,3 +963,50 @@ Vérifié avant livraison : node --check sur les 8 fichiers, suite de
 tests unitaires (2/2) toujours verte, migration compteurs vérifiée par
 requête SQL avant/après sur tous les tenants concernés (pas seulement
 Pascal, ce changement de code étant générique).
+
+## Import IA de commandes : client jamais laissé vide (2026-10-04)
+
+Demande : pour les commandes importées via l'IA (upload BC → Claude
+extrait client + lignes → modal Commande pré-rempli), si le client
+détecté n'est pas déjà dans la liste, le créer automatiquement — ne
+jamais laisser le champ client de la commande vide.
+
+Diagnostic : le circuit de sauvegarde (commandes.js _saveNew,
+upsertClient) créait déjà correctement un nouveau client dès qu'un nom
+non vide et différent de "Client inconnu" lui était passé — ce
+mécanisme fonctionnait. La vraie cause racine était en amont, dans le
+prompt envoyé à Claude (netlify/functions/ai_analyse_bc.js) : il
+demandait explicitly "nom exact ou meilleure correspondance parmi
+[liste des clients existants] ou null" — autrement dit, pour tout
+client qui n'est PAS encore dans l'application (le cas même où on a
+besoin de le créer), le prompt garantissait un retour null, même si le
+nom du client était bien lisible dans le document (en-tête, destinataire).
+Résultat : la commande se retrouvait avec client_nom="Client inconnu"
+et client_id=null, sans qu'aucun client ne soit jamais créé — exactement
+le symptôme signalé.
+
+Fix :
+1. ai_analyse_bc.js — règle CLIENT du prompt réécrite : d'abord
+   comparer à la liste fournie (comme avant, renvoie le nom exact si
+   trouvé) ; sinon extraire le nom tel qu'il apparaît dans le document
+   et le renvoyer tel quel, jamais null pour la seule raison que le
+   client est absent de la liste. null reste réservé au document
+   vraiment illisible.
+2. app.html (_iaShowPreview) — filet de sécurité pour le cas résiduel
+   où l'IA renvoie quand même null (document illisible) : au lieu de
+   laisser le sélecteur client sur son état par défaut (menant à
+   "Client inconnu" sans création), on retombe sur un nom dérivé du
+   fichier importé ("À identifier — <nom du fichier>"), ou à défaut un
+   repère daté ("Client à identifier (import JJ/MM/AAAA)"). Dans tous
+   les cas le circuit __nouveau__ + upsertClient (déjà existant, non
+   modifié) se déclenche et crée un vrai client.
+
+Aucune modification du circuit de sauvegarde lui-même (commandes.js),
+qui fonctionnait déjà correctement — seule la donnée qui l'alimentait
+était fautive.
+
+Fichiers modifiés : netlify/functions/ai_analyse_bc.js, app.html.
+
+Vérifié avant livraison : node --check sur ai_analyse_bc.js et sur le
+script module extrait d'app.html, suite de tests unitaires (2/2)
+toujours verte.
