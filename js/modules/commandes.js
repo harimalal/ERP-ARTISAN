@@ -10,7 +10,7 @@ import {
   replaceCommandeLignes, deleteCommande, getClients, getProduits, getArticles,
   createAchat, achatDoublonExiste,
   upsertClient, nextRefServeur, updateCommandePrioritaire,
-  deleteOFsForCommande, updateOFsStatutPourCommande,
+  deleteOFsForCommande, updateOFsStatutPourCommande, deleteLivraisonsForCommande,
   ajusterStockProduit, addMouvement, createLivraison,
   getTenant, createFacture, createFactureLignes, factureExistePourCommande,
 } from '../db.js';
@@ -332,15 +332,18 @@ async function _facturerCommande(c) {
 }
 
 /* -------------------------------------------------------
-   SUPPRIMER — UUID. Les OF implicites de la commande doivent être
-   nettoyés avant la commande elle-même (sinon la FK commande_ligne_id
-   bloque la cascade sur commande_lignes).
+   SUPPRIMER — UUID. Les OF implicites et les livraisons de la commande
+   sont nettoyés avant la commande elle-même (sinon la FK
+   commande_ligne_id bloque la cascade sur commande_lignes, et la FK
+   livraisons.commande_id bloque la commande elle-même). Seule une
+   facture déjà émise reste bloquante (message clair, voir db.js).
 ------------------------------------------------------- */
 async function _supprimerCmd(id) {
   const ok = await confirmDialog('Supprimer définitivement cette commande ?');
   if (!ok) return;
   try {
     try { await deleteOFsForCommande(id); } catch (_) {}
+    try { await deleteLivraisonsForCommande(id); } catch (_) {}
     await deleteCommande(id);
     _commandes = _commandes.filter(c => c.id !== id);
     closeModal('modalCommande');

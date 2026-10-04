@@ -23,7 +23,7 @@ const MESSAGES_SUPPRESSION_BLOQUEE = {
   deleteArticle:  "Cet article figure dans des bons de commande fournisseur, il ne peut pas être supprimé. Vous pouvez modifier sa fiche à la place.",
   deleteProduit:  "Ce produit figure dans des commandes ou des ordres de fabrication, il ne peut pas être supprimé. Vous pouvez modifier sa fiche à la place.",
   deleteClient:   "Ce client a des commandes enregistrées, il ne peut pas être supprimé. Vous pouvez modifier sa fiche à la place.",
-  deleteCommande: "Cette commande a déjà une livraison ou une facture, elle ne peut plus être supprimée.",
+  deleteCommande: "Cette commande a déjà une facture émise, elle ne peut plus être supprimée.",
 };
 
 function handleError(context, error) {
@@ -493,8 +493,24 @@ export async function updateCommandePrioritaire(id, prioritaire) {
   return data;
 }
 
+/* La livraison n'est plus qu'un suivi interne depuis que le statut
+   « Expédié » la crée indépendamment de la facturation (avant, les deux
+   se créaient ensemble en un seul clic « Livrer ») — elle ne doit plus
+   bloquer une suppression, voir deleteLivraisonsForCommande ci-dessous,
+   appelée avant deleteCommande (commandes.js, _supprimerCmd). */
+export async function deleteLivraisonsForCommande(commandeId) {
+  const { error } = await supabase
+    .from('livraisons')
+    .delete()
+    .eq('commande_id', commandeId)
+    .eq('tenant_id', tid());
+  if (error) handleError('deleteLivraisonsForCommande', error);
+}
+
 /* Les lignes partent en cascade (FK commande_lignes → commandes ON DELETE
-   CASCADE) : une commande livrée ou facturée est refusée sans rien effacer. */
+   CASCADE). Seule une facture déjà émise bloque encore la suppression
+   (pièce légale, jamais effacée silencieusement) — voir
+   MESSAGES_SUPPRESSION_BLOQUEE.deleteCommande. */
 export async function deleteCommande(id) {
   const { error } = await supabase
     .from('commandes')
