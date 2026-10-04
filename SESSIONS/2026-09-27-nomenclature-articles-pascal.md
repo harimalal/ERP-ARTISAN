@@ -1010,3 +1010,57 @@ Fichiers modifiés : netlify/functions/ai_analyse_bc.js, app.html.
 Vérifié avant livraison : node --check sur ai_analyse_bc.js et sur le
 script module extrait d'app.html, suite de tests unitaires (2/2)
 toujours verte.
+
+## Import IA de commandes : prise en charge réelle xlsx/docx/txt (2026-10-04)
+
+Suite du diagnostic fait plus tôt dans la session : le bouton "Analyser
+avec Delia" (modal Import IA, Commandes) affichait "PDF · Excel · Word ·
+Image" et acceptait .xlsx/.xls/.docx/.doc/.csv/.txt dans le sélecteur de
+fichier, mais ai_analyse_bc.js envoyait TOUT fichier non-image à
+l'API Anthropic en le déclarant "application/pdf" — faux pour un vrai
+xlsx/docx/csv/txt, échec silencieux ou réponse inexploitable.
+
+Décision prise avec l'utilisateur : pas de conversion en PDF (perdrait
+la structure des données, nécessiterait un service de conversion
+externe — nouvelle dépendance, nouveau coût). Réutiliser le mécanisme
+déjà prouvé en production dans ai_extract_doc.js (import Admin) :
+extraction en texte structuré côté navigateur, jamais le fichier brut
+envoyé à l'IA pour ces formats.
+
+Fix :
+1. js/modules/admin.js — lireOngletsFichier() et serialiserLignesTexte()
+   (anciennement _lireOngletsFichier/_serialiserLignesTexte, privées)
+   exportées pour être réutilisables par l'import IA de commandes.
+   Comportement inchangé, seuls le nom et la visibilité changent — les
+   2 appels internes à _scannerFichierIA mis à jour en conséquence.
+2. netlify/functions/ai_analyse_bc.js — nouveau tableau EXT_TEXTE
+   (xlsx, xls, csv, docx, txt). buildContent() envoie désormais un bloc
+   texte pour ces extensions au lieu d'un bloc document/PDF ; validation
+   du corps de requête adaptée (texte requis pour EXT_TEXTE, fichier
+   requis sinon, au lieu du champ fichier systématiquement obligatoire).
+3. app.html — ajout de mammoth.js (CDN jsDelivr, mammoth@1.13.0,
+   mammoth.browser.min.js — vérifié directement dans le tarball npm
+   publié, chemin confirmé à la racine du package) pour l'extraction de
+   texte docx côté navigateur. Le gestionnaire du bouton "Analyser"
+   branche maintenant par extension : xlsx/xls/csv → lireOngletsFichier
+   + serialiserLignesTexte (admin.js, réutilisés) ; docx → mammoth.
+   extractRawText ; txt → lecture directe (File.text()) ; pdf/image →
+   comportement base64 inchangé. Le sélecteur de fichier retire .doc
+   (binaire Word 97-2003, aucune extraction fiable disponible sans
+   service externe) et setFile() le refuse explicitement avec un
+   message clair plutôt que de laisser échouer silencieusement à
+   l'analyse — se prémunit aussi contre un .doc déposé par glisser-
+   déposer, qui contourne l'attribut accept du champ fichier.
+
+Fichiers modifiés : js/modules/admin.js, netlify/functions/ai_analyse_bc.js,
+app.html.
+
+Vérifié avant livraison : node --check sur admin.js et
+ai_analyse_bc.js, node --check sur le script module extrait d'app.html,
+suite de tests unitaires (2/2) toujours verte. Chemin du fichier CDN
+mammoth.browser.min.js vérifié en extrayant réellement le tarball npm
+publié (registry.npmjs.org), pas une supposition.
+
+Rappel workflow (changement demandé par l'utilisateur ce même jour) :
+ce commit reste sur la branche claude/lucid-franklin-82j6ij, pas de
+fusion vers main — voir COCKPIT_LANCEMENT_PRODUCTION.md, volet 6.

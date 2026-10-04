@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="/css/components.css">
 <link rel="stylesheet" href="/css/layout.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.13.0/mammoth.browser.min.js"></script>
 </head>
 <body>
 
@@ -910,7 +911,7 @@
         <div style="font-weight:600;font-size:13px;color:var(--ink);margin-bottom:4px;">Déposez votre bon de commande</div>
         <div style="font-size:11.5px;color:var(--ink-muted);">PDF · Excel · Word · Image</div>
       </div>
-      <input type="file" id="iaFileInput" accept=".pdf,.xlsx,.xls,.docx,.doc,.csv,.txt,.png,.jpg,.jpeg" style="display:none">
+      <input type="file" id="iaFileInput" accept=".pdf,.xlsx,.xls,.docx,.csv,.txt,.png,.jpg,.jpeg" style="display:none">
       <div id="iaFileInfo" style="display:none;margin-top:10px;background:var(--ui-bg2);border:1px solid var(--ui-brd);border-radius:8px;padding:9px 12px;align-items:center;gap:9px;">
         <span id="iaFileIcon" style="font-size:22px;"></span>
         <div style="flex:1;"><div id="iaFileName" style="font-weight:600;font-size:12.5px;"></div><div id="iaFileSize" style="font-size:11px;color:var(--ink-muted);"></div></div>
@@ -1303,11 +1304,20 @@ function setActiveNav(page) {
       const btnReset  = document.getElementById('iaResetBtn');
       const btnConfirm= document.getElementById('iaConfirmBtn');
       const iaError   = document.getElementById('iaError');
-      const ICONS = { pdf:'📄', xlsx:'📊', xls:'📊', docx:'📝', doc:'📝', csv:'📊', png:'🖼', jpg:'🖼', jpeg:'🖼', txt:'📄' };
+      const ICONS = { pdf:'📄', xlsx:'📊', xls:'📊', docx:'📝', csv:'📊', png:'🖼', jpg:'🖼', jpeg:'🖼', txt:'📄' };
+      /* .doc (binaire Word 97-2003, pas .docx) n'a pas d'extraction de
+         texte fiable disponible — plutôt que l'accepter et échouer
+         silencieusement au moment de l'analyse, on le refuse ici avec
+         un message clair. */
+      const EXT_NON_SUPPORTEES = { doc: 'Le format .doc (ancien Word) n\'est pas pris en charge — réenregistre le fichier en .docx ou en PDF avant de l\'importer.' };
 
       function setFile(f) {
-        _iaFile = f;
         const ext = f.name.split('.').pop().toLowerCase();
+        if (EXT_NON_SUPPORTEES[ext]) {
+          if (iaError) { iaError.style.display = 'flex'; iaError.textContent = EXT_NON_SUPPORTEES[ext]; }
+          return;
+        }
+        _iaFile = f;
         fileIcon.textContent = ICONS[ext] || '📄';
         fileName.textContent = f.name;
         fileSize.textContent = (f.size / 1024).toFixed(1) + ' Ko';
@@ -1356,13 +1366,33 @@ function setActiveNav(page) {
           if (si < steps.length) { progEl.style.width = steps[si][0] + '%'; statusEl.textContent = steps[si][1]; si++; }
         }, 700);
         try {
-          const b64 = await new Promise((res, rej) => {
-            const r = new FileReader();
-            r.onload = () => res(r.result.split(',')[1]);
-            r.onerror = () => rej(new Error('Lecture impossible'));
-            r.readAsDataURL(_iaFile);
-          });
           const ext = _iaFile.name.split('.').pop().toLowerCase();
+          /* xlsx/xls/csv/docx/txt : extraits en texte ici, côté navigateur
+             — jamais envoyés tels quels à l'IA (voir ai_analyse_bc.js,
+             EXT_TEXTE). xlsx/xls/csv réutilisent les mêmes helpers que
+             l'import Admin (js/modules/admin.js) ; docx passe par
+             mammoth.js ; txt se lit directement. PDF/image inchangés. */
+          const EXT_TABULAIRE = ['xlsx', 'xls', 'csv'];
+          const payloadFichier = {};
+          if (EXT_TABULAIRE.includes(ext)) {
+            const { lireOngletsFichier, serialiserLignesTexte } = await import('/js/modules/admin.js');
+            const onglets = await lireOngletsFichier(_iaFile, ext);
+            payloadFichier.texte = serialiserLignesTexte(onglets);
+          } else if (ext === 'docx') {
+            if (!window.mammoth) throw new Error('Extraction Word indisponible (bibliothèque non chargée)');
+            const buf = await _iaFile.arrayBuffer();
+            const { value } = await window.mammoth.extractRawText({ arrayBuffer: buf });
+            payloadFichier.texte = value;
+          } else if (ext === 'txt') {
+            payloadFichier.texte = await _iaFile.text();
+          } else {
+            payloadFichier.fichier = await new Promise((res, rej) => {
+              const r = new FileReader();
+              r.onload = () => res(r.result.split(',')[1]);
+              r.onerror = () => rej(new Error('Lecture impossible'));
+              r.readAsDataURL(_iaFile);
+            });
+          }
           const ctx = document.getElementById('iaContext')?.value || '';
           let produitsCache = [], clientsCache = [];
           try {
@@ -1377,7 +1407,7 @@ function setActiveNav(page) {
           const resp = await fetch('/api/ai_analyse_bc', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fichier: b64, extension: ext, contexte: ctx, produits: produitsCache, clients: clientsCache, tenantId: getTenantId() || '', token: session?.access_token || '' })
+            body: JSON.stringify({ ...payloadFichier, extension: ext, contexte: ctx, produits: produitsCache, clients: clientsCache, tenantId: getTenantId() || '', token: session?.access_token || '' })
           });
           clearInterval(ticker); progEl.style.width = '100%';
           const result = await resp.json().catch(() => null);

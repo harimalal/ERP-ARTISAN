@@ -998,7 +998,10 @@ async function _lireFichierBase64(file) {
   });
 }
 
-function _serialiserLignesTexte(onglets, maxLignesParOnglet = 300) {
+/* Exportée — réutilisée aussi par l'import IA de commandes (app.html),
+   qui a besoin du même texte "colonne: valeur" pour un xlsx/xls/csv au
+   lieu d'envoyer le fichier brut à l'IA (voir ai_analyse_bc.js). */
+export function serialiserLignesTexte(onglets, maxLignesParOnglet = 300) {
   const noms = Object.keys(onglets);
   if (!noms.length) return '(fichier vide, aucune ligne détectée)';
   return noms.map(nom => {
@@ -1022,8 +1025,8 @@ async function _scannerFichierIA(file, batchId, onProgress) {
     const payload = { extension, tenantId: getTenantId(), token: session.access_token };
 
     if (isTabulaire) {
-      const onglets = await _lireOngletsFichier(file, extension);
-      payload.texte = _serialiserLignesTexte(onglets);
+      const onglets = await lireOngletsFichier(file, extension);
+      payload.texte = serialiserLignesTexte(onglets);
     } else {
       payload.fichier = await _lireFichierBase64(file);
     }
@@ -1201,7 +1204,8 @@ function _lireHeadersFichier(file, ext) {
   });
 }
 
-function _lireOngletsFichier(file, ext) {
+/* Exportée — voir serialiserLignesTexte ci-dessus. */
+export function lireOngletsFichier(file, ext) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
