@@ -2,6 +2,9 @@
 
 Créé le 04 octobre 2026, suite à un audit live (Supabase + Netlify + revue de code) mené pendant la session de travail. Ce fichier est un document vivant : à cocher et mettre à jour au fur et à mesure, pas un rapport figé. Chaque point part d'un constat vérifié en direct sur l'infrastructure réelle du projet, pas d'une checklist générique.
 
+Version interactive (à cocher, état go/no-go en temps réel, bouton copier par volet) : https://claude.ai/artifact/6hfuSpHqDE9cJvgzHwwb86
+Ce fichier (`.claude/COCKPIT_LANCEMENT_PRODUCTION.md`) est la source de vérité versionnée dans le repo ; l'artefact ci-dessus en est la version de travail au quotidien — les deux portent le même contenu, à garder synchronisés si l'un des deux est modifié.
+
 Statut global au 04/10/2026 : **NE PAS lancer à grande échelle en l'état.** Les volets 1 et 2 sont bloquants.
 
 ---
