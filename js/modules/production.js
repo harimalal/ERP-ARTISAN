@@ -234,6 +234,21 @@ function _ofPourLigne(ligneId) {
   return _ofs.find(o => o.commande_ligne_id === ligneId) || null;
 }
 
+/* OF de toutes les lignes d'une commande, et date de production
+   affichée pour la commande entière — une seule date, celle du premier
+   OF qui en a une (en pratique tous les OF d'une même commande sont
+   produits le même jour : on ne gère pas une date par ligne, juste une
+   date par commande, qui s'applique à chacun de ses OF implicites). */
+function _ofsCommande(c) {
+  return (c.commande_lignes || []).map(l => _ofPourLigne(l.id)).filter(Boolean);
+}
+
+function _datePrevueCommande(c) {
+  const ofs = _ofsCommande(c);
+  const avecDate = ofs.find(o => o.date_prevue);
+  return avecDate ? avecDate.date_prevue : '';
+}
+
 function _renderCommandesEnCours() {
   const tbody = document.getElementById('prodCommandesTbody');
   if (!tbody) return;
@@ -250,23 +265,17 @@ function _renderCommandesEnCours() {
       <td style="width:18px;"><span class="prod-cmd-chevron">▶</span></td>
       <td class="td-ref">${esc(c.ref)}</td>
       <td class="td-bold">${esc(c.client_nom || '—')}</td>
-      <td>${esc(c.date_livraison || '—')}</td>
+      <td onclick="event.stopPropagation()"><input type="date" value="${esc(_datePrevueCommande(c))}" data-action="date-commande" data-id="${esc(c.id)}" style="font-size:11px;padding:3px 6px;border:1px solid var(--ui-brd2);border-radius:6px;"></td>
       <td onclick="event.stopPropagation()">${selectStatutCmd(c.id, c.statut)}</td>
     </tr>
     <tr class="prod-cmd-detail" data-id="${esc(c.id)}" style="display:none;">
       <td colspan="5" style="background:var(--ui-bg2);padding:10px 14px;">
         <table style="width:100%;">
-          <thead><tr><th>Produit</th><th>Qté</th><th>Date de production voulue</th></tr></thead>
-          <tbody>${(c.commande_lignes || []).map(l => {
-            const of_ = _ofPourLigne(l.id);
-            return `<tr>
+          <thead><tr><th>Produit</th><th>Qté</th></tr></thead>
+          <tbody>${(c.commande_lignes || []).map(l => `<tr>
               <td class="td-bold">${esc(l.produit_nom || '—')}</td>
               <td>${fmtQ(l.quantite)}</td>
-              <td onclick="event.stopPropagation()">${of_
-                ? `<input type="date" value="${esc(of_.date_prevue || '')}" data-action="date-of" data-of-id="${esc(of_.id)}" style="font-size:11px;padding:3px 6px;border:1px solid var(--ui-brd2);border-radius:6px;">`
-                : '<span style="color:var(--ink-muted);font-size:11px;">—</span>'}</td>
-            </tr>`;
-          }).join('')}</tbody>
+            </tr>`).join('')}</tbody>
         </table>
       </td>
     </tr>`).join('');
@@ -292,14 +301,22 @@ function _renderCommandesEnCours() {
       return;
     }
 
-    const inpDate = e.target.closest('[data-action="date-of"]');
+    const inpDate = e.target.closest('[data-action="date-commande"]');
     if (inpDate) {
-      await updateOFDate(inpDate.dataset.ofId, inpDate.value);
-      const of_ = _ofs.find(o => o.id === inpDate.dataset.ofId);
-      if (of_) of_.date_prevue = inpDate.value;
+      const c = _commandes.find(x => x.id === inpDate.dataset.id);
+      if (!c) return;
+      const ofs = _ofsCommande(c);
+      for (const of_ of ofs) {
+        try {
+          await updateOFDate(of_.id, inpDate.value);
+          of_.date_prevue = inpDate.value;
+        } catch (err) {
+          console.error('[production] date-commande ERREUR:', err.message, err);
+        }
+      }
       _renderCalendrier();
       _renderBadges();
-      showToast('✅ Date de production mise à jour.');
+      showToast('✅ Date de production mise à jour — s\'affiche dans le calendrier.');
     }
   };
 }
@@ -317,9 +334,14 @@ function _renderCommandesEnCours() {
    (allouerStockSequentiel, ui.js) — même ordre d'enregistrement, même
    résultat des deux côtés, pour ne jamais diverger.
 ------------------------------------------------------- */
+/* Une fois une commande expédiée (ou facturée, ou annulée), elle ne
+   doit plus garder un produit affiché ici — même "entièrement couvert" :
+   une commande expédiée n'a plus aucun besoin, ni réel ni résiduel.
+   Un produit encore présent dans une commande active (à produire, en
+   production ou prête) reste affiché normalement. */
 function _produitsCommandes() {
   const ids = new Set();
-  _commandes.forEach(c => (c.commande_lignes || []).forEach(l => { if (l.produit_id) ids.add(l.produit_id); }));
+  _commandes.filter(c => !_estTerminale(c)).forEach(c => (c.commande_lignes || []).forEach(l => { if (l.produit_id) ids.add(l.produit_id); }));
   return ids;
 }
 
