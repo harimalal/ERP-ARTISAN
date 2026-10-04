@@ -61,15 +61,31 @@ Règles d'extraction :
 ${contexte ? `\nContexte : ${contexte}` : ''}`;
 }
 
-function buildContent(fichierBase64, extension, prompt) {
+/* xlsx/xls/csv/docx n'ont pas de représentation "document" valide côté
+   API Anthropic (ni PDF ni image) — ils arrivent ici déjà convertis en
+   texte brut par l'appelant (app.html, via les mêmes helpers que
+   l'import Admin pour le tabulaire, et mammoth.js côté navigateur pour
+   le docx). Envoyer un xlsx/docx tel quel en le déclarant
+   "application/pdf" (comme avant ce correctif) n'est pas un PDF valide
+   et échoue silencieusement. */
+const EXT_TEXTE = ['xlsx', 'xls', 'csv', 'docx', 'txt'];
+
+function buildContent({ fichier, texte }, extension, prompt) {
+  if (EXT_TEXTE.includes(extension)) {
+    return [
+      { type: 'text', text: `Voici le contenu texte extrait d'un fichier ${extension} :\n\n${texte}` },
+      { type: 'text', text: prompt },
+    ];
+  }
+
   const isImage   = ['png', 'jpg', 'jpeg', 'webp'].includes(extension);
   const mediaType = isImage
     ? `image/${extension === 'jpg' ? 'jpeg' : extension}`
     : 'application/pdf';
 
   const mediaBlock = isImage
-    ? { type: 'image',    source: { type: 'base64', media_type: mediaType, data: fichierBase64 } }
-    : { type: 'document', source: { type: 'base64', media_type: mediaType, data: fichierBase64 } };
+    ? { type: 'image',    source: { type: 'base64', media_type: mediaType, data: fichier } }
+    : { type: 'document', source: { type: 'base64', media_type: mediaType, data: fichier } };
 
   return [mediaBlock, { type: 'text', text: prompt }];
 }
@@ -137,17 +153,30 @@ export default async function handler(req) {
     });
   }
 
-  const { fichier, extension, contexte = '', produits = [], clients = [], tenantId, token } = body;
+  const { fichier, texte, extension, contexte = '', produits = [], clients = [], tenantId, token } = body;
 
-  if (!fichier || !extension || !tenantId || !token) {
+  if (!extension || !tenantId || !token) {
     return new Response(JSON.stringify({ ok: false, error: 'Champs manquants' }), {
       status: 400, headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  const extOk = ['pdf', 'png', 'jpg', 'jpeg', 'webp'].includes(extension.toLowerCase());
+  const extLower = extension.toLowerCase();
+  const extOk = ['pdf', 'png', 'jpg', 'jpeg', 'webp', ...EXT_TEXTE].includes(extLower);
   if (!extOk) {
     return new Response(JSON.stringify({ ok: false, error: `Extension non supportée : ${extension}` }), {
+      status: 400, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const isTexte = EXT_TEXTE.includes(extLower);
+  if (isTexte && !texte) {
+    return new Response(JSON.stringify({ ok: false, error: 'Champ manquant : texte requis pour ce type de fichier' }), {
+      status: 400, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (!isTexte && !fichier) {
+    return new Response(JSON.stringify({ ok: false, error: 'Champ manquant : fichier requis pour ce type de fichier' }), {
       status: 400, headers: { 'Content-Type': 'application/json' },
     });
   }
@@ -160,7 +189,7 @@ export default async function handler(req) {
 
     const anthropic = new Anthropic();
     const prompt    = buildPrompt(produits, clients, contexte);
-    const content   = buildContent(fichier, extension.toLowerCase(), prompt);
+    const content   = buildContent({ fichier, texte }, extLower, prompt);
 
     const response = await anthropic.messages.create({
       model:      'claude-sonnet-5',
