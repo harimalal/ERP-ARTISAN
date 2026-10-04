@@ -1645,7 +1645,10 @@ async function _massImport() {
       try {
         let client = clientsDB.find(c => c.nom === infos.client_nom);
         if (!client) { client = await createClient({ nom: infos.client_nom }); _clients.push(client); }
-        await createCommande({ ref: cmdRef, client_id: client.id, client_nom: infos.client_nom, date_cmd: infos.date_cmd, date_livraison: infos.date_livraison, statut: infos.statut, notes: infos.notes }, infos.lignes);
+        const cmd = await createCommande({ ref: cmdRef, client_id: client.id, client_nom: infos.client_nom, date_cmd: infos.date_cmd, date_livraison: infos.date_livraison, statut: infos.statut, notes: infos.notes }, infos.lignes);
+        /* Chaque ligne devient implicitement un OF (production.js), comme
+           pour une commande créée depuis le formulaire. */
+        document.dispatchEvent(new CustomEvent('appmee:commandeCreee', { detail: { commande: cmd } }));
         counts.commandes++;
       } catch (err) { errors.push(`Commande ${cmdRef} : ${err.message}`); }
     }

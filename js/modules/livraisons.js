@@ -1,23 +1,16 @@
 /* -------------------------------------------------------
    AppMee — modules/livraisons.js
-   Livraisons et factures : liste, confirmation,
-   changement statut, modal édition, aperçu PDF.
-   Fix S11 — statut défaut facture : 'a_lancer'
-   Fix S11 — colonne Date ajoutée + mise à jour auto à 'facture'
-   Fix S11 — déroulant statut Règle 17 (delegationBound)
-   Fix S11 — modal édition au clic sur ligne
-   Fix S11 — saveLivraison exportée + listener dans app.html
-   Fix S11 — Règle 11 recharge cache avant saveLivraison
+   Factures : liste + historique, changement statut, modal
+   édition/création manuelle, aperçu PDF. La livraison + facturation
+   automatique (ex-bouton Livrer) vit désormais dans commandes.js,
+   déclenchée par les statuts Expédié/En facturation de la commande.
    Dépend de : db.js, ui.js
 ------------------------------------------------------- */
 
 import {
   getFactures, createFacture, updateFactureStatut,
-  createLivraison, factureExistePourCommande,
-  getCommandes, getClients, getProduits,
-  ajusterStockProduit, addMouvement,
-  updateCommandeStatut, getTenant,
-  createFactureLignes, nextRefServeur, getFactureLignes,
+  getCommandes, getClients, getProduits, getTenant,
+  nextRefServeur, getFactureLignes,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, badgeFac, showToast, today,
@@ -163,131 +156,6 @@ function _renderTable() {
       '<tr><td colspan="8" style="text-align:center;padding:16px;color:var(--ink-muted)">Aucune facture réglée.</td></tr>';
   }
   if (countHisto) countHisto.textContent = historique.length;
-}
-
-/* -------------------------------------------------------
-   CONFIRMATION LIVRAISON — exportée pour app.html
-   Fix S11 — statut défaut 'a_lancer' au lieu de 'facture'
-   Fix S11 — Règle 11 recharge cache avant opération
-   Fix S11 — date_facture mise à jour lors du passage à 'facture'
-------------------------------------------------------- */
-/* Le stock est décrémenté côté base : un double clic décrémenterait deux fois. */
-let _livraisonEnCours = false;
-
-export async function saveLivraison() {
-  if (_livraisonEnCours) return;
-  _livraisonEnCours = true;
-  try { await _enregistrerLivraison(); } finally { _livraisonEnCours = false; }
-}
-
-async function _enregistrerLivraison() {
-  const commandeId = document.getElementById('livCmdId').value;
-  const date       = document.getElementById('livDate').value || today();
-  if (!commandeId) { showToast('⚠ Commande introuvable.', 'error'); return; }
-
-  /* Règle 11 — recharger avant opération critique */
-  try {
-    [_factures, _commandes, _clients, _produits] = await Promise.all([
-      getFactures(), getCommandes(), getClients(), getProduits(),
-    ]);
-  } catch (_) {}
-
-  const c = _commandes.find(x => x.id === commandeId);
-  if (!c) { showToast('⚠ Commande introuvable.', 'error'); return; }
-
-  const btn = document.getElementById('btnSaveLivraison');
-  if (btn) { btn.disabled = true; btn.textContent = 'Traitement…'; }
-
-  try {
-    /* Décrémenter stock PF */
-    for (const l of (c.commande_lignes || [])) {
-      const p = _produits.find(x => x.id === l.produit_id);
-      if (!p) continue;
-      p.stock = await ajusterStockProduit(p.id, -l.quantite);
-      await addMouvement({ type: 'sortie_pf', ref: p.ref, nom: p.nom, qte: l.quantite, motif: 'Livraison ' + c.ref, ref_doc: c.ref });
-    }
-
-    /* Créer la livraison */
-    await createLivraison({ commande_id: commandeId, ref: await nextRefServeur('LIV'), date_livraison: date, statut: 'livree' });
-
-    /* Créer la facture si inexistante — statut par défaut : 'a_lancer' */
-    const dejafac = await factureExistePourCommande(commandeId);
-    if (!dejafac) {
-      const tot = (c.commande_lignes || []).reduce((s, l) => s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
-
-      /* TVA multi-taux : priorité produit > tenant > 20 */
-      let tauxFacture = 20;
-      try {
-        const tenant = await getTenant();
-        if (tenant && tenant.taux_tva != null) tauxFacture = Number(tenant.taux_tva);
-      } catch (_) {}
-
-      const lignesFigees = (c.commande_lignes || []).map(l => {
-        const p = _produits.find(x => x.id === l.produit_id);
-        const tauxLigne = (p && p.taux_tva != null) ? Number(p.taux_tva) : tauxFacture;
-        return {
-          produit_id:    l.produit_id,
-          produit_nom:   l.produit_nom,
-          quantite:      l.quantite,
-          prix_unitaire: l.prix_unitaire,
-          taux_tva:      tauxLigne,
-          total_ht:      l.total_ht || (l.quantite * l.prix_unitaire),
-        };
-      });
-
-      /* Taux de la facture = taux effectif pondéré (montant_ttc est une colonne
-         générée en base à partir d'un seul taux_tva — Math.max() sur les taux
-         surfacturait toute ligne à un taux inférieur au max). */
-      const totalTvaLignes = lignesFigees.reduce((s, l) => s + l.total_ht * l.taux_tva / 100, 0);
-      if (tot > 0) tauxFacture = totalTvaLignes / tot * 100;
-      let clientId = c.client_id || null;
-      let siretClient = '';
-      let adresseClient = '';
-      try {
-        const client = clientId
-          ? _clients.find(x => x.id === clientId)
-          : _clients.find(x => x.nom === c.client_nom);
-        if (client) {
-          clientId = client.id;
-          siretClient = client.siret || '';
-          adresseClient = client.adresse || '';
-        }
-      } catch (_) {}
-
-      const fac = await createFacture({
-        ref:           await nextRefServeur('FAC'),
-        commande_id:   commandeId,
-        client_id:     clientId,
-        client_nom:    c.client_nom,
-        siret_client:  siretClient,
-        adresse_client: adresseClient,
-        montant_ht:    tot,
-        taux_tva:      tauxFacture,
-        statut:        'a_lancer',   /* Fix S11 — défaut À lancer */
-        date_facture:  date,
-      });
-      _factures.unshift(fac);
-
-      /* Lignes déjà figées avec TVA par produit (calculées ci-dessus) */
-      await createFactureLignes(fac.id, lignesFigees);
-    }
-
-    /* Clôturer la commande — isolé pour ne pas bloquer */
-    try { await updateCommandeStatut(commandeId, 'cloture'); } catch (e) {
-      console.error('[livraisons] cloture non bloquante:', e.message);
-    }
-
-    closeModal('modalLivraison');
-    _renderTable();
-    showToast('✅ ' + c.ref + ' livrée — facture créée (À lancer).');
-    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'livraisons' } }));
-    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'commandes' } }));
-  } catch (err) {
-    console.error('[livraisons] saveLivraison ERREUR:', err.message, err);
-    showToast('❌ Erreur confirmation livraison.', 'error');
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '✅ Confirmer livraison'; }
-  }
 }
 
 /* -------------------------------------------------------
