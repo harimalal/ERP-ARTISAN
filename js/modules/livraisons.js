@@ -8,7 +8,7 @@
 ------------------------------------------------------- */
 
 import {
-  getFactures, createFacture, updateFactureStatut, updateFacture, deleteFacture,
+  getFactures, createFacture, updateFacture, deleteFacture,
   getCommandes, getClients, getProduits, getTenant,
   nextRefServeur, getFactureLignes,
 } from '../db.js';
@@ -165,11 +165,12 @@ function _renderTable() {
 async function _changerStatutFac(id, statut) {
   try {
     const changes = { statut };
-    /* Mise à jour automatique de la date au passage en Facturée */
+    /* Mise à jour automatique de la date au passage en Facturée.
+       Fix S11 corrigeait déjà le cache local, mais l'appel réseau
+       n'écrivait que { statut } — date_facture ne partait jamais en
+       base (bug réel, document légal concerné). */
     if (statut === 'facture') changes.date_facture = today();
-    await updateFactureStatut(id, statut);
-    if (statut === 'facture') {
-    }
+    await updateFacture(id, changes);
     const fac = _factures.find(x => x.id === id);
     if (fac) {
       fac.statut = statut;

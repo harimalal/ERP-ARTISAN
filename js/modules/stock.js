@@ -10,12 +10,12 @@
 import {
   getArticles, createArticle,
   deleteArticle, updateArticleStock, addMouvement,
-  getFournisseurs,
+  getFournisseurs, nextRefServeur,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, stockStatus, showToast,
   openModal, closeModal, sortTable,
-  today, nextRef, confirmDialog, isPositiveNumber,
+  today, confirmDialog, isPositiveNumber,
   optionsCategories, bindCategorieNouvelle, lireCategorie, couleurCategorie,
   sousSeuil,
 } from '../ui.js';
@@ -286,7 +286,10 @@ export async function initNewArticleModal() {
     console.error('[stock] initNewArticleModal ERREUR:', err.message);
   }
 
-  const ref = nextRef('A', _articles);
+  /* Compteur atomique serveur — même pattern que CMD/FAC/BC/LIV/OF,
+     évite que deux créations d'article quasi simultanées dans le même
+     tenant se voient suggérer la même réf. */
+  const ref = await nextRefServeur('A');
   document.getElementById('naRef').value    = ref;
   document.getElementById('naNom').value    = '';
   document.getElementById('naPrix').value   = '';

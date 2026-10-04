@@ -216,6 +216,20 @@ export async function getRecettesByProduit(produitId) {
   return data;
 }
 
+/* Toutes les recettes du tenant en une seule requête — à regrouper par
+   produit_id côté appelant. Remplace le pattern N+1 (un
+   getRecettesByProduit par produit via Promise.all) utilisé par
+   production.js et recettes.js pour construire leur cache _recettes
+   au chargement de l'onglet. */
+export async function getRecettesTenant() {
+  const { data, error } = await supabase
+    .from('recettes')
+    .select('*, articles(ref, nom, unite, prix, stock)')
+    .eq('tenant_id', tid());
+  if (error) handleError('getRecettesTenant', error);
+  return data || [];
+}
+
 export async function saveRecette(produitId, lignes) {
   const { error: delError } = await supabase
     .from('recettes')

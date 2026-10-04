@@ -8,7 +8,7 @@
 
 import {
   getProduits, getArticles,
-  getRecettesByProduit, saveRecette,
+  getRecettesTenant, saveRecette,
 } from '../db.js';
 import { fmt, fmtQ, qteLisible, esc, showToast, openModal, closeModal } from '../ui.js';
 
@@ -63,8 +63,16 @@ export async function init() {
 ------------------------------------------------------- */
 export async function render() {
   [_produits, _articles] = await Promise.all([getProduits(), getArticles()]);
-  const recettesRaw = await Promise.all(_produits.map(p => getRecettesByProduit(p.id)));
-  _produits.forEach((p, i) => { _recetteData[p.id] = recettesRaw[i]; });
+  /* Une seule requête pour tout le tenant au lieu d'un
+     getRecettesByProduit par produit (N+1) — même forme de cache en
+     sortie (_recetteData[produitId] = tableau de lignes, [] si aucune). */
+  const toutes = await getRecettesTenant();
+  _recetteData = {};
+  _produits.forEach(p => { _recetteData[p.id] = []; });
+  toutes.forEach(r => {
+    if (!_recetteData[r.produit_id]) _recetteData[r.produit_id] = [];
+    _recetteData[r.produit_id].push(r);
+  });
   _renderBadges();
   _renderSearchBar();
   _renderListe();

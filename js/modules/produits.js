@@ -10,11 +10,11 @@
 import {
   getProduits, createProduit, updateProduit,
   updateProduitStock, addMouvement,
-  getRecettesByProduit, saveRecette, getArticles,
+  getRecettesByProduit, saveRecette, getArticles, nextRefServeur,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, stockStatus, showToast,
-  openModal, closeModal, nextRef, sortTable,
+  openModal, closeModal, sortTable,
 } from '../ui.js';
 
 let _produits  = [];
@@ -227,7 +227,8 @@ export async function initNewProduitModal(editProduit = null) {
     refInput.readOnly = true;
     refInput.style.opacity = '0.6';
   } else {
-    refInput.value    = nextRef('P', _produits);
+    /* Compteur atomique serveur — même pattern que CMD/FAC/BC/LIV/OF/A. */
+    refInput.value    = await nextRefServeur('P');
     refInput.readOnly = false;
     refInput.style.opacity = '1';
   }
