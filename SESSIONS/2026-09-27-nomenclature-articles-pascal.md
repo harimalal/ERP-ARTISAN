@@ -875,3 +875,91 @@ Vérifié avant livraison : node --check sur db.js et commandes.js,
 suite de tests unitaires (2/2) toujours verte. Rappel transmis à
 l'utilisateur : vérifier/déclencher le déploiement Netlify si le site
 ne se met pas à jour seul, et faire Ctrl+Shift+R avant de retester.
+
+## Revue de code générale + corrections (2026-10-04)
+
+Portée : code générique, tous tenants (pas seulement Pascal). Suite à
+une demande explicite de revue (structure, bugs, propreté, efficacité,
+robustesse pour 1000 clients), 8 points identifiés et rapportés.
+Consigne de l'utilisateur pour la correction : "règle absolue, 0 impact
+sur le fonctionnement du logiciel" — chaque fix a été évalué sous cet
+angle avant d'être livré ; deux points ont été écartés de cette passe
+faute de pouvoir garantir ce zéro-impact (détail plus bas).
+
+Correction de l'utilisateur sur un point du rapport : _analyserStock()
+(commandes.js) n'est PAS la fonctionnalité "BC fournisseur auto" telle
+que vécue par l'utilisateur — le vrai comptage stock/seuil/besoins et
+le déclenchement BC existent déjà, correctement, dans production.js
+(_renderBesoins, bouton "BC" par ligne manquante → appmee:openAchatFor).
+_analyserStock reste un bug réel (teste p.recette, qui n'existe jamais)
+mais c'est du code mort depuis son écriture, pas une régression d'une
+fonctionnalité utilisée — laissé tel quel dans cette passe : le
+"réparer" ferait démarrer une auto-création de BC qui n'existe pas
+aujourd'hui dans le vécu utilisateur, donc un changement de
+comportement, contraire à la règle 0 impact.
+
+Fixes livrés :
+1. livraisons.js — _changerStatutFac construisait changes.date_facture
+   mais appelait updateFactureStatut(id, statut) qui n'écrit que le
+   statut. La date ne partait jamais en base (facture = document
+   légal). Remplacé par l'appel à updateFacture(id, changes), déjà
+   existant et déjà utilisé par le modal Modifier facture.
+2. achats.js — _saveAchat : deux lignes du formulaire référençant le
+   même article dans un nouveau BC n'étaient jamais fusionnées avant
+   l'appel réseau (bcExistant.lignes est figé avant la boucle de
+   création, donc il ne voit jamais la ligne que la 1ère itération
+   vient de créer) → doublon garanti. Fusion des lignes par articleId
+   ajoutée avant la boucle, qte cumulée.
+3. config.js — API.aiAnalyseBC valait '/api/ai-analyse-bc' (tirets)
+   sous un commentaire disant "underscores obligatoires", alors que la
+   Netlify Function réelle est à '/api/ai_analyse_bc'. Inutilisé
+   aujourd'hui (app.html appelle l'URL correcte en dur) donc impact nul,
+   corrigé pour cohérence future.
+4. Références générées côté client (risque de collision en
+   concurrence, pertinent pour "1000 clients") — stock.js (articles,
+   préfixe A), produits.js (produits, préfixe P), production.js (OF
+   implicites, préfixe OF) utilisaient nextRef(prefix, cache local) au
+   lieu du compteur atomique serveur nextRefServeur() déjà en place
+   pour CMD/FAC/BC/LIV. Basculés sur nextRefServeur. Migration
+   obligatoire AVANT ce changement de code : seed de la table
+   compteurs à partir du vrai max actuel par tenant pour OF/A/P (sinon
+   collision garantie à la première création post-déploiement, exactement
+   le bug CMD0005 déjà vécu cette session). Vérifié par tenant avant et
+   après seed : 0cbb535e (OF→34), 1974f3d5 (OF→5 — corrige une valeur
+   de test orpheline à 2 ; A→30), 7a1ef170 (A→27, P→10), d911d19f
+   (OF→37, A→26, P→9), 33d262af (P→6). Seed fait avec
+   GREATEST(valeur existante, valeur calculée) pour ne jamais faire
+   reculer un compteur.
+5. production.js + recettes.js — _chargerRecettes()/render() faisaient
+   un getRecettesByProduit() par produit (Promise.all, N+1) à chaque
+   ouverture d'onglet. Nouvelle fonction db.js getRecettesTenant() (une
+   seule requête, tout le tenant), regroupement par produit_id côté
+   client — même forme de cache en sortie (_recettes[id]/
+   _recetteData[id] = tableau, [] si aucune recette), donc
+   comportement identique pour tout le reste du fichier.
+
+Points identifiés mais volontairement NON corrigés dans cette passe
+(risque de changement de comportement incompatible avec la règle 0
+impact, nécessitent un travail de conception, pas juste une correction) :
+- db.js — getCommandes/getAchats/getOFs/getFactures sans limite de
+  lignes. Un plafond générique casserait silencieusement les vues
+  historique/recherche/stats qui dépendent aujourd'hui d'avoir le jeu
+  de données complet (commandes.js archive "en_facturation",
+  livraisons.js historique "reglé", admin.js stats + détection de
+  doublons à l'import). Nécessite une vraie pagination ou des requêtes
+  dédiées par écran, pas un simple ajout de limit().
+- admin.js — imports en masse (_confirmerImport et consorts) en boucle
+  séquentielle au lieu d'un insert groupé. La boucle actuelle marque
+  chaque ligne importée individuellement et tolère explicitement
+  qu'une ligne échoue sans bloquer les autres ("Rien n'est perdu,
+  corrigez et relancez l'import"). Un insert groupé perdrait cette
+  granularité d'erreur par ligne sans restructuration plus large.
+
+Fichiers modifiés : js/db.js, js/config.js, js/modules/livraisons.js,
+js/modules/achats.js, js/modules/production.js, js/modules/stock.js,
+js/modules/produits.js, js/modules/recettes.js.
+
+Vérifié avant livraison : node --check sur les 8 fichiers, suite de
+tests unitaires (2/2) toujours verte, migration compteurs vérifiée par
+requête SQL avant/après sur tous les tenants concernés (pas seulement
+Pascal, ce changement de code étant générique).

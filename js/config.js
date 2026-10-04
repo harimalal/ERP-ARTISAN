@@ -30,7 +30,7 @@ export const PLANS_QUOTA_IA = {
 
 /* ENDPOINTS NETLIFY FUNCTIONS — underscores obligatoires */
 export const API = {
-  aiAnalyseBC:  '/api/ai-analyse-bc',
+  aiAnalyseBC:  '/api/ai_analyse_bc',
   aiExtractDoc: '/api/ai-extract-batch',
 };
 

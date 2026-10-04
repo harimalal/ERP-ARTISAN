@@ -389,7 +389,16 @@ async function _saveAchat() {
       const a = _articles.find(x => x.id === ligne.articleId);
       const fourn = fournisseurGlobal || (a ? (a.fournisseur || '') : '');
       if (!parFournisseur.has(fourn)) parFournisseur.set(fourn, []);
-      parFournisseur.get(fourn).push({ ligne, a });
+      const items = parFournisseur.get(fourn);
+      /* Même article saisi sur deux lignes du formulaire (avant même
+         tout appel réseau) : on cumule la quantité au lieu de laisser
+         la boucle de création ci-dessous créer deux lignes BC pour le
+         même article_id (bcExistant.lignes est figé avant la boucle,
+         donc il ne voit jamais la ligne que la 1ère itération vient de
+         créer). */
+      const doublon = items.find(it => it.ligne.articleId === ligne.articleId);
+      if (doublon) doublon.ligne = { ...doublon.ligne, qte: doublon.ligne.qte + ligne.qte };
+      else items.push({ ligne, a });
     }
     const toasts = [];
     for (const [fourn, items] of parFournisseur) {

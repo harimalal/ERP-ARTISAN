@@ -9,13 +9,13 @@
 
 import {
   getAllOFs, createOF, updateOFDate,
-  countOFsClosPourDate, cloturerOF,
-  getCommandes, getProduits, getArticles, getRecettesByProduit, getClients,
+  countOFsClosPourDate, cloturerOF, nextRefServeur,
+  getCommandes, getProduits, getArticles, getRecettesByProduit, getRecettesTenant, getClients,
   ajusterStockArticle, ajusterStockProduit, addMouvement,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, showToast, today,
-  openModal, nextRef, estSurveille,
+  openModal, estSurveille,
   allouerStockSequentiel, selectStatutCmd, restyleSelectStatutCmd,
 } from '../ui.js';
 import { changerStatutCommande } from './commandes.js';
@@ -647,7 +647,11 @@ export async function creerOFsPourCommande(commande) {
     if (dejaCree) continue;
 
     try {
-      const ref = nextRef('OF', _ofs);
+      /* Compteur atomique serveur (même pattern que CMD/FAC/BC/LIV) —
+         plus de calcul max+1 sur le cache local, qui pouvait produire
+         la même réf OF pour deux commandes enregistrées en même temps
+         (deux onglets/utilisateurs du même tenant). */
+      const ref = await nextRefServeur('OF');
       const of = await createOF({
         ref, produit_id: l.produit_id, produit_nom: l.produit_nom,
         quantite: l.quantite, date_prevue: null, statut: 'planifie',
@@ -756,7 +760,14 @@ function _formatNumeroLot(date, rang) {
    HELPERS
 ------------------------------------------------------- */
 async function _chargerRecettes() {
-  const recettesRaw = await Promise.all(_produits.map(p => getRecettesByProduit(p.id)));
+  /* Une seule requête pour tout le tenant au lieu d'un
+     getRecettesByProduit par produit (N+1) — même forme de cache en
+     sortie (_recettes[produitId] = tableau de lignes, [] si aucune). */
+  const toutes = await getRecettesTenant();
   _recettes = {};
-  _produits.forEach((p, i) => { _recettes[p.id] = recettesRaw[i] || []; });
+  _produits.forEach(p => { _recettes[p.id] = []; });
+  toutes.forEach(r => {
+    if (!_recettes[r.produit_id]) _recettes[r.produit_id] = [];
+    _recettes[r.produit_id].push(r);
+  });
 }
