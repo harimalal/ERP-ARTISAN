@@ -94,6 +94,7 @@ Lancer avant tout déploiement de feature.
 @.claude/debug_4_posture.md
 @.claude/protocole_livraison.md
 @.claude/learnings_continu.md
+@.claude/COCKPIT_LANCEMENT_PRODUCTION.md
 
 | Fichier | Lire quand |
 |---------|-----------|
@@ -104,3 +105,4 @@ Lancer avant tout déploiement de feature.
 | `protocole_livraison.md` | Avant toute livraison |
 | `learnings_continu.md` | OBLIGATOIRE au démarrage de CHAQUE session |
 | `Rapport_developpement_code_DDMMYY.md` | Au démarrage de chaque session |
+| `COCKPIT_LANCEMENT_PRODUCTION.md` | Avant toute discussion de mise en prod / montée en charge — cocher au fur et à mesure |
