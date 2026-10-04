@@ -810,3 +810,30 @@ payload d'update nettoyé des deux colonnes invalides).
 Vérifié avant livraison : node --check sur db.js et livraisons.js,
 extraction + node --check du script module de app.html, suite de
 tests unitaires (2/2) toujours verte.
+
+## Correctif TVA du modal + déploiement Netlify bloqué (2026-10-04)
+
+Signalement : "pas de mise à jour" en enregistrant depuis le modal
+Modifier la facture, et le bouton Supprimer invisible.
+
+Bug réel trouvé et corrigé dans le code : efTva recevait f.taux_tva tel
+que renvoyé par Postgres ("20.00"), qui ne correspond à aucune valeur
+d'option du select ("20") — le select retombait silencieusement sur son
+premier choix. Corrigé avec Number(f.taux_tva ?? 20).
+
+Cause racine du symptôme "bouton Supprimer invisible" : pas un bug de
+code du tout. Vérifié via l'outil Netlify (get-project) que le déploiement
+courant du site pointait sur le commit 983dd23 — deux merges plus vieux
+que la branche main réelle sur GitHub (déjà à e1a6fb3, vérifié avec
+git fetch). Les deux derniers push vers main n'avaient jamais déclenché
+de build Netlify, pour une raison indéterminée côté intégration
+GitHub→Netlify (pas un problème de cache navigateur comme supposé au
+tour précédent). Tentative de déploiement manuel via la commande CLI
+fournie par l'outil Netlify — a échoué (403 Forbidden, jeton de la
+session MCP insuffisant pour ce chemin). Résolu en poussant ce commit
+vers main : un nouveau push déclenche normalement l'intégration
+Netlify→GitHub et republie tout ce qui était en attente.
+
+Vérifié avant livraison : node --check sur app.html (script module
+extrait), suite de tests unitaires (2/2) toujours verte, à confirmer
+après ce push que le déploiement Netlify reprend le commit courant.
