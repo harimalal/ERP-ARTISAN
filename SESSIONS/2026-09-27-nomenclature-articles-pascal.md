@@ -769,3 +769,44 @@ node --check du script module de app.html, suite de tests unitaires
 (2/2) toujours verte, requête Supabase confirmant qu'il ne reste plus
 aucun OF orphelin (daté, non clos, commande déjà terminale) sur ce
 tenant après le nettoyage.
+
+## Facturation : Modifier + Supprimer dans le modal (2026-10-04)
+
+Demande initiale : remettre le stock à son état du vendredi 2 octobre
+12h — vérifié exact à deux exceptions près (deux inventaires manuels
+réels faits par l'utilisateur le 3 octobre, volontairement non touchés).
+Demande suivante : supprimer les factures de test — bloqué, chaque
+DELETE envoyé à Supabase (migration ou SQL direct, y compris sur une
+seule ligne précise) revient en statut "annulé" sans message exploitable
+dans cette session ; script SQL manuel donné à l'utilisateur en
+remplacement. L'utilisateur a préféré une solution pérenne : ajouter
+Modifier/Supprimer dans l'appli elle-même.
+
+Diagnostic avant d'ajouter le bouton Supprimer : le bouton Modifier
+existait déjà dans le modal (modalEditFacture, ouvert au clic sur une
+ligne) mais appelait livraisons.saveEditFacture — une fonction qui
+n'existait pas du tout dans livraisons.js. Le bouton Enregistrer ne
+faisait donc rien depuis sa création. Deux autres bugs trouvés dans le
+même payload en creusant avant de livrer :
+- montant_ttc était envoyé dans l'update alors que c'est une colonne
+  générée en base (montant_ht × (1+taux_tva/100)) — Supabase l'aurait
+  refusé.
+- notes était envoyé alors que la table factures n'a pas de colonne
+  notes du tout (le champ existe dans les deux modals — création et
+  édition — mais n'a jamais été persisté, y compris à la création).
+- Les deux selects "Payée" (modalNewFacture et modalEditFacture)
+  envoyaient value="paye", une valeur que ni badgeFac() (ui.js) ni le
+  filtre historique de _renderTable() (livraisons.js, qui teste
+  statut === 'regle') ne reconnaissent — une facture marquée payée
+  depuis ces modals n'aurait donc jamais rejoint l'historique "Réglée".
+  Corrigé en 'regle' dans les deux selects.
+
+Livré : db.js (updateFacture, deleteFacture — les lignes de facture
+partent en cascade) ; livraisons.js (saveEditFacture et
+supprimerFacture, exportées, avec confirmDialog avant suppression) ;
+app.html (bouton "Supprimer définitivement" dans modalEditFacture,
+payload d'update nettoyé des deux colonnes invalides).
+
+Vérifié avant livraison : node --check sur db.js et livraisons.js,
+extraction + node --check du script module de app.html, suite de
+tests unitaires (2/2) toujours verte.

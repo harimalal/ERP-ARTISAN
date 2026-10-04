@@ -8,13 +8,13 @@
 ------------------------------------------------------- */
 
 import {
-  getFactures, createFacture, updateFactureStatut,
+  getFactures, createFacture, updateFactureStatut, updateFacture, deleteFacture,
   getCommandes, getClients, getProduits, getTenant,
   nextRefServeur, getFactureLignes,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, badgeFac, showToast, today,
-  openModal, closeModal,
+  openModal, closeModal, confirmDialog,
 } from '../ui.js';
 
 let _factures  = [];
@@ -185,11 +185,45 @@ async function _changerStatutFac(id, statut) {
 
 /* -------------------------------------------------------
    MODAL ÉDITION FACTURE — ouverture au clic ligne
+   Modifier et Supprimer, exportées pour les boutons du modal
+   (app.html, modalEditFacture).
 ------------------------------------------------------- */
 function _ouvrirEditFacture(id) {
   const f = _factures.find(x => x.id === id);
   if (!f) return;
   document.dispatchEvent(new CustomEvent('appmee:editFacture', { detail: f }));
+}
+
+export async function saveEditFacture(id, changes) {
+  try {
+    const updated = await updateFacture(id, changes);
+    const idx = _factures.findIndex(x => x.id === id);
+    if (idx >= 0) _factures[idx] = { ..._factures[idx], ...updated };
+    _renderTable();
+    showToast('✅ Facture ' + (updated?.ref || '') + ' modifiée.');
+    return updated;
+  } catch (err) {
+    showToast('❌ Erreur modification facture.', 'error');
+    console.error('[livraisons] saveEditFacture ERREUR:', err.message, err);
+    throw err;
+  }
+}
+
+export async function supprimerFacture(id) {
+  const f = _factures.find(x => x.id === id);
+  if (!f) return;
+  const ok = await confirmDialog('Supprimer définitivement la facture ' + f.ref + ' ?');
+  if (!ok) return;
+  try {
+    await deleteFacture(id);
+    _factures = _factures.filter(x => x.id !== id);
+    closeModal('modalEditFacture');
+    _renderTable();
+    showToast('✅ Facture ' + f.ref + ' supprimée.');
+  } catch (err) {
+    showToast('❌ Erreur suppression facture.', 'error');
+    console.error('[livraisons] supprimerFacture ERREUR:', err.message, err);
+  }
 }
 
 /* -------------------------------------------------------
