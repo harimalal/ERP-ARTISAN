@@ -669,3 +669,37 @@ exhaustive des anciennes valeurs de statut ('cloture', 'planifie') et
 des symboles supprimés dans tout le code (aucune référence résiduelle
 hors commentaires), requête Supabase de contrôle sur les données
 réelles du tenant après migration.
+
+## Corrections Ordres de fabrication (2026-10-04)
+
+Deux corrections sur la refonte précédente :
+
+1. Besoins de production par produit : un produit restait affiché
+   (en "✓ Tout couvert") même quand sa seule commande associée était
+   déjà expédiée/facturée — _produitsCommandes() scopait sur TOUTE
+   commande, quel que soit son statut. Corrigé : le scope exclut
+   maintenant les commandes expédiées/en facturation/annulées — un
+   produit qui n'a plus aucune commande active (à produire, en
+   production ou prête) disparaît complètement du tableau, pas
+   seulement son besoin qui retombe à zéro. Vérifié sur les données
+   réelles : Fraise Framboise Griotte et Coing (uniquement rattachés à
+   des commandes déjà en facturation) sortent du tableau ; Griotte et
+   Rhubarbe restent (TEST-CMD-03, encore à produire, les référence
+   aussi).
+
+2. Ordres de fabrication : la date de production se choisissait par
+   ligne de produit dans le détail dépliable — pas ce que l'utilisateur
+   demandait. Corrigé : un seul champ date par commande, directement
+   dans la ligne principale (remplace la colonne "Livraison", qui
+   n'avait pas sa place ici — la date de livraison client vit dans
+   Commandes Clients). Changer cette date met à jour l'OF de chacune
+   des lignes de la commande (en pratique, toutes les lignes d'une
+   commande sont produites le même jour) et apparaît dans le calendrier
+   de production. Le détail dépliable ne garde que la liste des
+   produits/quantités, sans contrôle.
+
+Vérifié avant livraison : node --check production.js, extraction +
+node --check du script module de app.html, suite de tests unitaires
+(2/2) toujours verte, recherche de toute référence résiduelle à
+l'ancien data-action="date-of" (aucune), vérification du nouveau scope
+_produitsCommandes() contre les données réelles du tenant.
