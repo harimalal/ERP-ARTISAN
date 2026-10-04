@@ -590,3 +590,82 @@ Vérifié avant livraison : node --check sur livraisons.js, extraction +
 node --check du script module de app.html, suite de tests unitaires
 existante (2/2) toujours verte, requête Supabase confirmant le site
 live sert déjà le commit attendu.
+
+## Refonte Ordres de fabrication / statuts commande / facturation (2026-10-04)
+
+Changement de modèle demandé par l'utilisateur, confirmé avant
+exécution : abandon de l'agrégation "un OF par produit couvrant
+plusieurs commandes" mise en place plus tôt dans la session, au profit
+de "chaque ligne de commande devient implicitement un OF" dès
+l'enregistrement de la commande — plus de bouton, plus d'agrégation
+inter-commandes.
+
+Migration Supabase (apply_migration, scope tenant Pascal uniquement
+sauf l'ALTER TABLE, structurel) :
+- production_of.commande_ligne_id (uuid, FK commande_lignes.id) —
+  nouveau rattachement 1:1 ligne de commande ↔ OF.
+- Backfill : les 9 OF existants qui correspondaient déjà en pratique à
+  une seule ligne (produit + quantité + commande identiques) ont été
+  rattachés. 2 OF de test dupliqués/orphelins (OF0006/OF0007, quantité
+  ne correspondant à aucune ligne réelle) passés en statut "annule". 2
+  lignes de TEST-CMD-01 (Cassis 30, Myrtille 40) qui n'avaient jamais
+  eu d'OF ont reçu leur OF implicite (OF0012/OF0013).
+- commandes.statut : "cloture" → "en_facturation" (3 lignes, déjà
+  entièrement facturées sous l'ancien flux) ; "planifie" → "a_produire"
+  (1 ligne, TEST-CMD-03 — le statut "planifie" n'existe plus).
+
+Nouvelle séquence de statuts commande (ui.js, STATUT_CMD_STYLE +
+badgeCmd, source unique partagée par Dashboard/Commandes/Production) :
+À produire → En production → Prêt → Expédié → En facturation, plus
+Annulée. "Planifié" supprimé.
+
+production.js — Ordres de fabrication : la vue par commande garde son
+même statut (celui de la commande, un seul contrôle partagé), mais le
+détail par ligne perd son statut et sa colonne couvert/à produire — il
+ne reste qu'un champ date de production voulue par ligne, relié à l'OF
+implicite de cette ligne. creerOFsPourCommande (déclenché par le
+nouvel événement appmee:commandeCreee, à l'enregistrement — remplace
+appmee:commandePlanifiee déclenché auparavant au passage à "planifié")
+crée un OF par ligne, idempotent via commande_ligne_id. Le passage
+d'une commande à "Prêt" déclenche cloturerOFsPourCommande (événement
+appmee:commandePrete) : décrément des articles, incrément du stock
+produit fini et génération du numéro de lot (format inchangé) pour
+chaque ligne de cette commande — remplace l'ancienne clôture par OF
+individuel. "Besoins de production par produit" et "Articles à
+commander" ne comptent plus que les commandes pas encore produites
+(à produire/en production) — une commande "Prêt" a déjà consommé son
+stock, elle ne doit plus apparaître dans ces deux bilans (sans ce
+changement, une commande Prêt y aurait été comptée en double, une fois
+consommée et une fois encore comme demande).
+
+commandes.js : passage à "Expédié" sort physiquement le stock de
+produits finis (sortie_pf, comme l'ancien bouton Livrer) sans créer de
+facture ; passage à "En facturation" crée la facture (même calcul TVA
+multi-taux qu'avant) et affiche une note sur la carte ; la commande
+rejoint alors l'historique, renommé "Historique — Commandes Expédiées"
+avec un bandeau gris pour la distinguer des commandes en cours (chaque
+carte archivée aussi en gris). Bouton Supprimer retiré de la carte,
+déplacé dans le modal de modification (nouveau bouton Modifier sur la
+carte, qui ouvre le même modal que la création en mode édition —
+_editId, _saveNew/_saveEdit, convention du projet). Modifier une
+commande remplace systématiquement toutes ses lignes (pas de diff
+ligne à ligne) et régénère ses OF implicites.
+
+Supprimé (devenu mort avec ce changement) : l'ancien bouton "Livrer" +
+saveLivraison/_enregistrerLivraison (livraisons.js) et le modal
+modalLivraison — la même logique (décrément stock, facture) vit
+maintenant dans commandes.js, déclenchée par les statuts Expédié/En
+facturation plutôt que par un bouton conditionné sur "Prêt".
+
+Dashboard : l'alerte "produits finis" ne compare plus stock vs seuil,
+mais stock vs demande des commandes pas encore produites (même
+principe que Production, résumé en une ligne par produit manquant).
+
+Vérifié avant livraison : node --check sur tous les fichiers touchés
+(db.js, ui.js, commandes.js, production.js, livraisons.js, dashboard.js,
+admin.js), extraction + node --check du script module de app.html,
+suite de tests unitaires existante (2/2) toujours verte, recherche
+exhaustive des anciennes valeurs de statut ('cloture', 'planifie') et
+des symboles supprimés dans tout le code (aucune référence résiduelle
+hors commentaires), requête Supabase de contrôle sur les données
+réelles du tenant après migration.

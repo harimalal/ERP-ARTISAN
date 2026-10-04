@@ -8,7 +8,7 @@
 ------------------------------------------------------- */
 
 import { getDashboardData } from '../db.js';
-import { fmt, fmtQ, esc, stockStatus, openModal, estAlerteDashboard,
+import { fmt, fmtQ, esc, openModal, estAlerteDashboard,
   selectStatutCmd, restyleSelectStatutCmd,
 } from '../ui.js';
 import { changerStatutCommande } from './commandes.js';
@@ -20,7 +20,7 @@ export async function render() {
     _data = await getDashboardData();
     renderKPIs(_data);
     renderAlertes(_data.articles);
-    renderStockProduits(_data.produits);
+    renderStockProduits(_data.produits, _data.commandes);
     renderDernieresCommandes(_data.commandes, _data.produits);
     updateBadges(_data);
   } catch (err) {
@@ -175,29 +175,45 @@ function renderAlertes(articles) {
 }
 
 /* -------------------------------------------------------
-   STOCK PRODUITS FINIS — Fix S12 redesign barres
+   PRODUITS FINIS MANQUANTS POUR LES COMMANDES EN COURS
+   Ne compare plus le stock à un seuil statique : l'alerte porte sur ce
+   qu'il manque réellement pour honorer les commandes pas encore
+   produites (« à produire »/« en production » — une commande « Prêt »
+   a déjà consommé son stock à sa clôture, voir production.js). Même
+   principe que Production (Besoins de production par produit), en
+   version compacte pour le Dashboard.
 ------------------------------------------------------- */
-function renderStockProduits(produits) {
-  const alertes = produits.filter(estAlerteDashboard);
-  const el = document.getElementById('dashProduits');
+function renderStockProduits(produits, commandes) {
+  const demande = {};
+  (commandes || []).filter(c => ['a_produire', 'en_production'].includes(c.statut)).forEach(c => {
+    (c.commande_lignes || []).forEach(l => {
+      demande[l.produit_id] = (demande[l.produit_id] || 0) + l.quantite;
+    });
+  });
 
+  const manquants = produits
+    .map(p => ({ p, manque: Math.max(0, (demande[p.id] || 0) - (p.stock || 0)) }))
+    .filter(x => x.manque > 0)
+    .sort((a, b) => b.manque - a.manque);
+
+  const el = document.getElementById('dashProduits');
   _fixCardOverflow('dashProduits');
 
-  if (!alertes.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><p>Tous les produits sont en stock.</p></div>';
+  if (!manquants.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><p>Tous les produits commandés sont couverts par le stock.</p></div>';
     return;
   }
 
-  const rows = alertes.map(p => `
+  const rows = manquants.map(({ p, manque }) => `
     <tr>
       <td class="td-bold">${esc(p.nom)}</td>
-      <td style="min-width:160px;">${_progBar(p.stock, p.seuil)}</td>
-      <td>${stockStatus(p.stock, p.seuil)}</td>
+      <td>${fmtQ(p.stock)}</td>
+      <td style="color:var(--ui-red);font-weight:700">⚠ ${fmtQ(manque)}</td>
     </tr>`).join('');
 
   el.innerHTML = `
     <table>
-      <thead><tr><th>Produit</th><th>Stock / Seuil</th><th>Statut</th></tr></thead>
+      <thead><tr><th>Produit</th><th>Stock</th><th>Manque pour les commandes en cours</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
@@ -216,7 +232,7 @@ function renderStockProduits(produits) {
 ------------------------------------------------------- */
 function renderDernieresCommandes(commandes, produits) {
   const el = document.getElementById('dashCommandes');
-  const rec = [...commandes].filter(c => c.statut !== 'cloture');
+  const rec = [...commandes].filter(c => !['expedie', 'en_facturation', 'annule'].includes(c.statut));
 
   if (!rec.length) {
     el.innerHTML = '<div class="empty-state"><div class="empty-icon neutral"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h9"/><polyline points="14 2 14 8 20 8"/></svg></div><p>Aucune commande en cours.</p></div>';
@@ -254,7 +270,7 @@ function renderDernieresCommandes(commandes, produits) {
 ------------------------------------------------------- */
 function updateBadges({ articles, commandes, ofs, factures, messagesEquipe }) {
   const alertsA = articles.filter(estAlerteDashboard).length;
-  const cmdOpen = commandes.filter(c => c.statut !== 'cloture').length;
+  const cmdOpen = commandes.filter(c => !['expedie', 'en_facturation', 'annule'].includes(c.statut)).length;
   const ofActifs = (ofs || []).filter(o => ['planifie', 'en_cours'].includes(o.statut)).length;
   const facAlerte = (factures || []).filter(f => f.statut === 'a_lancer' || f.statut === 'a_relancer').length;
   const msgEnCours = (messagesEquipe || []).filter(m => m.statut === 'encours').length;

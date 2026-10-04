@@ -403,6 +403,7 @@ export async function createCommande(commande, lignes) {
     .single();
   if (cmdError) handleError('createCommande', cmdError);
 
+  let insertedLignes = [];
   if (lignes && lignes.length) {
     const rows = lignes.map(l => ({
       tenant_id: tid(),
@@ -412,13 +413,60 @@ export async function createCommande(commande, lignes) {
       quantite: l.quantite,
       prix_unitaire: l.prix_unitaire,
     }));
-    const { error: lignesError } = await supabase
+    const { data: lignesData, error: lignesError } = await supabase
       .from('commande_lignes')
-      .insert(rows);
+      .insert(rows)
+      .select();
     if (lignesError) handleError('createCommande(lignes)', lignesError);
+    insertedLignes = lignesData || [];
   }
 
-  return cmd;
+  /* Les lignes avec leur id réel sont renvoyées : chaque ligne devient
+     implicitement un OF (production.js, creerOFsPourCommande), qui a
+     besoin de commande_ligne_id pour s'y rattacher. */
+  return { ...cmd, commande_lignes: insertedLignes };
+}
+
+export async function updateCommande(id, changes) {
+  const { data, error } = await supabase
+    .from('commandes')
+    .update(changes)
+    .eq('id', id)
+    .eq('tenant_id', tid())
+    .select()
+    .single();
+  if (error) handleError('updateCommande', error);
+  return data;
+}
+
+/* Remplace toutes les lignes d'une commande — plus simple et plus sûr
+   qu'un diff ligne à ligne lors d'une modification (Modifier la
+   commande) : on supprime les anciennes et on réinsère les nouvelles,
+   avec leur id réel pour re-créer les OF implicites qui vont avec. */
+export async function replaceCommandeLignes(commandeId, lignes) {
+  const { error: delError } = await supabase
+    .from('commande_lignes')
+    .delete()
+    .eq('commande_id', commandeId)
+    .eq('tenant_id', tid());
+  if (delError) handleError('replaceCommandeLignes(delete)', delError);
+
+  if (!lignes || !lignes.length) return [];
+
+  const rows = lignes.map(l => ({
+    tenant_id: tid(),
+    commande_id: commandeId,
+    produit_id: l.produit_id || null,
+    produit_nom: l.produit_nom || null,
+    quantite: l.quantite,
+    prix_unitaire: l.prix_unitaire,
+  }));
+  const { data, error } = await supabase
+    .from('commande_lignes')
+    .insert(rows)
+    .select();
+  if (error) handleError('replaceCommandeLignes(insert)', error);
+  return data || [];
 }
 
 export async function updateCommandeStatut(id, statut) {
@@ -527,6 +575,30 @@ export async function deleteOF(id) {
     .eq('id', id)
     .eq('tenant_id', tid());
   if (error) handleError('deleteOF', error);
+}
+
+/* OF implicites d'une commande entière (commandes_ids contient son id) —
+   à nettoyer avant toute suppression de commande (sinon la FK
+   commande_ligne_id bloque la cascade) ou avant de remplacer ses
+   lignes (modification). */
+export async function deleteOFsForCommande(commandeId) {
+  const { error } = await supabase
+    .from('production_of')
+    .delete()
+    .contains('commandes_ids', [commandeId])
+    .eq('tenant_id', tid());
+  if (error) handleError('deleteOFsForCommande', error);
+}
+
+/* Statut des OF alignés sur celui de leur commande (ex. annulation) —
+   bookkeeping interne, plus affiché nulle part dans l'UI. */
+export async function updateOFsStatutPourCommande(commandeId, statut) {
+  const { error } = await supabase
+    .from('production_of')
+    .update({ statut })
+    .contains('commandes_ids', [commandeId])
+    .eq('tenant_id', tid());
+  if (error) handleError('updateOFsStatutPourCommande', error);
 }
 
 /* Nombre d'OF déjà clos ce jour-là (tenant courant) — sert à calculer le rang

@@ -187,7 +187,7 @@
       <div class="card-hdr hdr-sage">
         <span class="card-hdr-title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-          Stock produits finis
+          Produits finis manquants
         </span>
       </div>
       <div id="dashProduits"></div>
@@ -283,10 +283,10 @@
   </div>
   <div class="pipeline">
     <div class="pipe-step"><div class="pipe-dot"></div> À produire</div><div class="pipe-arrow">→</div>
-    <div class="pipe-step"><div class="pipe-dot"></div> Planifié</div><div class="pipe-arrow">→</div>
     <div class="pipe-step"><div class="pipe-dot"></div> En production</div><div class="pipe-arrow">→</div>
     <div class="pipe-step"><div class="pipe-dot"></div> Prêt</div><div class="pipe-arrow">→</div>
-    <div class="pipe-step"><div class="pipe-dot"></div> Clôturée</div>
+    <div class="pipe-step"><div class="pipe-dot"></div> Expédié</div><div class="pipe-arrow">→</div>
+    <div class="pipe-step"><div class="pipe-dot"></div> En facturation</div>
   </div>
   <div id="commandesList"></div>
   <details class="card" id="commandesHistoriqueDetails">
@@ -321,9 +321,8 @@
     <div style="padding:14px 16px;">
       <div class="cal-week" id="calWeek"></div>
       <div class="cal-legend">
-        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#FEF3D8;border:1px solid #F0D9A0;"></div>En cours</div>
-        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#E8EFFE;border:1px solid #C4CAEF;"></div>Planifié</div>
-        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#D8EDE3;border:1px solid #B0D4C0;"></div>Fabriqué</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#E8EFFE;border:1px solid #C4CAEF;"></div>Date de production prévue</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#D8EDE3;border:1px solid #B0D4C0;"></div>Lot clos</div>
         <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#1E1A16;"></div>Livraison client</div>
       </div>
     </div>
@@ -333,7 +332,7 @@
       <span class="card-hdr-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h9"/><polyline points="14 2 14 8 20 8"/></svg>
         Ordres de fabrication
-        <span style="font-weight:400;font-size:11px;color:var(--ink-muted);margin-left:6px;">— cliquer une ligne pour le détail prêt / à produire</span>
+        <span style="font-weight:400;font-size:11px;color:var(--ink-muted);margin-left:6px;">— cliquer une ligne pour choisir la date de production par produit</span>
       </span>
     </div>
     <table><thead><tr><th></th><th>Référence</th><th>Client</th><th>Livraison</th><th>Statut</th></tr></thead>
@@ -341,7 +340,7 @@
   </div>
   <div class="card" style="margin-bottom:16px;">
     <div class="card-hdr"><span class="card-hdr-title">Besoins de production par produit <span style="font-weight:400;font-size:11px;color:var(--ink-muted);margin-left:6px;">— cliquer une ligne pour le détail par client</span></span></div>
-    <table><thead><tr><th></th><th>Produit</th><th>Stock</th><th>Demande totale</th><th>OF en cours</th><th>Reste à produire</th></tr></thead>
+    <table><thead><tr><th></th><th>Produit</th><th>Stock</th><th>Demande totale</th><th>Reste à produire</th></tr></thead>
     <tbody id="prodVueTbody"></tbody></table>
   </div>
   <div class="card" style="margin-bottom:16px;">
@@ -551,7 +550,7 @@
 ═══════════════════════════════════════════════ -->
 
 <div class="modal-overlay" id="modalCommande"><div class="modal modal-lg">
-  <div class="modal-hdr"><span class="modal-hdr-title">Nouvelle commande client</span><button class="modal-close" data-close="modalCommande">×</button></div>
+  <div class="modal-hdr"><span class="modal-hdr-title" id="cmdModalTitle">Nouvelle commande client</span><button class="modal-close" data-close="modalCommande">×</button></div>
   <div class="form-grid">
     <div class="form-group"><label>Date</label><input type="date" id="cmdDate"></div>
     <div class="form-group"><label>Date livraison <span class="opt">(opt.)</span></label><input type="date" id="cmdDateLiv"></div>
@@ -577,9 +576,12 @@
     </div>
   </div>
   <div class="alert-box alert-info" style="margin:0 16px 12px;"><span>ℹ</span><span>ARTEASY analyse le stock et génère les bons de commande fournisseur automatiquement si des articles manquent.</span></div>
-  <div class="form-actions">
-    <button class="btn btn-primary" id="btnSaveCommande">Enregistrer</button>
-    <button class="btn btn-ghost" data-close="modalCommande">Annuler</button>
+  <div class="form-actions between">
+    <button class="btn btn-danger btn-sm" id="btnDeleteCommande" style="display:none;">Supprimer définitivement</button>
+    <div style="display:flex;gap:7px;">
+      <button class="btn btn-primary" id="btnSaveCommande">Enregistrer</button>
+      <button class="btn btn-ghost" data-close="modalCommande">Annuler</button>
+    </div>
   </div>
 </div></div>
 
@@ -645,20 +647,6 @@
   <div class="form-actions">
     <button class="btn btn-primary" id="btnSaveInvProduit">Valider</button>
     <button class="btn btn-ghost" data-close="modalInvProduit">Annuler</button>
-  </div>
-</div></div>
-
-<div class="modal-overlay" id="modalLivraison"><div class="modal">
-  <div class="modal-hdr"><span class="modal-hdr-title">Livraison + Facture</span><button class="modal-close" data-close="modalLivraison">×</button></div>
-  <div style="padding:16px;">
-    <div class="alert-box alert-success" style="margin-bottom:14px;"><span>✅</span><div><strong id="livCmd">—</strong><br><span>Montant : <strong id="livMontant">—</strong></span></div></div>
-    <div class="form-group"><label>Date de livraison</label><input type="date" id="livDate"></div>
-    <input type="hidden" id="livCmdId">
-  </div>
-  <div class="alert-box alert-info" style="margin:0 16px 12px;"><span>ℹ</span><span>Une facture est générée automatiquement. Le stock produits finis est décrémenté.</span></div>
-  <div class="form-actions">
-    <button class="btn btn-primary" id="btnSaveLivraison">Confirmer livraison</button>
-    <button class="btn btn-ghost" data-close="modalLivraison">Annuler</button>
   </div>
 </div></div>
 
@@ -1120,7 +1108,6 @@ function setActiveNav(page) {
     });
     document.getElementById('btnSignOut').addEventListener('click', () => signOut());
     document.getElementById('btnPrintPdf').addEventListener('click', () => window.print());
-    document.getElementById('btnSaveLivraison')?.addEventListener('click', () => livraisons.saveLivraison());
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-modal="modalCommande"]');
       if (btn && commandes.initCommandeModal) commandes.initCommandeModal();
@@ -1248,9 +1235,14 @@ function setActiveNav(page) {
   }
 });
 
-    document.addEventListener('appmee:commandePlanifiee', (e) => {
+    document.addEventListener('appmee:commandeCreee', (e) => {
       const { commande } = e.detail || {};
       if (commande && production.creerOFsPourCommande) production.creerOFsPourCommande(commande);
+    });
+
+    document.addEventListener('appmee:commandePrete', (e) => {
+      const { commande } = e.detail || {};
+      if (commande && production.cloturerOFsPourCommande) production.cloturerOFsPourCommande(commande);
     });
 
     document.addEventListener('appmee:openAchatFor', (e) => {

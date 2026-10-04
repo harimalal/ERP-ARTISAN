@@ -1,24 +1,21 @@
 /* -------------------------------------------------------
    AppMee — modules/production.js
-   Ordres de fabrication, calendrier, besoins, manques.
-   Fix S12 — Badges indicateurs Total OF / En cours / Planifiés
-             Lignes tableau blanc (pas de coloration)
-             Croix suppression discrète
-             Statuts select sans bordure colorée
-   Dépend de : db.js, ui.js
+   Ordres de fabrication (un par ligne de commande, créés
+   automatiquement à l'enregistrement de la commande), calendrier,
+   besoins de production par produit, articles à commander,
+   historique des lots.
+   Dépend de : db.js, ui.js, commandes.js
 ------------------------------------------------------- */
 
 import {
-  getAllOFs, createOF, updateOFStatut, updateOFDate, deleteOF,
+  getAllOFs, createOF, updateOFDate,
   countOFsClosPourDate, cloturerOF,
-  getCommandes, getProduits, getArticles, getRecettesByProduit, getClients, getTenant,
-  ajusterStockArticle, ajusterStockProduit,
-  addMouvement, factureExistePourCommande, createFacture, createFactureLignes, nextRefServeur,
-  updateCommandeStatut,
+  getCommandes, getProduits, getArticles, getRecettesByProduit, getClients,
+  ajusterStockArticle, ajusterStockProduit, addMouvement,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, showToast, today,
-  openModal, nextRef, confirmDialog, estSurveille,
+  openModal, nextRef, estSurveille,
   allouerStockSequentiel, selectStatutCmd, restyleSelectStatutCmd,
 } from '../ui.js';
 import { changerStatutCommande } from './commandes.js';
@@ -31,6 +28,13 @@ let _clients   = [];
 let _recettes  = {};
 let _calOffset = 0;
 let _calMode   = 'semaine'; // 'semaine' | 'quinzaine' | 'mois'
+
+/* Une commande n'a plus besoin de production dès qu'elle a atteint
+   « Prêt » — le stock a déjà été décrémenté/incrémenté à ce moment-là
+   (cloturerOFsPourCommande). Seules « à produire » et « en production »
+   comptent encore dans les besoins et les manques d'articles. */
+const STATUTS_AVANT_PRODUCTION = ['a_produire', 'en_production'];
+function _enAttenteDeProduction(c) { return STATUTS_AVANT_PRODUCTION.includes(c.statut); }
 
 /* -------------------------------------------------------
    INIT
@@ -60,15 +64,16 @@ export async function render() {
 }
 
 /* -------------------------------------------------------
-   BADGES INDICATEURS — Fix S12
+   BADGES INDICATEURS
 ------------------------------------------------------- */
 function _renderBadges() {
-  const total    = _ofs.filter(o => !['clos', 'annule'].includes(o.statut)).length;
-  const enCours  = _ofs.filter(o => o.statut === 'en_cours').length;
-  const planifies = _ofs.filter(o => o.statut === 'planifie').length;
+  const actifs = _ofs.filter(o => !['clos', 'annule'].includes(o.statut));
+  const total  = actifs.length;
+  const avecDate = actifs.filter(o => o.date_prevue).length;
+  const sansDate  = total - avecDate;
 
   const bof = document.getElementById('badgeOF');
-  if (bof) { bof.textContent = planifies + enCours; bof.style.display = (planifies + enCours) > 0 ? '' : 'none'; }
+  if (bof) { bof.textContent = total; bof.style.display = total > 0 ? '' : 'none'; }
 
   const el = document.getElementById('productionBadges');
   if (!el) return;
@@ -80,14 +85,14 @@ function _renderBadges() {
         <span style="font-weight:800;color:#16a34a;">${total}</span>
       </div>
       <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:20px;font-size:12.5px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:#f59f00;display:inline-block;"></span>
-        <span style="font-weight:600;">En cours</span>
-        <span style="font-weight:800;color:#b45309;">${enCours}</span>
+        <span style="width:8px;height:8px;border-radius:50%;background:#4c6ef5;display:inline-block;"></span>
+        <span style="font-weight:600;">Date planifiée</span>
+        <span style="font-weight:800;color:#364fc7;">${avecDate}</span>
       </div>
       <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border:1.5px solid var(--ui-brd);border-radius:20px;font-size:12.5px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:#4c6ef5;display:inline-block;"></span>
-        <span style="font-weight:600;">Planifiés</span>
-        <span style="font-weight:800;color:#364fc7;">${planifies}</span>
+        <span style="width:8px;height:8px;border-radius:50%;background:#f59f00;display:inline-block;"></span>
+        <span style="font-weight:600;">Date à choisir</span>
+        <span style="font-weight:800;color:#b45309;">${sansDate}</span>
       </div>
     </div>`;
 }
@@ -102,13 +107,15 @@ function _renderBadges() {
 ------------------------------------------------------- */
 const CAL_JOURS  = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 const CAL_COLORS = {
-  'a_planifier': { bg: 'rgba(108,117,125,0.12)', brd: '#868e96', txt: '#495057' },
-  'planifie':    { bg: 'rgba(76,110,245,0.12)',  brd: '#4c6ef5', txt: '#364fc7' },
-  'en_cours':    { bg: 'rgba(255,146,43,0.15)',  brd: '#f59f00', txt: '#7c5200' },
-  'fabrique':    { bg: 'rgba(32,201,151,0.12)',  brd: '#20c997', txt: '#087f5b' },
-  'clos':        { bg: 'rgba(32,201,151,0.08)',  brd: '#20c997', txt: '#0b7a5a' },
-  'annule':      { bg: 'rgba(250,82,82,0.10)',   brd: '#fa5252', txt: '#c92a2a' },
+  'planifie': { bg: 'rgba(76,110,245,0.12)',  brd: '#4c6ef5', txt: '#364fc7' },
+  'en_cours': { bg: 'rgba(255,146,43,0.15)',  brd: '#f59f00', txt: '#7c5200' },
+  'clos':     { bg: 'rgba(32,201,151,0.08)',  brd: '#20c997', txt: '#0b7a5a' },
+  'annule':   { bg: 'rgba(250,82,82,0.10)',   brd: '#fa5252', txt: '#c92a2a' },
 };
+
+/* Une commande n'a plus de date de livraison pertinente une fois
+   expédiée/facturée/annulée. */
+function _estTerminale(c) { return ['expedie', 'en_facturation', 'annule'].includes(c.statut); }
 
 function _bindCalNav() {
   document.getElementById('calPrev')?.addEventListener('click', () => { _calOffset--; _renderCalendrier(); });
@@ -136,7 +143,7 @@ function _calDayCellHtml(day, jourLabel, todayStr) {
   const ds      = day.toISOString().split('T')[0];
   const isToday = ds === todayStr;
   const ofDay   = _ofs.filter(o => o.date_prevue === ds && !['clos', 'annule'].includes(o.statut));
-  const cmdDay  = _commandes.filter(c => c.date_livraison === ds && c.statut !== 'cloture');
+  const cmdDay  = _commandes.filter(c => c.date_livraison === ds && !_estTerminale(c));
 
   return `<div class="cal-day">
       <div class="cal-day-hdr ${isToday ? 'today' : ''}">${jourLabel}</div>
@@ -208,78 +215,23 @@ function _renderCalendrier() {
   else _renderGrilleParSemaines(7, 'semaine');
 }
 
-/* Libellés et couleurs du statut d'un OF — partagés par le contrôle
-   statut posé sur chaque ligne « à produire » dans Ordres de fabrication. */
-const STATUT_OF_LABELS = {
-  'a_planifier':  'À planifier',
-  'planifie':     'Planifié',
-  'en_cours':     'En cours de fabrication',
-  'fabrique':     'Fabriqué',
-  'clos':         'Clos',
-  'annule':       'Annulé',
-};
-const STATUT_OF_BADGE = {
-  'a_planifier': { bg: 'rgba(108,117,125,0.10)', txt: '#495057' },
-  'planifie':    { bg: 'rgba(76,110,245,0.10)',  txt: '#364fc7' },
-  'en_cours':    { bg: 'rgba(255,146,43,0.12)',  txt: '#7c5200' },
-  'fabrique':    { bg: 'rgba(32,201,151,0.12)',  txt: '#087f5b' },
-  'clos':        { bg: 'rgba(32,201,151,0.08)',  txt: '#0b7a5a' },
-  'annule':      { bg: 'rgba(250,82,82,0.10)',   txt: '#c92a2a' },
-};
-
 /* -------------------------------------------------------
-   ORDRES DE FABRICATION (vue par commande)
-   Vue de suivi client ET point d'entrée pour planifier : une ligne par
-   commande non clôturée, date de livraison + statut (même contrôle que
-   Commandes Clients et Dashboard, toujours synchronisé), dépliable pour
-   voir quels produits de CETTE commande sont déjà couverts par le stock
-   (vert) et lesquels restent à produire (rouge) — allouerStockSequentiel,
-   la même allocation que partout ailleurs.
-   Choisir une date sur une ligne « à produire » crée (ou met à jour s'il
-   existe déjà) l'OF du produit — TOUJOURS une seule fournée qui couvre
-   d'un coup toutes les commandes en attente de ce produit, jamais un OF
-   par commande (creerOFPourProduit, commandes_ids = toutes les commandes
-   couvertes). La table « Ordres de fabrication — suivi des lots » plus
-   bas reste le seul endroit où on clôture réellement une fabrication
-   (décrémente le stock, facture) — ça n'a pas changé ici.
+   ORDRES DE FABRICATION — une ligne par commande, dépliable par
+   ligne de produit. Chaque ligne de produit porte sa propre date de
+   production voulue (l'OF qui lui est implicitement associé, créé
+   automatiquement à l'enregistrement de la commande — voir
+   creerOFsPourCommande). Plus de statut par ligne : le seul statut
+   qui compte est celui de la commande, affiché en tête de ligne. Le
+   passage à « Prêt » déclenche la production réelle (décrément
+   articles, incrément stock produit fini, génération du numéro de
+   lot pour chaque ligne) — voir cloturerOFsPourCommande.
 ------------------------------------------------------- */
 function _commandesEnCours() {
-  return _commandes.filter(c => c.statut !== 'cloture' && c.statut !== 'annule');
+  return _commandes.filter(_enAttenteDeProduction);
 }
 
-/* Pour une commande donnée, couvert/à produire par ligne — recalculé à
-   chaque appel à partir du stock et des commandes actuelles — plus l'OF
-   actif qui couvre déjà ce produit, s'il existe (pour proposer soit de
-   modifier sa date, soit d'en planifier un nouveau). */
-function _detailPretCommande(c) {
-  return (c.commande_lignes || []).map(l => {
-    const p = _produits.find(x => x.id === l.produit_id);
-    const ofExistant = _ofs.find(o => o.produit_id === l.produit_id && !['clos', 'annule'].includes(o.statut)) || null;
-    if (!p) return { produit_nom: l.produit_nom, produit_id: l.produit_id, quantite: l.quantite, couvert: 0, aProduire: l.quantite, ofExistant };
-    const besoins = [];
-    _commandes.filter(cc => cc.statut !== 'cloture' && cc.statut !== 'annule').forEach(cc => {
-      (cc.commande_lignes || []).forEach(ll => {
-        if (ll.produit_id !== l.produit_id) return;
-        besoins.push({ id: ll.id || (cc.id + '_' + l.produit_id), commandeId: cc.id, quantite: ll.quantite, created_at: cc.created_at || cc.date_cmd });
-      });
-    });
-    const alloc = allouerStockSequentiel(p.stock, besoins);
-    const mine = alloc.find(b => b.commandeId === c.id && (!l.id || b.id === l.id));
-    return {
-      produit_nom: l.produit_nom, produit_id: l.produit_id, quantite: l.quantite,
-      couvert: mine ? mine.couvert : 0, aProduire: mine ? mine.aProduire : l.quantite, ofExistant,
-    };
-  });
-}
-
-/* Vrai si TOUTES les lignes de la commande sont couvertes par le stock
-   actuel, selon la même allocation séquentielle — utilisé pour faire
-   passer automatiquement une commande à « prêt » dès que la production
-   (clôture d'OF) ou un inventaire renfloue le stock. */
-function _commandeEstCouverte(c) {
-  const lignes = c.commande_lignes || [];
-  if (!lignes.length) return false;
-  return _detailPretCommande(c).every(l => l.aProduire <= 0);
+function _ofPourLigne(ligneId) {
+  return _ofs.find(o => o.commande_ligne_id === ligneId) || null;
 }
 
 function _renderCommandesEnCours() {
@@ -304,43 +256,22 @@ function _renderCommandesEnCours() {
     <tr class="prod-cmd-detail" data-id="${esc(c.id)}" style="display:none;">
       <td colspan="5" style="background:var(--ui-bg2);padding:10px 14px;">
         <table style="width:100%;">
-          <thead><tr><th>Produit</th><th>Qté commandée</th><th>Couvert</th><th>À produire</th><th>Production</th></tr></thead>
-          <tbody>${_detailPretCommande(c).map(l => {
-            let prodCell = '—';
-            if (l.aProduire > 0) {
-              if (l.ofExistant) {
-                const sb = STATUT_OF_BADGE[l.ofExistant.statut] || STATUT_OF_BADGE['a_planifier'];
-                prodCell = `
-                  <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
-                    <input type="date" value="${esc(l.ofExistant.date_prevue || '')}" data-action="date-of-existant" data-of-id="${esc(l.ofExistant.id)}" style="font-size:11px;padding:3px 6px;border:1px solid var(--ui-brd2);border-radius:6px;">
-                    <select data-action="changer-statut-of" data-of-id="${esc(l.ofExistant.id)}" style="font-size:11px;padding:3px 7px;border:1px solid var(--ui-brd);border-radius:6px;background:${sb.bg};color:${sb.txt};font-weight:600;cursor:pointer;">
-                      ${Object.entries(STATUT_OF_LABELS).map(([val, label]) => `<option value="${val}" ${l.ofExistant.statut === val ? 'selected' : ''}>${label}</option>`).join('')}
-                    </select>
-                    <button data-action="supprimer-of" data-of-id="${esc(l.ofExistant.id)}" title="Supprimer cet OF" style="background:none;border:none;cursor:pointer;font-size:10px;padding:2px 4px;color:var(--ink-muted);opacity:0.6;">✕</button>
-                  </div>`;
-              } else {
-                prodCell = `<input type="date" data-action="planifier-production" data-produit-id="${esc(l.produit_id)}" style="font-size:11px;padding:3px 6px;border:1px solid var(--ui-brd2);border-radius:6px;" title="Choisir une date planifie la fabrication de ce produit pour toutes les commandes en attente">`;
-              }
-            }
+          <thead><tr><th>Produit</th><th>Qté</th><th>Date de production voulue</th></tr></thead>
+          <tbody>${(c.commande_lignes || []).map(l => {
+            const of_ = _ofPourLigne(l.id);
             return `<tr>
-            <td class="td-bold">${esc(l.produit_nom || '—')}</td>
-            <td>${fmtQ(l.quantite)}</td>
-            <td style="color:#15803D;font-weight:700;">${fmtQ(l.couvert)}</td>
-            <td style="color:${l.aProduire > 0 ? '#B42318' : 'var(--ink-muted)'};font-weight:${l.aProduire > 0 ? '700' : '400'};">${l.aProduire > 0 ? fmtQ(l.aProduire) : '—'}</td>
-            <td onclick="event.stopPropagation()">${prodCell}</td>
-          </tr>`;
+              <td class="td-bold">${esc(l.produit_nom || '—')}</td>
+              <td>${fmtQ(l.quantite)}</td>
+              <td onclick="event.stopPropagation()">${of_
+                ? `<input type="date" value="${esc(of_.date_prevue || '')}" data-action="date-of" data-of-id="${esc(of_.id)}" style="font-size:11px;padding:3px 6px;border:1px solid var(--ui-brd2);border-radius:6px;">`
+                : '<span style="color:var(--ink-muted);font-size:11px;">—</span>'}</td>
+            </tr>`;
           }).join('')}</tbody>
         </table>
       </td>
     </tr>`).join('');
 
-  tbody.onclick = async (e) => {
-    const btnSupp = e.target.closest('[data-action="supprimer-of"]');
-    if (btnSupp) {
-      e.stopPropagation();
-      await _supprimerOF(btnSupp.dataset.ofId);
-      return;
-    }
+  tbody.onclick = (e) => {
     if (e.target.closest('[data-action]')) return;
     const row = e.target.closest('.prod-cmd-row');
     if (!row) return;
@@ -361,118 +292,37 @@ function _renderCommandesEnCours() {
       return;
     }
 
-    const inpExistant = e.target.closest('[data-action="date-of-existant"]');
-    if (inpExistant) {
-      await updateOFDate(inpExistant.dataset.ofId, inpExistant.value);
-      const of = _ofs.find(o => o.id === inpExistant.dataset.ofId);
-      if (of) of.date_prevue = inpExistant.value;
+    const inpDate = e.target.closest('[data-action="date-of"]');
+    if (inpDate) {
+      await updateOFDate(inpDate.dataset.ofId, inpDate.value);
+      const of_ = _ofs.find(o => o.id === inpDate.dataset.ofId);
+      if (of_) of_.date_prevue = inpDate.value;
       _renderCalendrier();
+      _renderBadges();
       showToast('✅ Date de production mise à jour.');
-      return;
-    }
-
-    const selOF = e.target.closest('[data-action="changer-statut-of"]');
-    if (selOF) {
-      const newStatut = selOF.value;
-      if (newStatut === 'clos') {
-        await _terminerFab(selOF.dataset.ofId);
-      } else if (newStatut === 'annule') {
-        await _annulerOF(selOF.dataset.ofId);
-      } else {
-        await _setOFStatut(selOF.dataset.ofId, newStatut);
-      }
-      return;
-    }
-
-    const inpNouveau = e.target.closest('[data-action="planifier-production"]');
-    if (inpNouveau) {
-      await creerOFPourProduit(inpNouveau.dataset.produitId, inpNouveau.value);
     }
   };
 }
 
 /* -------------------------------------------------------
-   PLAN DE FABRICATION
-   Une ligne par produit ayant un OF actif et/ou une commande
-   en cours non couverte. La faisabilité articles est calculée
-   de façon CUMULÉE ligne après ligne (le stock virtuel s'épuise
-   au fil du tableau) pour révéler les conflits entre deux OF
-   qui piochent dans le même article — un contrôle produit par
-   produit isolément ne le voit pas.
-------------------------------------------------------- */
-/* Demande de production par produit, tous OF actifs confondus (manuels ou
-   liés à une commande) + le manque encore non couvert par un OF pour les
-   commandes en cours. Partagé par Plan de fabrication ET Articles à
-   commander — avant ce partage, Articles à commander ne regardait QUE les
-   commandes et restait vide dès qu'un OF était planifié sans commande
-   (cas réel : production sur stock, sans commande client derrière). */
-function _demandeParProduit() {
-  const parProduit = {};
-  _ofs.filter(o => !['clos', 'annule'].includes(o.statut)).forEach(of => {
-    if (!parProduit[of.produit_id]) parProduit[of.produit_id] = { nom: of.produit_nom, qteOF: 0, ofs: [], datePlusProche: null };
-    const f = parProduit[of.produit_id];
-    f.qteOF += of.quantite;
-    f.ofs.push(of.ref);
-    if (of.date_prevue && (!f.datePlusProche || of.date_prevue < f.datePlusProche)) f.datePlusProche = of.date_prevue;
-  });
-
-  const commande = {};
-  _commandes.filter(c => c.statut !== 'cloture').forEach(c => {
-    (c.commande_lignes || []).forEach(l => {
-      commande[l.produit_id] = (commande[l.produit_id] || 0) + l.quantite;
-    });
-  });
-
-  const produitIds = new Set([...Object.keys(parProduit), ...Object.keys(commande)]);
-  let lignes = [...produitIds].map(produitId => {
-    const p = _produits.find(x => x.id === produitId);
-    if (!p) return null;
-    const f = parProduit[produitId] || { nom: p.nom, qteOF: 0, ofs: [], datePlusProche: null };
-    const qteCmd = commande[produitId] || 0;
-    /* Produit hors stock : son stock n'est pas suivi, il ne peut donc pas
-       être signalé manquant. Ses OF restent affichés, eux sont réels. */
-    const manquePF = estSurveille(p) ? Math.max(0, qteCmd - (p.stock || 0) - f.qteOF) : 0;
-    return { produitId, nom: f.nom || p.nom, qteOF: f.qteOF, ofs: f.ofs, date: f.datePlusProche, manquePF };
-  }).filter(Boolean);
-
-  /* Tri : ce qui n'a encore aucun OF pour couvrir la commande d'abord (le plus urgent
-     à planifier), puis par échéance OF la plus proche. */
-  lignes.sort((a, b) => {
-    if ((a.manquePF > 0) !== (b.manquePF > 0)) return a.manquePF > 0 ? -1 : 1;
-    const da = a.date || '9999-99-99', db = b.date || '9999-99-99';
-    return da < db ? -1 : da > db ? 1 : a.nom.localeCompare(b.nom, 'fr');
-  });
-
-  return lignes;
-}
-
-/* Produits réellement commandés au moins une fois — pas tout le
-   catalogue : un produit jamais commandé n'a rien à faire dans un bilan
-   de besoins de production. Toute commande, quel que soit son statut
-   (y compris clôturée), compte comme présence ; + défensif, les OF
-   existants (en pratique tous liés à une commande désormais, puisque
-   "+ Planifier un OF" a été retiré). */
-function _produitsCommandes() {
-  const ids = new Set();
-  _commandes.forEach(c => (c.commande_lignes || []).forEach(l => { if (l.produit_id) ids.add(l.produit_id); }));
-  _ofs.forEach(o => { if (o.produit_id) ids.add(o.produit_id); });
-  return ids;
-}
-
-/* -------------------------------------------------------
-   VUE CONSOLIDÉE PAR PRODUIT
-   Remplace l'ancien Plan de fabrication : une ligne par produit déjà
-   commandé au moins une fois, montre le « reste à produire » en avant,
-   et se déplie pour voir, par client, ce qui est déjà couvert par le
-   stock (vert) et ce qu'il reste à produire pour satisfaire tout le
-   monde (rouge).
+   BESOINS DE PRODUCTION PAR PRODUIT
+   Une ligne par produit déjà commandé au moins une fois, montre le
+   « reste à produire » en avant, et se déplie pour voir, par client,
+   ce qui est déjà couvert par le stock (vert) et ce qu'il reste à
+   produire pour satisfaire tout le monde (rouge). Seules les
+   commandes pas encore produites (« à produire »/« en production »)
+   comptent : une commande « Prêt » a déjà consommé le stock qui la
+   concernait au moment de sa clôture.
    Allocation séquentielle partagée avec Commandes Clients
    (allouerStockSequentiel, ui.js) — même ordre d'enregistrement, même
    résultat des deux côtés, pour ne jamais diverger.
-   Les articles à commander (matières premières) restent dans leur
-   propre tableau plus bas, inchangé — cette vue porte sur les produits
-   finis, pas sur les ingrédients.
 ------------------------------------------------------- */
+function _produitsCommandes() {
+  const ids = new Set();
+  _commandes.forEach(c => (c.commande_lignes || []).forEach(l => { if (l.produit_id) ids.add(l.produit_id); }));
+  return ids;
+}
+
 function _vueConsolideeParProduit() {
   const produitIds = _produitsCommandes();
 
@@ -480,11 +330,8 @@ function _vueConsolideeParProduit() {
     const p = _produits.find(x => x.id === produitId);
     if (!p) return null;
 
-    const ofsActifs = _ofs.filter(o => o.produit_id === produitId && !['clos', 'annule'].includes(o.statut));
-    const qteOF = ofsActifs.reduce((s, o) => s + o.quantite, 0);
-
     const besoins = [];
-    _commandes.filter(c => c.statut !== 'cloture').forEach(c => {
+    _commandes.filter(_enAttenteDeProduction).forEach(c => {
       (c.commande_lignes || []).forEach(l => {
         if (l.produit_id !== produitId) return;
         besoins.push({
@@ -498,7 +345,7 @@ function _vueConsolideeParProduit() {
     const demandeTotale  = besoins.reduce((s, b) => s + b.quantite, 0);
     const resteAProduire = clients.reduce((s, c) => s + c.aProduire, 0);
 
-    return { produitId, nom: p.nom, stock: p.stock, demandeTotale, resteAProduire, qteOF, ofsRefs: ofsActifs.map(o => o.ref), clients };
+    return { produitId, nom: p.nom, stock: p.stock, demandeTotale, resteAProduire, clients };
   }).filter(Boolean);
 
   /* Le plus urgent (reste à produire) d'abord. */
@@ -513,7 +360,7 @@ function _renderVueConsolidee() {
   const lignes = _vueConsolideeParProduit();
 
   if (!lignes.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:14px;color:var(--ink-muted)">Aucun produit commandé.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:14px;color:var(--ink-muted)">Aucun produit commandé.</td></tr>';
     return;
   }
 
@@ -521,12 +368,8 @@ function _renderVueConsolidee() {
     const resteBadge = l.resteAProduire > 0
       ? `<span class="badge badge-alert">${fmtQ(l.resteAProduire)} à produire</span>`
       : '<span class="badge badge-ok">✓ Tout couvert</span>';
-    const ofInfo = l.qteOF > 0
-      ? `<strong>${fmtQ(l.qteOF)}</strong> <span style="font-size:10px;color:var(--ink-muted)">(${l.ofsRefs.join(', ')})</span>`
-      : '<span style="color:var(--ink-muted)">aucun</span>';
 
     const detailRows = l.clients.map((c, i) => {
-      const pct = c.quantite > 0 ? Math.round(c.couvert / c.quantite * 100) : 0;
       const ordre = i === 0 ? '1ʳᵉ commande enregistrée' : 'Enregistrée ensuite';
       return `<tr>
         <td class="td-ref">${esc(c.ref)}</td>
@@ -549,11 +392,10 @@ function _renderVueConsolidee() {
         <td class="td-bold">${esc(l.nom)}</td>
         <td>${fmtQ(l.stock)}</td>
         <td>${fmtQ(l.demandeTotale)}</td>
-        <td>${ofInfo}</td>
         <td>${resteBadge}</td>
       </tr>
       <tr class="prod-vue-detail" data-id="${esc(l.produitId)}" style="display:none;">
-        <td colspan="6" style="background:var(--ui-bg2);padding:10px 14px;">
+        <td colspan="5" style="background:var(--ui-bg2);padding:10px 14px;">
           <table style="width:100%;">
             <thead><tr><th>N° commande</th><th>Client</th><th>Ordre</th><th>Faisable / Reste</th><th>Couvert</th><th>À produire</th></tr></thead>
             <tbody>${detailRows}</tbody>
@@ -576,71 +418,46 @@ function _renderVueConsolidee() {
 }
 
 /* -------------------------------------------------------
-   CRÉER OF DEPUIS LE RESTE À PRODUIRE D'UN PRODUIT
-   Une seule fournée qui couvre d'un coup toutes les commandes en attente
-   de ce produit — jamais un OF par commande : c'est comme ça qu'un
-   artisan produit réellement. commandes_ids porte la liste des commandes
-   couvertes par cette fournée, pour que creerOFsPourCommande() (déclenché
-   quand une commande passe à « planifié ») ne recrée pas un second OF en
-   double pour elles.
+   ARTICLES À COMMANDER
+   Seulement ce qui manque réellement pour honorer les commandes pas
+   encore produites (« à produire »/« en production ») — pas un bilan
+   de tous les articles de recette. Une commande déjà « Prêt » a déjà
+   consommé son stock à la clôture, elle ne compte plus ici.
 ------------------------------------------------------- */
-export async function creerOFPourProduit(produitId, datePrevue = null) {
-  const ligne = _vueConsolideeParProduit().find(l => l.produitId === produitId);
-  if (!ligne || ligne.resteAProduire <= 0) return;
-  const p = _produits.find(x => x.id === produitId);
-  if (!p) return;
-
-  const commandesIds = [...new Set(ligne.clients.filter(c => c.aProduire > 0).map(c => c.commandeId))];
-
-  try {
-    const ref = nextRef('OF', _ofs);
-    const of = await createOF({
-      ref, produit_id: produitId, produit_nom: p.nom, quantite: ligne.resteAProduire,
-      date_prevue: datePrevue || null, statut: 'planifie', commandes_ids: commandesIds,
-      notes: 'Depuis commandes en cours',
+function _demandeParProduit() {
+  const commande = {};
+  _commandes.filter(_enAttenteDeProduction).forEach(c => {
+    (c.commande_lignes || []).forEach(l => {
+      commande[l.produit_id] = (commande[l.produit_id] || 0) + l.quantite;
     });
-    _ofs.push(of);
-    _renderBadges();
-    _renderCalendrier();
-    _renderCommandesEnCours();
-    _renderVueConsolidee();
-    _renderBesoins();
-    showToast(datePrevue
-      ? `✅ OF ${ref} créé et planifié — ${fmtQ(ligne.resteAProduire)} ${p.nom} à produire.`
-      : `✅ OF ${ref} créé — ${fmtQ(ligne.resteAProduire)} ${p.nom} à produire, choisissez sa date dans la liste.`);
-    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'production' } }));
-  } catch (err) {
-    console.error('[production] creerOFPourProduit ERREUR:', err.message, err);
-    showToast('❌ Erreur création OF.', 'error');
-  }
+  });
+
+  return Object.entries(commande).map(([produitId, qteCmd]) => {
+    const p = _produits.find(x => x.id === produitId);
+    if (!p) return null;
+    /* Produit hors stock : son stock n'est pas suivi, il ne peut donc pas
+       être signalé manquant. */
+    const manquePF = estSurveille(p) ? Math.max(0, qteCmd - (p.stock || 0)) : 0;
+    return { produitId, nom: p.nom, manquePF };
+  }).filter(Boolean);
 }
 
-/* -------------------------------------------------------
-   ARTICLES À COMMANDER
-   Liste d'achat basée sur la demande totale de production —
-   OF actifs (manuels ou liés à une commande) + manque encore non
-   planifié pour les commandes en cours (même base que Plan de
-   fabrication, voir _demandeParProduit). Seul le bouton BC agit
-   réellement (ouvre le bon de commande pré-rempli).
-------------------------------------------------------- */
 function _renderBesoins() {
   const mg = {};
   _demandeParProduit().forEach(l => {
-    const qteTotale = l.qteOF + l.manquePF;
-    if (!qteTotale) return;
+    if (!l.manquePF) return;
     const recette = _recettes[l.produitId] || [];
     recette.forEach(r => {
       const aref = r.articles?.ref;
       if (!aref) return;
-      mg[aref] = (mg[aref] || 0) + r.quantite * qteTotale;
+      mg[aref] = (mg[aref] || 0) + r.quantite * l.manquePF;
     });
   });
 
-  /* Seulement ce qui manque réellement pour honorer les commandes en cours
-     — pas un bilan de tous les articles de recette. Quantité à commander :
-     au moins de quoi couvrir le manque de production, et au moins de quoi
-     remonter le stock au seuil de sécurité — jamais les deux séparément,
-     on prend le plus grand des deux besoins. */
+  /* Quantité à commander : au moins de quoi couvrir le manque de
+     production, et au moins de quoi remonter le stock au seuil de
+     sécurité — jamais les deux séparément, on prend le plus grand des
+     deux besoins. */
   const manques = Object.entries(mg).map(([aref, besoin]) => {
     const a = _articles.find(x => x.ref === aref);
     if (!a || !estSurveille(a)) return null;
@@ -743,268 +560,28 @@ function _toggleDetailHistorique(id) {
   if (!of) return;
   const detail = Array.isArray(of.detail_clients) ? of.detail_clients : [];
 
-  const rows = detail.length
-    ? detail.map(d => `<tr>
-        <td style="padding:4px 10px;font-size:11px;color:var(--ink-muted)">${esc(d.commande_ref || '—')}</td>
-        <td style="padding:4px 10px;font-size:11px;">${esc(d.client_nom || '—')}</td>
-        <td style="padding:4px 10px;font-size:11px;text-align:right;">${d.quantite ?? '—'}</td>
-      </tr>`).join('')
-    : `<tr><td colspan="3" style="padding:6px 10px;font-size:11px;color:var(--ink-muted)">Aucune commande n'était en attente pour ce produit à la clôture.</td></tr>`;
+  const detailHtml = detail.length
+    ? detail.map(d => `<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;">
+        <span>${esc(d.commande_ref || '—')} — ${esc(d.client_nom || '—')}</span>
+        <strong>${fmtQ(d.quantite)}</strong>
+      </div>`).join('')
+    : '<span style="color:var(--ink-muted)">Aucun détail enregistré.</span>';
 
   const detailTr = document.createElement('tr');
   detailTr.className = 'hist-detail-row';
   detailTr.dataset.of = id;
-  detailTr.innerHTML = `<td colspan="5" style="background:#FAFAF8;padding:8px 12px;">
-    <div style="font-size:10.5px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;">Détail par commande client (au moment de la clôture)</div>
-    <table style="width:auto;min-width:280px;"><thead><tr>
-      <th style="padding:2px 10px;font-size:10px;text-align:left;">N° commande</th>
-      <th style="padding:2px 10px;font-size:10px;text-align:left;">Client</th>
-      <th style="padding:2px 10px;font-size:10px;text-align:right;">Qté</th>
-    </tr></thead><tbody>${rows}</tbody></table>
-  </td>`;
-  tr.after(detailTr);
+  detailTr.innerHTML = `<td colspan="5" style="background:var(--ui-bg2);padding:10px 14px;font-size:12px;">${detailHtml}</td>`;
+  tr.insertAdjacentElement('afterend', detailTr);
 }
 
 /* -------------------------------------------------------
-   NUMÉRO DE LOT — format AA-JJJ-rang
-   AA = année sur 2 chiffres, JJJ = jour de l'année sur 3 chiffres,
-   rang = rang de clôture dans la journée, tous produits confondus
-   (1er OF clos dans la journée = rang 1, peu importe le produit).
-------------------------------------------------------- */
-function _jourDeLAnnee(date) {
-  const debutAnnee = new Date(date.getFullYear(), 0, 0);
-  return Math.floor((date - debutAnnee) / 86400000);
-}
-
-function _formatNumeroLot(date, rang) {
-  const annee = String(date.getFullYear()).slice(-2);
-  const jour  = String(_jourDeLAnnee(date)).padStart(3, '0');
-  return `${annee}-${jour}-${rang}`;
-}
-
-/* Détail des clients/commandes en attente pour un produit fini donné — utilisé
-   à la fois pour le dépliage en direct des OF actifs et pour le snapshot figé
-   au moment de la clôture (l'historique doit rester exact même si les
-   commandes évoluent ensuite). */
-function _detailClientsPourProduit(produitId) {
-  const detail = [];
-  _commandes.filter(c => c.statut !== 'cloture').forEach(c => {
-    (c.commande_lignes || []).forEach(l => {
-      if (l.produit_id === produitId) {
-        detail.push({ commande_ref: c.ref, client_nom: c.client_nom, quantite: l.quantite });
-      }
-    });
-  });
-  return detail;
-}
-
-/* -------------------------------------------------------
-   HELPERS
-------------------------------------------------------- */
-function _calcManquesRecette(produitId, qte) {
-  const lignes = _recettes[produitId] || [];
-  if (!lignes.length) return [];
-  const manques = [];
-  lignes.forEach(l => {
-    const a = _articles.find(x => x.ref === l.articles?.ref);
-    if (a && a.stock < l.quantite * qte) {
-      manques.push(`${a.nom} (manque ${fmtQ(l.quantite * qte - a.stock)} ${a.unite})`);
-    }
-  });
-  return manques;
-}
-
-async function _chargerRecettes() {
-  const recettesRaw = await Promise.all(_produits.map(p => getRecettesByProduit(p.id)));
-  _recettes = {};
-  _produits.forEach((p, i) => { _recettes[p.id] = recettesRaw[i] || []; });
-}
-
-/* -------------------------------------------------------
-   ACTIONS OFs
-------------------------------------------------------- */
-async function _setOFStatut(id, statut) {
-  try {
-    await updateOFStatut(id, statut);
-    const of = _ofs.find(o => o.id === id);
-    if (of) of.statut = statut;
-    _renderBadges();
-    _renderCommandesEnCours();
-    _renderCalendrier();
-    _renderVueConsolidee();
-  } catch (err) {
-    showToast('❌ Erreur mise à jour OF.', 'error');
-  }
-}
-
-async function _supprimerOF(id) {
-  const of = _ofs.find(o => o.id === id);
-  if (!of) return;
-  const ok = await confirmDialog(`Supprimer définitivement ${of.ref} (${of.produit_nom}) ?`);
-  if (!ok) return;
-  try {
-    await deleteOF(id);
-    _ofs = _ofs.filter(o => o.id !== id);
-    _renderBadges();
-    _renderCommandesEnCours();
-    _renderCalendrier();
-    _renderVueConsolidee();
-    showToast('✅ OF ' + of.ref + ' supprimé.');
-    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'production' } }));
-  } catch (err) {
-    console.error('[production] _supprimerOF ERREUR:', err.message, err);
-    showToast('❌ Erreur suppression OF.', 'error');
-  }
-}
-
-/* Le stock est ajusté côté base : un double clic compterait la fabrication deux fois. */
-let _terminerEnCours = false;
-
-async function _terminerFab(id) {
-  if (_terminerEnCours) return;
-  _terminerEnCours = true;
-  try { await _terminerFabrication(id); } finally { _terminerEnCours = false; }
-}
-
-async function _terminerFabrication(id) {
-  const of = _ofs.find(o => o.id === id);
-  if (!of || of.statut === 'clos') return;
-  const p = _produits.find(x => x.id === of.produit_id);
-  if (!p) return;
-
-  const ok = await confirmDialog(`Terminer ${of.quantite}×${of.produit_nom} ?\nArticles déduits + produits finis ajoutés.`);
-  if (!ok) return;
-
-  try {
-    const lignesRecette = _recettes[of.produit_id] || [];
-
-    for (const l of lignesRecette) {
-      const aref = l.articles?.ref;
-      const qp   = l.quantite || 0;
-      if (!aref || !qp) continue;
-      const a = _articles.find(x => x.ref === aref);
-      if (!a) continue;
-      a.stock = await ajusterStockArticle(a.id, -(qp * of.quantite));
-      await addMouvement({ type: 'sortie', ref: aref, nom: a.nom, qte: qp * of.quantite, motif: 'Production ' + of.ref, ref_doc: of.ref });
-    }
-
-    p.stock = await ajusterStockProduit(p.id, of.quantite);
-    await addMouvement({ type: 'entree_pf', ref: p.ref, nom: p.nom, qte: of.quantite, motif: 'Production ' + of.ref, ref_doc: of.ref });
-
-    const dateCloture   = today();
-    const dejaClosCeJour = await countOFsClosPourDate(dateCloture);
-    const numeroLot      = _formatNumeroLot(new Date(), dejaClosCeJour + 1);
-    const detailClients  = _detailClientsPourProduit(of.produit_id);
-    await cloturerOF(id, { numero_lot: numeroLot, date_cloture: dateCloture, detail_clients: detailClients });
-    of.statut         = 'clos';
-    of.numero_lot     = numeroLot;
-    of.date_cloture   = dateCloture;
-    of.detail_clients = detailClients;
-
-    for (const c of _commandes) {
-      if (!['planifie', 'en_production'].includes(c.statut)) continue;
-      /* Même allocation séquentielle que partout ailleurs (Commandes
-         Clients, Besoins de production) — pas le stock brut comparé
-         indépendamment pour chaque commande, sinon deux commandes sur le
-         même produit se voient toutes les deux déclarées « prêtes » avec
-         un seul stock qui ne couvre en réalité qu'une des deux. */
-      const toutOK = _commandeEstCouverte(c);
-      if (toutOK) {
-        try { await updateCommandeStatut(c.id, 'pret'); } catch (e) {
-          console.error('[production] passage a pret non bloquant:', e.message);
-        }
-        c.statut = 'pret';
-        const dejafac = await factureExistePourCommande(c.id);
-        if (!dejafac) {
-          const tot = (c.commande_lignes || []).reduce((s, l) => s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
-
-          /* TVA multi-taux : priorité produit > tenant > 20 (aligné livraisons.js) */
-          let tauxFacture = 20;
-          try {
-            const tenant = await getTenant();
-            if (tenant && tenant.taux_tva != null) tauxFacture = Number(tenant.taux_tva);
-          } catch (_) {}
-
-          const lignesFigees = (c.commande_lignes || []).map(l => {
-            const pl = _produits.find(x => x.id === l.produit_id);
-            const tauxLigne = (pl && pl.taux_tva != null) ? Number(pl.taux_tva) : tauxFacture;
-            return {
-              produit_id:    l.produit_id,
-              produit_nom:   l.produit_nom,
-              quantite:      l.quantite,
-              prix_unitaire: l.prix_unitaire,
-              taux_tva:      tauxLigne,
-              total_ht:      l.total_ht || (l.quantite * l.prix_unitaire),
-            };
-          });
-          /* Taux effectif pondéré — montant_ttc est une colonne générée en base
-             à partir d'un seul taux_tva, Math.max() sur les taux surfacturait
-             toute ligne à un taux inférieur au max (aligné livraisons.js). */
-          const totalTvaLignes = lignesFigees.reduce((s, l) => s + l.total_ht * l.taux_tva / 100, 0);
-          if (tot > 0) tauxFacture = totalTvaLignes / tot * 100;
-
-          const client = c.client_id
-            ? _clients.find(x => x.id === c.client_id)
-            : _clients.find(x => x.nom === c.client_nom);
-
-          const facRef = await nextRefServeur('FAC');
-          const fac = await createFacture({
-            ref:            facRef,
-            commande_id:    c.id,
-            client_id:      client ? client.id : (c.client_id || null),
-            client_nom:     c.client_nom,
-            siret_client:   client?.siret || '',
-            adresse_client: client?.adresse || '',
-            montant_ht:     tot,
-            taux_tva:       tauxFacture,
-            statut:         'facture',
-          });
-          await createFactureLignes(fac.id, lignesFigees);
-        }
-      }
-    }
-
-    _renderBadges();
-    _renderCalendrier();
-    _renderCommandesEnCours();
-    _renderVueConsolidee();
-    _renderBesoins();
-    _renderHistorique();
-    showToast(`✅ ${of.quantite}×${of.produit_nom} produits. Lot ${numeroLot}.`);
-    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'production' } }));
-  } catch (err) {
-    console.error('[production] _terminerFab ERREUR:', err.message, err);
-    showToast('❌ Erreur clôture OF.', 'error');
-  }
-}
-
-async function _annulerOF(id) {
-  const of = _ofs.find(o => o.id === id);
-  if (!of) return;
-  const ok = await confirmDialog('Annuler ' + of.ref + ' ?');
-  if (!ok) return;
-  try {
-    await updateOFStatut(id, 'annule');
-    of.statut = 'annule';
-    _renderBadges();
-    _renderCommandesEnCours();
-    showToast('OF ' + of.ref + ' annulé.');
-  } catch (err) {
-    showToast('❌ Erreur annulation OF.', 'error');
-  }
-}
-
-/* -------------------------------------------------------
-   AUTO-OF À LA PLANIFICATION D'UNE COMMANDE
-   Quand une commande passe de « à produire » à « planifié »
-   (app.html, evenement appmee:commandePlanifiee), chacune de ses
-   lignes devient un OF sans date — la date se choisit ensuite
-   depuis la liste des OF (crayon sur la colonne date), exactement
-   comme pour un OF cree a la main.
-   Idempotent : recharge toujours les OF avant de verifier, et ne
-   recree jamais un OF deja lie a cette commande pour ce produit
-   (colonne commandes_ids) — une commande qui repasserait par
-   « planifie » n'en cree pas un second.
+   AUTO-OF À LA CRÉATION D'UNE COMMANDE
+   Chaque ligne de produit devient implicitement un OF, sans date — la
+   date se choisit ensuite depuis Ordres de fabrication. Idempotent :
+   ne recrée jamais un OF déjà lié à une ligne de commande donnée (une
+   commande modifiée dont les lignes ont été remplacées n'en crée pas
+   de doublon, voir commandes.js _saveEdit — deleteOFsForCommande est
+   toujours appelé avant).
 ------------------------------------------------------- */
 export async function creerOFsPourCommande(commande) {
   if (!commande || !Array.isArray(commande.commande_lignes) || !commande.commande_lignes.length) return;
@@ -1013,10 +590,8 @@ export async function creerOFsPourCommande(commande) {
 
   let crees = 0;
   for (const l of commande.commande_lignes) {
-    if (!l.produit_id || !l.quantite) continue;
-    const dejaCree = _ofs.some(o => o.statut !== 'annule'
-      && Array.isArray(o.commandes_ids) && o.commandes_ids.includes(commande.id)
-      && o.produit_id === l.produit_id);
+    if (!l.id || !l.produit_id || !l.quantite) continue;
+    const dejaCree = _ofs.some(o => o.commande_ligne_id === l.id);
     if (dejaCree) continue;
 
     try {
@@ -1024,7 +599,7 @@ export async function creerOFsPourCommande(commande) {
       const of = await createOF({
         ref, produit_id: l.produit_id, produit_nom: l.produit_nom,
         quantite: l.quantite, date_prevue: null, statut: 'planifie',
-        commandes_ids: [commande.id],
+        commandes_ids: [commande.id], commande_ligne_id: l.id,
         notes: 'Depuis commande ' + (commande.ref || ''),
       });
       _ofs.push(of);
@@ -1040,8 +615,96 @@ export async function creerOFsPourCommande(commande) {
     _renderCommandesEnCours();
     _renderVueConsolidee();
     _renderBesoins();
-    showToast(`✅ ${crees} ordre${crees > 1 ? 's' : ''} de fabrication créé${crees > 1 ? 's' : ''} depuis ${commande.ref || 'la commande'} — choisissez leur date dans la liste.`);
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'production' } }));
   }
 }
 
+/* -------------------------------------------------------
+   CLÔTURE DE LA PRODUCTION — déclenchée quand une commande passe à
+   « Prêt » (événement appmee:commandePrete, écouté depuis app.html).
+   Pour chaque ligne de la commande (= un OF implicite) : décrément des
+   articles de la recette, incrément du stock du produit fini,
+   génération du numéro de lot (format AA-JJJ-rang, rang de clôture du
+   jour partagé entre toutes les lignes/commandes, comme avant).
+   Règle 11 — recharge les caches avant l'opération : peut être
+   déclenché depuis Commandes Clients ou le Dashboard sans que
+   Production ait jamais été ouverte dans cette session.
+------------------------------------------------------- */
+export async function cloturerOFsPourCommande(commande) {
+  if (!commande || !Array.isArray(commande.commande_lignes) || !commande.commande_lignes.length) return;
+
+  try {
+    [_ofs, _produits, _articles] = await Promise.all([getAllOFs(), getProduits(), getArticles()]);
+  } catch (_) {}
+
+  let nbLots = 0;
+  for (const l of commande.commande_lignes) {
+    const of_ = _ofs.find(o => o.commande_ligne_id === l.id && !['clos', 'annule'].includes(o.statut));
+    if (!of_) continue;
+    const p = _produits.find(x => x.id === of_.produit_id);
+    if (!p) continue;
+
+    try {
+      const lignesRecette = await getRecettesByProduit(of_.produit_id);
+      for (const r of lignesRecette) {
+        const aref = r.articles?.ref;
+        const qp   = r.quantite || 0;
+        if (!aref || !qp) continue;
+        const a = _articles.find(x => x.ref === aref);
+        if (!a) continue;
+        a.stock = await ajusterStockArticle(a.id, -(qp * of_.quantite));
+        await addMouvement({ type: 'sortie', ref: aref, nom: a.nom, qte: qp * of_.quantite, motif: 'Production ' + of_.ref, ref_doc: of_.ref });
+      }
+
+      p.stock = await ajusterStockProduit(p.id, of_.quantite);
+      await addMouvement({ type: 'entree_pf', ref: p.ref, nom: p.nom, qte: of_.quantite, motif: 'Production ' + of_.ref, ref_doc: of_.ref });
+
+      const dateCloture    = today();
+      const dejaClosCeJour = await countOFsClosPourDate(dateCloture);
+      const numeroLot      = _formatNumeroLot(new Date(), dejaClosCeJour + 1);
+      const detailClients  = [{ commande_ref: commande.ref, client_nom: commande.client_nom, quantite: of_.quantite }];
+      await cloturerOF(of_.id, { numero_lot: numeroLot, date_cloture: dateCloture, detail_clients: detailClients });
+      of_.statut = 'clos'; of_.numero_lot = numeroLot; of_.date_cloture = dateCloture; of_.detail_clients = detailClients;
+      nbLots++;
+    } catch (err) {
+      console.error('[production] cloturerOFsPourCommande ERREUR:', err.message, err);
+    }
+  }
+
+  if (nbLots) {
+    _renderBadges();
+    _renderCalendrier();
+    _renderCommandesEnCours();
+    _renderVueConsolidee();
+    _renderBesoins();
+    _renderHistorique();
+    showToast(`✅ Production clôturée — ${nbLots} lot${nbLots > 1 ? 's' : ''} généré${nbLots > 1 ? 's' : ''} pour ${commande.ref}.`);
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'production' } }));
+  }
+}
+
+/* -------------------------------------------------------
+   NUMÉRO DE LOT — AA-JJJ-rang
+   AA = année sur 2 chiffres, JJJ = jour de l'année sur 3 chiffres,
+   rang = rang de clôture dans la journée, tous produits confondus
+   (1er OF clos dans la journée = rang 1, peu importe le produit).
+------------------------------------------------------- */
+function _jourDeLAnnee(date) {
+  const debutAnnee = new Date(date.getFullYear(), 0, 0);
+  return Math.floor((date - debutAnnee) / 86400000);
+}
+
+function _formatNumeroLot(date, rang) {
+  const annee = String(date.getFullYear()).slice(-2);
+  const jour  = String(_jourDeLAnnee(date)).padStart(3, '0');
+  return `${annee}-${jour}-${rang}`;
+}
+
+/* -------------------------------------------------------
+   HELPERS
+------------------------------------------------------- */
+async function _chargerRecettes() {
+  const recettesRaw = await Promise.all(_produits.map(p => getRecettesByProduit(p.id)));
+  _recettes = {};
+  _produits.forEach((p, i) => { _recettes[p.id] = recettesRaw[i] || []; });
+}

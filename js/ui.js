@@ -315,10 +315,10 @@ export function nextRef(prefix, rows, field = 'ref') {
 export function badgeCmd(statut) {
   const map = {
     a_produire:    '<span class="badge badge-warn">À produire</span>',
-    planifie:      '<span class="badge badge-blue">Planifié</span>',
     en_production: '<span class="badge badge-purple">En production</span>',
     pret:          '<span class="badge badge-ok">Prêt ✓</span>',
-    cloture:       '<span class="badge badge-neutral">Clôturée</span>',
+    expedie:       '<span class="badge badge-neutral">Expédié</span>',
+    en_facturation:'<span class="badge badge-neutral">En facturation</span>',
     annule:        '<span class="badge badge-alert">Annulée</span>',
   };
   return map[statut] || `<span class="badge badge-neutral">${esc(statut)}</span>`;
@@ -330,14 +330,21 @@ export function badgeCmd(statut) {
    dans Commandes Clients et dans le Dashboard, pour que les deux ne
    puissent jamais afficher deux statuts différents pour la même
    commande. Mêmes couleurs que badgeCmd() — source unique partagée.
+   Plus de statut « Planifié » — une commande part directement à
+   « À produire » (chaque ligne devient un OF implicite dès la
+   création). Le passage à « Prêt » déclenche la production (décrément
+   articles, incrément stock PF, génération des lots). « Expédié »
+   marque la sortie physique du stock PF ; « En Facturation » est le
+   statut terminal qui génère la facture et archive la commande dans
+   l'historique.
 ------------------------------------------------------- */
 export const STATUT_CMD_STYLE = {
-  a_produire:    { num: 1, label: 'À produire',    bg: '#FEF3D8', txt: '#7A5A00', brd: '#F0D9A0' },
-  planifie:      { num: 2, label: 'Planifié',      bg: '#E8EFFE', txt: '#2A3A8A', brd: '#C4CAEF' },
-  en_production: { num: 3, label: 'En production', bg: '#f0ecfb', txt: '#5a3e85', brd: '#c9bfef' },
-  pret:          { num: 4, label: 'Prêt',          bg: '#D8EDE3', txt: '#1E4A30', brd: '#B0D4C0' },
-  cloture:       { num: 5, label: 'Clôturée',      bg: '#EDE8DF', txt: '#6A5E54', brd: '#DDD6C8' },
-  annule:        { num: null, label: 'Annulée',    bg: '#FCDDD8', txt: '#8A2010', brd: '#F0B4A8' },
+  a_produire:     { num: 1, label: 'À produire',     bg: '#FEF3D8', txt: '#7A5A00', brd: '#F0D9A0' },
+  en_production:  { num: 2, label: 'En production',  bg: '#f0ecfb', txt: '#5a3e85', brd: '#c9bfef' },
+  pret:           { num: 3, label: 'Prêt',           bg: '#D8EDE3', txt: '#1E4A30', brd: '#B0D4C0' },
+  expedie:        { num: 4, label: 'Expédié',        bg: '#E4ECF5', txt: '#2A4A6A', brd: '#C0D0E5' },
+  en_facturation: { num: 5, label: 'En facturation', bg: '#EDE8DF', txt: '#6A5E54', brd: '#DDD6C8' },
+  annule:         { num: null, label: 'Annulée',     bg: '#FCDDD8', txt: '#8A2010', brd: '#F0B4A8' },
 };
 
 export function selectStatutCmd(id, statutActuel) {
@@ -357,18 +364,6 @@ export function restyleSelectStatutCmd(selectEl) {
   selectEl.style.background  = s.bg;
   selectEl.style.color       = s.txt;
   selectEl.style.borderColor = s.brd;
-}
-
-export function badgePlan(statut) {
-  const map = {
-    planifie:  '<span class="badge badge-blue">Planifié</span>',
-    a_venir:   '<span class="badge badge-blue">À venir</span>',
-    en_cours:  '<span class="badge badge-warn">En cours</span>',
-    en_stock:  '<span class="badge badge-ok">En stock</span>',
-    clos:      '<span class="badge badge-ok">Clos ✓</span>',
-    annule:    '<span class="badge badge-alert">Annulé</span>',
-  };
-  return map[statut] || `<span class="badge badge-neutral">${esc(statut)}</span>`;
 }
 
 export function badgeFac(statut) {

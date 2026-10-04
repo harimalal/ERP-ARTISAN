@@ -6,10 +6,13 @@
 ------------------------------------------------------- */
 
 import {
-  getCommandes, createCommande, updateCommandeStatut,
-  deleteCommande, getClients, getProduits, getArticles,
-  createAchat, achatDoublonExiste, getAchats,
+  getCommandes, createCommande, updateCommande, updateCommandeStatut,
+  replaceCommandeLignes, deleteCommande, getClients, getProduits, getArticles,
+  createAchat, achatDoublonExiste,
   upsertClient, nextRefServeur, updateCommandePrioritaire,
+  deleteOFsForCommande, updateOFsStatutPourCommande,
+  ajusterStockProduit, addMouvement, createLivraison,
+  getTenant, createFacture, createFactureLignes, factureExistePourCommande,
 } from '../db.js';
 import {
   fmt, fmtQ, esc, showToast, today,
@@ -23,6 +26,12 @@ let _clients    = [];
 let _produits   = [];
 let _articles   = [];
 let _cmdLineN   = 0;
+let _editId     = null;
+
+/* Une commande n'entre plus en compétition pour le stock une fois sa
+   production faite (passage à Prêt — voir cloturerOFsPourCommande) :
+   seules « à produire » et « en production » comptent encore. */
+const STATUTS_AVANT_PRODUCTION = ['a_produire', 'en_production'];
 
 /* -------------------------------------------------------
    INIT
@@ -54,7 +63,7 @@ export async function render() {
 function _allocationsParProduit() {
   const besoinsParProduit = {};
   _commandes.forEach(c => {
-    if (c.statut === 'cloture' || c.statut === 'annule') return;
+    if (!STATUTS_AVANT_PRODUCTION.includes(c.statut)) return;
     (c.commande_lignes || []).forEach(l => {
       if (!l.produit_id) return;
       (besoinsParProduit[l.produit_id] ||= []).push({
@@ -76,12 +85,16 @@ function _allocationsParProduit() {
 
 /* Carte d'une commande — identique pour la liste active et l'historique
    (même gabarit que achats.js : un seul template, deux conteneurs selon
-   le statut). `allocations` peut être {} pour une commande clôturée,
-   qui ne concourt plus pour le stock (_allocationsParProduit l'exclut
-   déjà), la colonne Faisable retombe alors sur la comparaison simple. */
+   le statut). `allocations` peut être {} pour une commande déjà en
+   facturation, qui ne concourt plus pour le stock (_allocationsParProduit
+   l'exclut déjà), la colonne Faisable retombe alors sur la comparaison
+   simple. Le bandeau passe en gris pour une commande archivée dans
+   l'historique, pour bien la distinguer des commandes en cours. */
 function _carteCommande(c, allocations) {
   const tot = (c.commande_lignes || []).reduce((s, l) =>
     s + (l.total_ht || (l.quantite * l.prix_unitaire) || 0), 0);
+
+  const estArchivee = c.statut === 'en_facturation';
 
   const rows = (c.commande_lignes || []).map(l => {
     const p = _produits.find(x => x.id === l.produit_id);
@@ -103,8 +116,14 @@ function _carteCommande(c, allocations) {
     </tr>`;
   }).join('');
 
+  const noteFacturation = estArchivee
+    ? `<div style="padding:7px 12px;font-size:11.5px;color:var(--ink-muted);border-top:1px solid var(--ui-brd);">ℹ La commande est passée en facturation.</div>`
+    : '';
+
   return `<div class="cmd-card">
-    <div class="cmd-card-hdr"${c.prioritaire ? ' style="background:var(--hdr-alert-bg);border-bottom-color:var(--hdr-alert-brd);"' : ''}>
+    <div class="cmd-card-hdr"${estArchivee
+      ? ' style="background:#EDEDEA;border-bottom-color:#D8D8D3;"'
+      : (c.prioritaire ? ' style="background:var(--hdr-alert-bg);border-bottom-color:var(--hdr-alert-brd);"' : '')}>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span class="cmd-ref">${esc(c.ref)}</span>
         <span class="cmd-client">${esc(c.client_nom)}</span>
@@ -116,10 +135,7 @@ function _carteCommande(c, allocations) {
         ${selectStatutCmd(c.id, c.statut)}
         <span style="font-weight:700;color:var(--accent)">${fmt(tot)} €</span>
         <button class="btn btn-ghost btn-xs" data-id="${c.id}" data-action="toggle-prioritaire">${c.prioritaire ? 'Retirer prioritaire' : 'Marquer prioritaire'}</button>
-        ${c.statut === 'pret'
-          ? `<button class="btn btn-success btn-xs" data-id="${c.id}" data-action="livrer">Livrer</button>`
-          : ''}
-        <button class="btn btn-danger btn-xs" data-id="${c.id}" data-action="supprimer">✕</button>
+        <button class="btn btn-outline btn-xs" data-id="${c.id}" data-action="modifier">Modifier</button>
       </div>
     </div>
     <table>
@@ -129,20 +145,21 @@ function _carteCommande(c, allocations) {
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
+    ${noteFacturation}
   </div>`;
 }
 
-/* Une commande clôturée sort de la liste active et ne vit plus que dans
-   l'historique replié en bas de page (même principe que Achats/Production :
-   protéger le flux "commandes à gérer" d'un encombrement par des commandes
-   qui n'ont plus d'action à faire). */
+/* Une commande en facturation sort de la liste active et ne vit plus que
+   dans l'historique replié en bas de page (même principe que
+   Achats/Production : protéger le flux "commandes à gérer" d'un
+   encombrement par des commandes qui n'ont plus d'action à faire). */
 function _renderListe() {
   const elActives  = document.getElementById('commandesList');
   const elHisto     = document.getElementById('commandesHistoriqueList');
   const countHisto  = document.getElementById('commandesHistoriqueCount');
 
-  const actives    = _commandes.filter(c => c.statut !== 'cloture');
-  const historique = _commandes.filter(c => c.statut === 'cloture');
+  const actives    = _commandes.filter(c => c.statut !== 'en_facturation');
+  const historique = _commandes.filter(c => c.statut === 'en_facturation');
 
   if (!actives.length) {
     elActives.innerHTML = `<div class="empty-state">
@@ -170,8 +187,7 @@ function _renderListe() {
     const id     = btn.dataset.id;
     const action = btn.dataset.action;
 
-    if (action === 'livrer')  _ouvrirLivraison(id);
-    if (action === 'supprimer') await _supprimerCmd(id);
+    if (action === 'modifier') { initCommandeModal(id); openModal('modalCommande'); }
     if (action === 'toggle-prioritaire') await _toggleCmdPrioritaire(id);
   };
   const onChange = async (e) => {
@@ -215,17 +231,22 @@ export async function changerStatutCommande(id, nouveauStatut) {
     const updated = await updateCommandeStatut(id, nouveauStatut);
     const idx = _commandes.findIndex(c => c.id === id);
     if (idx >= 0) _commandes[idx].statut = updated.statut;
+    const commandeAvecLignes = idx >= 0 ? _commandes[idx] : updated;
     _renderListe();
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'commandes' } }));
 
-    /* La commande qui entre en "planifie" doit immediatement apparaitre
-       dans les ordres de fabrication, sans date — on la choisit ensuite
-       depuis la liste des OF. _commandes[idx] (pas "updated") porte les
-       lignes : updateCommandeStatut() ne les renvoie pas, getCommandes()
-       les charge, lui, via commande_lignes(*). */
-    if (updated.statut === 'planifie') {
-      const commandeAvecLignes = idx >= 0 ? _commandes[idx] : updated;
-      document.dispatchEvent(new CustomEvent('appmee:commandePlanifiee', { detail: { commande: commandeAvecLignes } }));
+    /* Chaque changement de statut déclenche son propre effet métier —
+       jamais le même geste à deux endroits différents (Règle 9). */
+    if (nouveauStatut === 'pret') {
+      /* Décrément articles, incrément stock PF, génération des lots —
+         une ligne de commande à la fois (production.js, écoute app.html). */
+      document.dispatchEvent(new CustomEvent('appmee:commandePrete', { detail: { commande: commandeAvecLignes } }));
+    } else if (nouveauStatut === 'expedie') {
+      await _expedierCommande(commandeAvecLignes);
+    } else if (nouveauStatut === 'en_facturation') {
+      await _facturerCommande(commandeAvecLignes);
+    } else if (nouveauStatut === 'annule') {
+      try { await updateOFsStatutPourCommande(id, 'annule'); } catch (_) {}
     }
     return updated;
   } catch (err) {
@@ -235,36 +256,100 @@ export async function changerStatutCommande(id, nouveauStatut) {
 }
 
 /* -------------------------------------------------------
-   SUPPRIMER — UUID
+   EXPÉDITION — sortie physique du stock de produits finis.
+   Pas de facture créée ici : elle n'est générée qu'au passage
+   suivant, « En facturation » (_facturerCommande).
+------------------------------------------------------- */
+async function _expedierCommande(c) {
+  try {
+    for (const l of (c.commande_lignes || [])) {
+      const p = _produits.find(x => x.id === l.produit_id);
+      if (!p) continue;
+      p.stock = await ajusterStockProduit(p.id, -l.quantite);
+      await addMouvement({ type: 'sortie_pf', ref: p.ref, nom: p.nom, qte: l.quantite, motif: 'Expédition ' + c.ref, ref_doc: c.ref });
+    }
+    await createLivraison({ commande_id: c.id, ref: await nextRefServeur('LIV'), date_livraison: today(), statut: 'livree' });
+    showToast('✅ ' + c.ref + ' expédiée — stock mis à jour.');
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'commandes' } }));
+  } catch (err) {
+    console.error('[commandes] _expedierCommande ERREUR:', err.message, err);
+    showToast('❌ Erreur expédition.', 'error');
+  }
+}
+
+/* -------------------------------------------------------
+   FACTURATION — même logique de calcul TVA/lignes figées qu'avant
+   (ex-bouton Livrer), déclenchée maintenant par le statut « En
+   facturation ». La commande part dans l'historique au prochain
+   rendu (_renderListe filtre sur ce statut).
+------------------------------------------------------- */
+async function _facturerCommande(c) {
+  try {
+    const dejafac = await factureExistePourCommande(c.id);
+    if (dejafac) { showToast('ℹ Facture déjà existante pour ' + c.ref + '.'); return; }
+
+    const tot = (c.commande_lignes || []).reduce((s, l) => s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
+
+    let tauxFacture = 20;
+    try {
+      const tenant = await getTenant();
+      if (tenant && tenant.taux_tva != null) tauxFacture = Number(tenant.taux_tva);
+    } catch (_) {}
+
+    const lignesFigees = (c.commande_lignes || []).map(l => {
+      const p = _produits.find(x => x.id === l.produit_id);
+      const tauxLigne = (p && p.taux_tva != null) ? Number(p.taux_tva) : tauxFacture;
+      return {
+        produit_id: l.produit_id, produit_nom: l.produit_nom, quantite: l.quantite,
+        prix_unitaire: l.prix_unitaire, taux_tva: tauxLigne,
+        total_ht: l.total_ht || (l.quantite * l.prix_unitaire),
+      };
+    });
+    /* Taux effectif pondéré — montant_ttc est une colonne générée en base
+       à partir d'un seul taux_tva (aligné livraisons.js/production.js). */
+    const totalTvaLignes = lignesFigees.reduce((s, l) => s + l.total_ht * l.taux_tva / 100, 0);
+    if (tot > 0) tauxFacture = totalTvaLignes / tot * 100;
+
+    const client = c.client_id
+      ? _clients.find(x => x.id === c.client_id)
+      : _clients.find(x => x.nom === c.client_nom);
+
+    const facRef = await nextRefServeur('FAC');
+    const fac = await createFacture({
+      ref: facRef, commande_id: c.id,
+      client_id: client ? client.id : (c.client_id || null),
+      client_nom: c.client_nom,
+      siret_client: client?.siret || '', adresse_client: client?.adresse || '',
+      montant_ht: tot, taux_tva: tauxFacture, statut: 'a_lancer',
+    });
+    await createFactureLignes(fac.id, lignesFigees);
+    showToast('✅ ' + c.ref + ' passée en facturation.');
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'livraisons' } }));
+  } catch (err) {
+    console.error('[commandes] _facturerCommande ERREUR:', err.message, err);
+    showToast('❌ Erreur facturation.', 'error');
+  }
+}
+
+/* -------------------------------------------------------
+   SUPPRIMER — UUID. Les OF implicites de la commande doivent être
+   nettoyés avant la commande elle-même (sinon la FK commande_ligne_id
+   bloque la cascade sur commande_lignes).
 ------------------------------------------------------- */
 async function _supprimerCmd(id) {
-  const ok = await confirmDialog('Supprimer cette commande ?');
+  const ok = await confirmDialog('Supprimer définitivement cette commande ?');
   if (!ok) return;
   try {
+    try { await deleteOFsForCommande(id); } catch (_) {}
     await deleteCommande(id);
     _commandes = _commandes.filter(c => c.id !== id);
+    closeModal('modalCommande');
     _renderListe();
     showToast('✅ Commande supprimée.');
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'commandes' } }));
   } catch (err) {
     showToast(err.suppressionBloquee ? '⚠ ' + err.message : '❌ Erreur suppression.', err.suppressionBloquee ? 'warn' : 'error');
   }
-}
-
-/* -------------------------------------------------------
-   LIVRAISON
-------------------------------------------------------- */
-function _ouvrirLivraison(commandeId) {
-  const c = _commandes.find(x => x.id === commandeId);
-  if (!c) return;
-  const tot = (c.commande_lignes || []).reduce((s, l) =>
-    s + (l.total_ht || l.quantite * l.prix_unitaire || 0), 0);
-
-  document.getElementById('livCmd').textContent    = c.ref + ' — ' + c.client_nom;
-  document.getElementById('livMontant').textContent = fmt(tot) + ' €';
-  document.getElementById('livDate').value          = today();
-  document.getElementById('livCmdId').value         = commandeId; /* UUID */
-  openModal('modalLivraison');
 }
 
 /* -------------------------------------------------------
@@ -285,24 +370,41 @@ function _bindCommande() {
     }
   });
 
-  document.getElementById('btnAddCmdLigne')?.addEventListener('click', _addCmdLigne);
-  document.getElementById('btnSaveCommande')?.addEventListener('click', _saveCommande);
+  document.getElementById('btnAddCmdLigne')?.addEventListener('click', () => _addCmdLigne());
+  document.getElementById('btnSaveCommande')?.addEventListener('click', _handleSave);
+  document.getElementById('btnDeleteCommande')?.addEventListener('click', async () => {
+    if (_editId) await _supprimerCmd(_editId);
+  });
 }
 
-export function initCommandeModal() {
-  document.getElementById('cmdDate').value       = today();
-  document.getElementById('cmdDateLiv').value    = '';
-  document.getElementById('cmdRemarques').value  = '';
+/* editId absent = création (comportement d'origine) ; fourni = édition,
+   le formulaire est pré-rempli depuis le cache et le bouton Supprimer
+   apparaît dans le modal (il n'est plus sur la carte — Règle de
+   modification demandée : suppression déplacée dans le modal). */
+export function initCommandeModal(editId = null) {
+  _editId = editId;
+  const c = editId ? _commandes.find(x => x.id === editId) : null;
+
+  const titre = document.getElementById('cmdModalTitle');
+  if (titre) titre.textContent = c ? 'Modifier ' + c.ref : 'Nouvelle commande client';
+
+  document.getElementById('cmdDate').value       = c ? (c.date_cmd || today()) : today();
+  document.getElementById('cmdDateLiv').value    = c ? (c.date_livraison || '') : '';
+  document.getElementById('cmdRemarques').value  = c ? (c.notes || '') : '';
   document.getElementById('cmdLignes').innerHTML = '';
   const cmdPrio = document.getElementById('cmdPrioritaire');
-  if (cmdPrio) cmdPrio.checked = false;
+  if (cmdPrio) cmdPrio.checked = c ? !!c.prioritaire : false;
   _cmdLineN = 0;
 
   /* Remplir le select clients */
   const sel = document.getElementById('cmdClientSel');
   sel.innerHTML = '<option value="">— Sélectionner un client —</option>' +
-    _clients.map(c => `<option value="${esc(c.nom)}">${esc(c.nom)}</option>`).join('') +
+    _clients.map(x => `<option value="${esc(x.nom)}">${esc(x.nom)}</option>`).join('') +
     '<option value="__nouveau__">✏ Saisir un nouveau client…</option>';
+  if (c && c.client_nom && !_clients.some(x => x.nom === c.client_nom)) {
+    sel.insertAdjacentHTML('beforeend', `<option value="${esc(c.client_nom)}">${esc(c.client_nom)}</option>`);
+  }
+  sel.value = c ? (c.client_nom || '') : '';
 
   /* Masquer le champ texte libre par défaut */
   const clientInput = document.getElementById('cmdClient');
@@ -311,10 +413,17 @@ export function initCommandeModal() {
     clientInput.value = '';
   }
 
-  _addCmdLigne();
+  const btnDelete = document.getElementById('btnDeleteCommande');
+  if (btnDelete) btnDelete.style.display = c ? '' : 'none';
+
+  if (c && Array.isArray(c.commande_lignes) && c.commande_lignes.length) {
+    c.commande_lignes.forEach(l => _addCmdLigne(l));
+  } else {
+    _addCmdLigne();
+  }
 }
 
-function _addCmdLigne() {
+function _addCmdLigne(ligneExistante = null) {
   _cmdLineN++;
   const div = document.createElement('div');
   div.id = 'CL' + _cmdLineN;
@@ -326,7 +435,7 @@ function _addCmdLigne() {
   div.innerHTML = `
     <select class="crs" style="font-size:11.5px;font-weight:600;color:var(--accent);">${byRef}</select>
     <select class="cns">${byName}</select>
-    <input type="number" placeholder="Qté" min="1" class="cq">
+    <input type="number" placeholder="Qté" min="1" class="cq" value="${ligneExistante ? esc(String(ligneExistante.quantite)) : ''}">
     <button style="background:none;border:none;color:var(--ui-red);font-size:18px;cursor:pointer;" type="button">×</button>
     <div></div>
     <div class="ch" style="font-size:10.5px;color:var(--ink-muted);grid-column:2/3;margin-top:-4px;"></div>`;
@@ -347,11 +456,12 @@ function _addCmdLigne() {
 
   document.getElementById('cmdLignes').appendChild(div);
 
-  /* Initialiser le hint sur le premier produit */
-  if (_produits.length) {
-    div.querySelector('.crs').value = _produits[0].id;
-    div.querySelector('.cns').value = _produits[0].id;
-    _updateCmdHint(_produits[0].id, div.querySelector('.ch'));
+  /* Initialiser le hint sur le produit de la ligne existante, sinon le premier */
+  const produitInitial = ligneExistante?.produit_id || (_produits.length ? _produits[0].id : null);
+  if (produitInitial) {
+    div.querySelector('.crs').value = produitInitial;
+    div.querySelector('.cns').value = produitInitial;
+    _updateCmdHint(produitInitial, div.querySelector('.ch'), ligneExistante ? ligneExistante.quantite : undefined);
   }
 }
 
@@ -364,7 +474,7 @@ function _stockDisponibleNet(produitId) {
   if (!p) return 0;
   const besoins = [];
   _commandes.forEach(c => {
-    if (c.statut === 'cloture' || c.statut === 'annule') return;
+    if (!STATUTS_AVANT_PRODUCTION.includes(c.statut)) return;
     (c.commande_lignes || []).forEach(l => {
       if (l.produit_id !== produitId) return;
       besoins.push({ id: l.id || (c.id + '_' + produitId), commandeId: c.id, quantite: l.quantite, created_at: c.created_at || c.date_cmd });
@@ -387,19 +497,14 @@ function _updateCmdHint(produitId, el, qte) {
   el.textContent = 'Disponible : ' + fmtQ(disponible) + hint + note;
 }
 
-async function _saveCommande() {
-  /* Fix B10 — protection double-clic : désactiver le bouton pendant l'appel */
-  const btnSave = document.getElementById('btnSaveCommande');
-  if (btnSave) { btnSave.disabled = true; btnSave.textContent = 'Enregistrement…'; }
-  const date      = document.getElementById('cmdDate').value || today();
-  const dateLiv   = document.getElementById('cmdDateLiv').value || null;
-  const selVal    = document.getElementById('cmdClientSel')?.value || '';
-  const clientNom = selVal === '__nouveau__'
-    ? (document.getElementById('cmdClient')?.value?.trim() || 'Client inconnu')
-    : (selVal || document.getElementById('cmdClient')?.value?.trim() || 'Client inconnu');
-  const notes     = document.getElementById('cmdRemarques').value;
-  const prioritaire = document.getElementById('cmdPrioritaire')?.checked || false;
+/* Route vers _saveNew() ou _saveEdit() selon _editId (convention du
+   projet — voir CLAUDE.md, séparation create/edit). */
+async function _handleSave() {
+  if (_editId) await _saveEdit();
+  else await _saveNew();
+}
 
+function _lireLignesFormulaire() {
   const lignes = [];
   document.querySelectorAll('#cmdLignes > div[id]').forEach(div => {
     const produitId = div.querySelector('.crs')?.value;
@@ -414,6 +519,23 @@ async function _saveCommande() {
       });
     }
   });
+  return lignes;
+}
+
+async function _saveNew() {
+  /* Fix B10 — protection double-clic : désactiver le bouton pendant l'appel */
+  const btnSave = document.getElementById('btnSaveCommande');
+  if (btnSave) { btnSave.disabled = true; btnSave.textContent = 'Enregistrement…'; }
+  const date      = document.getElementById('cmdDate').value || today();
+  const dateLiv   = document.getElementById('cmdDateLiv').value || null;
+  const selVal    = document.getElementById('cmdClientSel')?.value || '';
+  const clientNom = selVal === '__nouveau__'
+    ? (document.getElementById('cmdClient')?.value?.trim() || 'Client inconnu')
+    : (selVal || document.getElementById('cmdClient')?.value?.trim() || 'Client inconnu');
+  const notes     = document.getElementById('cmdRemarques').value;
+  const prioritaire = document.getElementById('cmdPrioritaire')?.checked || false;
+
+  const lignes = _lireLignesFormulaire();
 
   if (!lignes.length) {
     showToast('⚠ Ajoutez au moins une ligne.', 'error');
@@ -431,24 +553,22 @@ async function _saveCommande() {
       clientId = client ? client.id : null;
     }
 
-    /* Créer la commande avec son UUID Supabase — statut de départ "planifie" :
-       elle doit apparaitre immediatement dans les ordres de fabrication
-       (sans date, choisie ensuite depuis la liste des OF), exactement comme
-       une commande qu'on fait passer manuellement de "à produire" à
-       "planifié". */
+    /* Statut de départ "à produire" — chaque ligne devient
+       immédiatement un OF implicite (creerOFsPourCommande, écouté
+       depuis app.html), sans date : elle se choisit ensuite depuis
+       Ordres de fabrication. */
     const cmd = await createCommande({
       ref,
       client_id:     clientId,
       client_nom:    clientNom,
       date_cmd:      date,
       date_livraison: dateLiv,
-      statut:        'planifie',
+      statut:        'a_produire',
       notes,
       prioritaire,
     }, lignes);
 
-    const commandeAvecLignes = { ...cmd, commande_lignes: lignes };
-    _commandes.push(commandeAvecLignes);
+    _commandes.push(cmd);
 
     closeModal('modalCommande');
     _renderListe();
@@ -458,12 +578,84 @@ async function _saveCommande() {
     await _analyserStock(cmd, lignes);
 
     document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'commandes' } }));
-    document.dispatchEvent(new CustomEvent('appmee:commandePlanifiee', { detail: { commande: commandeAvecLignes } }));
+    document.dispatchEvent(new CustomEvent('appmee:commandeCreee', { detail: { commande: cmd } }));
   } catch (err) {
     showToast('❌ Erreur création commande.', 'error');
   } finally {
     /* Fix B10 — réactiver le bouton dans tous les cas (succès ou erreur) */
     if (btnSave) { btnSave.disabled = false; btnSave.textContent = '💾 Enregistrer'; }
+  }
+}
+
+/* Remplace systématiquement toutes les lignes (plutôt qu'un diff ligne
+   à ligne) : plus simple et plus sûr, les OF implicites des anciennes
+   lignes sont supprimés puis recréés pour les nouvelles — jamais de
+   désynchronisation entre une ligne modifiée et son OF. */
+async function _saveEdit() {
+  const btnSave = document.getElementById('btnSaveCommande');
+  if (btnSave) { btnSave.disabled = true; btnSave.textContent = 'Enregistrement…'; }
+
+  const c = _commandes.find(x => x.id === _editId);
+  if (!c) {
+    if (btnSave) { btnSave.disabled = false; btnSave.textContent = '💾 Enregistrer'; }
+    _editId = null;
+    return;
+  }
+
+  const date      = document.getElementById('cmdDate').value || today();
+  const dateLiv   = document.getElementById('cmdDateLiv').value || null;
+  const selVal    = document.getElementById('cmdClientSel')?.value || '';
+  const clientNom = selVal === '__nouveau__'
+    ? (document.getElementById('cmdClient')?.value?.trim() || 'Client inconnu')
+    : (selVal || document.getElementById('cmdClient')?.value?.trim() || 'Client inconnu');
+  const notes       = document.getElementById('cmdRemarques').value;
+  const prioritaire = document.getElementById('cmdPrioritaire')?.checked || false;
+
+  const lignes = _lireLignesFormulaire();
+
+  if (!lignes.length) {
+    showToast('⚠ Ajoutez au moins une ligne.', 'error');
+    if (btnSave) { btnSave.disabled = false; btnSave.textContent = '💾 Enregistrer'; }
+    return;
+  }
+
+  try {
+    let clientId = c.client_id || null;
+    if (clientNom && clientNom !== 'Client inconnu') {
+      const client = await upsertClient(clientNom);
+      clientId = client ? client.id : null;
+    }
+
+    await updateCommande(c.id, {
+      client_id: clientId, client_nom: clientNom,
+      date_cmd: date, date_livraison: dateLiv,
+      notes, prioritaire,
+    });
+
+    try { await deleteOFsForCommande(c.id); } catch (_) {}
+    const nouvellesLignes = await replaceCommandeLignes(c.id, lignes);
+
+    const commandeAvecLignes = {
+      ...c, client_id: clientId, client_nom: clientNom,
+      date_cmd: date, date_livraison: dateLiv, notes, prioritaire,
+      commande_lignes: nouvellesLignes,
+    };
+    const idx = _commandes.findIndex(x => x.id === c.id);
+    if (idx >= 0) _commandes[idx] = commandeAvecLignes;
+
+    closeModal('modalCommande');
+    _renderListe();
+    showToast('✅ Commande ' + c.ref + ' modifiée.');
+
+    await _analyserStock(commandeAvecLignes, lignes);
+
+    document.dispatchEvent(new CustomEvent('appmee:datachanged', { detail: { entity: 'commandes' } }));
+    document.dispatchEvent(new CustomEvent('appmee:commandeCreee', { detail: { commande: commandeAvecLignes } }));
+  } catch (err) {
+    showToast('❌ Erreur modification commande.', 'error');
+  } finally {
+    if (btnSave) { btnSave.disabled = false; btnSave.textContent = '💾 Enregistrer'; }
+    _editId = null;
   }
 }
 
