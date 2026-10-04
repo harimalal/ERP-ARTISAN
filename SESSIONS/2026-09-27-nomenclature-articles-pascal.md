@@ -837,3 +837,41 @@ Netlify→GitHub et republie tout ce qui était en attente.
 Vérifié avant livraison : node --check sur app.html (script module
 extrait), suite de tests unitaires (2/2) toujours verte, à confirmer
 après ce push que le déploiement Netlify reprend le commit courant.
+
+## Suppression de commande bloquée par les livraisons (2026-10-04)
+
+Signalement : les factures se suppriment bien maintenant (déploiement
+Netlify débloqué par un trigger manuel côté utilisateur), mais la
+suppression des commandes échoue toujours, même une fois toutes les
+factures effacées.
+
+Cause racine : message MESSAGES_SUPPRESSION_BLOQUEE.deleteCommande
+hérité de l'époque où le bouton « Livrer » créait livraison + facture
+en un seul clic — bloquer sur l'une OU l'autre avait alors du sens.
+Cette session a scindé ce flux en deux étapes indépendantes et
+éloignées dans le temps (« Expédié » crée une ligne livraisons seule ;
+« En facturation » crée une ligne factures seule, bien plus tard). La
+règle de blocage n'a pas suivi : chaque commande réelle du tenant
+Pascal a désormais 1 à 5 lignes livraisons et 0 facture (vérifié par
+requête SQL), donc deleteCommande refusait systématiquement à cause de
+la FK livraisons.commande_id (RESTRICT), alors qu'aucune facture (pièce
+légale) n'existe plus.
+
+Décision : une livraison n'est plus qu'un suivi interne (expédition),
+pas une preuve de vente finalisée — elle ne doit plus bloquer la
+suppression. Seule une facture émise reste un blocage dur.
+
+Fix : nouvelle fonction exportée deleteLivraisonsForCommande(commandeId)
+dans db.js (DELETE sur livraisons, scopé tenant), appelée dans
+_supprimerCmd (commandes.js) avant deleteCommande, dans son propre
+try/catch (non bloquant, comme deleteOFsForCommande). Message
+MESSAGES_SUPPRESSION_BLOQUEE.deleteCommande mis à jour pour ne plus
+mentionner la livraison : "Cette commande a déjà une facture émise,
+elle ne peut plus être supprimée."
+
+Fichiers modifiés : js/db.js, js/modules/commandes.js.
+
+Vérifié avant livraison : node --check sur db.js et commandes.js,
+suite de tests unitaires (2/2) toujours verte. Rappel transmis à
+l'utilisateur : vérifier/déclencher le déploiement Netlify si le site
+ne se met pas à jour seul, et faire Ctrl+Shift+R avant de retester.
