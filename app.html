@@ -1144,7 +1144,11 @@ function setActiveNav(page) {
       document.getElementById('efClient').value   = f.client_nom || '';
       document.getElementById('efMontant').value  = f.montant_ht || '';
       const tvaEl = document.getElementById('efTva');
-      if (tvaEl) tvaEl.value = String(f.taux_tva || '20');
+      /* f.taux_tva vient de Postgres en numeric ("20.00") — jamais une
+         correspondance exacte avec les valeurs d'option ("20") sans ce
+         passage par Number() : le select retombait sinon sur son premier
+         choix (0%) sans que personne ne s'en aperçoive avant la sauvegarde. */
+      if (tvaEl) tvaEl.value = String(Number(f.taux_tva ?? 20));
       const statEl = document.getElementById('efStatut');
       if (statEl) statEl.value = f.statut || 'facture';
       document.getElementById('efNotes').value    = f.notes || '';
