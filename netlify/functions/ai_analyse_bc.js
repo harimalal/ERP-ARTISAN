@@ -27,22 +27,9 @@ async function verifierSession(token, supabase) {
    Instructions strictes : toujours répondre en JSON,
    même si le document est illisible ou incomplet.
 ------------------------------------------------------- */
-function buildPrompt(produits, clients, contexte, isTabulaire) {
+function buildPrompt(produits, clients, contexte) {
   const prodList = produits.map(p => `${p.ref}:${p.nom}`).join(', ');
   const cliList  = clients.map(c => c.nom || c).join(', ');
-
-  const regleTableau = isTabulaire ? `
-
-RÈGLE SPÉCIFIQUE — FICHIER TABLEAU (xlsx/xls/csv) :
-Le texte fourni liste des lignes au format "Colonne: valeur | Colonne: valeur | ...", onglet par onglet. Les noms de colonnes varient selon la source (export fournisseur, relevé de stock, bon de commande tabulaire...) — raisonne sur leur SENS, pas sur leur position ni sur un nom de colonne figé. Pour chaque onglet, avant d'extraire les lignes :
-1. Identifie la colonne qui porte le NOM DU PRODUIT FINI (texte descriptif — pas un code, pas un prix, pas une quantité). Si ce nom est réparti sur plusieurs colonnes (ex. désignation + grammage/poids séparés, ou marque + nom), recompose-les en un seul texte cohérent dans "nomOriginal". Ignore les colonnes de code-barres/EAN/référence pour cette reconstitution — elles identifient le produit mais n'en portent pas le nom lisible.
-2. Repère TOUTES les colonnes numériques de la ligne, puis élimine celles qui ne sont manifestement pas une quantité à commander/produire/livrer : prix, poids/volume, code EAN ou référence, pourcentage, moyenne statistique (ex. "ventes moyennes"), total général. Parmi les colonnes numériques restantes :
-   - si une colonne porte un nom évoquant explicitement une action à faire ("commande", "à commander", "cmd", "réassort", "reappro", "proposition", "besoin", "à livrer", "à produire", "manquant"), utilise-la en priorité comme "qte" — même si une autre colonne numérique (stock actuel, quantité en rayon, etc.) est présente à côté ;
-   - sinon, si une seule colonne numérique restante représente plausiblement un nombre d'unités, utilise-la ;
-   - si plusieurs colonnes restent plausibles sans qu'aucune ne soit clairement prioritaire, choisis la plus vraisemblable et dis-le explicitement dans "remarques" (nom de la colonne retenue) plutôt que de deviner en silence ou de renvoyer une liste vide par prudence excessive.
-3. Ignore toute ligne sans nom de produit exploitable, ou dont le nom est "total"/"sous-total"/"TOTAL GENERAL" ou équivalent — ce n'est pas une ligne produit.
-4. Si, après ce raisonnement, aucune colonne ne représente de façon plausible une quantité à commander (le fichier est un simple catalogue sans aucune indication de quantité), n'invente rien : renvoie les lignes avec "qte": null plutôt que 1, et signale-le dans "remarques".
-` : '';
 
   return `Tu es un assistant d'extraction de données pour une application ERP artisanale française.
 
@@ -70,7 +57,22 @@ Règles d'extraction :
 - CLIENT : Compare d'abord avec la liste fournie en ignorant majuscules, accents et abréviations ("Épicerie La Ruche" peut correspondre à "Epicerie Cooperative La Ruche") — si une correspondance existe, renvoie le nom EXACT de la liste. Sinon, ce client n'existe pas encore dans l'application : extrais son nom tel qu'il apparaît dans le document (en-tête, destinataire, raison sociale) et renvoie-le tel quel — ne renvoie JAMAIS null simplement parce que le client est absent de la liste, null est réservé au cas où le document ne permet d'identifier aucun client.
 - PRODUITS : Associe chaque ligne du document au produit le plus proche par nom, description ou référence. Cherche les correspondances partielles ("confiture fraise" → "Confiture Fraise Gariguette 50ml").
 - QUANTITÉS : Interprète "x6", "6 u.", "6 pots", "6" comme la quantité 6. Si absent, utilise 1.
-- Si le document est illisible ou vide : retourne {"client":null,"date":null,"dateLivraison":null,"remarques":"Document illisible","lignes":[]}.${regleTableau}
+- Si le document est illisible ou vide : retourne {"client":null,"date":null,"dateLivraison":null,"remarques":"Document illisible","lignes":[]}.
+
+RÈGLE UNIVERSELLE — DÉSAMBIGUÏSATION DES COLONNES (tous formats)
+Que le contenu soit un tableau texte (format "Colonne: valeur | ..."), un PDF avec tableau, une image, ou une feuille de calcul visuelle, applique cette logique :
+
+SI TU DÉTECTES une structure tabulaire (lignes organisées, plusieurs colonnes) :
+1. Identifie la colonne/zone portant le NOM DU PRODUIT FINI (texte descriptif — pas un code, pas un prix, pas une quantité). Si le nom est réparti sur plusieurs colonnes (ex. désignation + grammage), recompose-le dans "nomOriginal". Ignore les colonnes de codes/EAN/références — elles identifient mais ne nomment pas.
+2. Repère TOUTES les colonnes numériques, puis élimine : prix, poids/volume, EAN, pourcentage, moyennes statistiques, totaux généraux. Parmi les restantes :
+   - Si une colonne s'appelle "commande", "à commander", "cmd", "réassort", "reappro", "proposition", "besoin", "à livrer", "à produire", "manquant" → utilise-la en priorité comme "qte", même si d'autres colonnes numériques (stock, ventes, prix) existent.
+   - Sinon, si une seule colonne reste plausible → utilise-la.
+   - Si plusieurs restent plausibles → choisis la plus vraisemblable et dis-le dans "remarques".
+3. Ignore les lignes sans nom de produit exploitable, ou nommées "total"/"sous-total"/"TOTAL GÉNÉRAL" etc.
+4. Si aucune colonne ne représente plausiblement une quantité à commander → renvoie "qte": null et signale-le dans "remarques".
+
+SINON (si c'est un BC libre sans structure tabulaire rigoureuse) :
+Extrait directement les produits et quantités du texte brut en cherchant des patterns "6 pots", "x6 u.", "6" lisibles dans le contexte.
 ${contexte ? `\nContexte : ${contexte}` : ''}`;
 }
 
@@ -82,12 +84,6 @@ ${contexte ? `\nContexte : ${contexte}` : ''}`;
    "application/pdf" (comme avant ce correctif) n'est pas un PDF valide
    et échoue silencieusement. */
 const EXT_TEXTE = ['xlsx', 'xls', 'csv', 'docx', 'txt'];
-
-/* Sous-ensemble de EXT_TEXTE qui est un vrai tableau à colonnes (xlsx/xls/csv,
-   sérialisé "Colonne: valeur | ..." par l'appelant) — docx/txt sont du texte
-   libre, pas de colonnes à désambiguïser. Détermine si buildPrompt() ajoute
-   la règle de désambiguïsation des colonnes (voir buildPrompt). */
-const EXT_TABULAIRE = ['xlsx', 'xls', 'csv'];
 
 function buildContent({ fichier, texte }, extension, prompt) {
   if (EXT_TEXTE.includes(extension)) {
@@ -207,7 +203,7 @@ export default async function handler(req) {
     const semaine  = await reserverAppelIA(supabase, tenantIdReel);
 
     const anthropic = new Anthropic();
-    const prompt    = buildPrompt(produits, clients, contexte, EXT_TABULAIRE.includes(extLower));
+    const prompt    = buildPrompt(produits, clients, contexte);
     const content   = buildContent({ fichier, texte }, extLower, prompt);
 
     const response = await anthropic.messages.create({
