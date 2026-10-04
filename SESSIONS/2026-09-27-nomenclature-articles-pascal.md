@@ -703,3 +703,69 @@ node --check du script module de app.html, suite de tests unitaires
 (2/2) toujours verte, recherche de toute référence résiduelle à
 l'ancien data-action="date-of" (aucune), vérification du nouveau scope
 _produitsCommandes() contre les données réelles du tenant.
+
+## Test de création en direct + bugs calendrier de production (2026-10-04)
+
+Demande : tester la création d'une commande en direct. Pas d'outil
+navigateur disponible dans cette session (confirmé par recherche d'outils)
+— test fait en écrivant directement dans Supabase, en reproduisant
+exactement la séquence de code (createCommande → ligne → creerOFsPourCommande) :
+commande TEST-CMD-06 (initialement insérée comme CMD0005, renommée —
+voir bug ci-dessous), ligne Confiture Cassis 230g, OF implicite créé et
+rattaché à sa ligne, date de production assignée. Chaînage vérifié
+correct de bout en bout.
+
+Bug trouvé pendant ce test et corrigé immédiatement : la commande de
+test avait pris la référence "CMD0005" en l'insérant à la main, alors
+que le compteur serveur (table compteurs, utilisé par next_ref() pour
+toute vraie commande créée depuis l'appli) était à 4 — la prochaine
+commande réelle de l'artisan aurait donc tenté de prendre cette même
+référence et échoué (contrainte unique tenant_id+ref). Renommée en
+TEST-CMD-06 pour libérer "CMD0005" ; le compteur réel n'a pas été
+touché, aucun risque pour les prochaines commandes.
+
+Signalement utilisateur juste après (calendrier) :
+1. Le calendrier ne reflétait pas toujours la date choisie.
+2. D'autres OF (déjà planifiés, pas "non planifiés" au sens littéral)
+   restaient affichés au calendrier alors qu'ils n'auraient plus dû.
+3. Demande d'affichage du nom client + référence commande sur chaque
+   item du calendrier.
+
+Diagnostic (données réelles) :
+- Bug réel n°1 — today() et le calcul de la date de chaque case du
+  calendrier utilisaient `Date.toISOString()` sur un Date construit en
+  heure locale : cette conversion repasse par UTC et peut faire glisser
+  le jour d'un cran selon l'heure et le fuseau (France). Corrigé par
+  une nouvelle fonction _dateLocaleISO() qui lit année/mois/jour en
+  local, sans passer par UTC — utilisée pour le calcul de chaque case
+  et du jour "aujourd'hui" du calendrier (le today() global de ui.js,
+  utilisé partout ailleurs dans l'appli pour horodater des documents,
+  n'a pas été touché — changement bien plus large, à traiter à part
+  si besoin).
+- Bug réel n°2, cause racine trouvée dans les données elles-mêmes :
+  OF0001/0002/0003 (liés à TEST-CMD-03) avaient encore une date
+  planifiée et un statut non clos, alors que TEST-CMD-03 est déjà
+  passée en "En facturation" — la commande a changé de statut en
+  sautant directement de "à produire" à "en facturation" (le menu
+  déroulant permet n'importe quel statut, sans ordre imposé), donc
+  cloturerOFsPourCommande n'a jamais tourné pour ces OF : ils restent
+  indéfiniment actifs et donc affichés au calendrier. Corrigé des deux
+  côtés : (a) ces 3 OF orphelins passés en statut "annule" (nettoyage
+  des données réelles de ce tenant) ; (b) le calendrier n'affiche plus
+  désormais un OF dont la commande d'origine est déjà
+  expédiée/en facturation/annulée, même s'il n'a jamais été clôturé lui-même
+  (nouvelle fonction _commandeDeOF() + filtre dans _calDayCellHtml).
+  Signalé à l'utilisateur sans corriger : le menu déroulant permet
+  toujours de sauter des étapes et de recréer ce même type d'orphelin —
+  option proposée (fermer automatiquement la production en retard si
+  on saute direct à Expédié/En facturation) mais pas implémentée sans
+  confirmation, c'est un choix de comportement métier.
+3. Chaque item du calendrier affiche maintenant la référence commande
+   et le prénom du client sous le nom du produit (et dans le title au
+   survol).
+
+Vérifié avant livraison : node --check production.js, extraction +
+node --check du script module de app.html, suite de tests unitaires
+(2/2) toujours verte, requête Supabase confirmant qu'il ne reste plus
+aucun OF orphelin (daté, non clos, commande déjà terminale) sur ce
+tenant après le nettoyage.

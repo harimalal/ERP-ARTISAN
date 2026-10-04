@@ -139,10 +139,37 @@ function _calModeButtonsUI() {
   });
 }
 
+/* Date locale en YYYY-MM-DD — jamais toISOString() sur un Date construit
+   en local (il convertit en UTC et peut faire glisser le jour d'un cran
+   selon l'heure et le fuseau, cas réel en France en début de journée). */
+function _dateLocaleISO(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const j = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${j}`;
+}
+
+/* Commande d'origine d'un OF (via commandes_ids[0], posé à la création —
+   voir creerOFsPourCommande). Sert à la fois à n'afficher au calendrier
+   que les OF dont la commande est encore active, et à afficher la
+   référence + le client sur chaque item. */
+function _commandeDeOF(of_) {
+  const cid = Array.isArray(of_.commandes_ids) ? of_.commandes_ids[0] : null;
+  return cid ? _commandes.find(c => c.id === cid) : null;
+}
+
 function _calDayCellHtml(day, jourLabel, todayStr) {
-  const ds      = day.toISOString().split('T')[0];
+  const ds      = _dateLocaleISO(day);
   const isToday = ds === todayStr;
-  const ofDay   = _ofs.filter(o => o.date_prevue === ds && !['clos', 'annule'].includes(o.statut));
+  /* Un OF dont la commande est déjà expédiée/facturée/annulée n'a plus
+     rien à faire au calendrier, même s'il n'a jamais été clôturé lui-même
+     (ex. une commande passée directement de "à produire" à "expédié" en
+     sautant "prêt" — la production n'a jamais été clôturée pour cet OF). */
+  const ofDay = _ofs.filter(o => {
+    if (o.date_prevue !== ds || ['clos', 'annule'].includes(o.statut)) return false;
+    const cmd = _commandeDeOF(o);
+    return !cmd || !_estTerminale(cmd);
+  });
   const cmdDay  = _commandes.filter(c => c.date_livraison === ds && !_estTerminale(c));
 
   return `<div class="cal-day">
@@ -150,8 +177,11 @@ function _calDayCellHtml(day, jourLabel, todayStr) {
       <div class="cal-day-body" style="min-height:60px;">
         ${ofDay.map(o => {
           const col = CAL_COLORS[o.statut] || CAL_COLORS['planifie'];
-          return `<div class="cal-item" style="background:${col.bg};border-left:3px solid ${col.brd};color:${col.txt};border-radius:4px;padding:3px 6px;margin-bottom:3px;font-size:10.5px;line-height:1.3;" title="${esc(o.produit_nom)} ×${o.quantite} — ${esc(o.statut)}">
+          const cmd = _commandeDeOF(o);
+          const refClient = cmd ? `${cmd.ref} — ${cmd.client_nom}` : '';
+          return `<div class="cal-item" style="background:${col.bg};border-left:3px solid ${col.brd};color:${col.txt};border-radius:4px;padding:3px 6px;margin-bottom:3px;font-size:10.5px;line-height:1.3;" title="${esc(o.produit_nom)} ×${o.quantite}${refClient ? ' — ' + esc(refClient) : ''}">
             🍳 ${esc((o.produit_nom || '').split(' ').slice(0, 2).join(' '))} ×${o.quantite}
+            ${cmd ? `<br><span style="font-size:9px;opacity:.75;">${esc(cmd.ref)} · ${esc((cmd.client_nom || '').split(' ')[0])}</span>` : ''}
           </div>`;
         }).join('')}
         ${cmdDay.map(c => `<div class="cal-item cmd" title="Livraison ${esc(c.client_nom)}">📦 ${esc((c.client_nom || '').split(' ')[0])}</div>`).join('')}
@@ -171,7 +201,7 @@ function _mondayOf(date) {
    en cours) qui démarre elle aussi à la semaine en cours. _calOffset avance
    par blocs de nbJours, propre à chaque vue. */
 function _renderGrilleParSemaines(nbJours, mode) {
-  const todayStr = today();
+  const todayStr = _dateLocaleISO(new Date());
   const monday   = _mondayOf(new Date());
   monday.setDate(monday.getDate() + _calOffset * nbJours);
 
