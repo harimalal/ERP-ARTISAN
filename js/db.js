@@ -804,6 +804,28 @@ export async function updateFactureStatut(id, statut) {
   return data;
 }
 
+export async function updateFacture(id, changes) {
+  const { data, error } = await supabase
+    .from('factures')
+    .update(changes)
+    .eq('id', id)
+    .eq('tenant_id', tid())
+    .select()
+    .single();
+  if (error) handleError('updateFacture', error);
+  return data;
+}
+
+/* Les lignes (facture_lignes) partent en cascade (FK ON DELETE CASCADE). */
+export async function deleteFacture(id) {
+  const { error } = await supabase
+    .from('factures')
+    .delete()
+    .eq('id', id)
+    .eq('tenant_id', tid());
+  if (error) handleError('deleteFacture', error);
+}
+
 /* -------------------------------------------------------
    MESSAGES À L'ÉQUIPE — mini tableau type Trello (Admin)
 ------------------------------------------------------- */

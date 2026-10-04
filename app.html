@@ -661,7 +661,7 @@
         <option value="a_lancer">À lancer</option>
         <option value="facture" selected>Facturée</option>
         <option value="a_relancer">À relancer</option>
-        <option value="paye">Payée</option>
+        <option value="regle">Payée</option>
       </select>
     </div>
     <div class="form-group full"><label>Description / objet</label><input type="text" id="nfDescription" placeholder="Vente confitures — Lot printemps…"></div>
@@ -703,15 +703,18 @@
         <option value="a_lancer">À lancer</option>
         <option value="facture">Facturée</option>
         <option value="a_relancer">À relancer</option>
-        <option value="paye">Payée ✓</option>
+        <option value="regle">Payée ✓</option>
       </select>
     </div>
     <div class="form-group full"><label>Notes</label><textarea id="efNotes" rows="2"></textarea></div>
   </div>
   <input type="hidden" id="efId">
-  <div class="form-actions">
-    <button class="btn btn-primary" id="btnSaveEditFacture">Enregistrer</button>
-    <button class="btn btn-ghost" data-close="modalEditFacture">Annuler</button>
+  <div class="form-actions between">
+    <button class="btn btn-danger btn-sm" id="btnDeleteFacture">Supprimer définitivement</button>
+    <div style="display:flex;gap:7px;">
+      <button class="btn btn-primary" id="btnSaveEditFacture">Enregistrer</button>
+      <button class="btn btn-ghost" data-close="modalEditFacture">Annuler</button>
+    </div>
   </div>
 </div></div>
 
@@ -1155,14 +1158,16 @@ function setActiveNav(page) {
       const tva = parseFloat(document.getElementById('efTva').value) || 20;
       try {
         if (livraisons.saveEditFacture) {
+          /* montant_ttc est une colonne générée en base à partir de
+             montant_ht et taux_tva — jamais dans le payload (Règle Supabase).
+             La table factures n'a pas de colonne notes — le champ reste
+             affiché pour contexte pendant la saisie, pas encore persisté. */
           await livraisons.saveEditFacture(id, {
             date_facture: document.getElementById('efDate').value,
             client_nom:   document.getElementById('efClient').value,
             montant_ht:   montantHt,
             taux_tva:     tva,
-            montant_ttc:  montantHt * (1 + tva / 100),
             statut:       document.getElementById('efStatut').value,
-            notes:        document.getElementById('efNotes').value,
           });
         }
         closeModal('modalEditFacture');
@@ -1170,6 +1175,11 @@ function setActiveNav(page) {
         console.error('[modalEditFacture] ERREUR:', err.message);
         alert('Erreur enregistrement : ' + err.message);
       }
+    });
+
+    document.getElementById('btnDeleteFacture')?.addEventListener('click', async () => {
+      const id = document.getElementById('efId').value;
+      if (id && livraisons.supprimerFacture) await livraisons.supprimerFacture(id);
     });
 
 
