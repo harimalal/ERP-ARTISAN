@@ -1,0 +1,27 @@
+{
+  "tenantId": "1974f3d5-20fd-4260-9409-da21c110b6dd",
+  "tenantNom": "CONFITURE JEAN SARL",
+  "source": "Supabase AppMee, tables clients et produits du tenant de test, relevé du 2026-10-05",
+  "clients": [
+    "Bio Nature Épicerie",
+    "Boulangerie Saint-Michel",
+    "Chocolaterie Bertrand",
+    "Comptoir des Saveurs",
+    "Épicerie Bio des Vignes",
+    "Épicerie du Vieux Port",
+    "Épicerie Fine du Marais",
+    "L'Atelier Gourmand Hôtel & Spa",
+    "La Ferme Gourmande",
+    "Maison Delices & Terroir",
+    "Table & Terroir Traiteur"
+  ],
+  "produits": [
+    { "ref": "PF001", "nom": "Confiture Framboise" },
+    { "ref": "PF003", "nom": "Confiture Fraise" },
+    { "ref": "PF005", "nom": "Confiture Abricot" },
+    { "ref": "PF007", "nom": "Confiture Figue" },
+    { "ref": "PF008", "nom": "Confiture Cassis" },
+    { "ref": "PF009", "nom": "Confiture 4 Fruits Rouges" },
+    { "ref": "PF010", "nom": "Coffret Découverte (3 pots 350g)" }
+  ]
+}
