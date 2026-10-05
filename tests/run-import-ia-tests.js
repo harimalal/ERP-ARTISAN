@@ -8,6 +8,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import { getTestToken } from './auth-token.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -21,8 +22,8 @@ if (fs.existsSync(envPath)) {
 }
 
 // Vérifier les credentials
-const { SUPABASE_URL, SUPABASE_SERVICE_KEY, TENANT_ID, ANTHROPIC_API_KEY } = process.env;
-const required = { SUPABASE_URL, SUPABASE_SERVICE_KEY, TENANT_ID, ANTHROPIC_API_KEY };
+const { SUPABASE_URL, SUPABASE_SERVICE_KEY, TENANT_ID, ANTHROPIC_API_KEY, NETLIFY_FUNCTION_URL } = process.env;
+const required = { SUPABASE_URL, SUPABASE_SERVICE_KEY, TENANT_ID, ANTHROPIC_API_KEY, NETLIFY_FUNCTION_URL };
 
 const missing = Object.entries(required)
   .filter(([_, val]) => !val)
@@ -140,7 +141,7 @@ console.log('\n');
 // =========================================================
 // Fonction de test
 // =========================================================
-async function runTest(testCase) {
+async function runTest(testCase, token) {
   const { id, name, content, expected } = testCase;
 
   console.log(`\n${'═'.repeat(60)}`);
@@ -148,19 +149,17 @@ async function runTest(testCase) {
   console.log(`${'═'.repeat(60)}`);
 
   try {
-    // Appel à la Netlify Function locale
-    // Attention: remplacer par l'URL réelle en prod
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/ai_analyse_bc`, {
+    // Appel à la Netlify Function
+    const response = await fetch(NETLIFY_FUNCTION_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         texte: content,
         extension: 'txt', // Tous en texte pour ce test
         tenantId: TENANT_ID,
-        token: null, // Pas de token en test direct
+        token: token, // Token d'authentification valide
         produits: [],
         clients: []
       })
@@ -221,9 +220,18 @@ async function runTest(testCase) {
 // =========================================================
 console.log(`🚀 Lancement de ${testCases.length} tests...\n`);
 
+let token;
+try {
+  token = await getTestToken();
+  console.log('✓ Token d\'authentification obtenu\n');
+} catch (err) {
+  console.error('❌ Impossible d\'obtenir un token:', err.message);
+  process.exit(1);
+}
+
 const results = [];
 for (const tc of testCases) {
-  const passed = await runTest(testData[tc.id]);
+  const passed = await runTest(testData[tc.id], token);
   results.push({ name: tc.name, passed });
 }
 
